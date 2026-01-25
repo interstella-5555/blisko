@@ -20,11 +20,13 @@ export default function TabsLayout() {
     });
 
   useEffect(() => {
-    if (profileData !== undefined) {
+    // Only set profile from query if we haven't checked yet
+    // This prevents overwriting a profile that was just created in onboarding
+    if (profileData !== undefined && !hasCheckedProfile) {
       setProfile(profileData);
       setHasCheckedProfile(true);
     }
-  }, [profileData, setProfile, setHasCheckedProfile]);
+  }, [profileData, hasCheckedProfile, setProfile, setHasCheckedProfile]);
 
   if (isLoading || (user && !hasCheckedProfile && isLoadingProfile)) {
     return (
@@ -40,7 +42,8 @@ export default function TabsLayout() {
   }
 
   // If logged in but no profile, redirect to onboarding
-  if (hasCheckedProfile && !profile) {
+  // Note: Check !profile directly - if profile exists in store (e.g., just created), don't redirect
+  if (!profile && hasCheckedProfile) {
     return <Redirect href="/onboarding" />;
   }
 

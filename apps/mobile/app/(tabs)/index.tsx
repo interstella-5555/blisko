@@ -95,6 +95,9 @@ export default function NearbyScreen() {
       });
     } catch (error) {
       console.error('Error getting location:', error);
+      // Set permission to denied so we show the error screen instead of infinite loading
+      // This handles cases where permission is granted but location services are off
+      setPermissionStatus('denied');
     }
   };
 

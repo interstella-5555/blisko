@@ -17,6 +17,7 @@ import { trpc } from '../../src/lib/trpc';
 export default function OnboardingLookingForScreen() {
   const { displayName, bio, lookingFor, setLookingFor, complete } = useOnboardingStore();
   const setProfile = useAuthStore((state) => state.setProfile);
+  const setHasCheckedProfile = useAuthStore((state) => state.setHasCheckedProfile);
   const [text, setText] = useState(lookingFor);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -38,8 +39,12 @@ export default function OnboardingLookingForScreen() {
       });
       // Save profile to auth store so tabs layout knows we have a profile
       setProfile(newProfile);
+      setHasCheckedProfile(true);
       complete();
-      router.replace('/(tabs)');
+      // Small delay to ensure state is propagated before navigation
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 100);
     } catch (err) {
       console.error('Failed to create profile:', err);
       setError('Nie udalo sie utworzyc profilu. Sprobuj ponownie.');

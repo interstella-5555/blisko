@@ -1,0 +1,93 @@
+appId: com.meet.app
+---
+# Onboarding E2E Test (Development Build)
+# Logs in with @example.com email, completes onboarding, lands on W okolicy tab
+
+- launchApp:
+    clearState: true
+    permissions:
+      location: always
+
+# Dev build shows launcher - tap on localhost to connect
+- extendedWaitUntil:
+    visible: "http://localhost:8081"
+    timeout: 15000
+- tapOn: "http://localhost:8081"
+
+# Wait for app to load and developer menu to appear
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 30000
+
+# Dismiss first developer menu
+- tapOn: "Continue"
+
+# Wait for second developer menu (with Go home)
+- extendedWaitUntil:
+    visible: "Go home"
+    timeout: 10000
+
+# Tap outside modal to dismiss it
+- tapOn:
+    point: "50%,10%"
+- waitForAnimationToEnd
+
+# Wait for login screen
+- extendedWaitUntil:
+    visible:
+      id: "email-input"
+    timeout: 30000
+
+# Enter unique email - use inputRandomNumber for unique ID
+- tapOn:
+    id: "email-input"
+- inputRandomNumber
+- inputText: "@example.com"
+- hideKeyboard
+
+# Submit login
+- tapOn: "Wyślij link"
+
+# Wait for onboarding step 1 (1/3)
+- extendedWaitUntil:
+    visible: "1 / 3"
+    timeout: 30000
+
+# Step 1: Name
+- tapOn: "Twoje imie"
+- inputText: "Test User"
+- hideKeyboard
+- tapOn: "Dalej"
+
+# Wait for step 2 (2/3)
+- extendedWaitUntil:
+    visible: "2 / 3"
+    timeout: 10000
+
+# Step 2: Bio
+- tapOn: ".*Napisz kilka.*"
+- inputText: "Testowy uzytkownik e2e"
+- hideKeyboard
+- tapOn: "Dalej"
+
+# Wait for step 3 (3/3)
+- extendedWaitUntil:
+    visible: "3 / 3"
+    timeout: 10000
+
+# Step 3: Looking for
+- tapOn: ".*Szukam kogos.*"
+- inputText: "Szukam znajomych"
+- hideKeyboard
+- tapOn: "Rozpocznij"
+
+# Set simulated location (Warsaw) so the app can get location
+- setLocation:
+    latitude: 52.2297
+    longitude: 21.0122
+
+# Verify we landed on W okolicy tab
+- extendedWaitUntil:
+    visible: "W okolicy"
+    timeout: 30000
+- assertVisible: "W okolicy"

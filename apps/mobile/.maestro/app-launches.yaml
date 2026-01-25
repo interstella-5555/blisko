@@ -1,4 +1,0 @@
-appId: com.meet.app
----
-- launchApp
-- assertVisible: "Meet"
