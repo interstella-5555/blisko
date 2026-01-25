@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "Meet",
+    "slug": "meet",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "scheme": "meet",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.meet.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Meet potrzebuje dostępu do lokalizacji, aby pokazać osoby w Twojej okolicy.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Meet potrzebuje dostępu do lokalizacji, aby powiadamiać Cię o osobach w okolicy."
+      }
+    },
+    "android": {
+      "package": "com.meet.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Meet potrzebuje dostępu do lokalizacji, aby powiadamiać Cię o osobach w okolicy."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

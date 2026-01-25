@@ -1,0 +1,11 @@
+appId: com.meet.app
+---
+- launchApp
+- assertVisible: "Meet"
+- assertVisible: "Poznawaj ludzi"
+- tapOn:
+    id: "email-input"
+- inputText: "test@example.com"
+- tapOn: "Wyślij link"
+- assertVisible: "Sprawdź email"
+- assertVisible: "test@example.com"

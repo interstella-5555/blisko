@@ -1,0 +1,60 @@
+import { z } from 'zod';
+
+// Profile validators
+export const createProfileSchema = z.object({
+  displayName: z.string().min(2).max(50),
+  bio: z.string().min(10).max(500),
+  lookingFor: z.string().min(10).max(500),
+});
+
+export const updateProfileSchema = z.object({
+  displayName: z.string().min(2).max(50).optional(),
+  bio: z.string().min(10).max(500).optional(),
+  lookingFor: z.string().min(10).max(500).optional(),
+  avatarUrl: z.string().url().optional(),
+});
+
+export const updateLocationSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+});
+
+// Wave validators
+export const sendWaveSchema = z.object({
+  toUserId: z.string().uuid(),
+  message: z.string().max(200).optional(),
+});
+
+export const respondToWaveSchema = z.object({
+  waveId: z.string().uuid(),
+  accept: z.boolean(),
+});
+
+// Message validators
+export const sendMessageSchema = z.object({
+  conversationId: z.string().uuid(),
+  content: z.string().min(1).max(2000),
+});
+
+// Nearby users query
+export const getNearbyUsersSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  radiusMeters: z.number().min(100).max(50000).default(5000),
+  limit: z.number().min(1).max(50).default(20),
+});
+
+// Block validator
+export const blockUserSchema = z.object({
+  userId: z.string().uuid(),
+});
+
+// Type exports from schemas
+export type CreateProfileInput = z.infer<typeof createProfileSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type UpdateLocationInput = z.infer<typeof updateLocationSchema>;
+export type SendWaveInput = z.infer<typeof sendWaveSchema>;
+export type RespondToWaveInput = z.infer<typeof respondToWaveSchema>;
+export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+export type GetNearbyUsersInput = z.infer<typeof getNearbyUsersSchema>;
+export type BlockUserInput = z.infer<typeof blockUserSchema>;
