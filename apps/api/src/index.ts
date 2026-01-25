@@ -29,7 +29,8 @@ app.on(['POST', 'GET'], '/api/auth/*', (c) => {
 });
 
 // Dev-only: Auto-login for @example.com emails (bypasses magic link)
-if (process.env.NODE_ENV !== 'production') {
+// Enable with ENABLE_DEV_LOGIN=true for testing on staging/production
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEV_LOGIN === 'true') {
   app.post('/dev/auto-login', async (c) => {
     try {
       const { email } = await c.req.json();
