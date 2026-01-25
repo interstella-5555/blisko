@@ -1,5 +1,6 @@
 import { createTRPCReact } from '@trpc/react-query';
 import { httpBatchLink } from '@trpc/client';
+import * as SecureStore from 'expo-secure-store';
 import { authClient } from './auth';
 
 // Import AppRouter type from api package
@@ -23,12 +24,18 @@ export const trpcClient = trpc.createClient({
     httpBatchLink({
       url: `${getApiUrl()}/trpc`,
       async headers() {
+        // Try Better Auth session first
         const { data } = await authClient.getSession();
+        if (data?.session?.token) {
+          return {
+            authorization: `Bearer ${data.session.token}`,
+          };
+        }
 
+        // Fallback to SecureStore (for dev auto-login)
+        const token = await SecureStore.getItemAsync('meet_session_token');
         return {
-          authorization: data?.session?.token
-            ? `Bearer ${data.session.token}`
-            : '',
+          authorization: token ? `Bearer ${token}` : '',
         };
       },
     }),

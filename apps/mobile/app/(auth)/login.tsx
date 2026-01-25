@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { authClient } from '../../src/lib/auth';
 import { useAuthStore } from '../../src/stores/authStore';
 
@@ -46,6 +47,21 @@ export default function LoginScreen() {
         }
 
         const data = await response.json();
+
+        // Save session to SecureStore so authClient.getSession() can read it
+        // Better Auth expo client uses this format
+        await SecureStore.setItemAsync(
+          'meet_session_token',
+          data.session.token
+        );
+        await SecureStore.setItemAsync(
+          'meet_session_data',
+          JSON.stringify({
+            session: data.session,
+            user: data.user,
+          })
+        );
+
         setUser(data.user);
         setSession({
           ...data.session,
