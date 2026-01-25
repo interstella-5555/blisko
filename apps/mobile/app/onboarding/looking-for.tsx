@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useOnboardingStore } from '../../src/stores/onboardingStore';
+import { useAuthStore } from '../../src/stores/authStore';
 import { trpc } from '../../src/lib/trpc';
 
 export default function OnboardingLookingForScreen() {
   const { displayName, bio, lookingFor, setLookingFor, complete } = useOnboardingStore();
+  const setProfile = useAuthStore((state) => state.setProfile);
   const [text, setText] = useState(lookingFor);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -29,11 +31,13 @@ export default function OnboardingLookingForScreen() {
     setError('');
 
     try {
-      await createProfile.mutateAsync({
+      const newProfile = await createProfile.mutateAsync({
         displayName,
         bio,
         lookingFor: text.trim(),
       });
+      // Save profile to auth store so tabs layout knows we have a profile
+      setProfile(newProfile);
       complete();
       router.replace('/(tabs)');
     } catch (err) {
