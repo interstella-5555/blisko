@@ -7,20 +7,77 @@ import {
   varchar,
   index,
   primaryKey,
+  boolean,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// Profiles table (extends Supabase auth.users)
+// Better Auth tables (managed by better-auth)
+export const user = pgTable('user', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  emailVerified: boolean('email_verified').notNull().default(false),
+  image: text('image'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const session = pgTable('session', {
+  id: text('id').primaryKey(),
+  expiresAt: timestamp('expires_at').notNull(),
+  token: text('token').notNull().unique(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+});
+
+export const account = pgTable('account', {
+  id: text('id').primaryKey(),
+  accountId: text('account_id').notNull(),
+  providerId: text('provider_id').notNull(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  idToken: text('id_token'),
+  accessTokenExpiresAt: timestamp('access_token_expires_at'),
+  refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+  scope: text('scope'),
+  password: text('password'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const verification = pgTable('verification', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// App-specific tables
+
+// Profiles table (extends Better Auth user)
 export const profiles = pgTable(
   'profiles',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id').notNull().unique(), // References auth.users
+    userId: text('user_id')
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: 'cascade' }),
     displayName: varchar('display_name', { length: 50 }).notNull(),
     avatarUrl: text('avatar_url'),
     bio: text('bio').notNull(),
     lookingFor: text('looking_for').notNull(),
-    embedding: real('embedding').array(), // Vector for AI matching
+    embedding: real('embedding').array(),
     latitude: real('latitude'),
     longitude: real('longitude'),
     lastLocationUpdate: timestamp('last_location_update'),
@@ -41,14 +98,14 @@ export const waves = pgTable(
   'waves',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    fromUserId: uuid('from_user_id')
+    fromUserId: text('from_user_id')
       .notNull()
-      .references(() => profiles.userId),
-    toUserId: uuid('to_user_id')
+      .references(() => user.id),
+    toUserId: text('to_user_id')
       .notNull()
-      .references(() => profiles.userId),
+      .references(() => user.id),
     message: text('message'),
-    status: varchar('status', { length: 20 }).notNull().default('pending'), // pending, accepted, declined
+    status: varchar('status', { length: 20 }).notNull().default('pending'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => ({
@@ -72,9 +129,9 @@ export const conversationParticipants = pgTable(
     conversationId: uuid('conversation_id')
       .notNull()
       .references(() => conversations.id),
-    userId: uuid('user_id')
+    userId: text('user_id')
       .notNull()
-      .references(() => profiles.userId),
+      .references(() => user.id),
     joinedAt: timestamp('joined_at').defaultNow().notNull(),
   },
   (table) => ({
@@ -92,15 +149,17 @@ export const messages = pgTable(
     conversationId: uuid('conversation_id')
       .notNull()
       .references(() => conversations.id),
-    senderId: uuid('sender_id')
+    senderId: text('sender_id')
       .notNull()
-      .references(() => profiles.userId),
+      .references(() => user.id),
     content: text('content').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     readAt: timestamp('read_at'),
   },
   (table) => ({
-    conversationIdx: index('messages_conversation_idx').on(table.conversationId),
+    conversationIdx: index('messages_conversation_idx').on(
+      table.conversationId
+    ),
     senderIdx: index('messages_sender_idx').on(table.senderId),
     createdAtIdx: index('messages_created_at_idx').on(table.createdAt),
   })
@@ -111,12 +170,12 @@ export const blocks = pgTable(
   'blocks',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    blockerId: uuid('blocker_id')
+    blockerId: text('blocker_id')
       .notNull()
-      .references(() => profiles.userId),
-    blockedId: uuid('blocked_id')
+      .references(() => user.id),
+    blockedId: text('blocked_id')
       .notNull()
-      .references(() => profiles.userId),
+      .references(() => user.id),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => ({
@@ -130,11 +189,11 @@ export const pushTokens = pgTable(
   'push_tokens',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id')
+    userId: text('user_id')
       .notNull()
-      .references(() => profiles.userId),
+      .references(() => user.id),
     token: text('token').notNull().unique(),
-    platform: varchar('platform', { length: 10 }).notNull(), // ios, android
+    platform: varchar('platform', { length: 10 }).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => ({
@@ -143,7 +202,17 @@ export const pushTokens = pgTable(
 );
 
 // Relations
-export const profilesRelations = relations(profiles, ({ many }) => ({
+export const userRelations = relations(user, ({ one, many }) => ({
+  profile: one(profiles),
+  sessions: many(session),
+  accounts: many(account),
+}));
+
+export const profilesRelations = relations(profiles, ({ one, many }) => ({
+  user: one(user, {
+    fields: [profiles.userId],
+    references: [user.id],
+  }),
   sentWaves: many(waves, { relationName: 'sentWaves' }),
   receivedWaves: many(waves, { relationName: 'receivedWaves' }),
   conversations: many(conversationParticipants),
@@ -154,14 +223,14 @@ export const profilesRelations = relations(profiles, ({ many }) => ({
 }));
 
 export const wavesRelations = relations(waves, ({ one }) => ({
-  fromUser: one(profiles, {
+  fromUser: one(user, {
     fields: [waves.fromUserId],
-    references: [profiles.userId],
+    references: [user.id],
     relationName: 'sentWaves',
   }),
-  toUser: one(profiles, {
+  toUser: one(user, {
     fields: [waves.toUserId],
-    references: [profiles.userId],
+    references: [user.id],
     relationName: 'receivedWaves',
   }),
 }));
@@ -178,9 +247,9 @@ export const conversationParticipantsRelations = relations(
       fields: [conversationParticipants.conversationId],
       references: [conversations.id],
     }),
-    user: one(profiles, {
+    user: one(user, {
       fields: [conversationParticipants.userId],
-      references: [profiles.userId],
+      references: [user.id],
     }),
   })
 );
@@ -190,28 +259,42 @@ export const messagesRelations = relations(messages, ({ one }) => ({
     fields: [messages.conversationId],
     references: [conversations.id],
   }),
-  sender: one(profiles, {
+  sender: one(user, {
     fields: [messages.senderId],
-    references: [profiles.userId],
+    references: [user.id],
   }),
 }));
 
 export const blocksRelations = relations(blocks, ({ one }) => ({
-  blocker: one(profiles, {
+  blocker: one(user, {
     fields: [blocks.blockerId],
-    references: [profiles.userId],
+    references: [user.id],
     relationName: 'blocker',
   }),
-  blocked: one(profiles, {
+  blocked: one(user, {
     fields: [blocks.blockedId],
-    references: [profiles.userId],
+    references: [user.id],
     relationName: 'blocked',
   }),
 }));
 
 export const pushTokensRelations = relations(pushTokens, ({ one }) => ({
-  user: one(profiles, {
+  user: one(user, {
     fields: [pushTokens.userId],
-    references: [profiles.userId],
+    references: [user.id],
+  }),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, {
+    fields: [session.userId],
+    references: [user.id],
+  }),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
   }),
 }));

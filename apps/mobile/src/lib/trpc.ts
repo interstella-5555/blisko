@@ -1,10 +1,8 @@
 import { createTRPCReact } from '@trpc/react-query';
 import { httpBatchLink } from '@trpc/client';
-import { supabase } from './supabase';
+import { authClient } from './auth';
 
 // Import AppRouter type from api package
-// In development, this uses the type directly
-// For production, you need to ensure types are built
 import type { AppRouter } from 'api/src/trpc/router';
 
 export type { AppRouter };
@@ -25,13 +23,11 @@ export const trpcClient = trpc.createClient({
     httpBatchLink({
       url: `${getApiUrl()}/trpc`,
       async headers() {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const { data } = await authClient.getSession();
 
         return {
-          authorization: session?.access_token
-            ? `Bearer ${session.access_token}`
+          authorization: data?.session?.token
+            ? `Bearer ${data.session.token}`
             : '',
         };
       },

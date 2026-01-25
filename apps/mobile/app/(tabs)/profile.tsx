@@ -6,13 +6,15 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAuthStore } from '../../src/stores/authStore';
-import { supabase } from '../../src/lib/supabase';
+import { authClient } from '../../src/lib/auth';
 
 export default function ProfileScreen() {
-  const session = useAuthStore((state) => state.session);
+  const user = useAuthStore((state) => state.user);
+  const reset = useAuthStore((state) => state.reset);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await authClient.signOut();
+    reset();
   };
 
   return (
@@ -21,7 +23,7 @@ export default function ProfileScreen() {
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>👤</Text>
         </View>
-        <Text style={styles.email}>{session?.user.email}</Text>
+        <Text style={styles.email}>{user?.email}</Text>
       </View>
 
       <View style={styles.section}>

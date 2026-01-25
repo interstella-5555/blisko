@@ -1,12 +1,32 @@
+import { useEffect } from 'react';
 import { Redirect, Tabs } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
 import { View, ActivityIndicator, Text } from 'react-native';
+import { trpc } from '../../src/lib/trpc';
 
 export default function TabsLayout() {
-  const session = useAuthStore((state) => state.session);
+  const user = useAuthStore((state) => state.user);
+  const profile = useAuthStore((state) => state.profile);
   const isLoading = useAuthStore((state) => state.isLoading);
+  const hasCheckedProfile = useAuthStore((state) => state.hasCheckedProfile);
+  const setProfile = useAuthStore((state) => state.setProfile);
+  const setHasCheckedProfile = useAuthStore(
+    (state) => state.setHasCheckedProfile
+  );
 
-  if (isLoading) {
+  const { data: profileData, isLoading: isLoadingProfile } =
+    trpc.profiles.me.useQuery(undefined, {
+      enabled: !!user && !hasCheckedProfile,
+    });
+
+  useEffect(() => {
+    if (profileData !== undefined) {
+      setProfile(profileData);
+      setHasCheckedProfile(true);
+    }
+  }, [profileData, setProfile, setHasCheckedProfile]);
+
+  if (isLoading || (user && !hasCheckedProfile && isLoadingProfile)) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
@@ -15,8 +35,13 @@ export default function TabsLayout() {
   }
 
   // If not logged in, redirect to auth
-  if (!session) {
+  if (!user) {
     return <Redirect href="/(auth)/login" />;
+  }
+
+  // If logged in but no profile, redirect to onboarding
+  if (hasCheckedProfile && !profile) {
+    return <Redirect href="/onboarding" />;
   }
 
   return (

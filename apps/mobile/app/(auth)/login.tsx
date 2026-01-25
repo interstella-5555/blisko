@@ -9,12 +9,16 @@ import {
   Platform,
 } from 'react-native';
 import { router } from 'expo-router';
-import { supabase } from '../../src/lib/supabase';
+import { authClient } from '../../src/lib/auth';
+import { useAuthStore } from '../../src/stores/authStore';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { setUser, setSession } = useAuthStore();
 
   const handleSendMagicLink = async () => {
     if (!email.trim()) {
@@ -25,24 +29,59 @@ export default function LoginScreen() {
     setIsLoading(true);
     setError(null);
 
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: 'meet://auth/callback',
-      },
-    });
+    // Dev auto-login for @example.com emails
+    if (email.trim().endsWith('@example.com')) {
+      try {
+        const response = await fetch(`${API_URL}/dev/auto-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim() }),
+        });
 
-    setIsLoading(false);
+        if (!response.ok) {
+          const data = await response.json();
+          setError(data.error || 'Auto-login failed');
+          setIsLoading(false);
+          return;
+        }
 
-    if (authError) {
-      setError(authError.message);
-      return;
+        const data = await response.json();
+        setUser(data.user);
+        setSession({
+          ...data.session,
+          expiresAt: new Date(data.session.expiresAt),
+        });
+
+        router.replace('/(tabs)');
+        return;
+      } catch (err) {
+        setError('Dev auto-login failed');
+        setIsLoading(false);
+        return;
+      }
     }
 
-    router.push({
-      pathname: '/(auth)/verify',
-      params: { email: email.trim() },
-    });
+    try {
+      const result = await authClient.signIn.magicLink({
+        email: email.trim(),
+        callbackURL: 'meet://auth/callback',
+      });
+
+      if (result.error) {
+        setError(result.error.message || 'Wystąpił błąd');
+        setIsLoading(false);
+        return;
+      }
+
+      router.push({
+        pathname: '/(auth)/verify',
+        params: { email: email.trim() },
+      });
+    } catch (err) {
+      setError('Nie udało się wysłać linku');
+    }
+
+    setIsLoading(false);
   };
 
   return (

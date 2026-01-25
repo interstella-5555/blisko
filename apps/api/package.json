@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "build": "bun build src/index.ts --outdir=dist --target=bun",
-    "start": "bun run dist/index.js",
+    "start": "bun run src/index.ts",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
@@ -18,17 +18,19 @@
     "@hono/node-server": "^1.19.9",
     "@hono/trpc-server": "^0.3.0",
     "@meet/shared": "workspace:*",
-    "@supabase/supabase-js": "^2.45.0",
     "@trpc/server": "^11.0.0-rc.0",
-    "drizzle-orm": "^0.33.0",
+    "better-auth": "^1.4.17",
+    "drizzle-orm": "^0.45.1",
     "hono": "^4.5.0",
     "openai": "^4.50.0",
+    "pg": "^8.17.2",
     "postgres": "^3.4.0",
+    "resend": "^6.8.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
-    "drizzle-kit": "^0.24.0",
+    "drizzle-kit": "^0.31.8",
     "tsx": "^4.16.0",
     "typescript": "^5.3.0",
     "vitest": "^2.0.0"

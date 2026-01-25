@@ -192,7 +192,7 @@ export const profilesRouter = router({
 
   // Get profile by user ID
   getById: protectedProcedure
-    .input(z.object({ userId: z.string().uuid() }))
+    .input(z.object({ userId: z.string() }))
     .query(async ({ input }) => {
       const [profile] = await db
         .select()
