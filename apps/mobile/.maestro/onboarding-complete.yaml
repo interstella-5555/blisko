@@ -1,0 +1,114 @@
+appId: host.exp.Exponent
+---
+# Complete Onboarding Flow Test
+# Creates a new user, goes through onboarding, and verifies landing on first tab
+
+# Launch the app
+- launchApp
+
+# If on Expo Go home screen, tap on Meet to open it
+- runFlow:
+    when:
+      visible: "Recently opened"
+    commands:
+      - tapOn: "Meet"
+      - extendedWaitUntil:
+          notVisible: "Recently opened"
+          timeout: 15000
+
+# Dismiss Expo developer menu if visible
+- runFlow:
+    when:
+      visible: "SDK version"
+    commands:
+      - tapOn:
+          point: "93%,37%"
+      - waitForAnimationToEnd
+
+# If already logged in, go to profile and logout first
+- runFlow:
+    when:
+      visible: "W okolicy"
+    commands:
+      - tapOn: "Profil"
+      - extendedWaitUntil:
+          visible: "Wyloguj"
+          timeout: 5000
+      - tapOn: "Wyloguj"
+      - extendedWaitUntil:
+          visible: "Meet"
+          timeout: 5000
+
+# Wait for login screen
+- extendedWaitUntil:
+    visible:
+      id: "email-input"
+    timeout: 15000
+
+# Login with a unique @example.com email (use timestamp for uniqueness)
+- tapOn:
+    id: "email-input"
+- eraseText: 50
+- inputText: "onboarding-test@example.com"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Tap send - auto-login
+- tapOn:
+    text: "Wyślij link"
+    retryTapIfNoChange: true
+
+# Wait for onboarding or tabs (if profile already exists)
+- extendedWaitUntil:
+    visible:
+      anyOf:
+        - "Jak masz na imię?"
+        - "W okolicy"
+    timeout: 15000
+
+# If we're on onboarding, complete it
+- runFlow:
+    when:
+      visible: "Jak masz na imię?"
+    commands:
+      # Step 1: Display name
+      - assertVisible: "1 / 3"
+      - tapOn:
+          id: "display-name-input"
+      - inputText: "Test User"
+      - hideKeyboard
+      - tapOn: "Dalej"
+
+      # Step 2: Bio
+      - extendedWaitUntil:
+          visible: "Opowiedz o sobie"
+          timeout: 5000
+      - assertVisible: "2 / 3"
+      - tapOn:
+          id: "bio-input"
+      - inputText: "To jest testowy opis uzytkownika do testow e2e. Lubie programowac i testowac aplikacje."
+      - hideKeyboard
+      - tapOn: "Dalej"
+
+      # Step 3: Looking for
+      - extendedWaitUntil:
+          visible: "Kogo szukasz?"
+          timeout: 5000
+      - assertVisible: "3 / 3"
+      - tapOn:
+          id: "looking-for-input"
+      - inputText: "Szukam kogos kto rowniez lubi programowac i chcialby pogadac o technologii."
+      - hideKeyboard
+      - tapOn: "Rozpocznij"
+
+# Verify we landed on the first tab (W okolicy)
+- extendedWaitUntil:
+    visible: "W okolicy"
+    timeout: 15000
+
+- assertVisible: "W okolicy"
+
+# Verify tab bar is visible
+- assertVisible: "Zaczepienia"
+- assertVisible: "Czaty"
+- assertVisible: "Profil"
