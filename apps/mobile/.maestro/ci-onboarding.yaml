@@ -1,0 +1,81 @@
+appId: com.meet.app
+---
+# CI Onboarding Flow Test
+# For standalone builds (not Expo Go)
+
+# Launch the app
+- launchApp:
+    clearState: true
+
+# Wait for login screen
+- extendedWaitUntil:
+    visible:
+      id: "email-input"
+    timeout: 30000
+
+# Login with test email (uses dev auto-login)
+- tapOn:
+    id: "email-input"
+- inputText: "ci-test@example.com"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Tap send - auto-login for @example.com
+- tapOn:
+    text: "Wyślij link"
+    retryTapIfNoChange: true
+
+# Wait for onboarding (new user) or tabs (existing profile)
+- extendedWaitUntil:
+    visible:
+      anyOf:
+        - "Jak masz na imię?"
+        - "W okolicy"
+    timeout: 30000
+
+# If we're on onboarding, complete it
+- runFlow:
+    when:
+      visible: "Jak masz na imię?"
+    commands:
+      # Step 1: Display name
+      - assertVisible: "1 / 3"
+      - tapOn:
+          id: "display-name-input"
+      - inputText: "CI Test User"
+      - hideKeyboard
+      - tapOn: "Dalej"
+
+      # Step 2: Bio
+      - extendedWaitUntil:
+          visible: "Opowiedz o sobie"
+          timeout: 10000
+      - assertVisible: "2 / 3"
+      - tapOn:
+          id: "bio-input"
+      - inputText: "To jest testowy profil utworzony przez CI. Automatyczne testy E2E."
+      - hideKeyboard
+      - tapOn: "Dalej"
+
+      # Step 3: Looking for
+      - extendedWaitUntil:
+          visible: "Kogo szukasz?"
+          timeout: 10000
+      - assertVisible: "3 / 3"
+      - tapOn:
+          id: "looking-for-input"
+      - inputText: "Szukam innych deweloperow do testowania aplikacji mobilnych."
+      - hideKeyboard
+      - tapOn: "Rozpocznij"
+
+# Verify we landed on the first tab
+- extendedWaitUntil:
+    visible: "W okolicy"
+    timeout: 30000
+
+- assertVisible: "W okolicy"
+
+# Verify tab bar is visible
+- assertVisible: "Zaczepienia"
+- assertVisible: "Czaty"
+- assertVisible: "Profil"
