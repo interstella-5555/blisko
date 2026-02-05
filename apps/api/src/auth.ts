@@ -30,26 +30,32 @@ export const auth = betterAuth({
   },
   plugins: [
     magicLink({
-      sendMagicLink: async ({ email, url }) => {
+      sendMagicLink: async ({ email, url, token }) => {
         console.log(`Magic link for ${email}: ${url}`);
+        console.log(`Token (code): ${token}`);
 
         if (resend) {
           await resend.emails.send({
             from: process.env.EMAIL_FROM || 'Meet <noreply@meet.app>',
             to: email,
-            subject: 'Zaloguj się do Meet',
+            subject: `${token} - Twój kod do Meet`,
             html: `
               <div style="font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 20px;">
                 <h1 style="text-align: center; color: #007AFF;">Meet</h1>
-                <p>Kliknij poniższy link, żeby się zalogować:</p>
-                <a href="${url}" style="display: block; background: #007AFF; color: white; padding: 12px 24px; text-align: center; text-decoration: none; border-radius: 8px; margin: 20px 0;">
-                  Zaloguj się
-                </a>
-                <p style="color: #666; font-size: 12px;">Link wygaśnie za 5 minut.</p>
+                <p style="text-align: center;">Twój kod weryfikacyjny:</p>
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0;">
+                  <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333;">${token}</span>
+                </div>
+                <p style="text-align: center; color: #666; font-size: 14px;">Wpisz ten kod w aplikacji Meet</p>
+                <p style="text-align: center; color: #999; font-size: 12px;">Kod wygaśnie za 5 minut.</p>
               </div>
             `,
           });
         }
+      },
+      generateToken: async () => {
+        // Generate 6-digit code
+        return Math.floor(100000 + Math.random() * 900000).toString();
       },
       expiresIn: 300, // 5 minutes
     }),

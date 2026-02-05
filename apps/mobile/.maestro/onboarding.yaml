@@ -43,7 +43,9 @@ appId: com.meet.app
     id: "email-input"
 - inputRandomNumber
 - inputText: "@example.com"
-- hideKeyboard
+# Tap outside to dismiss keyboard without using hideKeyboard
+- tapOn:
+    point: "50%,30%"
 
 # Submit login
 - tapOn: "Wyślij link"
@@ -54,37 +56,59 @@ appId: com.meet.app
     timeout: 30000
 
 # Step 1: Name
-- tapOn: "Twoje imie"
-- inputText: "Test User"
-- hideKeyboard
+- tapOn:
+    id: "name-input"
+- inputText: "Test User E2E"
+# Tap outside input to dismiss keyboard
+- tapOn:
+    point: "50%,30%"
+- waitForAnimationToEnd
 - tapOn: "Dalej"
 
-# Wait for step 2 (2/3)
+# Wait for step 2 (2/3) - MUST see this before proceeding
 - extendedWaitUntil:
     visible: "2 / 3"
     timeout: 10000
 
 # Step 2: Bio
-- tapOn: ".*Napisz kilka.*"
-- inputText: "Testowy uzytkownik e2e"
-- hideKeyboard
+- tapOn:
+    id: "bio-input"
+- inputText: "Jestem testowym uzytkownikiem e2e do automatycznych testow"
+# Tap on title area to dismiss keyboard (not on Dalej button)
+- tapOn:
+    point: "50%,20%"
+- waitForAnimationToEnd
+
+# Now tap the Dalej button
+- extendedWaitUntil:
+    visible: "Dalej"
+    timeout: 5000
 - tapOn: "Dalej"
 
-# Wait for step 3 (3/3)
+# Wait for step 3 (3/3) - MUST see this before proceeding
 - extendedWaitUntil:
     visible: "3 / 3"
     timeout: 10000
 
 # Step 3: Looking for
-- tapOn: ".*Szukam kogos.*"
-- inputText: "Szukam znajomych"
-- hideKeyboard
-- tapOn: "Rozpocznij"
+- tapOn:
+    id: "looking-for-input"
+- inputText: "Szukam znajomych do testowania aplikacji mobilnych"
+# Tap on title area to dismiss keyboard
+- tapOn:
+    point: "50%,20%"
+- waitForAnimationToEnd
 
-# Set simulated location (Warsaw) so the app can get location
+# Set simulated location (Warsaw) before submitting
 - setLocation:
     latitude: 52.2297
     longitude: 21.0122
+
+# Now tap Rozpocznij
+- extendedWaitUntil:
+    visible: "Rozpocznij"
+    timeout: 5000
+- tapOn: "Rozpocznij"
 
 # Verify we landed on W okolicy tab
 - extendedWaitUntil:

@@ -77,7 +77,7 @@ npx create-expo-app mobile -t expo-template-blank-typescript
 - `apps/mobile/app/(auth)/_layout.tsx`
 - `apps/mobile/app/(tabs)/_layout.tsx`
 - `apps/mobile/src/lib/trpc.ts`
-- `apps/mobile/src/lib/supabase.ts`
+- `apps/mobile/src/lib/auth.ts`
 
 **E2E Test**:
 ```yaml
@@ -108,24 +108,7 @@ appId: com.meet.app
 
 ---
 
-### M0.5 - Supabase Setup
-**Opis**: Projekt Supabase (tylko DB, Auth, Realtime)
-
-**Do zrobienia**:
-1. Utworzyć projekt na supabase.com
-2. Włączyć extensions: `uuid-ossp`, `postgis`, `vector`
-3. Uruchomić migracje Drizzle
-4. Skonfigurować Realtime dla `messages`
-5. Utworzyć bucket `avatars`
-
-**Kryteria akceptacji**:
-- [ ] Połączenie z Supabase działa
-- [ ] Extensions włączone
-- [ ] Tabele utworzone
-
----
-
-### M0.6 - Railway Setup
+### M0.5 - Railway Setup
 **Opis**: Deploy backendu na Railway
 
 **Do zrobienia**:
@@ -153,7 +136,7 @@ appId: com.meet.app
 ---
 
 ## Milestone 1: Autentykacja
-**Cel**: Email magic link login przez Supabase Auth
+**Cel**: Email magic link login przez Better Auth
 
 ### M1.1 - Login Screen
 **Pliki**:
@@ -221,11 +204,11 @@ describe('authStore', () => {
 ---
 
 ### M2.3 - Avatar Upload
-**Opis**: Upload do Supabase Storage
+**Opis**: Upload avatara (opcje: S3, Cloudflare R2, lub Base64)
 
 **Kryteria akceptacji**:
 - [ ] Wybór z galerii
-- [ ] Upload do bucket `avatars`
+- [ ] Upload do storage
 - [ ] URL zapisany w profilu
 
 ---
@@ -307,7 +290,7 @@ describe('getNearbyUsers', () => {
 ---
 
 ## Milestone 5: Chat
-**Cel**: Real-time messaging przez Supabase Realtime
+**Cel**: Real-time messaging (polling lub WebSocket)
 
 ### M5.1 - Conversations List
 **Plik**: `apps/mobile/app/(tabs)/chats.tsx`
@@ -319,8 +302,6 @@ describe('getNearbyUsers', () => {
 ### M5.2 - Chat Screen
 **Plik**: `apps/mobile/app/(modals)/chat/[id].tsx`
 
-**Supabase Realtime**: Subscribe to `messages` table
-
 ---
 
 ### M5.3 - Send Message
@@ -328,8 +309,8 @@ describe('getNearbyUsers', () => {
 
 ---
 
-### M5.4 - Typing Indicator
-**Supabase Presence**: Track typing state
+### M5.4 - Real-time Updates
+**Opcje**: Polling, WebSocket (Socket.io), lub tRPC subscriptions
 
 ---
 
