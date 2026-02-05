@@ -42,12 +42,21 @@ export const auth = betterAuth({
             html: `
               <div style="font-family: sans-serif; max-width: 400px; margin: 0 auto; padding: 20px;">
                 <h1 style="text-align: center; color: #007AFF;">Meet</h1>
-                <p style="text-align: center;">Twój kod weryfikacyjny:</p>
+
+                <p style="text-align: center; margin-bottom: 8px;">Kliknij żeby się zalogować:</p>
+                <a href="${url}" style="display: block; background: #007AFF; color: white; padding: 14px 24px; text-align: center; text-decoration: none; border-radius: 12px; margin: 0 auto 24px; font-weight: 600;">
+                  Zaloguj się do Meet
+                </a>
+
+                <div style="text-align: center; color: #999; margin: 24px 0;">
+                  <span style="background: #fff; padding: 0 12px;">lub wpisz kod</span>
+                </div>
+
                 <div style="background: #f5f5f5; padding: 20px; border-radius: 12px; text-align: center; margin: 20px 0;">
                   <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333;">${token}</span>
                 </div>
-                <p style="text-align: center; color: #666; font-size: 14px;">Wpisz ten kod w aplikacji Meet</p>
-                <p style="text-align: center; color: #999; font-size: 12px;">Kod wygaśnie za 5 minut.</p>
+
+                <p style="text-align: center; color: #999; font-size: 12px;">Link i kod wygasną za 5 minut.</p>
               </div>
             `,
           });
