@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,18 +10,37 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { authClient } from '../../src/lib/auth';
 import { useAuthStore } from '../../src/stores/authStore';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 const CODE_LENGTH = 6;
+const RESEND_COOLDOWN = 10; // seconds between resends (10s for testing)
 
 export default function VerifyScreen() {
-  const { email } = useLocalSearchParams<{ email: string }>();
+  const { email, otp: initialOtp } = useLocalSearchParams<{ email: string; otp?: string }>();
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const { setUser, setSession } = useAuthStore();
   const inputRefs = useRef<(TextInput | null)[]>([]);
+
+  // Auto-verify if OTP came from deep link
+  useEffect(() => {
+    if (initialOtp && initialOtp.length === CODE_LENGTH) {
+      const digits = initialOtp.split('');
+      setCode(digits);
+      handleVerify(initialOtp);
+    }
+  }, [initialOtp]);
+
+  // Countdown timer for resend cooldown
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   const handleCodeChange = (value: string, index: number) => {
     // Handle paste of full code
@@ -81,37 +100,33 @@ export default function VerifyScreen() {
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/verify-code`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token: codeToVerify }),
+      const result = await authClient.signIn.emailOtp({
+        email: email!,
+        otp: codeToVerify,
       });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        setError(data.message || 'Nieprawidłowy kod');
+      if (result.error) {
+        setError(result.error.message || 'Nieprawidłowy kod');
         setIsLoading(false);
         return;
       }
 
-      const data = await response.json();
+      if (result.data?.user && result.data?.token) {
+        const { user, token } = result.data;
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-      if (data.user && data.session) {
-        await SecureStore.setItemAsync('meet_session_token', data.session.token);
+        await SecureStore.setItemAsync('meet_session_token', token);
         await SecureStore.setItemAsync(
           'meet_session_data',
-          JSON.stringify({
-            session: data.session,
-            user: data.user,
-          })
+          JSON.stringify({ token, user, expiresAt: expiresAt.toISOString() })
         );
 
-        setUser(data.user);
+        setUser(user);
         setSession({
-          ...data.session,
-          expiresAt: new Date(data.session.expiresAt),
+          id: token, // Use token as session id
+          userId: user.id,
+          token,
+          expiresAt,
         });
 
         router.replace('/(tabs)');
@@ -121,6 +136,33 @@ export default function VerifyScreen() {
     } catch (err) {
       console.error('Verify error:', err);
       setError('Nie udało się zweryfikować kodu');
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleResend = async () => {
+    if (resendCooldown > 0) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await authClient.emailOtp.sendVerificationOtp({
+        email: email!,
+        type: 'sign-in',
+      });
+
+      if (result.error) {
+        setError(result.error.message || 'Nie udało się wysłać kodu');
+      } else {
+        setResendCooldown(RESEND_COOLDOWN);
+        // Clear the code inputs
+        setCode(Array(CODE_LENGTH).fill(''));
+        inputRefs.current[0]?.focus();
+      }
+    } catch (err) {
+      setError('Nie udało się wysłać kodu');
     }
 
     setIsLoading(false);
@@ -143,7 +185,7 @@ export default function VerifyScreen() {
           {code.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(ref) => (inputRefs.current[index] = ref)}
+              ref={(ref) => { inputRefs.current[index] = ref; }}
               style={[
                 styles.codeInput,
                 digit && styles.codeInputFilled,
@@ -172,10 +214,22 @@ export default function VerifyScreen() {
         </Text>
 
         <TouchableOpacity
-          style={styles.resendButton}
+          style={[styles.resendButton, resendCooldown > 0 && styles.resendButtonDisabled]}
+          onPress={handleResend}
+          disabled={resendCooldown > 0 || isLoading}
+        >
+          <Text style={[styles.resendText, resendCooldown > 0 && styles.resendTextDisabled]}>
+            {resendCooldown > 0
+              ? `Wyślij kod ponownie (${resendCooldown}s)`
+              : 'Wyślij kod ponownie'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Text style={styles.resendText}>Wyślij kod ponownie</Text>
+          <Text style={styles.backText}>Wróć</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -259,8 +313,22 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 12,
   },
+  resendButtonDisabled: {
+    opacity: 0.5,
+  },
   resendText: {
     color: '#007AFF',
+    fontSize: 16,
+  },
+  resendTextDisabled: {
+    color: '#999',
+  },
+  backButton: {
+    marginTop: 8,
+    padding: 12,
+  },
+  backText: {
+    color: '#666',
     fontSize: 16,
   },
 });

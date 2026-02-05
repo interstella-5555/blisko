@@ -78,9 +78,9 @@ export default function LoginScreen() {
     }
 
     try {
-      const result = await authClient.signIn.magicLink({
+      const result = await authClient.emailOtp.sendVerificationOtp({
         email: email.trim(),
-        callbackURL: 'meet://auth/callback',
+        type: 'sign-in',
       });
 
       if (result.error) {
@@ -94,7 +94,7 @@ export default function LoginScreen() {
         params: { email: email.trim() },
       });
     } catch (err) {
-      setError('Nie udało się wysłać linku');
+      setError('Nie udało się wysłać kodu');
     }
 
     setIsLoading(false);
