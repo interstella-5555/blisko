@@ -25,8 +25,8 @@ export const auth = betterAuth({
     crossSubDomainCookies: {
       enabled: false,
     },
-    // Allow requests without Origin header (React Native)
-    disableCSRFCheck: process.env.NODE_ENV !== 'production',
+    // Allow requests without Origin header (React Native doesn't send Origin)
+    disableCSRFCheck: true,
   },
   plugins: [
     magicLink({
