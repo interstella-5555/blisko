@@ -17,6 +17,8 @@ export const wavesRouter = router({
   send: protectedProcedure
     .input(sendWaveSchema)
     .mutation(async ({ ctx, input }) => {
+      console.log(`[waves.send] from=${ctx.userId} to=${input.toUserId}`);
+
       // Check if target user exists
       const [targetProfile] = await db
         .select()
@@ -24,6 +26,7 @@ export const wavesRouter = router({
         .where(eq(profiles.userId, input.toUserId));
 
       if (!targetProfile) {
+        console.log(`[waves.send] Target profile not found for userId=${input.toUserId}`);
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'User not found',
@@ -48,6 +51,7 @@ export const wavesRouter = router({
         );
 
       if (blocked) {
+        console.log(`[waves.send] Blocked: from=${ctx.userId} to=${input.toUserId}`);
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Cannot send wave to this user',
@@ -67,6 +71,7 @@ export const wavesRouter = router({
         );
 
       if (existingWave) {
+        console.log(`[waves.send] Already waved: from=${ctx.userId} to=${input.toUserId}`);
         throw new TRPCError({
           code: 'CONFLICT',
           message: 'You already waved at this user',
