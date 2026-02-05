@@ -9,11 +9,13 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useLayoutEffect } from 'react';
+import { useNavigation } from 'expo-router';
 import * as Location from 'expo-location';
 import { keepPreviousData } from '@tanstack/react-query';
 import { useLocationStore } from '../../src/stores/locationStore';
 import { trpc } from '../../src/lib/trpc';
+import { ViewToggle, NearbyMapView, type ViewMode, type MapUser } from '../../src/components/nearby';
 
 interface NearbyUser {
   profile: {
@@ -29,19 +31,33 @@ interface NearbyUser {
 }
 
 export default function NearbyScreen() {
+  const navigation = useNavigation();
+  const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [refreshing, setRefreshing] = useState(false);
   const [wavingAt, setWavingAt] = useState<string | null>(null);
   const [wavedUsers, setWavedUsers] = useState<Set<string>>(new Set());
   const { latitude, longitude, permissionStatus, setLocation, setPermissionStatus } =
     useLocationStore();
 
+  // Set header right component with ViewToggle
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ marginRight: 16 }}>
+          <ViewToggle value={viewMode} onChange={setViewMode} />
+        </View>
+      ),
+    });
+  }, [navigation, viewMode]);
+
   const updateLocationMutation = trpc.profiles.updateLocation.useMutation();
   const sendWaveMutation = trpc.waves.send.useMutation();
 
+  // Query for list view (with similarity scores)
   const {
     data: nearbyUsers,
-    isLoading,
-    refetch,
+    isLoading: isLoadingList,
+    refetch: refetchList,
   } = trpc.profiles.getNearbyUsers.useQuery(
     {
       latitude: latitude!,
@@ -50,11 +66,33 @@ export default function NearbyScreen() {
       limit: 50,
     },
     {
-      enabled: !!latitude && !!longitude,
+      enabled: !!latitude && !!longitude && viewMode === 'list',
       staleTime: 30000, // 30s - don't refetch too often
       placeholderData: keepPreviousData, // Keep old data while fetching new
     }
   );
+
+  // Query for map view (with grid positions, no exact coordinates)
+  const {
+    data: mapUsers,
+    isLoading: isLoadingMap,
+    refetch: refetchMap,
+  } = trpc.profiles.getNearbyUsersForMap.useQuery(
+    {
+      latitude: latitude!,
+      longitude: longitude!,
+      radiusMeters: 5000, // 5km
+      limit: 100, // More users for map
+    },
+    {
+      enabled: !!latitude && !!longitude && viewMode === 'map',
+      staleTime: 30000,
+      placeholderData: keepPreviousData,
+    }
+  );
+
+  const isLoading = viewMode === 'list' ? isLoadingList : isLoadingMap;
+  const refetch = viewMode === 'list' ? refetchList : refetchMap;
 
   // Fetch sent waves to know who we already waved at
   const { data: sentWaves } = trpc.waves.getSent.useQuery();
@@ -125,22 +163,27 @@ export default function NearbyScreen() {
       setWavedUsers((prev) => new Set([...prev, userId]));
       Alert.alert('Wysłano! 👋', `Zaczepienie wysłane do ${displayName}`);
     } catch (error: any) {
-      if (error.message?.includes('already waved')) {
+      const errorMsg = error.message || error.toString();
+      console.log('Wave error:', errorMsg);
+      if (errorMsg.includes('already waved')) {
         Alert.alert('Już zaczepiono', `Już wysłałeś zaczepienie do ${displayName}`);
         setWavedUsers((prev) => new Set([...prev, userId]));
       } else {
-        Alert.alert('Błąd', 'Nie udało się wysłać zaczepienia');
+        Alert.alert('Błąd', `Nie udało się wysłać zaczepienia: ${errorMsg}`);
       }
     } finally {
       setWavingAt(null);
     }
   };
 
+  // Round distance to 100m for privacy and format
   const formatDistance = (meters: number): string => {
-    if (meters < 1000) {
-      return `${Math.round(meters)} m`;
+    // Round to nearest 100m
+    const rounded = Math.round(meters / 100) * 100;
+    if (rounded < 1000) {
+      return `~${rounded} m`;
     }
-    return `${(meters / 1000).toFixed(1)} km`;
+    return `~${(rounded / 1000).toFixed(1)} km`;
   };
 
   const renderUserCard = ({ item }: { item: NearbyUser }) => {
@@ -184,6 +227,8 @@ export default function NearbyScreen() {
         </View>
 
         <TouchableOpacity
+          testID="wave-button"
+          accessibilityLabel={hasWaved ? 'Zaczepiono' : 'Zaczep'}
           style={[
             styles.waveButton,
             hasWaved && styles.waveButtonDisabled,
@@ -227,6 +272,32 @@ export default function NearbyScreen() {
     );
   }
 
+  // Map view
+  if (viewMode === 'map') {
+    if (isLoading && !mapUsers?.length) {
+      return (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Ładowanie mapy...</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.container}>
+        <NearbyMapView
+          users={(mapUsers as MapUser[]) || []}
+          userLatitude={latitude!}
+          userLongitude={longitude!}
+          onWave={handleWave}
+          wavedUsers={wavedUsers}
+          wavingAt={wavingAt}
+        />
+      </View>
+    );
+  }
+
+  // List view
   return (
     <View style={styles.container}>
       <FlatList

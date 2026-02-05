@@ -8,7 +8,9 @@ import {
   updateProfileSchema,
   updateLocationSchema,
   getNearbyUsersSchema,
+  getNearbyUsersForMapSchema,
 } from '@meet/shared';
+import { toGridCenter, roundDistance } from '../../lib/grid';
 import { generateEmbedding } from '../../services/ai';
 
 export const profilesRouter = router({
@@ -183,6 +185,92 @@ export const profilesRouter = router({
           profile: u.profile,
           distance: u.distance,
           similarityScore,
+        });
+      }
+
+      return results;
+    }),
+
+  // Get nearby users for map view (with grid-based privacy)
+  getNearbyUsersForMap: protectedProcedure
+    .input(getNearbyUsersForMapSchema)
+    .query(async ({ ctx, input }) => {
+      const { latitude, longitude, radiusMeters, limit } = input;
+
+      // Calculate bounding box for initial filter (uses index!)
+      const latDelta = radiusMeters / 111000;
+      const lonDelta = radiusMeters / (111000 * Math.cos((latitude * Math.PI) / 180));
+
+      const minLat = latitude - latDelta;
+      const maxLat = latitude + latDelta;
+      const minLon = longitude - lonDelta;
+      const maxLon = longitude + lonDelta;
+
+      // Get blocked users
+      const [blockedUsers, blockedByUsers] = await Promise.all([
+        db.select({ blockedId: blocks.blockedId }).from(blocks).where(eq(blocks.blockerId, ctx.userId)),
+        db.select({ blockerId: blocks.blockerId }).from(blocks).where(eq(blocks.blockedId, ctx.userId)),
+      ]);
+
+      const allBlockedIds = new Set([
+        ...blockedUsers.map((b) => b.blockedId),
+        ...blockedByUsers.map((b) => b.blockerId),
+      ]);
+
+      // Haversine distance formula
+      const distanceFormula = sql<number>`
+        6371000 * acos(
+          LEAST(1.0, GREATEST(-1.0,
+            cos(radians(${latitude})) * cos(radians(${profiles.latitude})) *
+            cos(radians(${profiles.longitude}) - radians(${longitude})) +
+            sin(radians(${latitude})) * sin(radians(${profiles.latitude}))
+          ))
+        )
+      `;
+
+      const nearbyUsers = await db
+        .select({
+          profile: profiles,
+          distance: distanceFormula,
+        })
+        .from(profiles)
+        .where(
+          and(
+            ne(profiles.userId, ctx.userId),
+            sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
+            sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
+            sql`${distanceFormula} <= ${radiusMeters}`
+          )
+        )
+        .orderBy(distanceFormula)
+        .limit(limit + allBlockedIds.size);
+
+      // Filter blocked users and add grid positions
+      const results = [];
+      for (const u of nearbyUsers) {
+        if (allBlockedIds.has(u.profile.userId)) continue;
+        if (results.length >= limit) break;
+
+        // Get grid position for privacy (instead of exact coords)
+        const gridPos = toGridCenter(
+          u.profile.latitude!,
+          u.profile.longitude!
+        );
+
+        results.push({
+          profile: {
+            id: u.profile.id,
+            userId: u.profile.userId,
+            displayName: u.profile.displayName,
+            bio: u.profile.bio,
+            lookingFor: u.profile.lookingFor,
+            avatarUrl: u.profile.avatarUrl,
+            // NO latitude/longitude - only grid position!
+          },
+          distance: roundDistance(u.distance), // Rounded to 100m
+          gridLat: gridPos.gridLat,
+          gridLng: gridPos.gridLng,
+          gridId: gridPos.gridId,
         });
       }
 

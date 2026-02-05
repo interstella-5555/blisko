@@ -44,6 +44,14 @@ export const getNearbyUsersSchema = z.object({
   limit: z.number().min(1).max(50).default(20),
 });
 
+// Nearby users for map (with grid-based privacy)
+export const getNearbyUsersForMapSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  radiusMeters: z.number().min(100).max(50000).default(5000),
+  limit: z.number().min(1).max(100).default(50),
+});
+
 // Block validator
 export const blockUserSchema = z.object({
   userId: z.string().min(1),
@@ -57,4 +65,5 @@ export type SendWaveInput = z.infer<typeof sendWaveSchema>;
 export type RespondToWaveInput = z.infer<typeof respondToWaveSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 export type GetNearbyUsersInput = z.infer<typeof getNearbyUsersSchema>;
+export type GetNearbyUsersForMapInput = z.infer<typeof getNearbyUsersForMapSchema>;
 export type BlockUserInput = z.infer<typeof blockUserSchema>;
