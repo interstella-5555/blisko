@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import * as Location from 'expo-location';
+import { keepPreviousData } from '@tanstack/react-query';
 import { useLocationStore } from '../../src/stores/locationStore';
 import { trpc } from '../../src/lib/trpc';
 
@@ -51,6 +52,7 @@ export default function NearbyScreen() {
     {
       enabled: !!latitude && !!longitude,
       staleTime: 30000, // 30s - don't refetch too often
+      placeholderData: keepPreviousData, // Keep old data while fetching new
     }
   );
 
