@@ -50,6 +50,7 @@ export default function NearbyScreen() {
     },
     {
       enabled: !!latitude && !!longitude,
+      staleTime: 30000, // 30s - don't refetch too often
     }
   );
 
@@ -232,11 +233,11 @@ export default function NearbyScreen() {
         renderItem={renderUserCard}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          isLoading ? (
+          isLoading && !refreshing ? (
             <View style={styles.centered}>
               <ActivityIndicator size="large" color="#007AFF" />
             </View>
-          ) : (
+          ) : !refreshing ? (
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>🔍</Text>
               <Text style={styles.emptyTitle}>Nikogo w pobliżu</Text>
@@ -244,7 +245,7 @@ export default function NearbyScreen() {
                 Nie znaleziono użytkowników w promieniu 5 km
               </Text>
             </View>
-          )
+          ) : null
         }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
