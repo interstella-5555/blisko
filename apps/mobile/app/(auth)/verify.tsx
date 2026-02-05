@@ -81,15 +81,13 @@ export default function VerifyScreen() {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/auth/magic-link/verify?token=${encodeURIComponent(codeToVerify)}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(`${API_URL}/verify-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: codeToVerify }),
+      });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
