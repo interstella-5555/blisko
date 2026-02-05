@@ -22,7 +22,7 @@ export default function VerifyScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const { setUser, setSession } = useAuthStore();
+  const { setUser, setSession, setHasCheckedProfile, setProfile } = useAuthStore();
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   // Auto-verify if OTP came from deep link
@@ -120,6 +120,10 @@ export default function VerifyScreen() {
           'meet_session_data',
           JSON.stringify({ token, user, expiresAt: expiresAt.toISOString() })
         );
+
+        // Reset profile state so query runs fresh
+        setProfile(null);
+        setHasCheckedProfile(false);
 
         setUser(user);
         setSession({

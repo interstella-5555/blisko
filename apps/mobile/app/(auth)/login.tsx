@@ -19,7 +19,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { setUser, setSession } = useAuthStore();
+  const { setUser, setSession, setProfile, setHasCheckedProfile } = useAuthStore();
 
   const handleSendMagicLink = async () => {
     if (!email.trim()) {
@@ -61,6 +61,10 @@ export default function LoginScreen() {
             user: data.user,
           })
         );
+
+        // Reset profile state so query runs fresh
+        setProfile(null);
+        setHasCheckedProfile(false);
 
         setUser(data.user);
         setSession({
