@@ -51,7 +51,7 @@ function DesignBookPage() {
 
   if (isScreenshot) {
     return (
-      <div style={{ background: '#fff', padding: '48px 64px', display: 'inline-block' }}>
+      <div style={{ background: '#fff', padding: '48px 64px', minHeight: '100vh' }}>
         <Screens onlyFirstRow />
       </div>
     )

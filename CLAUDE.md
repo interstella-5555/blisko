@@ -16,7 +16,7 @@ The screenshot mode is built into the codebase — no temporary changes needed.
    ```bash
    npx capture-website-cli "http://localhost:3000/design-book?screenshot" \
      --width 1400 --scale-factor 2 --delay 3 --full-page \
-     --disable-animations --hide-elements ".nav" \
+     --disable-animations --remove-elements ".nav" \
      --output docs/screens-vN.png
    ```
 3. Update `README.md` to point to the new filename
