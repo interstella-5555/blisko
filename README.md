@@ -25,10 +25,3 @@ apps/api         # Backend API
 apps/design      # Design book
 packages/shared  # Shared validators & types
 ```
-
-## Development
-
-```bash
-pnpm install
-pnpm dev
-```
