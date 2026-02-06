@@ -106,7 +106,7 @@ export function Typography() {
       <div className={s.family}>
         <div className={s.familyHeader}>
           <h4 className={s.familyName}>Instrument Serif</h4>
-          <span className={s.familyRole}>Display \u00b7 Headings \u00b7 Names</span>
+          <span className={s.familyRole}>{'Display \u00b7 Headings \u00b7 Names'}</span>
         </div>
         <div className={s.specimens}>
           {SERIF_SPECIMENS.map((spec) => (
@@ -139,7 +139,7 @@ export function Typography() {
       <div className={s.family}>
         <div className={s.familyHeader}>
           <h4 className={s.familyName}>DM Sans</h4>
-          <span className={s.familyRole}>Body \u00b7 Labels \u00b7 Buttons \u00b7 UI</span>
+          <span className={s.familyRole}>{'Body \u00b7 Labels \u00b7 Buttons \u00b7 UI'}</span>
         </div>
         <div className={s.specimens}>
           {SANS_SPECIMENS.map((spec) => (
