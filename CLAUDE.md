@@ -17,10 +17,15 @@ The screenshot mode is built into the codebase — no temporary changes needed.
    npx capture-website-cli "http://localhost:3000/design-book?screenshot" \
      --width 1400 --scale-factor 2 --delay 3 --full-page \
      --disable-animations --remove-elements ".nav" \
-     --output docs/screens-vN.png
+     --output docs/screens-new.png
    ```
-3. Update `README.md` to point to the new filename
-4. Delete the old screenshot file and commit
+3. Rename with last 6 chars of MD5 for cache busting:
+   ```bash
+   HASH=$(md5 -q docs/screens-new.png | tail -c 7)
+   mv docs/screens-new.png docs/screens-$HASH.png
+   ```
+4. Update `README.md` to point to the new filename
+5. Delete the old screenshot file and commit
 
 **Key files:**
 - `apps/design/src/routes/design-book.tsx` — `?screenshot` detection and early return
