@@ -6,8 +6,8 @@ export function IconDefs() {
     >
       <defs>
         <symbol id="icon-wave" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 11V7a2 2 0 0 1 4 0v2m0-2a2 2 0 0 1 4 0v1m0-1a2 2 0 0 1 4 0v4c0 4-2.5 7-7 7H9.5C7 22 5 20.5 5 17v-4a2 2 0 0 1 4 0" />
-          <path d="M7 11V9" opacity="0.5" />
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          <path d="M7.5 10.5C8.5 9 10.5 9 12 10.5C13.5 12 15.5 12 16.5 10.5" />
         </symbol>
         <symbol id="icon-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />

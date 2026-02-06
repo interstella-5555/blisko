@@ -2,7 +2,7 @@ import s from './iconography.module.css'
 import { Icon } from '~/components/Icons'
 
 const ICONS = [
-  { name: 'wave', label: 'Wave' },
+  { name: 'wave', label: 'Zagadaj' },
   { name: 'pin', label: 'Pin' },
   { name: 'chat', label: 'Chat' },
   { name: 'person', label: 'Person' },
