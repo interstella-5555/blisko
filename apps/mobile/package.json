@@ -1,5 +1,6 @@
 {
-  "name": "mobile",
+  "name": "@meet/mobile",
+  "description": "Meet mobile app (Expo + React Native)",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
@@ -22,7 +23,7 @@
     "@tanstack/react-query": "^5.50.0",
     "@trpc/client": "^11.0.0-rc.0",
     "@trpc/react-query": "^11.0.0-rc.0",
-    "api": "workspace:*",
+    "@meet/api": "workspace:*",
     "better-auth": "^1.4.17",
     "expo": "~54.0.32",
     "expo-constants": "~18.0.13",

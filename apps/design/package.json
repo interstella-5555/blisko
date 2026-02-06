@@ -1,5 +1,6 @@
 {
-  "name": "design-2",
+  "name": "@meet/design",
+  "description": "Meet design system gallery and design book",
   "private": true,
   "type": "module",
   "scripts": {

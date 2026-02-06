@@ -1,5 +1,6 @@
 {
-  "name": "api",
+  "name": "@meet/api",
+  "description": "Meet API server (Hono + tRPC + Better Auth)",
   "version": "0.0.1",
   "private": true,
   "type": "module",

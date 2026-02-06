@@ -1,5 +1,6 @@
 {
   "name": "meet",
+  "description": "Location-based social app for finding people with shared interests",
   "private": true,
   "scripts": {
     "dev": "turbo dev",
