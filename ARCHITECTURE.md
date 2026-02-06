@@ -24,7 +24,7 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                     RAILWAY POSTGRESQL                           │
 ├─────────────────────────────────────────────────────────────────┤
-│  PostgreSQL + pgvector (similarity search)                      │
+│  PostgreSQL (embeddings stored as float arrays)                 │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -40,11 +40,11 @@
 | Mobile | React Native + Expo SDK 54 | Cross-platform app |
 | Routing | Expo Router v6 | File-based navigation |
 | State | Zustand v5 | Client state management |
-| Backend | Hono | HTTP framework |
+| Backend | Hono ^4.5 | HTTP framework |
 | API | tRPC v11 | End-to-end type safety |
-| ORM | Drizzle | Type-safe PostgreSQL access |
-| Auth | Better Auth | Self-hosted magic link email |
-| Database | Railway PostgreSQL | Managed Postgres + pgvector |
+| ORM | Drizzle ^0.45 | Type-safe PostgreSQL access |
+| Auth | Better Auth ^1.4 | Self-hosted magic link email |
+| Database | Railway PostgreSQL | Managed Postgres |
 | Email | Resend | Transactional email |
 | AI | OpenAI | Profile embeddings |
 | Design | TanStack Start + Tailwind | Design system gallery |

@@ -1,26 +1,36 @@
 # Blisko — Backlog
 
-Remaining work, grouped by area. Everything above this (auth, profiles, geolocation, waves, design book) is done.
+Remaining work, grouped by area. Auth, profiles, geolocation, waves, and the design book are done.
 
 ---
 
-## Chat (partial)
+## Chat
 
-Schema and screens exist, but no real-time messaging yet.
+Backend is complete — tRPC procedures for conversations, messages, sending, read receipts, pagination, and unread counts all exist.
 
-- [ ] Wire up message sending through tRPC (`messages.send`)
-- [ ] Implement real-time updates (polling, WebSocket, or tRPC subscriptions)
-- [ ] Conversation list screen — show last message, unread count
-- [ ] Chat screen — message input, scroll, timestamps
+Frontend TODO:
 
-## Push Notifications (partial)
+- [ ] Conversation list screen — wire up `messages.getConversations` (stub screen exists at `(tabs)/chats.tsx`)
+- [ ] Chat screen — create `(modals)/chat/[id].tsx` (directory exists but is empty)
+- [ ] Wire up message sending and read receipts
+- [ ] Real-time updates (polling, WebSocket, or tRPC subscriptions)
 
-`pushTokens` table exists but no push service implementation.
+## Push Notifications
 
-- [ ] Register push tokens on app launch (`useNotifications` hook → tRPC)
-- [ ] Send push on new wave received
-- [ ] Send push on new message received
+DB table exists and `expo-notifications` dependency is installed, but there is zero implementation.
+
+- [ ] Register push tokens (`useNotifications` hook — `src/hooks/` is empty)
+- [ ] Send push on wave received / accepted
+- [ ] Send push on new message
 - [ ] Handle notification tap → deep link to wave/chat
+
+## User Profile Modal
+
+Directory at `(modals)/user/[id]` exists but is empty — no screen file yet.
+
+- [ ] Create `(modals)/user/[id].tsx`
+- [ ] Show full profile (name, bio, lookingFor, distance)
+- [ ] Wave / block actions
 
 ## Avatar Upload
 
@@ -30,18 +40,15 @@ Schema has `avatarUrl` on profiles but no storage integration.
 - [ ] Upload to object storage (S3, R2, or similar)
 - [ ] Save URL to profile
 
-## User Profile Modal
-
-Route exists at `(modals)/user/[id]` but is sparse.
-
-- [ ] Show full profile (name, bio, lookingFor, distance)
-- [ ] Wave / block actions from modal
-
 ## Polish & UX
 
-- [ ] Empty states for all lists (nearby, waves, chats)
-- [ ] Error handling and retry UI
-- [ ] Loading skeletons
+**Done:**
+- Empty states for all major screens (waves, chats, nearby, permission denied)
+- Error handling with `Alert.alert` and retry UI
+- Loading indicators (`ActivityIndicator` on all screens)
+
+**Still TODO:**
+- [ ] Loading skeletons / shimmer effects
 - [ ] Onboarding flow refinements
 
 ## Beta Release
