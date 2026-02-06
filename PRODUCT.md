@@ -1,349 +1,249 @@
-# Blisko - Aplikacja do Łączenia Osób o Podobnych Zainteresowaniach
+# Blisko — Connecting People with Shared Interests Nearby
 
-## Wizja Produktu
+## Product Vision
 
-**Blisko** to aplikacja mobilna (iOS/Android), która pozwala użytkownikom odkrywać i nawiązywać kontakt z osobami o podobnych zainteresowaniach znajdującymi się w ich okolicy. W przeciwieństwie do aplikacji randkowych, Blisko skupia się na budowaniu relacji opartych na wspólnych pasjach - czy to spacerach z psami, grze w kręgle, jeździe na rowerze, czy czytaniu książek Stanisława Lema.
-
----
-
-## Główne Funkcjonalności
-
-### 1. Profil Użytkownika
-
-#### 1.1 Podstawowe Informacje
-- **Imię** (wymagane)
-- **Zdjęcie profilowe** (opcjonalne, ale rekomendowane)
-- **Galeria zdjęć** (do 5 zdjęć)
-- **Płeć** (wymagana)
-- **Wiek** (opcjonalny)
-
-#### 1.2 Opis AI-Friendly
-Zamiast długich formularzy, użytkownik wypełnia **dwa pola tekstowe**:
-
-1. **"Kim jestem, co lubię robić"** - swobodny opis siebie
-   > *Przykład: "Jestem Karol, 32 lata. Mam psa - golden retrievera Maxa. Lubię biegać po parku, gram w kręgle w weekendy, a wieczorami czytam sci-fi - głównie Lema i Asimova. W pracy jestem programistą, więc dużo siedzę - sport to mój sposób na balans."*
-
-2. **"Czego szukam"** - oczekiwania wobec innych użytkowników
-   > *Przykład: "Szukam osób do wspólnych spacerów z psami - Max uwielbia towarzystwo innych psów. Chętnie pogram też w kręgle z kimś kto traktuje to na luzie, bez presji na wynik. Fajnie byłoby też pogadać o książkach sci-fi."*
-
-#### 1.3 AI-Powered Indeksowanie
-System AI automatycznie analizuje teksty i tworzy:
-- **Tagi zainteresowań**: `#pies`, `#bieganie`, `#kręgle`, `#sci-fi`, `#Lem`
-- **Wektor embeddingów** do dopasowywania podobnych osób
-- **Krótki summary** widoczny dla innych: *"Właściciel psa, biegacz, fan kręgli i sci-fi"*
-
-### 2. Odkrywanie Osób w Okolicy
-
-#### 2.1 Mapa/Lista Osób
-- Widok mapy z pinezkami osób w okolicy (przybliżona lokalizacja)
-- Widok listy posortowanej wg odległości lub dopasowania
-- **Promień wyszukiwania**: 500m - 50km (konfigurowalny)
-
-#### 2.2 Filtry
-- Płeć
-- Wiek (zakres)
-- Zainteresowania (tagi AI)
-- Tylko z psami
-- Tylko weryfikowane profile
-
-#### 2.3 Karty Osób
-```
-┌─────────────────────────────┐
-│  [Zdjęcie]                  │
-│                             │
-│  Adam, 28                   │
-│  ~800m od Ciebie            │
-│                             │
-│  🐕 Pies  🎳 Kręgle  📚 Lem │
-│                             │
-│  "Szukam osób do spacerów   │
-│   z psami i kręgli"         │
-│                             │
-│  [ 👋 Zaczep ]              │
-└─────────────────────────────┘
-```
-
-### 3. System "Zaczepiania"
-
-#### 3.1 Flow Zaczepiania
-1. **Karol** widzi **Adama** w okolicy
-2. Karol klika **"Zaczep"** na profilu Adama
-3. Adam otrzymuje **powiadomienie push**: *"Karol chce Cię poznać! Ma psa i lubi kręgle."*
-4. Adam może:
-   - **Pomachać** 👋 - otwiera możliwość rozmowy
-   - **Zignorować** - brak akcji, Karol nie wie
-   - **Zablokować** - Karol nigdy więcej nie zobaczy Adama
-
-#### 3.2 Po Pomachaniu
-- Otwiera się **czat 1:1**
-- Obaj użytkownicy widzą pełne profile
-- Mogą umówić się na spotkanie
-
-### 4. Czat
-
-#### 4.1 Czat 1:1
-- Wiadomości tekstowe
-- Wysyłanie zdjęć
-- Udostępnianie lokalizacji (opcjonalne)
-- Status: wysłane / dostarczone / przeczytane
-- Wskaźnik "pisze..."
-
-#### 4.2 Bezpieczeństwo Czatu
-- **Nigdy nie udostępniamy numerów telefonów**
-- Możliwość zgłoszenia nieodpowiednich treści
-- AI moderacja wiadomości (wykrywanie spamu, obraźliwych treści)
-
-### 5. Grupy (v2.0+)
-
-#### 5.1 Tworzenie Grupy
-- **Nazwa grupy**: np. "Sobotnie meczyki piłka nożna Mokotów"
-- **Opis**: cel grupy, częstotliwość spotkań
-- **Typ**:
-  - **Publiczna** - widoczna dla wszystkich, można wysłać prośbę o dołączenie
-  - **Prywatna** - niewidoczna, tylko zaproszenia
-- **Tagi**: `#piłkanożna`, `#Mokotów`, `#sobota`
-
-#### 5.2 Odkrywanie Grup
-- Grupa jest widoczna jeśli **którykolwiek członek** jest w Twojej okolicy
-- Karty grup podobne do kart osób:
-```
-┌─────────────────────────────┐
-│  [Zdjęcie grupy]            │
-│                             │
-│  Sobotnie meczyki ⚽         │
-│  12 członków                │
-│  3 osoby w okolicy          │
-│                             │
-│  "Gramy co sobotę o 10:00   │
-│   na Orliku przy Puławskiej"│
-│                             │
-│  [ Poproś o dołączenie ]    │
-└─────────────────────────────┘
-```
-
-#### 5.3 Zarządzanie Grupą
-- **Admin** - twórca grupy
-- **Moderatorzy** - mogą akceptować/usuwać członków
-- **Członkowie** - mogą zapraszać innych (konfigurowalne)
-
-#### 5.4 Czat Grupowy
-- Identyczny jak czaty w Messenger/WhatsApp
-- Powiadomienia push o nowych wiadomościach
-- Możliwość wyciszenia grupy
-
-### 6. Inteligentne Powiadomienia
-
-#### 6.1 Powiadomienia o Dopasowaniach w Okolicy
-Gdy użytkownik zmienia lokalizację (np. idzie do galerii handlowej):
-
-> 📍 *"Hej! W Twojej okolicy jest osoba, która też lubi książki Lema. Sprawdź!"*
-
-Warunki wyzwolenia:
-- Użytkownik przemieścił się o >500m od poprzedniej pozycji
-- W nowej okolicy są osoby z wysokim score dopasowania
-- Minęła min. 1 godzina od ostatniego powiadomienia tego typu
-
-#### 6.2 Inne Powiadomienia
-- Nowe zaczepiecie
-- Ktoś pomachał
-- Nowa wiadomość
-- Zaproszenie do grupy
-- Prośba o dołączenie do grupy (dla adminów)
-
-### 7. Autentykacja
-
-#### 7.1 MVP (v1.0)
-- **Logowanie email/hasło** (uproszczone dla szybszego development)
-- Weryfikacja email
-
-#### 7.2 Docelowo (v1.1+)
-- **Logowanie numerem telefonu**
-  1. Użytkownik wpisuje numer telefonu
-  2. Otrzymuje 6-cyfrowy kod SMS
-  3. Wpisuje kod i jest zalogowany
-- **BetterAuth** jako system autentykacji
-
-#### 7.3 Tryb Anonimowy (v2.0+)
-- Przeglądanie okolicy **bez logowania**
-- Widoczne tylko **zagregowane dane**:
-  > *"W Twojej okolicy: 4 osoby z psami, 1 osoba lubi kręgle, 2 grupy sportowe"*
-- Zachęta do rejestracji, aby zobaczyć szczegóły
+**Blisko** is a mobile app (iOS/Android) that lets users discover and connect with people who share their interests and happen to be nearby. Unlike dating apps, Blisko focuses on building relationships around shared passions — whether it's walking dogs, bowling, cycling, or reading Stanislaw Lem novels.
 
 ---
 
-## Przypadki Użycia (Use Cases)
+## Core Features
 
-### UC1: Spacer z Psem
-**Aktor**: Karol (właściciel golden retrievera)
+### 1. User Profile
 
-1. Karol otwiera aplikację w parku
-2. Widzi, że 300m od niego jest Anna z labradorem
-3. Klika "Zaczep" na profilu Anny
-4. Anna dostaje powiadomienie i macha
-5. Umawiają się na wspólny spacer przez czat
-6. Psy się bawią, właściciele rozmawiają
+#### Free-Text Fields
+Instead of long forms, users fill in **three free-text fields**:
 
-### UC2: Kręgle w Weekend
-**Aktor**: Adam (fan kręgli)
+- **Display name** (2–50 characters)
+- **"Who I am, what I like to do"** (`bio`, 10–500 characters) — a free-form self-description
+  > *Example: "I'm Karol, 32. I have a golden retriever named Max. I like running in the park, I bowl on weekends, and in the evenings I read sci-fi — mostly Lem and Asimov."*
+- **"What I'm looking for"** (`lookingFor`, 10–500 characters) — what the user wants from others
+  > *Example: "Looking for people to walk dogs with — Max loves company. I'd also enjoy casual bowling. Would be great to chat about sci-fi books too."*
 
-1. Adam szuka osób do gry w kręgle
-2. Ustawia filtr na zainteresowanie "kręgle"
-3. Znajduje grupę "Kręgle Warszawa Wola"
-4. Wysyła prośbę o dołączenie
-5. Admin akceptuje
-6. Adam dołącza do czatu grupowego i umawia się na najbliższą grę
+An `avatarUrl` field exists in the schema but is not yet used in the UI.
 
-### UC3: Nowe Miasto, Nowi Znajomi
-**Aktor**: Maja (nowa w mieście)
+#### AI-Powered Matching
+The system uses OpenAI (`text-embedding-3-small`) to generate an embedding vector from the combined bio and lookingFor text. This embedding powers similarity-based matching — nearby users are ranked by cosine similarity so the most relevant people appear first.
 
-1. Maja przeprowadziła się do Krakowa
-2. Wypełnia profil: lubi bieganie, książki, kawę
-3. Aplikacja pokazuje osoby i grupy w okolicy
-4. Maja znajduje grupę biegową "Parkrun Kraków"
-5. Dołącza i poznaje lokalnych biegaczy
+### 2. Authentication
 
-### UC4: Przypadkowe Spotkanie w Galerii
-**Aktor**: Tomek (fan sci-fi)
+Blisko uses **Better Auth** with the **email OTP** plugin:
 
-1. Tomek idzie do galerii handlowej
-2. Dostaje powiadomienie: "W okolicy jest osoba, która też czyta Lema!"
-3. Otwiera aplikację i widzi Kasię (~50m)
-4. Zaczepnia Kasię, ona macha
-5. Umawiają się na kawę w galerii
+1. User enters their email address
+2. A 6-digit one-time code is sent via **Resend**
+3. User enters the code (or taps the deep link) and is logged in
+4. Sessions are stored securely via Expo SecureStore
 
-### UC5: Organizowanie Meczu Piłkarskiego
-**Aktor**: Piotr (admin grupy piłkarskiej)
+No passwords, no phone numbers — just email magic links.
 
-1. Piotr tworzy grupę "Niedzielne meczyki Ursynów"
-2. Ustawia jako publiczną
-3. Osoby w okolicy widzą grupę gdy są blisko Ursynowa
-4. 15 osób dołącza w ciągu tygodnia
-5. Piotr organizuje pierwszy mecz przez czat grupowy
+### 3. Nearby Discovery
 
----
+#### Map + Bottom Sheet
+The main screen shows a map (react-native-maps) with user clusters and a gesture-driven bottom sheet:
 
-## Bezpieczeństwo i Prywatność
+- **Map view**: clusters of nearby users, grouped by ~500m grid cells for privacy
+- **Bottom sheet**: swipe up to see a list of nearby users sorted by distance
+- Tap a cluster to filter the list to users in that area
+- Each user row shows display name, distance (rounded to 100m), and a wave button
 
-### Ochrona Lokalizacji
-- **Nigdy nie pokazujemy dokładnej lokalizacji** - tylko przybliżoną (±100-200m)
-- Lokalizacja jest zaokrąglana i "rozmywana" (jitter)
-- Użytkownik może **ukryć się** tymczasowo (tryb niewidoczny)
+#### Location Privacy
+Exact coordinates are never exposed to other users. The system uses **grid snapping** (~500m cells):
 
-### Moderacja
-- AI moderuje treści w czatach
-- System zgłoszeń i blokowania
-- Możliwość weryfikacji profilu (zdjęcie selfie)
+- `toGridCenter()` snaps lat/lng to the center of a grid cell
+- Distance is rounded to the nearest 100m to prevent triangulation
+- Separate API endpoints: one returns grid positions for the map, another returns distance + similarity scores for the list
 
-### Dane Użytkownika
-- Zgodność z RODO
-- Możliwość eksportu danych
-- Możliwość usunięcia konta i wszystkich danych
+### 4. Waves
 
----
+The "wave" system is how users initiate contact:
 
-## Pomysły na Przyszłość 💡
+1. **Send a wave**: user taps the wave button on someone's profile, optionally with a message
+2. **Receive notification**: the recipient sees the wave in their waves tab
+3. **Respond**: the recipient can:
+   - **Accept** — a 1:1 conversation is automatically created
+   - **Decline** — the wave is dismissed; the sender is not notified
+   - **Block** — the sender can never contact this user again
+4. **Unblock**: users can unblock from settings
 
-### P1: Eventy i Spotkania
-Możliwość tworzenia eventów z datą, godziną i miejscem:
-> *"Mecz piłki nożnej, sobota 15:00, Orlik Mokotów"*
+Duplicate waves are prevented. Blocking auto-declines any pending waves and prevents contact in both directions.
 
-Uczestnicy mogą potwierdzić obecność, widzą kto idzie.
+The waves screen has two tabs: received (pending) and sent (with status tracking).
 
-### P2: Osiągnięcia i Gamifikacja
-- Odznaki za aktywność: "Pierwszy spacer", "10 spotkań", "Popularny profil"
-- Poziomy użytkownika
-- Zachęty do regularnego używania aplikacji
+### 5. Chat
 
-### P3: Integracja z Kalendarzem
-- Synchronizacja spotkań z kalendarzem telefonu
-- Przypomnienia o umówionych spotkaniach
+#### Backend (fully implemented)
+- tRPC procedures for sending messages, fetching conversations, cursor-based message pagination
+- Read status tracking (`readAt` timestamp)
+- Unread message count per conversation
+- Conversations are created automatically when a wave is accepted
 
-### P4: Rekomendacje Miejsc
-- AI sugeruje miejsca na spotkania w okolicy
-- "Na spacer z psami polecamy Park Skaryszewski (2km od Was)"
+#### Current limitations
+- **Text only** — no images or media
+- **No real-time updates** — standard HTTP polling, no WebSockets or SSE
+- **No typing indicators** — the store structure exists but is unused
+- Frontend chat UI is a stub screen
 
-### P5: Matching oparty na harmonogramie
-- Użytkownicy mogą podać kiedy są zazwyczaj dostępni
-- System łączy osoby o podobnych harmonogramach
-- "Adam też biega rano przed pracą w tym parku!"
+### 6. Push Notifications
 
-### P6: Weryfikacja Video
-- Opcjonalna weryfikacja przez krótkie video
-- Większe zaufanie do profilu
-
-### P7: Stories / Aktualności
-- Krótkie posty typu "Właśnie jestem w parku z psem, ktoś chętny?"
-- Widoczne dla osób w okolicy przez 24h
-
-### P8: System Reputacji
-- Po spotkaniu użytkownicy mogą zostawić feedback
-- "Świetne spotkanie! Psy się polubiły 🐕"
-- Buduje zaufanie w społeczności
-
-### P9: Integracja z Fitbit/Apple Health
-- Automatyczne wykrywanie aktywności
-- "Karol właśnie biega w parku - może dołączysz?"
-
-### P10: Tryb "Jestem Tutaj"
-- Broadcast do osób w okolicy: "Jestem w kawiarni X, chętnie porozmawiam"
-- Dla osób otwartych na spontaniczne spotkania
+A `pushTokens` table exists in the database (userId, token, platform), and `expo-notifications` is a dependency — but there is no actual push sending logic yet. Wave acceptance, new messages, and other events have `// TODO: Send push notification` markers in the backend code.
 
 ---
 
-## Metryki Sukcesu (KPIs)
+## Planned Features
+
+The following features are part of the product vision but not yet built:
+
+- **Filters** — gender, age range, interests (tags), dog owners, verified profiles
+- **Avatar upload & photo gallery** — the `avatarUrl` field exists but upload and display are not implemented
+- **AI tags & profile summary** — extract interest tags and a short summary from the bio text (currently only embeddings are generated)
+- **Push notifications** — send notifications for waves, messages, and proximity alerts (table exists, logic pending)
+- **Real-time chat** — WebSocket or SSE-based live message delivery
+- **Chat media** — image/photo sharing in conversations
+- **Typing indicators** — show "typing..." status in chat
+- **Groups** — public/private groups with admin roles, group chat, and discovery based on member proximity
+- **Smart proximity notifications** — alert users when a high-match person is nearby, with cooldown rules (moved >500m, >1h since last alert)
+- **Anonymous browsing mode** — view aggregate stats ("4 dog owners nearby") without logging in
+
+---
+
+## Use Cases
+
+### UC1: Dog Walk
+**Actor**: Karol (golden retriever owner)
+
+1. Karol opens the app in the park
+2. He sees that Anna with a labrador is 300m away
+3. He taps "Wave" on Anna's profile
+4. Anna gets a notification and accepts
+5. They arrange a walk through chat
+6. The dogs play, the owners talk
+
+### UC2: Weekend Bowling
+**Actor**: Adam (bowling fan)
+
+1. Adam is looking for people to bowl with
+2. He sets a filter for the "bowling" interest
+3. He finds a group called "Bowling Warsaw Wola"
+4. He sends a request to join
+5. The admin approves
+6. Adam joins the group chat and arranges the next game
+
+### UC3: New City, New Friends
+**Actor**: Maja (new in town)
+
+1. Maja just moved to Krakow
+2. She fills in her profile: likes running, books, coffee
+3. The app shows nearby people and groups
+4. Maja finds a running group "Parkrun Krakow"
+5. She joins and meets local runners
+
+### UC4: Chance Encounter at the Mall
+**Actor**: Tomek (sci-fi fan)
+
+1. Tomek goes to a shopping mall
+2. He gets a notification: "Someone nearby also reads Lem!"
+3. He opens the app and sees Kasia (~50m away)
+4. He waves at Kasia, she accepts
+5. They meet for coffee at the mall
+
+### UC5: Organizing a Football Match
+**Actor**: Piotr (football group admin)
+
+1. Piotr creates a group "Sunday Kickabout Ursynow"
+2. He sets it to public
+3. People nearby see the group when they're close to Ursynow
+4. 15 people join within a week
+5. Piotr organizes the first match through the group chat
+
+---
+
+## Safety & Privacy
+
+### Location Protection
+- **Exact location is never shared** — positions are snapped to ~500m grid cells
+- Distance is rounded to the nearest 100m to prevent triangulation
+- Users can hide themselves temporarily (invisible mode — planned)
+
+### Moderation
+- Blocking system (one-way, prevents all contact)
+- Reporting system (planned)
+- AI chat moderation (planned)
+
+### User Data
+- GDPR compliance (planned)
+- Data export (planned)
+- Full account and data deletion (planned)
+
+---
+
+## Future Ideas
+
+1. **Events & Meetups** — create events with date, time, and place; RSVP tracking
+2. **Achievements & Gamification** — badges for activity ("First walk", "10 meetups", "Popular profile"), user levels
+3. **Calendar Integration** — sync meetups with phone calendar, reminders
+4. **Place Recommendations** — AI suggests meeting spots ("For a dog walk, try Skaryszewski Park — 2km from you")
+5. **Schedule-Based Matching** — users share availability; system connects people with matching routines ("Adam also runs mornings in this park!")
+6. **Video Verification** — optional short video to verify identity, builds trust
+7. **Stories / Status Updates** — short posts like "I'm in the park with my dog right now, anyone want to join?" visible to nearby users for 24h
+8. **Reputation System** — post-meetup feedback ("Great walk! The dogs got along"), builds community trust
+9. **Fitbit / Apple Health Integration** — detect activity automatically ("Karol is running in the park — want to join?")
+10. **"I'm Here" Mode** — broadcast to nearby users: "I'm at cafe X, happy to chat" for spontaneous meetups
+
+---
+
+## Success Metrics (KPIs)
 
 ### Engagement
 - DAU/MAU ratio
-- Średnia liczba zaczepiń na użytkownika/tydzień
-- % zaczepiń → pomachań (conversion)
-- Średnia liczba wiadomości na rozmowę
+- Average waves per user per week
+- Wave-to-accept conversion rate
+- Average messages per conversation
 
 ### Retention
 - D1, D7, D30 retention
-- % użytkowników z pełnym profilem
-- % użytkowników w ≥1 grupie
+- % of users with a complete profile
+- % of users in at least one group
 
 ### Growth
-- Nowi użytkownicy/tydzień
-- Wiralność (ile osób zaprosił średni użytkownik)
+- New users per week
+- Virality (average invites per user)
 
 ### Satisfaction
 - App Store rating
 - NPS score
-- % użytkowników którzy umówili się na spotkanie
+- % of users who arranged a meetup
 
 ---
 
-## Monetyzacja (Przyszłość)
+## Monetization (Future)
 
-### Model Freemium
-**Darmowo**:
-- Przeglądanie 10 osób/dzień
-- 1 zaczepianie/dzień
-- Członkostwo w 3 grupach
+### Freemium Model
+**Free**:
+- Browse 10 people per day
+- 1 wave per day
+- Membership in 3 groups
 
-**Premium** (~29 PLN/miesiąc):
-- Nielimitowane przeglądanie
-- Nielimitowane zaczepianie
-- Nielimitowane grupy
-- Kto oglądał Twój profil
-- Priorytet w wynikach
-- Brak reklam
+**Premium** (~29 PLN/month):
+- Unlimited browsing
+- Unlimited waves
+- Unlimited groups
+- See who viewed your profile
+- Priority in results
+- No ads
 
-### Dodatkowe źródła
-- Promowane profile
-- Reklamy lokalne (kawiarnie, siłownie, etc.)
-- Partnerstwa z organizatorami eventów
+### Additional Revenue
+- Promoted profiles
+- Local ads (cafes, gyms, etc.)
+- Partnerships with event organizers
 
 ---
 
-## Konkurencja
+## Competition
 
-| Aplikacja | Focus | Różnica od Blisko |
-|-----------|-------|-----------------|
-| Bumble BFF | Znajomi | Mniej lokalizacyjny, bardziej "swipe" |
-| Meetup | Eventy | Większe grupy, mniej spontaniczne |
-| Nextdoor | Sąsiedzi | Fokus na sąsiedztwo, nie zainteresowania |
-| Tinder | Randki | Romantyczny focus |
+| App | Focus | How Blisko Differs |
+|-----|-------|--------------------|
+| Bumble BFF | Friends | Less location-driven, more "swipe"-based |
+| Meetup | Events | Larger groups, less spontaneous |
+| Nextdoor | Neighbors | Neighborhood focus, not interest-based |
+| Tinder | Dating | Romantic focus |
 
-**Unikalna wartość Blisko**: Łączenie lokalizacji w czasie rzeczywistym z AI-powered matching zainteresowań dla spontanicznych, nieformalnych spotkań.
+**Blisko's unique value**: Combining real-time location with AI-powered interest matching for spontaneous, informal meetups.
