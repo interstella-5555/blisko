@@ -45,7 +45,3 @@ coverage/
 
 # Metro
 .metro-health-check*
-
-# Supabase
-supabase/.branches
-supabase/.temp
