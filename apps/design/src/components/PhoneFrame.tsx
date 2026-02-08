@@ -12,9 +12,9 @@ export function PhoneFrame({
       className={className}
       style={{
         width: '100%',
-        maxWidth: 360,
-        aspectRatio: '360/780',
-        borderRadius: 40,
+        maxWidth: 402,
+        aspectRatio: '402/874',
+        borderRadius: 44,
         overflow: 'hidden',
         position: 'relative',
       }}
