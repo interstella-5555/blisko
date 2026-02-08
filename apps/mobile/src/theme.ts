@@ -6,6 +6,7 @@ export const colors = {
   accent: '#C0392B',
   rule: '#D5D0C4',
   muted: '#8B8680',
+  mapBg: '#F0ECE3',
   status: {
     success: { text: '#5B7A5E', bg: '#EEF2EE' },
     warning: { text: '#B8863E', bg: '#F5F0E6' },

@@ -1,0 +1,31 @@
+appId: com.blisko.app
+---
+# Launch app, connect to dev server, dismiss developer menus
+
+- launchApp:
+    clearState: true
+    permissions:
+      location: always
+
+# Dev build shows launcher - tap on localhost to connect
+- extendedWaitUntil:
+    visible: "http://localhost:8081"
+    timeout: 15000
+- tapOn: "http://localhost:8081"
+
+# Wait for app to load and developer menu to appear
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 30000
+
+# Dismiss first developer menu
+- tapOn: "Continue"
+
+# Wait for second developer menu (with Go home) and swipe it down to dismiss
+- extendedWaitUntil:
+    visible: "Go home"
+    timeout: 10000
+- swipe:
+    direction: DOWN
+    duration: 400
+- waitForAnimationToEnd

@@ -12,6 +12,7 @@ export const updateProfileSchema = z.object({
   bio: z.string().min(10).max(500).optional(),
   lookingFor: z.string().min(10).max(500).optional(),
   avatarUrl: z.string().url().optional(),
+  isHidden: z.boolean().optional(),
 });
 
 export const updateLocationSchema = z.object({
@@ -34,6 +35,24 @@ export const respondToWaveSchema = z.object({
 export const sendMessageSchema = z.object({
   conversationId: z.string().min(1),
   content: z.string().min(1).max(2000),
+  type: z.enum(['text', 'image', 'location']).default('text'),
+  metadata: z.string().optional(),
+  replyToId: z.string().uuid().optional(),
+});
+
+export const deleteMessageSchema = z.object({
+  messageId: z.string().uuid(),
+});
+
+export const reactToMessageSchema = z.object({
+  messageId: z.string().uuid(),
+  emoji: z.string().min(1).max(8),
+});
+
+export const searchMessagesSchema = z.object({
+  conversationId: z.string().uuid(),
+  query: z.string().min(1).max(200),
+  limit: z.number().min(1).max(50).default(20),
 });
 
 // Nearby users query
@@ -64,6 +83,9 @@ export type UpdateLocationInput = z.infer<typeof updateLocationSchema>;
 export type SendWaveInput = z.infer<typeof sendWaveSchema>;
 export type RespondToWaveInput = z.infer<typeof respondToWaveSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+export type DeleteMessageInput = z.infer<typeof deleteMessageSchema>;
+export type ReactToMessageInput = z.infer<typeof reactToMessageSchema>;
+export type SearchMessagesInput = z.infer<typeof searchMessagesSchema>;
 export type GetNearbyUsersInput = z.infer<typeof getNearbyUsersSchema>;
 export type GetNearbyUsersForMapInput = z.infer<typeof getNearbyUsersForMapSchema>;
 export type BlockUserInput = z.infer<typeof blockUserSchema>;

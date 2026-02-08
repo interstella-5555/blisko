@@ -1,0 +1,79 @@
+appId: com.blisko.app
+---
+# Login with random @example.com email + complete full onboarding
+# After this flow: user lands on "W okolicy" tab
+
+- runFlow: ../sub-flows/launch-and-dismiss-dev.yaml
+
+# Wait for login screen
+- extendedWaitUntil:
+    visible:
+      id: "email-input"
+    timeout: 30000
+
+# Enter unique email
+- tapOn:
+    id: "email-input"
+- inputRandomNumber
+- inputText: "@example.com"
+- hideKeyboard
+
+# Submit login
+- tapOn: "Wyślij link"
+
+# Wait for onboarding step 1 (1/3)
+- extendedWaitUntil:
+    visible: "1 / 3"
+    timeout: 30000
+
+# Step 1: Name
+- tapOn:
+    id: "name-input"
+- inputText: "Chat Test User"
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn: "Dalej"
+
+# Wait for step 2 (2/3)
+- extendedWaitUntil:
+    visible: "2 / 3"
+    timeout: 10000
+
+# Step 2: Bio
+- tapOn:
+    id: "bio-input"
+- inputText: "Testowy user do testow czatu w aplikacji Blisko"
+- hideKeyboard
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Dalej"
+    timeout: 5000
+- tapOn: "Dalej"
+
+# Wait for step 3 (3/3)
+- extendedWaitUntil:
+    visible: "3 / 3"
+    timeout: 10000
+
+# Step 3: Looking for
+- tapOn:
+    id: "looking-for-input"
+- inputText: "Szukam ludzi do testowania czatu"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Set simulated location (Warsaw)
+- setLocation:
+    latitude: 52.2297
+    longitude: 21.0122
+
+# Submit onboarding
+- extendedWaitUntil:
+    visible: "Rozpocznij"
+    timeout: 5000
+- tapOn: "Rozpocznij"
+
+# Verify we landed on main screen
+- extendedWaitUntil:
+    visible: "W okolicy"
+    timeout: 30000

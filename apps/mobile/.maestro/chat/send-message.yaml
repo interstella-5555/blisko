@@ -1,0 +1,44 @@
+appId: com.blisko.app
+---
+# Task 24: Send a message
+# Seeded user opens conversation and sends a new message
+# Seed mode: basic (2 users, conversation, no messages)
+# Run via: ./run-test.sh send-message.yaml basic
+
+- runFlow: ../sub-flows/login-seeded.yaml
+
+# Navigate to Czaty tab
+- tapOn: "tab-chats"
+
+# Wait for conversation to appear and tap it
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row"
+    timeout: 15000
+- tapOn:
+    id: "conversation-row"
+
+# Wait for chat screen to load
+- extendedWaitUntil:
+    visible:
+      id: "chat-input"
+    timeout: 10000
+
+# Type and send a message
+- tapOn:
+    id: "chat-input"
+- inputText: "Testowa wiadomosc e2e"
+- waitForAnimationToEnd
+- hideKeyboard
+- tapOn:
+    id: "chat-send-btn"
+
+# Wait for message to be sent and rendered
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "message-bubble"
+    timeout: 10000
+
+# Verify the sent message text is visible (accessibility text includes timestamp)
+- assertVisible: ".*Testowa wiadomosc e2e.*"

@@ -77,6 +77,7 @@ export const profiles = pgTable(
     avatarUrl: text('avatar_url'),
     bio: text('bio').notNull(),
     lookingFor: text('looking_for').notNull(),
+    isHidden: boolean('is_hidden').default(false).notNull(),
     embedding: real('embedding').array(),
     latitude: real('latitude'),
     longitude: real('longitude'),
@@ -153,8 +154,12 @@ export const messages = pgTable(
       .notNull()
       .references(() => user.id),
     content: text('content').notNull(),
+    type: varchar('type', { length: 20 }).notNull().default('text'),
+    metadata: text('metadata'),
+    replyToId: uuid('reply_to_id'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     readAt: timestamp('read_at'),
+    deletedAt: timestamp('deleted_at'),
   },
   (table) => ({
     conversationIdx: index('messages_conversation_idx').on(
@@ -162,6 +167,30 @@ export const messages = pgTable(
     ),
     senderIdx: index('messages_sender_idx').on(table.senderId),
     createdAtIdx: index('messages_created_at_idx').on(table.createdAt),
+  })
+);
+
+// Message reactions
+export const messageReactions = pgTable(
+  'message_reactions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id),
+    emoji: varchar('emoji', { length: 8 }).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    messageIdx: index('reactions_message_idx').on(table.messageId),
+    userEmojiIdx: index('reactions_user_emoji_idx').on(
+      table.messageId,
+      table.userId,
+      table.emoji
+    ),
   })
 );
 
@@ -254,7 +283,7 @@ export const conversationParticipantsRelations = relations(
   })
 );
 
-export const messagesRelations = relations(messages, ({ one }) => ({
+export const messagesRelations = relations(messages, ({ one, many }) => ({
   conversation: one(conversations, {
     fields: [messages.conversationId],
     references: [conversations.id],
@@ -263,7 +292,28 @@ export const messagesRelations = relations(messages, ({ one }) => ({
     fields: [messages.senderId],
     references: [user.id],
   }),
+  replyTo: one(messages, {
+    fields: [messages.replyToId],
+    references: [messages.id],
+    relationName: 'replies',
+  }),
+  replies: many(messages, { relationName: 'replies' }),
+  reactions: many(messageReactions),
 }));
+
+export const messageReactionsRelations = relations(
+  messageReactions,
+  ({ one }) => ({
+    message: one(messages, {
+      fields: [messageReactions.messageId],
+      references: [messages.id],
+    }),
+    user: one(user, {
+      fields: [messageReactions.userId],
+      references: [user.id],
+    }),
+  })
+);
 
 export const blocksRelations = relations(blocks, ({ one }) => ({
   blocker: one(user, {

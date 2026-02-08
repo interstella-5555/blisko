@@ -1,0 +1,48 @@
+appId: com.blisko.app
+---
+# Task 28: Emoji reaction
+# Seeded user long-presses a message, opens reaction picker, selects emoji
+# Seed mode: messages (10 messages in conversation)
+# Run via: ./run-test.sh emoji-reaction.yaml messages
+
+- runFlow: ../sub-flows/login-seeded.yaml
+
+# Navigate to Czaty tab
+- tapOn: "tab-chats"
+
+# Open conversation
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row"
+    timeout: 15000
+- tapOn:
+    id: "conversation-row"
+
+# Wait for messages to load
+- extendedWaitUntil:
+    visible:
+      id: "message-bubble"
+    timeout: 10000
+
+# Long press on a message to open context menu
+- longPressOn:
+    id: "message-bubble"
+
+# Tap "Reaguj" in the alert
+- extendedWaitUntil:
+    visible: "Reaguj"
+    timeout: 5000
+- tapOn: "Reaguj"
+
+# Wait for reaction picker modal and tap the heart emoji
+- extendedWaitUntil:
+    visible:
+      id: "reaction-❤️"
+    timeout: 5000
+- tapOn:
+    id: "reaction-❤️"
+
+# Verify the reaction appears on the message
+- extendedWaitUntil:
+    visible: "❤️"
+    timeout: 10000

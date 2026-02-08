@@ -160,6 +160,7 @@ export const profilesRouter = router({
         .where(
           and(
             ne(profiles.userId, ctx.userId),
+            eq(profiles.isHidden, false),
             // Bounding box filter (uses index)
             sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
             sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
@@ -237,6 +238,7 @@ export const profilesRouter = router({
         .where(
           and(
             ne(profiles.userId, ctx.userId),
+            eq(profiles.isHidden, false),
             sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
             sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
             sql`${distanceFormula} <= ${radiusMeters}`

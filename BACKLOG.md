@@ -1,19 +1,27 @@
 # Blisko — Backlog
 
-Remaining work, grouped by area. Auth, profiles, geolocation, waves, and the design book are done.
+Remaining work, grouped by area. Auth, profiles, geolocation, waves, chat, and the design book are done.
 
 ---
 
-## Chat
+## Chat — DONE
 
-Backend is complete — tRPC procedures for conversations, messages, sending, read receipts, pagination, and unread counts all exist.
+Full chat implementation complete:
 
-Frontend TODO:
-
-- [ ] Conversation list screen — wire up `messages.getConversations` (stub screen exists at `(tabs)/chats.tsx`)
-- [ ] Chat screen — create `(modals)/chat/[id].tsx` (directory exists but is empty)
-- [ ] Wire up message sending and read receipts
-- [ ] Real-time updates (polling, WebSocket, or tRPC subscriptions)
+- [x] Conversation list screen with unread badges, relative time, last message preview
+- [x] Chat screen with infinite scroll, keyboard avoidance, inverted FlatList
+- [x] Message sending with optimistic updates (onMutate/onError/onSettled)
+- [x] Read receipts — single check (sent) / double check (read)
+- [x] Reply/quote — long-press menu, reply bar above input, quoted message in bubble
+- [x] Soft delete — "Wiadomość usunięta" placeholder
+- [x] Emoji reactions — 6-emoji picker, toggle, grouped chips under bubbles
+- [x] Image messages — expo-image-picker, upload to /uploads endpoint, preview in bubble
+- [x] Location messages — expo-location, pin icon, tap opens native maps
+- [x] Real-time WebSocket — Bun native WS, EventEmitter pub/sub, auto-reconnect
+- [x] Typing indicators — debounced WS messages, "pisze..." display
+- [x] Message search — ILIKE search, search bar in chat header
+- [x] Tab bar unread badge
+- [x] Design book mockups (ChatList + ChatConversation screens)
 
 ## Push Notifications
 

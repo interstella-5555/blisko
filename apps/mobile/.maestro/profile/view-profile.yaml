@@ -1,0 +1,38 @@
+appId: com.blisko.app
+---
+# View profile screen with real data after onboarding
+# Uses fresh login (creates user + profile via onboarding)
+
+- runFlow: ../sub-flows/login-fresh.yaml
+
+# Navigate to Profil tab
+- tapOn: "tab-profile"
+
+# Wait for profile screen to load
+- extendedWaitUntil:
+    visible:
+      id: "profile-display-name"
+    timeout: 10000
+
+# Verify display name from onboarding is shown
+- assertVisible:
+    id: "profile-display-name"
+
+# Verify bio section is visible with real data (not placeholder)
+- assertVisible: "O mnie"
+- assertVisible:
+    id: "profile-bio"
+
+# Verify looking for section is visible with real data
+- assertVisible: "Kogo szukam"
+- assertVisible:
+    id: "profile-looking-for"
+
+# Verify edit button is present
+- assertVisible: "Edytuj profil"
+
+# Verify privacy toggle is present
+- assertVisible: "Ukryj moj profil"
+
+# Verify logout button is present
+- assertVisible: "Wyloguj sie"

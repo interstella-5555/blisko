@@ -1,0 +1,19 @@
+appId: com.blisko.app
+---
+# Task 22: Empty chats state
+# Seeded user with profile but no conversations sees empty state
+# Seed mode: empty (only user A, no conversation)
+# Run via: ./run-test.sh empty-chats.yaml empty
+
+- runFlow: ../sub-flows/login-seeded.yaml
+
+# Navigate to Czaty tab
+- tapOn: "tab-chats"
+
+# Verify empty state is displayed
+- extendedWaitUntil:
+    visible:
+      id: "chats-empty"
+    timeout: 10000
+
+- assertVisible: "Brak czatów"

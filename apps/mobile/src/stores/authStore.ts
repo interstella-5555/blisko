@@ -20,6 +20,8 @@ interface Profile {
   displayName: string;
   bio: string;
   lookingFor: string;
+  avatarUrl?: string | null;
+  isHidden?: boolean;
 }
 
 interface AuthState {

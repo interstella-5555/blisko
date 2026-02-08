@@ -30,3 +30,28 @@ The screenshot mode is built into the codebase — no temporary changes needed.
 **Key files:**
 - `apps/design/src/routes/design-book.tsx` — `?screenshot` detection and early return
 - `apps/design/src/components/design-book/Screens.tsx` — `onlyFirstRow` prop
+
+## Dev CLI
+
+Interactive CLI for testing waves, chats, and messages without the mobile app. Calls the API via HTTP so WebSocket events fire properly.
+
+**Location:** `packages/dev-cli/`
+
+**Run:**
+```bash
+cd packages/dev-cli && bun run src/cli.ts
+```
+
+**Commands:**
+| Command | Description |
+|---------|-------------|
+| `create-user <name>` | Create user + profile + location (auto-login) |
+| `users` | List users created this session |
+| `send-wave <from> <to> [msg]` | Send a wave |
+| `waves <name>` | Show received & sent waves |
+| `respond-wave <name> <waveId> accept\|decline` | Accept or decline a wave |
+| `chats <name>` | List conversations |
+| `messages <name> <convId>` | Show messages |
+| `send-message <name> <convId> <text>` | Send a message |
+
+Users are referenced by name (e.g. "ania"). The CLI resolves names to userId/token from an in-memory map. Set `API_URL` env var to override the default `http://localhost:3000`.

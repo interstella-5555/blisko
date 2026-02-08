@@ -28,7 +28,6 @@ export function Avatar({ uri, name, size = 40 }: AvatarProps) {
             source={{ uri }}
             style={[styles.image, { width: size, height: size, borderRadius }]}
           />
-          {/* Grayscale overlay */}
           <View
             style={[
               styles.grayscaleOverlay,
@@ -43,7 +42,7 @@ export function Avatar({ uri, name, size = 40 }: AvatarProps) {
             { width: size, height: size, borderRadius },
           ]}
         >
-          <Text style={[styles.letter, { fontSize }]}>
+          <Text style={[styles.letter, { fontSize, lineHeight: fontSize }]}>
             {name.charAt(0).toUpperCase()}
           </Text>
         </View>

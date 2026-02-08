@@ -1,0 +1,52 @@
+appId: com.blisko.app
+---
+# Edit profile: open modal, change name, save, verify update on profile screen
+# Uses fresh login (creates user + profile via onboarding)
+
+- runFlow: ../sub-flows/login-fresh.yaml
+
+# Navigate to Profil tab
+- tapOn: "tab-profile"
+
+# Wait for profile screen
+- extendedWaitUntil:
+    visible:
+      id: "profile-display-name"
+    timeout: 10000
+
+# Tap edit profile button
+- tapOn:
+    id: "edit-profile-btn"
+
+# Wait for edit modal to load with name input pre-filled
+- extendedWaitUntil:
+    visible:
+      id: "edit-name-input"
+    timeout: 10000
+
+# Verify bio and looking-for inputs are present
+- assertVisible:
+    id: "edit-bio-input"
+- assertVisible:
+    id: "edit-looking-for-input"
+
+# Clear the name field and type a new name
+- tapOn:
+    id: "edit-name-input"
+- eraseText: 50
+- inputText: "Nowe Imie E2E"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Tap save
+- tapOn:
+    id: "save-profile-btn"
+
+# Wait for modal to close and profile screen to show updated name
+- extendedWaitUntil:
+    visible:
+      id: "profile-display-name"
+    timeout: 10000
+
+# Verify the updated name is displayed
+- assertVisible: "Nowe Imie E2E"

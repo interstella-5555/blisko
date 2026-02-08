@@ -1,0 +1,10 @@
+{
+  "name": "@repo/dev-cli",
+  "private": true,
+  "scripts": {
+    "cli": "bun run src/cli.ts"
+  },
+  "dependencies": {
+    "commander": "^14.0.3"
+  }
+}

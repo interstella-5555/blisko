@@ -1,0 +1,55 @@
+appId: com.blisko.app
+---
+# Task 29: Search messages
+# Seeded user searches for a specific phrase in conversation
+# Seed mode: search (messages with "UNIKALNA FRAZA TESTOWA")
+# Run via: ./run-test.sh search-messages.yaml search
+
+- runFlow: ../sub-flows/login-seeded.yaml
+
+# Navigate to Czaty tab
+- tapOn: "tab-chats"
+
+# Open conversation
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row"
+    timeout: 15000
+- tapOn:
+    id: "conversation-row"
+
+# Wait for chat to load
+- extendedWaitUntil:
+    visible:
+      id: "message-list"
+    timeout: 10000
+
+# Tap search icon in header
+- tapOn:
+    id: "chat-search-btn"
+
+# Wait for search input to appear and type query
+- extendedWaitUntil:
+    visible:
+      id: "chat-search-input"
+    timeout: 5000
+- tapOn:
+    id: "chat-search-input"
+- inputText: "UNIKALNA FRAZA TESTOWA"
+- hideKeyboard
+- waitForAnimationToEnd
+
+# Verify search results appear
+- extendedWaitUntil:
+    visible: ".*UNIKALNA FRAZA TESTOWA.*"
+    timeout: 10000
+
+# Close search
+- tapOn:
+    id: "chat-search-close"
+
+# Verify search bar is gone and messages are still visible
+- extendedWaitUntil:
+    visible:
+      id: "message-list"
+    timeout: 5000

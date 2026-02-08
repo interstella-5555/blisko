@@ -5,8 +5,9 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { trpc } from '../../src/lib/trpc';
+import { useWebSocket, sendWsMessage } from '../../src/lib/ws';
 import { WaveTabBar, WaveTab } from '../../src/components/waves/WaveTabBar';
 import { EmptyWavesState } from '../../src/components/waves/EmptyWavesState';
 import { WaveCard } from '../../src/components/waves/WaveCard';
@@ -23,6 +24,20 @@ export default function WavesScreen() {
   } | null>(null);
 
   const utils = trpc.useUtils();
+  const utilsRef = useRef(utils);
+  utilsRef.current = utils;
+
+  // WebSocket: update wave lists on real-time events
+  const wsHandler = useCallback(
+    (msg: any) => {
+      if (msg.type === 'newWave' || msg.type === 'waveResponded') {
+        utilsRef.current.waves.getReceived.refetch();
+        utilsRef.current.waves.getSent.refetch();
+      }
+    },
+    []
+  );
+  useWebSocket(wsHandler);
 
   const {
     data: receivedWaves,
@@ -40,6 +55,11 @@ export default function WavesScreen() {
     onSuccess: (data, variables) => {
       utils.waves.getReceived.invalidate();
       utils.waves.getSent.invalidate();
+
+      if (variables.accept && data.conversationId) {
+        sendWsMessage({ type: 'subscribe', conversationId: data.conversationId });
+        utils.messages.getConversations.refetch();
+      }
 
       if (variables.accept) {
         Alert.alert(

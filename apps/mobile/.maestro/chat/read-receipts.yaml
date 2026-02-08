@@ -1,0 +1,43 @@
+appId: com.blisko.app
+---
+# Task 25: Read receipts
+# Seeded user has unread messages → opens conversation → messages marked as read
+# Seed mode: unread (user B sent unread messages to user A)
+# Run via: ./run-test.sh read-receipts.yaml unread
+
+- runFlow: ../sub-flows/login-seeded.yaml
+
+# Navigate to Czaty tab
+- tapOn: "tab-chats"
+
+# Wait for conversation list
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row"
+    timeout: 15000
+
+# Verify conversation row shows partner name and unread badge
+- assertVisible: ".*Chat User B.*"
+
+# Open the conversation
+- tapOn:
+    id: "conversation-row"
+
+# Wait for messages to load — verify the unread messages are visible
+- extendedWaitUntil:
+    visible: ".*Odezwij sie jak bedziesz mogl.*"
+    timeout: 10000
+
+# Dismiss modal to go back to conversation list
+- swipe:
+    start: 50%, 10%
+    end: 50%, 90%
+
+# Wait for list to reload
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row"
+    timeout: 10000
+
+# Verify the conversation row is still there
+- assertVisible: ".*Chat User B.*"

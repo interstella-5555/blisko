@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blisko — Chat Implementation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #FAF7F2;
+    color: #1A1A1A;
+    padding: 32px;
+  }
+
+  h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #8B8680;
+    margin-bottom: 32px;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    min-height: 60vh;
+  }
+
+  .column {
+    border: 1px solid #D5D0C4;
+    background: #FAF7F2;
+  }
+
+  .column-header {
+    padding: 12px 16px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #8B8680;
+    border-bottom: 2px solid #1A1A1A;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .column-header .count {
+    background: #1A1A1A;
+    color: #FAF7F2;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 9px;
+  }
+
+  .column-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card {
+    border: 1px solid #D5D0C4;
+    padding: 12px;
+    background: #FAF7F2;
+    transition: box-shadow 0.2s;
+  }
+
+  .card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .card-id {
+    font-size: 9px;
+    font-weight: 600;
+    color: #8B8680;
+  }
+
+  .card-phase {
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+
+  .phase-1 { background: #E8EEF5; color: #3B6AA0; }
+  .phase-2 { background: #EEF2EE; color: #5B7A5E; }
+  .phase-3 { background: #F5F0E6; color: #B8863E; }
+  .phase-4 { background: #EDE8F2; color: #7B5EA0; }
+  .phase-5 { background: #EEECEC; color: #8B8680; }
+
+  .card-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #1A1A1A;
+    margin-bottom: 4px;
+  }
+
+  .card-desc {
+    font-size: 11px;
+    color: #8B8680;
+    line-height: 1.5;
+  }
+
+  .card-checks {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .check-item {
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: #8B8680;
+  }
+
+  .check-item .emoji {
+    font-size: 11px;
+  }
+
+  .card-progress {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-progress-track {
+    flex: 1;
+    height: 3px;
+    background: #D5D0C4;
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .card-progress-fill {
+    height: 100%;
+    background: #C0392B;
+    border-radius: 1px;
+    transition: width 0.3s ease;
+  }
+
+  .card-progress-text {
+    font-size: 9px;
+    font-weight: 600;
+    color: #8B8680;
+    white-space: nowrap;
+  }
+
+  .done .card {
+    opacity: 0.55;
+  }
+
+  .done .card-title {
+    text-decoration: line-through;
+  }
+
+  .progress-bar {
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: #D5D0C4;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #C0392B;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .progress-text {
+    font-size: 11px;
+    color: #8B8680;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<h1>Blisko Chat</h1>
+<div class="subtitle">Implementation Kanban Board</div>
+
+<div class="progress-bar">
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+  <div class="progress-text" id="progressText"></div>
+</div>
+
+<div class="board">
+  <div class="column">
+    <div class="column-header">Todo <span class="count" id="todoCount">0</span></div>
+    <div class="column-body" id="todoCol"></div>
+  </div>
+  <div class="column">
+    <div class="column-header">In Progress <span class="count" id="ipCount">0</span></div>
+    <div class="column-body" id="ipCol"></div>
+  </div>
+  <div class="column done">
+    <div class="column-header">Done <span class="count" id="doneCount">0</span></div>
+    <div class="column-body" id="doneCol"></div>
+  </div>
+</div>
+
+<script>
+const phaseNames = { 1: 'Core', 2: 'Rich', 3: 'Media', 4: 'WS', 5: 'Docs' };
+
+function renderCard(task) {
+  const c = task.checks || {};
+  const checkLabels = [
+    ['impl', 'Impl'],
+    ['tests', 'Tests'],
+    ['passing', 'Passing'],
+  ];
+  const checksHtml = `<div class="card-checks">${
+    checkLabels.map(([key, label]) => {
+      const done = c[key] === true;
+      return `<span class="check-item"><span class="emoji">${done ? '✅' : '⬜'}</span>${label}</span>`;
+    }).join('')
+  }</div>`;
+
+  const progressBar = task.progress != null
+    ? `<div class="card-progress">
+        <div class="card-progress-track">
+          <div class="card-progress-fill" style="width:${task.progress}%"></div>
+        </div>
+        <span class="card-progress-text">${task.progress}%</span>
+      </div>`
+    : '';
+  return `<div class="card">
+    <div class="card-top">
+      <span class="card-id">#${task.id}</span>
+      <span class="card-phase phase-${task.phase}">Faza ${task.phase} · ${phaseNames[task.phase]}</span>
+    </div>
+    <div class="card-title">${task.title}</div>
+    <div class="card-desc">${task.description}</div>
+    ${checksHtml}
+    ${progressBar}
+  </div>`;
+}
+
+async function load() {
+  try {
+    const res = await fetch('./tasks.json');
+    const tasks = await res.json();
+
+    const todo = tasks.filter(t => t.status === 'todo');
+    const ip = tasks.filter(t => t.status === 'in_progress');
+    const done = tasks.filter(t => t.status === 'done');
+
+    document.getElementById('todoCol').innerHTML = todo.map(renderCard).join('');
+    document.getElementById('ipCol').innerHTML = ip.map(renderCard).join('');
+    document.getElementById('doneCol').innerHTML = done.map(renderCard).join('');
+
+    document.getElementById('todoCount').textContent = todo.length;
+    document.getElementById('ipCount').textContent = ip.length;
+    document.getElementById('doneCount').textContent = done.length;
+
+    const pct = Math.round((done.length / tasks.length) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent = `${done.length}/${tasks.length} (${pct}%)`;
+  } catch (e) {
+    document.getElementById('todoCol').innerHTML = '<div class="card-desc">Failed to load tasks.json</div>';
+  }
+}
+
+load();
+setInterval(load, 2000);
+</script>
+
+</body>
+</html>

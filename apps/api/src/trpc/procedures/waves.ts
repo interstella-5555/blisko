@@ -11,6 +11,7 @@ import {
 } from '../../db/schema';
 import { sendWaveSchema, respondToWaveSchema, blockUserSchema } from '@repo/shared';
 import { TRPCError } from '@trpc/server';
+import { ee } from '../../ws/events';
 
 export const wavesRouter = router({
   // Send a wave to someone
@@ -88,6 +89,8 @@ export const wavesRouter = router({
         .returning();
 
       // TODO: Send push notification
+
+      ee.emit('newWave', { toUserId: input.toUserId, wave });
 
       return wave;
     }),
@@ -171,8 +174,22 @@ export const wavesRouter = router({
 
         // TODO: Send push notification about accepted wave
 
+        ee.emit('waveResponded', {
+          fromUserId: wave.fromUserId,
+          waveId: wave.id,
+          accepted: true,
+          conversationId: conversation.id,
+        });
+
         return { wave: updatedWave, conversationId: conversation.id };
       }
+
+      ee.emit('waveResponded', {
+        fromUserId: wave.fromUserId,
+        waveId: wave.id,
+        accepted: false,
+        conversationId: null,
+      });
 
       return { wave: updatedWave, conversationId: null };
     }),

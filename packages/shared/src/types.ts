@@ -43,13 +43,27 @@ export interface ConversationParticipant {
   joinedAt: Date;
 }
 
+export type MessageType = 'text' | 'image' | 'location';
+
 export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
   content: string;
+  type: MessageType;
+  metadata: string | null;
+  replyToId: string | null;
   createdAt: Date;
   readAt: Date | null;
+  deletedAt: Date | null;
+}
+
+export interface MessageReaction {
+  id: string;
+  messageId: string;
+  userId: string;
+  emoji: string;
+  createdAt: Date;
 }
 
 export interface Block {

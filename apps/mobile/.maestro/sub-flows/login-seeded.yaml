@@ -1,0 +1,26 @@
+appId: com.blisko.app
+---
+# Login with pre-seeded user (env var EMAIL)
+# Seeded user already has a profile → skips onboarding, goes straight to tabs
+
+- runFlow: ../sub-flows/launch-and-dismiss-dev.yaml
+
+# Wait for login screen
+- extendedWaitUntil:
+    visible:
+      id: "email-input"
+    timeout: 30000
+
+# Enter seeded email
+- tapOn:
+    id: "email-input"
+- inputText: "${EMAIL}"
+- hideKeyboard
+
+# Submit login
+- tapOn: "Wyślij link"
+
+# Seeded user has profile → goes straight to tabs
+- extendedWaitUntil:
+    visible: "W okolicy"
+    timeout: 30000

@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blisko — App Icon Proposals</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0b;
+    color: #e8e6e3;
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 60px 40px 80px;
+  }
+
+  header {
+    max-width: 1200px;
+    margin: 0 auto 60px;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.2rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #ff6b6b, #ffa36b, #ffdb6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+
+  header p {
+    color: #888;
+    font-size: 1.05rem;
+    max-width: 600px;
+    line-height: 1.6;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .proposal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .icon-wrap {
+    width: 200px;
+    height: 200px;
+    border-radius: 44px;
+    overflow: hidden;
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.5),
+      0 2px 8px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .icon-wrap:hover {
+    transform: scale(1.08) translateY(-4px);
+    box-shadow:
+      0 16px 48px rgba(0,0,0,0.6),
+      0 4px 12px rgba(0,0,0,0.4);
+  }
+
+  .icon-wrap svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .label {
+    text-align: center;
+  }
+
+  .label .number {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #555;
+    margin-bottom: 6px;
+  }
+
+  .label .name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #ccc;
+    margin-bottom: 4px;
+  }
+
+  .label .desc {
+    font-size: 0.82rem;
+    color: #666;
+    line-height: 1.5;
+    max-width: 240px;
+  }
+
+  .sizes {
+    max-width: 1200px;
+    margin: 80px auto 0;
+    padding-top: 48px;
+    border-top: 1px solid #1a1a1c;
+  }
+
+  .sizes h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+    color: #aaa;
+  }
+
+  .sizes p {
+    color: #555;
+    font-size: 0.9rem;
+    margin-bottom: 32px;
+  }
+
+  .size-row {
+    display: flex;
+    align-items: end;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .size-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .size-item .icon-wrap {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+
+  .size-label {
+    font-size: 0.7rem;
+    color: #555;
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Blisko — Icon Proposals</h1>
+  <p>10 app icon concepts exploring proximity, waves, connection, and location. Each designed for App Store impact and home screen clarity.</p>
+</header>
+
+<div class="grid">
+
+  <!-- 1. Concentric Ripples -->
+  <div class="proposal">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FF4D6A"/>
+            <stop offset="100%" stop-color="#FF8A5C"/>
+          </linearGradient>
+        </defs>
+        <rect width="1024" height="1024" fill="url(#g1)"/>
+        <circle cx="512" cy="512" r="340" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="40"/>
+        <circle cx="512" cy="512" r="240" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="40"/>
+        <circle cx="512" cy="512" r="140" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="40"/>
+        <circle cx="512" cy="512" r="50" fill="white"/>
+      </svg>
+    </div>
+    <div class="label">
+      <div class="number">Proposal 01</div>
+      <div class="name">Ripple Signal</div>
+      <div class="desc">Concentric waves emanating from a center point. Warm coral-to-orange gradient. Pure proximity energy.</div>
+    </div>
+  </div>
+
+  <!-- 2. Overlapping Pins -->
+  <div class="proposal">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#1a1a2e"/>
+            <stop offset="100%" stop-color="#16213e"/>
+          </linearGradient>
+        </defs>
+        <rect width="1024" height="1024" fill="url(#g2)"/>
+        <!-- Pin 1 -->
+        <g transform="translate(340, 320)">
+          <path d="M0,0 C0,-88 72,-160 160,-160 C248,-160 320,-88 320,0 C320,60 160,260 160,260 C160,260 0,60 0,0Z" fill="#FF6B8A" opacity="0.85"/>
+          <circle cx="160" cy="-10" r="60" fill="white" opacity="0.9"/>
+        </g>
+        <!-- Pin 2 -->
+        <g transform="translate(384, 340)">
+          <path d="M0,0 C0,-88 72,-160 160,-160 C248,-160 320,-88 320,0 C320,60 160,260 160,260 C160,260 0,60 0,0Z" fill="#4ECDC4" opacity="0.85"/>
+          <circle cx="160" cy="-10" r="60" fill="white" opacity="0.9"/>
+        </g>
+        <!-- Connection line -->
+        <line x1="500" y1="310" x2="544" y2="330" stroke="white" stroke-width="6" opacity="0.4" stroke-dasharray="8,8"/>
+      </svg>
+    </div>
+    <div class="label">
+      <div class="number">Proposal 02</div>
+      <div class="name">Dual Pins</div>
+      <div class="desc">Two overlapping location pins on dark navy. Teal meets coral — two people, one place.</div>
+    </div>
+  </div>
+
+  <!-- 3. Minimal B with wave -->
+  <div class="proposal">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+        <rect width="1024" height="1024" fill="#FAFAF8"/>
+        <text x="300" y="720" font-family="Georgia, serif" font-weight="bold" font-size="640" fill="#1a1a1a">b</text>
+        <!-- Wave arcs top-right -->
+        <path d="M 680 200 Q 740 200 740 260" fill="none" stroke="#FF4D6A" stroke-width="24" stroke-linecap="round"/>
+        <path d="M 680 140 Q 800 140 800 260" fill="none" stroke="#FF4D6A" stroke-width="24" stroke-linecap="round" opacity="0.6"/>
+        <path d="M 680 80 Q 860 80 860 260" fill="none" stroke="#FF4D6A" stroke-width="24" stroke-linecap="round" opacity="0.3"/>
+      </svg>
+    </div>
+    <div class="label">
+      <div class="number">Proposal 03</div>
+      <div class="name">b + Signal</div>
+      <div class="desc">Lowercase 'b' in classic serif on cream. Coral broadcast arcs — editorial minimalism.</div>
+    </div>
+  </div>
+
+  <!-- 4. Radar sweep -->
+  <div class="proposal">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0D0D0D"/>
+            <stop offset="100%" stop-color="#1A1A2E"/>
+          </linearGradient>
+          <linearGradient id="sweep" x1="0.5" y1="0.5" x2="1" y2="0" gradientUnits="objectBoundingBox">
+            <stop offset="0%" stop-color="transparent"/>
+            <stop offset="100%" stop-color="#4ECDC4"/>
+          </linearGradient>
+        </defs>
+        <rect width="1024" height="1024" fill="url(#g4)"/>
+        <!-- Grid rings -->
+        <circle cx="512" cy="512" r="380" fill="none" stroke="#4ECDC4" stroke-width="1" opacity="0.15"/>
+        <circle cx="512" cy="512" r="260" fill="none" stroke="#4ECDC4" stroke-width="1" opacity="0.2"/>
+        <circle cx="512" cy="512" r="140" fill="none" stroke="#4ECDC4" stroke-width="1" opacity="0.25"/>
+        <!-- Cross lines -->
+        <line x1="132" y1="512" x2="892" y2="512" stroke="#4ECDC4" stroke-width="1" opacity="0.1"/>
+        <line x1="512" y1="132" x2="512" y2="892" stroke="#4ECDC4" stroke-width="1" opacity="0.1"/>
+        <!-- Sweep -->
+        <path d="M512,512 L512,132 A380,380 0 0,1 841,325 Z" fill="#4ECDC4" opacity="0.12"/>
+        <!-- Blips -->
+        <circle cx="620" cy="340" r="14" fill="#4ECDC4" opacity="0.9"/>
+        <circle cx="620" cy="340" r="24" fill="none" stroke="#4ECDC4" stroke-width="2" opacity="0.4"/>
+        <circle cx="400" cy="430" r="10" fill="#4ECDC4" opacity="0.5"/>
+        <circle cx="570" cy="620" r="12" fill="#4ECDC4" opacity="0.7"/>
+        <!-- Center -->
+        <circle cx="512" cy="512" r="8" fill="#4ECDC4"/>
+        <circle cx="512" cy="512" r="20" fill="none" stroke="#4ECDC4" stroke-width="2" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="label">
+      <div class="number">Proposal 04</div>
+      <div class="name">Radar</div>
+      <div class="desc">Dark radar display with teal sweep and blips. Discover people nearby — tech-forward and mysterious.</div>
+    </div>
+  </div>
+
+  <!-- 5. Two figures, warm -->
+  <div class="proposal">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g5" x1="0" y1="0" x2="0.5" y2="1">
+            <stop offset="0%" stop-color="#FF9A76"/>
+            <stop offset="100%" stop-color="#FF6B8A"/>
+          </linearGradient>
+        </defs>
+        <rect width="1024" height="1024" fill="url(#g5)"/>
+        <!-- Person left -->
+        <circle cx="390" cy="380" r="80" fill="white" opacity="0.9"/>
+        <rect x="320" y="490" rx="50" width="140" height="200" fill="white" opacity="0.9"/>
+        <!-- Person right -->
+        <circle cx="634" cy="380" r="80" fill="white" opacity="0.9"/>
+        <rect x="564" y="490" rx="50" width="140" height="200" fill="white" opacity="0.9"/>
+        <!-- Heart / connection between -->
+        <path d="M 480 440 Q 512 400 544 440 Q 560 460 512 510 Q 464 460 480 440Z" fill="white"/>
+      </svg>
+    </div>
+    <div class="label">
+      <div class="number">Proposal 05</div>
+      <div class="name">Together</div>
+      <div class="desc">Two silhouettes side by side with a heart spark. Warm peach-to-pink gradient. Friendly and human.</div>
+    </div>
+  </div>
+
+  <!-- 6. Pin + Pulse -->
+  <div class="proposal">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g6" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#6C63FF"/>
+            <stop offset="100%" stop-color="#3F3D99"/>
+          </linearGradient>
+          <filter id="glow6">
+            <feGaussianBlur stdDeviation="12" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <rect width="1024" height="1024" fill="url(#g6)"/>
+        <!-- Pulse rings -->
+        <circle cx="512" cy="420" r="300" fill="none" stroke="white" stroke-width="3" opacity="0.08"/>
+        <circle cx="512" cy="420" r="220" fill="none" stroke="white" stroke-width="3" opacity="0.12"/>
+        <circle cx="512" cy="420" r="140" fill="none" stroke="white" stroke-width="3" opacity="0.18"/>
+        <!-- Pin -->
+        <g filter="url(#glow6)">
+          <path d="M 512 740 L 420 420 Q 400 320 512 280 Q 624 320 604 420 Z" fill="white"/>
+          <circle cx="512" cy="380" r="52" fill="url(#g6)"/>
+        </g>
+      </svg>
+    </div>
+    <div class="label">
+      <div class="number">Proposal 06</div>
+      <div class="name">Pin Pulse</div>
+      <div class="desc">Glowing location pin with pulsing rings on electric indigo. Bold and confident.</div>
+    </div>
+  </div>
+
+  <!-- 7. Wave hand -->
+  <div class="proposal">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g7" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FFBE0B"/>
+            <stop offset="100%" stop-color="#FB5607"/>
+          </linearGradient>
+        </defs>
+        <rect width="1024" height="1024" fill="url(#g7)"/>
+        <!-- Stylized waving hand -->
+        <g transform="translate(512, 480) scale(1.1)">
+          <!-- Palm -->
+          <ellipse cx="0" cy="40" rx="120" ry="140" fill="white" opacity="0.95"/>
+          <!-- Fingers -->
+          <rect x="-100" y="-120" rx="30" width="50" height="160" fill="white" opacity="0.95" transform="rotate(-10, -75, -40)"/>
+          <rect x="-40" y="-160" rx="28" width="46" height="180" fill="white" opacity="0.95" transform="rotate(-2, -17, -70)"/>
+          <rect x="20" y="-155" rx="28" width="46" height="170" fill="white" opacity="0.95" transform="rotate(6, 43, -70)"/>
+          <rect x="76" y="-130" rx="26" width="44" height="150" fill="white" opacity="0.95" transform="rotate(14, 98, -55)"/>
+          <!-- Thumb -->
+          <rect x="-150" y="-20" rx="26" width="44" height="120" fill="white" opacity="0.95" transform="rotate(-50, -128, 40)"/>
+        </g>
+        <!-- Motion arcs -->
+        <path d="M 720 260 Q 760 300 720 340" fill="none" stroke="white" stroke-width="18" stroke-linecap="round" opacity="0.6"/>
+        <path d="M 770 220 Q 830 290 770 370" fill="none" stroke="white" stroke-width="18" stroke-linecap="round" opacity="0.35"/>
+      </svg>
+    </div>
+    <div class="label">
+      <div class="number">Proposal 07</div>
+      <div class="name">Wave</div>
+      <div class="desc">Waving hand with motion arcs on sunny amber-to-orange. Direct, playful, and instantly recognizable.</div>
+    </div>
+  </div>
+
+  <!-- 8. Magnetic pull -->
+  <div class="proposal">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+        <rect width="1024" height="1024" fill="#F5F0EB"/>
+        <!-- Two dots with field lines -->
+        <circle cx="340" cy="512" r="70" fill="#1a1a1a"/>
+        <circle cx="684" cy="512" r="70" fill="#FF4D6A"/>
+        <!-- Field lines -->
+        <path d="M 420 480 Q 512 440 604 480" fill="none" stroke="#1a1a1a" stroke-width="8" opacity="0.15"/>
+        <path d="M 420 512 Q 512 472 604 512" fill="none" stroke="#1a1a1a" stroke-width="8" opacity="0.2"/>
+        <path d="M 420 544 Q 512 504 604 544" fill="none" stroke="#1a1a1a" stroke-width="8" opacity="0.15"/>
+        <path d="M 420 480 Q 512 520 604 480" fill="none" stroke="#FF4D6A" stroke-width="8" opacity="0.15"/>
+        <path d="M 420 512 Q 512 552 604 512" fill="none" stroke="#FF4D6A" stroke-width="8" opacity="0.2"/>
+        <path d="M 420 544 Q 512 584 604 544" fill="none" stroke="#FF4D6A" stroke-width="8" opacity="0.15"/>
+      </svg>
+    </div>
+    <div class="label">
+      <div class="number">Proposal 08</div>
+      <div class="name">Magnetic</div>
+      <div class="desc">Two dots with magnetic field lines on warm cream. Minimal, sophisticated — attraction as physics.</div>
+    </div>
+  </div>
+
+  <!-- 9. Geo ring -->
+  <div class="proposal">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g9" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#00B4D8"/>
+            <stop offset="100%" stop-color="#0077B6"/>
+          </linearGradient>
+        </defs>
+        <rect width="1024" height="1024" fill="url(#g9)"/>
+        <!-- Outer ring -->
+        <circle cx="512" cy="512" r="320" fill="none" stroke="white" stroke-width="50" opacity="0.2"/>
+        <!-- Dashed orbit -->
+        <circle cx="512" cy="512" r="320" fill="none" stroke="white" stroke-width="6" stroke-dasharray="20,30" opacity="0.4"/>
+        <!-- Center person silhouette -->
+        <circle cx="512" cy="440" r="60" fill="white" opacity="0.95"/>
+        <path d="M 430 560 Q 430 520 512 520 Q 594 520 594 560 L 594 620 Q 594 650 570 650 L 454 650 Q 430 650 430 620 Z" fill="white" opacity="0.95"/>
+        <!-- People dots on orbit -->
+        <circle cx="832" cy="512" r="32" fill="white" opacity="0.85"/>
+        <circle cx="285" cy="320" r="28" fill="white" opacity="0.6"/>
+        <circle cx="350" cy="740" r="24" fill="white" opacity="0.45"/>
+        <circle cx="700" cy="280" r="20" fill="white" opacity="0.35"/>
+      </svg>
+    </div>
+    <div class="label">
+      <div class="number">Proposal 09</div>
+      <div class="name">Orbit</div>
+      <div class="desc">Person at center with others orbiting on ocean blue. Social gravity — people drawn to your radius.</div>
+    </div>
+  </div>
+
+  <!-- 10. Stacked waves with heart -->
+  <div class="proposal">
+    <div class="icon-wrap">
+      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g10" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#E63946"/>
+            <stop offset="50%" stop-color="#D62839"/>
+            <stop offset="100%" stop-color="#A4133C"/>
+          </linearGradient>
+        </defs>
+        <rect width="1024" height="1024" fill="url(#g10)"/>
+        <!-- Sound waves from center -->
+        <path d="M 200 512 Q 310 350 420 512 Q 530 674 640 512 Q 750 350 860 512" fill="none" stroke="white" stroke-width="30" stroke-linecap="round" opacity="0.12"/>
+        <path d="M 200 512 Q 310 400 420 512 Q 530 624 640 512 Q 750 400 860 512" fill="none" stroke="white" stroke-width="30" stroke-linecap="round" opacity="0.2"/>
+        <path d="M 200 512 Q 310 460 420 512 Q 530 564 640 512 Q 750 460 860 512" fill="none" stroke="white" stroke-width="30" stroke-linecap="round" opacity="0.35"/>
+        <!-- Heart center -->
+        <g transform="translate(512, 490) scale(1.2)">
+          <path d="M 0 30 Q -80 -50 -80 -30 Q -80 -70 -40 -70 Q 0 -70 0 -30 Q 0 -70 40 -70 Q 80 -70 80 -30 Q 80 -50 0 30Z" fill="white"/>
+        </g>
+      </svg>
+    </div>
+    <div class="label">
+      <div class="number">Proposal 10</div>
+      <div class="name">Heartbeat</div>
+      <div class="desc">Sound waves with a heart at their source on deep crimson. Emotional frequency — your signal finding someone.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Size preview -->
+<div class="sizes">
+  <h2>Size Preview — Proposal 01</h2>
+  <p>How the Ripple Signal icon looks at real device sizes</p>
+  <div class="size-row">
+    <div class="size-item">
+      <div class="icon-wrap" style="width:180px;height:180px;border-radius:40px">
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="g1s" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FF4D6A"/><stop offset="100%" stop-color="#FF8A5C"/></linearGradient></defs>
+          <rect width="1024" height="1024" fill="url(#g1s)"/>
+          <circle cx="512" cy="512" r="340" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="240" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="140" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="50" fill="white"/>
+        </svg>
+      </div>
+      <span class="size-label">App Store 180px</span>
+    </div>
+    <div class="size-item">
+      <div class="icon-wrap" style="width:120px;height:120px;border-radius:27px">
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="g1m" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FF4D6A"/><stop offset="100%" stop-color="#FF8A5C"/></linearGradient></defs>
+          <rect width="1024" height="1024" fill="url(#g1m)"/>
+          <circle cx="512" cy="512" r="340" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="240" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="140" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="50" fill="white"/>
+        </svg>
+      </div>
+      <span class="size-label">Home 120px</span>
+    </div>
+    <div class="size-item">
+      <div class="icon-wrap" style="width:76px;height:76px;border-radius:17px">
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="g1x" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FF4D6A"/><stop offset="100%" stop-color="#FF8A5C"/></linearGradient></defs>
+          <rect width="1024" height="1024" fill="url(#g1x)"/>
+          <circle cx="512" cy="512" r="340" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="240" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="140" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="50" fill="white"/>
+        </svg>
+      </div>
+      <span class="size-label">Spotlight 76px</span>
+    </div>
+    <div class="size-item">
+      <div class="icon-wrap" style="width:40px;height:40px;border-radius:9px">
+        <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="g1t" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FF4D6A"/><stop offset="100%" stop-color="#FF8A5C"/></linearGradient></defs>
+          <rect width="1024" height="1024" fill="url(#g1t)"/>
+          <circle cx="512" cy="512" r="340" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="240" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="140" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="40"/>
+          <circle cx="512" cy="512" r="50" fill="white"/>
+        </svg>
+      </div>
+      <span class="size-label">Notif 40px</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

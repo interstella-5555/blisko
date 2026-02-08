@@ -110,6 +110,74 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEV_LOGIN === 't
   });
 }
 
+// File uploads — S3-compatible object storage (Bun built-in S3Client)
+import { S3Client } from 'bun';
+
+const s3 = new S3Client({
+  accessKeyId: process.env.BUCKET_ACCESS_KEY_ID!,
+  secretAccessKey: process.env.BUCKET_SECRET_ACCESS_KEY!,
+  endpoint: process.env.BUCKET_ENDPOINT!,
+  bucket: process.env.BUCKET_NAME!,
+});
+
+app.post('/uploads', async (c) => {
+  try {
+    // Verify auth
+    const authHeader = c.req.header('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    const body = await c.req.parseBody();
+    const file = body['file'];
+
+    if (!file || !(file instanceof File)) {
+      return c.json({ error: 'No file provided' }, 400);
+    }
+
+    // Validate size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      return c.json({ error: 'File too large (max 5MB)' }, 400);
+    }
+
+    // Validate type
+    if (!file.type.startsWith('image/')) {
+      return c.json({ error: 'Only images allowed' }, 400);
+    }
+
+    const ext = file.name.split('.').pop() || 'jpg';
+    const key = `uploads/${crypto.randomUUID()}.${ext}`;
+
+    const buffer = await file.arrayBuffer();
+    await s3.write(key, buffer, { type: file.type });
+
+    // Generate a presigned URL for reading (7 days)
+    const url = s3.presign(key, {
+      expiresIn: 7 * 24 * 60 * 60,
+    });
+
+    return c.json({ url, key });
+  } catch (error) {
+    console.error('Upload error:', error);
+    return c.json({ error: 'Upload failed' }, 500);
+  }
+});
+
+app.get('/uploads/:key', async (c) => {
+  const key = c.req.param('key');
+  if (key.includes('..')) {
+    return c.json({ error: 'Invalid key' }, 400);
+  }
+
+  try {
+    const file = s3.file(`uploads/${key}`);
+    const url = file.presign({ expiresIn: 7 * 24 * 60 * 60 });
+    return c.redirect(url);
+  } catch {
+    return c.json({ error: 'File not found' }, 404);
+  }
+});
+
 // tRPC
 app.use(
   '/trpc/*',
@@ -134,10 +202,27 @@ const port = Number(process.env.PORT) || 3000;
 
 console.log(`🚀 Server starting on port ${port}`);
 
-// Bun runtime
+// Import WebSocket handler
+import { wsHandler } from './ws/handler';
+
+// Bun runtime with WebSocket support
 export default {
   port,
-  fetch: app.fetch,
+  fetch(req: Request, server: any) {
+    // WebSocket upgrade for /ws path
+    const url = new URL(req.url);
+    if (url.pathname === '/ws') {
+      const upgraded = server.upgrade(req, {
+        data: { userId: null, subscriptions: new Set() },
+      });
+      if (upgraded) return undefined;
+      return new Response('WebSocket upgrade failed', { status: 400 });
+    }
+
+    // Regular HTTP handled by Hono
+    return app.fetch(req, server);
+  },
+  websocket: wsHandler,
 };
 
 export { app };

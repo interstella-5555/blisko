@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, AppState, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { trpc, trpcClient } from '../src/lib/trpc';
 import { useAuthStore } from '../src/stores/authStore';
 import { authClient } from '../src/lib/auth';
+import { useWebSocket } from '../src/lib/ws';
 import { colors } from '../src/theme';
 
 const queryClient = new QueryClient();
@@ -15,6 +16,18 @@ export default function RootLayout() {
   const setUser = useAuthStore((state) => state.setUser);
   const setSession = useAuthStore((state) => state.setSession);
   const setLoading = useAuthStore((state) => state.setLoading);
+
+  // Connect WebSocket when user is authenticated
+  useWebSocket();
+
+  // Tell React Query when app is focused (required for React Native)
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const sub = AppState.addEventListener('change', (status) => {
+      focusManager.setFocused(status === 'active');
+    });
+    return () => sub.remove();
+  }, []);
 
   const [fontsLoaded] = useFonts({
     'InstrumentSerif-Regular': require('../assets/fonts/InstrumentSerif-Regular.ttf'),
@@ -58,6 +71,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="onboarding" />
+          <Stack.Screen name="(modals)" options={{ presentation: 'modal' }} />
         </Stack>
       </QueryClientProvider>
     </trpc.Provider>

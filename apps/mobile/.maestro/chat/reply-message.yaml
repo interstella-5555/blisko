@@ -1,0 +1,57 @@
+appId: com.blisko.app
+---
+# Task 26: Reply to a message
+# Seeded user long-presses a message and replies to it
+# Seed mode: messages (10 messages in conversation)
+# Run via: ./run-test.sh reply-message.yaml messages
+
+- runFlow: ../sub-flows/login-seeded.yaml
+
+# Navigate to Czaty tab
+- tapOn: "tab-chats"
+
+# Open conversation
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row"
+    timeout: 15000
+- tapOn:
+    id: "conversation-row"
+
+# Wait for messages to load
+- extendedWaitUntil:
+    visible:
+      id: "message-bubble"
+    timeout: 10000
+
+# Long press on a message to open context menu
+- longPressOn:
+    id: "message-bubble"
+
+# Tap "Odpowiedz" in the alert
+- extendedWaitUntil:
+    visible: "Odpowiedz"
+    timeout: 5000
+- tapOn: "Odpowiedz"
+
+# Verify reply bar appears
+- extendedWaitUntil:
+    visible: ".*Odpowiadasz.*"
+    timeout: 5000
+
+# Type reply and send
+- tapOn:
+    id: "chat-input"
+- inputText: "Odpowiedz testowa e2e"
+- hideKeyboard
+- waitForAnimationToEnd
+- tapOn:
+    id: "chat-send-btn"
+
+# Verify reply appears
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "message-bubble"
+    timeout: 10000
+- assertVisible: ".*Odpowiedz testowa e2e.*"

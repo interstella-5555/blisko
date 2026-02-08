@@ -221,6 +221,201 @@ function WavesSentScreen() {
   )
 }
 
+function ChatListScreen() {
+  return (
+    <div className={s.screenCol}>
+      <ScreenLabel>Chats — List</ScreenLabel>
+      <PhoneFrame className={s.phoneFrame}>
+        <StatusBar />
+        <div className={s.wavesHeader}>
+          <h1 className={s.wavesTitle}>Czaty</h1>
+        </div>
+        <div className={s.chatList}>
+          <div className={s.chatRow}>
+            <div className={s.chatRowAvatar}>
+              <img src="https://i.pravatar.cc/80?img=12" alt="" />
+            </div>
+            <div className={s.chatRowContent}>
+              <div className={s.chatRowTop}>
+                <span className={s.chatRowName}>Kasia, 24</span>
+              </div>
+              <div className={s.chatRowMsg}>Cześć! Też masz psa? 🐕</div>
+            </div>
+            <div className={s.chatRowMeta}>
+              <span className={s.chatRowTime}>2 min</span>
+              <span className={s.chatUnread}>2</span>
+            </div>
+          </div>
+          <div className={s.chatRow}>
+            <div className={s.chatRowAvatar}>
+              <img src="https://i.pravatar.cc/80?img=60" alt="" />
+            </div>
+            <div className={s.chatRowContent}>
+              <div className={s.chatRowTop}>
+                <span className={s.chatRowName}>Zuza, 23</span>
+              </div>
+              <div className={s.chatRowMsg}>Super, to do zobaczenia!</div>
+            </div>
+            <div className={s.chatRowMeta}>
+              <span className={s.chatRowTime}>1 godz.</span>
+            </div>
+          </div>
+          <div className={s.chatRow}>
+            <div className={s.chatRowAvatar}>
+              <img src="https://i.pravatar.cc/80?img=45" alt="" />
+            </div>
+            <div className={s.chatRowContent}>
+              <div className={s.chatRowTop}>
+                <span className={s.chatRowName}>Piotr, 29</span>
+              </div>
+              <div className={s.chatRowMsg}>Udostępniona lokalizacja</div>
+            </div>
+            <div className={s.chatRowMeta}>
+              <span className={s.chatRowTime}>wczoraj</span>
+            </div>
+          </div>
+        </div>
+        <TabBar active={2} />
+      </PhoneFrame>
+    </div>
+  )
+}
+
+function ChatConversationScreen() {
+  return (
+    <div className={s.screenCol}>
+      <ScreenLabel>Chat — Conversation</ScreenLabel>
+      <PhoneFrame className={s.phoneFrame}>
+        <div className={s.chatConvLayout}>
+          <StatusBar />
+          <div className={s.chatConvHeader}>
+            <Icon name="arrow-left" style={{ width: 16, height: 16 }} />
+            <div className={s.chatConvHeaderAvatar}>
+              <img src="https://i.pravatar.cc/80?img=12" alt="" />
+            </div>
+            <span className={s.chatConvName}>Kasia, 24</span>
+            <Icon name="search" style={{ width: 16, height: 16, color: 'var(--db-muted)' }} />
+          </div>
+          <div className={s.chatMessages}>
+            {/* Date separator */}
+            <div className={s.dateSeparator}>Dzisiaj</div>
+
+            {/* Kasia group 1 */}
+            <div className={`${s.messageGroup} ${s.messageGroupTheirs}`}>
+              <div className={s.messageRow}>
+                <div className={s.avatarSpacer} />
+                <div className={`${s.bubble} ${s.bubbleTheirs} ${s.bubbleFirst}`}>
+                  Hej! Co tam? 👋
+                </div>
+              </div>
+              <div className={s.messageRow}>
+                <div className={s.chatConvAvatar}>
+                  <img src="https://i.pravatar.cc/80?img=12" alt="" />
+                </div>
+                <div className={`${s.bubble} ${s.bubbleTheirs} ${s.bubbleLast}`}>
+                  Widziałam że mieszkasz blisko
+                </div>
+              </div>
+              <div className={`${s.groupTime} ${s.groupTimeTheirs}`}>14:22</div>
+            </div>
+
+            {/* My group 1 */}
+            <div className={`${s.messageGroup} ${s.messageGroupMine} ${s.groupGap}`}>
+              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleFirst}`}>
+                Cześć!
+              </div>
+              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleMid}`}>
+                Tak, jestem na Mokotowie
+              </div>
+              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleLast}`}>
+                A Ty?
+              </div>
+              <div className={`${s.groupTime} ${s.groupTimeMine}`}>
+                14:24 <span className={`${s.bubbleCheck} ${s.bubbleCheckRead}`}>✓✓</span>
+              </div>
+            </div>
+
+            {/* Kasia group 2 */}
+            <div className={`${s.messageGroup} ${s.messageGroupTheirs} ${s.groupGap}`}>
+              <div className={s.messageRow}>
+                <div className={s.avatarSpacer} />
+                <div className={`${s.bubble} ${s.bubbleTheirs} ${s.bubbleFirst}`}>
+                  Ja też! Pole Mokotowskie to mój ulubiony park
+                </div>
+              </div>
+              <div className={s.messageRow}>
+                <div className={s.chatConvAvatar}>
+                  <img src="https://i.pravatar.cc/80?img=12" alt="" />
+                </div>
+                <div className={`${s.bubble} ${s.bubbleTheirs} ${s.bubbleLast}`}>
+                  Chodzisz tam ze swoim psem? 🐕
+                </div>
+              </div>
+              <div className={`${s.groupTime} ${s.groupTimeTheirs}`}>14:30</div>
+            </div>
+
+            {/* My reply */}
+            <div className={`${s.messageGroup} ${s.messageGroupMine} ${s.groupGap}`}>
+              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleSolo}`}>
+                <div className={s.bubbleReply}>
+                  <span className={s.bubbleReplyName}>Kasia</span>
+                  <br />Chodzisz tam ze swoim psem? 🐕
+                </div>
+                Tak! Prawie codziennie ☀️
+              </div>
+              <div className={`${s.groupTime} ${s.groupTimeMine}`}>
+                14:32 <span className={`${s.bubbleCheck} ${s.bubbleCheckRead}`}>✓✓</span>
+              </div>
+            </div>
+
+            {/* Kasia solo with reaction */}
+            <div className={`${s.messageGroup} ${s.messageGroupTheirs} ${s.groupGap}`}>
+              <div className={s.messageRow}>
+                <div className={s.chatConvAvatar}>
+                  <img src="https://i.pravatar.cc/80?img=12" alt="" />
+                </div>
+                <div className={`${s.bubble} ${s.bubbleTheirs} ${s.bubbleSolo}`}>
+                  Super! Może się kiedyś spotkamy na spacerze?
+                  <div className={s.bubbleReactions}>
+                    <span className={s.reactionChip}>❤️</span>
+                  </div>
+                </div>
+              </div>
+              <div className={s.reactionSpacer} />
+              <div className={`${s.groupTime} ${s.groupTimeTheirs}`}>14:33</div>
+            </div>
+
+            {/* My response */}
+            <div className={`${s.messageGroup} ${s.messageGroupMine} ${s.groupGap}`}>
+              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleSolo}`}>
+                Chętnie! Może w weekend?
+              </div>
+              <div className={`${s.groupTime} ${s.groupTimeMine}`}>
+                14:34 <span className={s.bubbleCheck}>✓</span>
+              </div>
+            </div>
+
+            {/* Typing indicator */}
+            <div className={`${s.typingIndicator} ${s.groupGap}`}>pisze...</div>
+          </div>
+          <div className={s.chatInputBar}>
+            <div className={s.chatInputIcons}>
+              <div className={s.chatInputIcon}>
+                <Icon name="camera" style={{ width: 18, height: 18 }} />
+              </div>
+              <div className={s.chatInputIcon}>
+                <Icon name="pin" style={{ width: 18, height: 18 }} />
+              </div>
+            </div>
+            <div className={s.chatInputField}>Wpisz wiadomość...</div>
+            <button className={s.chatInputSend}>Wyślij</button>
+          </div>
+        </div>
+      </PhoneFrame>
+    </div>
+  )
+}
+
 function ChatEmptyScreen() {
   return (
     <div className={s.screenCol}>
@@ -301,6 +496,10 @@ export function Screens({ onlyFirstRow }: { onlyFirstRow?: boolean }) {
       </div>
       <div className={s.screenRow}>
         <ChatEmptyScreen />
+        <ChatListScreen />
+        <ChatConversationScreen />
+      </div>
+      <div className={s.screenRow}>
         <ProfileScreen />
       </div>
     </>

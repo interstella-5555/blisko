@@ -1,0 +1,47 @@
+appId: com.blisko.app
+---
+# Task 27: Delete a message
+# Seeded user long-presses own message and deletes it
+# Seed mode: messages (10 messages in conversation)
+# Run via: ./run-test.sh delete-message.yaml messages
+
+- runFlow: ../sub-flows/login-seeded.yaml
+
+# Navigate to Czaty tab
+- tapOn: "tab-chats"
+
+# Open conversation
+- extendedWaitUntil:
+    visible:
+      id: "conversation-row"
+    timeout: 15000
+- tapOn:
+    id: "conversation-row"
+
+# Wait for messages to load
+- extendedWaitUntil:
+    visible:
+      id: "message-bubble"
+    timeout: 10000
+
+# Long press on second message-bubble (index 1 = user A's message in inverted list)
+- longPressOn:
+    id: "message-bubble"
+    index: 1
+
+# Tap "Usuń" in the alert options
+- extendedWaitUntil:
+    visible: "Usuń"
+    timeout: 5000
+- tapOn: "Usuń"
+
+# Confirm deletion in the confirmation alert
+- extendedWaitUntil:
+    visible: "Czy na pewno chcesz usunąć tę wiadomość?"
+    timeout: 5000
+- tapOn: "Usuń"
+
+# Verify deleted message placeholder appears
+- extendedWaitUntil:
+    visible: "Wiadomość usunięta"
+    timeout: 10000
