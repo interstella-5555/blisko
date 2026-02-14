@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Animated,
+  Pressable,
 } from 'react-native';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import * as Location from 'expo-location';
@@ -18,17 +20,13 @@ import {
   type GridCluster,
   type NearbyMapRef,
 } from '../../src/components/nearby';
-import { BottomSheet, type BottomSheetRef } from '../../src/components/nearby/BottomSheet';
 import { UserRow } from '../../src/components/nearby/UserRow';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { IconPin } from '../../src/components/ui/icons';
 import { Button } from '../../src/components/ui/Button';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SNAP_PEEK = 90;
-const SNAP_HALF = SCREEN_HEIGHT * 0.45;
-const SNAP_EXPANDED = SCREEN_HEIGHT * 0.85;
-const SNAP_POINTS = [SNAP_PEEK, SNAP_HALF, SNAP_EXPANDED];
+const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.4;
 
 export default function NearbyScreen() {
   const [wavingAt, setWavingAt] = useState<string | null>(null);
@@ -37,7 +35,8 @@ export default function NearbyScreen() {
   const { latitude, longitude, permissionStatus, setLocation, setPermissionStatus } =
     useLocationStore();
 
-  const sheetRef = useRef<BottomSheetRef>(null);
+  const [mapExpanded, setMapExpanded] = useState(false);
+  const mapHeight = useRef(new Animated.Value(0)).current;
   const mapRef = useRef<NearbyMapRef>(null);
 
   const utils = trpc.useUtils();
@@ -154,13 +153,21 @@ export default function NearbyScreen() {
 
   const handleClusterPress = useCallback((cluster: GridCluster) => {
     setSelectedCluster(cluster);
-    sheetRef.current?.snapTo(1); // snap to HALF
     mapRef.current?.animateToRegion(cluster.gridLat, cluster.gridLng);
   }, []);
 
   const handleClearFilter = useCallback(() => {
     setSelectedCluster(null);
   }, []);
+
+  const toggleMap = useCallback(() => {
+    const toValue = mapExpanded ? 0 : MAP_EXPANDED_HEIGHT;
+    Animated.spring(mapHeight, {
+      toValue,
+      useNativeDriver: false,
+    }).start();
+    setMapExpanded((v) => !v);
+  }, [mapExpanded, mapHeight]);
 
   // Users to display in sheet: filtered by cluster or all
   const displayUsers = useMemo(() => {
@@ -216,56 +223,64 @@ export default function NearbyScreen() {
 
   return (
     <View style={styles.container}>
-      <NearbyMapView
-        ref={mapRef}
-        users={(mapUsers as MapUser[]) || []}
-        userLatitude={latitude!}
-        userLongitude={longitude!}
-        onClusterPress={handleClusterPress}
-        highlightedGridId={selectedCluster?.gridId}
-      />
-
-      <BottomSheet
-        ref={sheetRef}
-        snapPoints={SNAP_POINTS}
-        initialSnap={0}
-      >
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>
-            {selectedCluster
-              ? `${displayCount} ${displayCount === 1 ? 'OSOBA' : 'OSÓB'} W TYM MIEJSCU`
-              : `${totalCount} ${totalCount === 1 ? 'OSOBA' : 'OSÓB'} W POBLIŻU`}
-          </Text>
-          {selectedCluster && (
-            <Text style={styles.clearButtonText} onPress={handleClearFilter}>
-              POKAŻ WSZYSTKICH
-            </Text>
-          )}
+      {/* Collapsible map */}
+      <Animated.View style={{ height: mapHeight, overflow: 'hidden' }}>
+        <View style={{ height: MAP_EXPANDED_HEIGHT }}>
+          <NearbyMapView
+            ref={mapRef}
+            users={(mapUsers as MapUser[]) || []}
+            userLatitude={latitude!}
+            userLongitude={longitude!}
+            onClusterPress={handleClusterPress}
+            highlightedGridId={selectedCluster?.gridId}
+          />
         </View>
+      </Animated.View>
 
-        <FlatList
-          data={displayUsers}
-          keyExtractor={(item) => item.profile.id}
-          renderItem={({ item }) => (
-            <UserRow
-              userId={item.profile.userId}
-              displayName={item.profile.displayName}
-              avatarUrl={item.profile.avatarUrl}
-              distance={item.distance}
-              hasWaved={wavedUsers.has(item.profile.userId)}
-              isWaving={wavingAt === item.profile.userId}
-              onWave={() => handleWave(item.profile.userId, item.profile.displayName)}
-            />
-          )}
-          ListEmptyComponent={
-            <View style={styles.emptyList}>
-              <Text style={styles.emptyListText}>Nikogo w pobliżu</Text>
-            </View>
-          }
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-        />
-      </BottomSheet>
+      {/* Map toggle bar */}
+      <Pressable onPress={toggleMap} style={styles.mapToggle}>
+        <Text style={styles.mapToggleText}>
+          {mapExpanded ? 'UKRYJ MAPĘ' : 'POKAŻ MAPĘ'}
+        </Text>
+      </Pressable>
+
+      {/* List header */}
+      <View style={styles.listHeader}>
+        <Text style={styles.listHeaderTitle}>
+          {selectedCluster
+            ? `${displayCount} ${displayCount === 1 ? 'OSOBA' : 'OSÓB'} W TYM MIEJSCU`
+            : `${totalCount} ${totalCount === 1 ? 'OSOBA' : 'OSÓB'} W POBLIŻU`}
+        </Text>
+        {selectedCluster && (
+          <Text style={styles.clearButtonText} onPress={handleClearFilter}>
+            POKAŻ WSZYSTKICH
+          </Text>
+        )}
+      </View>
+
+      {/* User list */}
+      <FlatList
+        data={displayUsers}
+        keyExtractor={(item) => item.profile.id}
+        renderItem={({ item }) => (
+          <UserRow
+            userId={item.profile.userId}
+            displayName={item.profile.displayName}
+            avatarUrl={item.profile.avatarUrl}
+            distance={item.distance}
+            hasWaved={wavedUsers.has(item.profile.userId)}
+            isWaving={wavingAt === item.profile.userId}
+            onWave={() => handleWave(item.profile.userId, item.profile.displayName)}
+          />
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyList}>
+            <Text style={styles.emptyListText}>Nikogo w pobliżu</Text>
+          </View>
+        }
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+      />
     </View>
   );
 }
@@ -298,14 +313,27 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textAlign: 'center',
   },
-  sheetHeader: {
+  mapToggle: {
+    backgroundColor: colors.mapBg,
+    paddingVertical: spacing.gutter,
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.rule,
+  },
+  mapToggleText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: colors.muted,
+  },
+  listHeader: {
     paddingHorizontal: spacing.column,
-    paddingBottom: spacing.tight,
+    paddingVertical: spacing.gutter,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sheetTitle: {
+  listHeaderTitle: {
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
     letterSpacing: 1.5,
