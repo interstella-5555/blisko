@@ -8,6 +8,7 @@ import {
   index,
   primaryKey,
   boolean,
+  integer,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -81,6 +82,10 @@ export const profiles = pgTable(
     socialProfile: text('social_profile'),
     interests: text('interests').array(),
     embedding: real('embedding').array(),
+    portrait: text('portrait'),
+    portraitSharedForMatching: boolean('portrait_shared_for_matching')
+      .default(false)
+      .notNull(),
     latitude: real('latitude'),
     longitude: real('longitude'),
     lastLocationUpdate: timestamp('last_location_update'),
@@ -256,6 +261,47 @@ export const connectionAnalyses = pgTable(
   })
 );
 
+// Profiling sessions (AI-driven Q&A profiling)
+export const profilingSessions = pgTable(
+  'profiling_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    status: varchar('status', { length: 20 }).notNull().default('active'),
+    basedOnSessionId: uuid('based_on_session_id'),
+    generatedBio: text('generated_bio'),
+    generatedLookingFor: text('generated_looking_for'),
+    generatedPortrait: text('generated_portrait'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    completedAt: timestamp('completed_at'),
+  },
+  (table) => ({
+    userIdIdx: index('ps_user_id_idx').on(table.userId),
+  })
+);
+
+// Profiling Q&A (individual questions/answers within a session)
+export const profilingQA = pgTable(
+  'profiling_qa',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => profilingSessions.id, { onDelete: 'cascade' }),
+    questionNumber: integer('question_number').notNull(),
+    question: text('question').notNull(),
+    suggestions: text('suggestions').array().notNull(),
+    answer: text('answer'),
+    sufficient: boolean('sufficient').default(false).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    sessionIdIdx: index('pqa_session_id_idx').on(table.sessionId),
+  })
+);
+
 // Relations
 export const userRelations = relations(user, ({ one, many }) => ({
   profile: one(profiles),
@@ -372,5 +418,28 @@ export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, {
     fields: [account.userId],
     references: [user.id],
+  }),
+}));
+
+export const profilingSessionsRelations = relations(
+  profilingSessions,
+  ({ one, many }) => ({
+    user: one(user, {
+      fields: [profilingSessions.userId],
+      references: [user.id],
+    }),
+    basedOnSession: one(profilingSessions, {
+      fields: [profilingSessions.basedOnSessionId],
+      references: [profilingSessions.id],
+      relationName: 'basedOn',
+    }),
+    questions: many(profilingQA),
+  })
+);
+
+export const profilingQARelations = relations(profilingQA, ({ one }) => ({
+  session: one(profilingSessions, {
+    fields: [profilingQA.sessionId],
+    references: [profilingSessions.id],
   }),
 }));

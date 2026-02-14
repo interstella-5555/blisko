@@ -2,8 +2,14 @@ import { Queue, Worker, type Job } from 'bullmq';
 import { createHash } from 'crypto';
 import { eq, and, ne, sql } from 'drizzle-orm';
 import { db } from '../db';
-import { profiles, connectionAnalyses, blocks } from '../db/schema';
-import { analyzeConnection } from './ai';
+import { profiles, connectionAnalyses, blocks, profilingSessions, profilingQA } from '../db/schema';
+import {
+  analyzeConnection,
+  generateSocialProfile,
+  generateEmbedding,
+  extractInterests,
+} from './ai';
+import { generateNextQuestion, generateProfileFromQA } from './profiling-ai';
 import { ee } from '../ws/events';
 
 function getConnectionConfig() {
@@ -16,7 +22,8 @@ function getConnectionConfig() {
   };
 }
 
-// Job types
+// --- Job types ---
+
 interface AnalyzePairJob {
   type: 'analyze-pair';
   userAId: string;
@@ -31,14 +38,47 @@ interface AnalyzeUserPairsJob {
   radiusMeters: number;
 }
 
-type AnalysisJob = AnalyzePairJob | AnalyzeUserPairsJob;
+interface GenerateProfileAIJob {
+  type: 'generate-profile-ai';
+  userId: string;
+  bio: string;
+  lookingFor: string;
+}
 
-// Queue (lazy init)
+interface GenerateProfilingQuestionJob {
+  type: 'generate-profiling-question';
+  sessionId: string;
+  userId: string;
+  displayName: string;
+  qaHistory: { question: string; answer: string }[];
+  previousSessionQA?: { question: string; answer: string }[];
+  userRequestedMore?: boolean;
+  directionHint?: string;
+}
+
+interface GenerateProfileFromQAJob {
+  type: 'generate-profile-from-qa';
+  sessionId: string;
+  userId: string;
+  displayName: string;
+  qaHistory: { question: string; answer: string }[];
+  previousSessionQA?: { question: string; answer: string }[];
+}
+
+type AIJob =
+  | AnalyzePairJob
+  | AnalyzeUserPairsJob
+  | GenerateProfileAIJob
+  | GenerateProfilingQuestionJob
+  | GenerateProfileFromQAJob;
+
+// --- Queue (lazy init) ---
+
 let _queue: Queue | null = null;
 
-function getAnalysisQueue(): Queue {
+function getQueue(): Queue {
   if (!_queue) {
-    _queue = new Queue('connection-analysis', {
+    _queue = new Queue('ai-jobs', {
       connection: getConnectionConfig(),
       defaultJobOptions: {
         removeOnComplete: true,
@@ -49,6 +89,8 @@ function getAnalysisQueue(): Queue {
   return _queue!;
 }
 
+// --- Helpers ---
+
 function profileHash(bio: string, lookingFor: string): string {
   return createHash('sha256')
     .update(`${bio}|${lookingFor}`)
@@ -56,8 +98,9 @@ function profileHash(bio: string, lookingFor: string): string {
     .slice(0, 8);
 }
 
+// --- Connection analysis processors (unchanged) ---
+
 async function processAnalyzePair(userAId: string, userBId: string) {
-  // Fetch both profiles
   const [profileA] = await db
     .select()
     .from(profiles)
@@ -72,7 +115,6 @@ async function processAnalyzePair(userAId: string, userBId: string) {
   const hashA = profileHash(profileA.bio, profileA.lookingFor);
   const hashB = profileHash(profileB.bio, profileB.lookingFor);
 
-  // Check if analysis exists and is fresh (A→B direction)
   const [existingAB] = await db
     .select()
     .from(connectionAnalyses)
@@ -88,10 +130,9 @@ async function processAnalyzePair(userAId: string, userBId: string) {
     existingAB.fromProfileHash === hashA &&
     existingAB.toProfileHash === hashB
   ) {
-    return; // Fresh, skip
+    return;
   }
 
-  // Call AI — one call for both perspectives
   const result = await analyzeConnection(
     {
       socialProfile: profileA.socialProfile,
@@ -105,7 +146,6 @@ async function processAnalyzePair(userAId: string, userBId: string) {
 
   const now = new Date();
 
-  // Upsert A→B
   if (existingAB) {
     await db
       .update(connectionAnalyses)
@@ -138,7 +178,6 @@ async function processAnalyzePair(userAId: string, userBId: string) {
     shortSnippet: result.snippetForA,
   });
 
-  // Upsert B→A
   const [existingBA] = await db
     .select()
     .from(connectionAnalyses)
@@ -188,9 +227,8 @@ async function processAnalyzeUserPairs(
   longitude: number,
   radiusMeters: number
 ) {
-  const queue = getAnalysisQueue();
+  const queue = getQueue();
 
-  // Calculate bounding box (same logic as profiles.ts)
   const latDelta = radiusMeters / 111000;
   const lonDelta =
     radiusMeters / (111000 * Math.cos((latitude * Math.PI) / 180));
@@ -200,7 +238,6 @@ async function processAnalyzeUserPairs(
   const minLon = longitude - lonDelta;
   const maxLon = longitude + lonDelta;
 
-  // Get blocked user IDs
   const [blockedUsers, blockedByUsers] = await Promise.all([
     db
       .select({ blockedId: blocks.blockedId })
@@ -304,20 +341,110 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-async function processJob(job: Job<AnalysisJob>) {
+// --- Profile AI processor (refactored from sync) ---
+
+async function processGenerateProfileAI(userId: string, bio: string, lookingFor: string) {
+  const socialProfile = await generateSocialProfile(bio, lookingFor);
+  const [embedding, interests] = await Promise.all([
+    generateEmbedding(socialProfile),
+    extractInterests(socialProfile),
+  ]);
+
+  await db
+    .update(profiles)
+    .set({
+      socialProfile,
+      embedding,
+      interests,
+      updatedAt: new Date(),
+    })
+    .where(eq(profiles.userId, userId));
+
+  ee.emit('profileReady', { userId });
+}
+
+// --- Profiling question processor ---
+
+async function processGenerateProfilingQuestion(job: GenerateProfilingQuestionJob) {
+  const { sessionId, displayName, qaHistory, previousSessionQA, userRequestedMore, directionHint } = job;
+
+  const questionNumber = qaHistory.length + 1;
+
+  const result = await generateNextQuestion(displayName, qaHistory, {
+    previousSessionQA,
+    userRequestedMore,
+    directionHint,
+  });
+
+  await db.insert(profilingQA).values({
+    sessionId,
+    questionNumber,
+    question: result.question,
+    suggestions: result.suggestions,
+    sufficient: result.sufficient,
+  });
+
+  ee.emit('questionReady', {
+    userId: job.userId,
+    sessionId,
+    questionNumber,
+  });
+}
+
+// --- Profile from Q&A processor ---
+
+async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
+  const { sessionId, displayName, qaHistory, previousSessionQA } = job;
+
+  const result = await generateProfileFromQA(displayName, qaHistory, previousSessionQA);
+
+  await db
+    .update(profilingSessions)
+    .set({
+      generatedBio: result.bio,
+      generatedLookingFor: result.lookingFor,
+      generatedPortrait: result.portrait,
+      status: 'completed',
+      completedAt: new Date(),
+    })
+    .where(eq(profilingSessions.id, sessionId));
+
+  ee.emit('profilingComplete', {
+    userId: job.userId,
+    sessionId,
+  });
+}
+
+// --- Main job processor ---
+
+async function processJob(job: Job<AIJob>) {
   const data = job.data;
 
-  if (data.type === 'analyze-pair') {
-    await processAnalyzePair(data.userAId, data.userBId);
-  } else if (data.type === 'analyze-user-pairs') {
-    await processAnalyzeUserPairs(
-      data.userId,
-      data.latitude,
-      data.longitude,
-      data.radiusMeters
-    );
+  switch (data.type) {
+    case 'analyze-pair':
+      await processAnalyzePair(data.userAId, data.userBId);
+      break;
+    case 'analyze-user-pairs':
+      await processAnalyzeUserPairs(
+        data.userId,
+        data.latitude,
+        data.longitude,
+        data.radiusMeters
+      );
+      break;
+    case 'generate-profile-ai':
+      await processGenerateProfileAI(data.userId, data.bio, data.lookingFor);
+      break;
+    case 'generate-profiling-question':
+      await processGenerateProfilingQuestion(data);
+      break;
+    case 'generate-profile-from-qa':
+      await processGenerateProfileFromQA(data);
+      break;
   }
 }
+
+// --- Worker ---
 
 let _worker: Worker | null = null;
 
@@ -327,7 +454,7 @@ export function startWorker() {
     return;
   }
 
-  _worker = new Worker('connection-analysis', processJob, {
+  _worker = new Worker('ai-jobs', processJob, {
     connection: getConnectionConfig(),
     concurrency: 5,
     limiter: { max: 20, duration: 60_000 },
@@ -341,8 +468,10 @@ export function startWorker() {
     console.error(`[queue] Job ${job?.id} failed:`, err.message);
   });
 
-  console.log('[queue] Connection analysis worker started');
+  console.log('[queue] AI jobs worker started');
 }
+
+// --- Enqueue functions ---
 
 export async function enqueueUserPairAnalysis(
   userId: string,
@@ -352,7 +481,7 @@ export async function enqueueUserPairAnalysis(
 ) {
   if (!process.env.REDIS_URL) return;
 
-  const queue = getAnalysisQueue();
+  const queue = getQueue();
   await queue.add(
     'analyze-user-pairs',
     {
@@ -373,10 +502,79 @@ export async function enqueuePairAnalysis(
   if (!process.env.REDIS_URL) return;
 
   const [a, b] = [userAId, userBId].sort();
-  const queue = getAnalysisQueue();
+  const queue = getQueue();
   await queue.add(
     'analyze-pair',
     { type: 'analyze-pair', userAId: a, userBId: b },
     { jobId: `pair-${a}-${b}` }
+  );
+}
+
+export async function enqueueProfileAI(
+  userId: string,
+  bio: string,
+  lookingFor: string
+) {
+  if (!process.env.REDIS_URL) return;
+
+  const queue = getQueue();
+  await queue.add(
+    'generate-profile-ai',
+    { type: 'generate-profile-ai', userId, bio, lookingFor },
+    { jobId: `profile-ai-${userId}-${Date.now()}` }
+  );
+}
+
+export async function enqueueProfilingQuestion(
+  sessionId: string,
+  userId: string,
+  displayName: string,
+  qaHistory: { question: string; answer: string }[],
+  options?: {
+    previousSessionQA?: { question: string; answer: string }[];
+    userRequestedMore?: boolean;
+    directionHint?: string;
+  }
+) {
+  if (!process.env.REDIS_URL) return;
+
+  const queue = getQueue();
+  await queue.add(
+    'generate-profiling-question',
+    {
+      type: 'generate-profiling-question',
+      sessionId,
+      userId,
+      displayName,
+      qaHistory,
+      previousSessionQA: options?.previousSessionQA,
+      userRequestedMore: options?.userRequestedMore,
+      directionHint: options?.directionHint,
+    },
+    { jobId: `profiling-q-${sessionId}-${qaHistory.length + 1}` }
+  );
+}
+
+export async function enqueueProfileFromQA(
+  sessionId: string,
+  userId: string,
+  displayName: string,
+  qaHistory: { question: string; answer: string }[],
+  previousSessionQA?: { question: string; answer: string }[]
+) {
+  if (!process.env.REDIS_URL) return;
+
+  const queue = getQueue();
+  await queue.add(
+    'generate-profile-from-qa',
+    {
+      type: 'generate-profile-from-qa',
+      sessionId,
+      userId,
+      displayName,
+      qaHistory,
+      previousSessionQA,
+    },
+    { jobId: `profile-from-qa-${sessionId}` }
   );
 }

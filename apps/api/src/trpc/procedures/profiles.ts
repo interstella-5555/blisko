@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { eq, and, ne, sql } from 'drizzle-orm';
+import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc';
 import { db } from '../../db';
 import { profiles, blocks, connectionAnalyses } from '../../db/schema';
@@ -12,13 +13,9 @@ import {
 } from '@repo/shared';
 import { toGridCenter, roundDistance } from '../../lib/grid';
 import {
-  generateEmbedding,
-  generateSocialProfile,
-  extractInterests,
-} from '../../services/ai';
-import {
   enqueueUserPairAnalysis,
   enqueuePairAnalysis,
+  enqueueProfileAI,
 } from '../../services/queue';
 import { ee } from '../../ws/events';
 
@@ -33,30 +30,18 @@ export const profilesRouter = router({
     return profile || null;
   }),
 
-  // Create profile
+  // Create profile (async — AI fields populate via queue worker)
   create: protectedProcedure
     .input(createProfileSchema)
     .mutation(async ({ ctx, input }) => {
-      // Check if profile already exists
       const [existing] = await db
         .select()
         .from(profiles)
         .where(eq(profiles.userId, ctx.userId));
 
       if (existing) {
-        throw new Error('Profile already exists');
+        throw new TRPCError({ code: 'CONFLICT', message: 'Profile already exists' });
       }
-
-      // Pipeline: bio+lookingFor → socialProfile → (embedding, interests)
-      const socialProfile = await generateSocialProfile(
-        input.bio,
-        input.lookingFor
-      );
-
-      const [embedding, interests] = await Promise.all([
-        generateEmbedding(socialProfile),
-        extractInterests(socialProfile),
-      ]);
 
       const [profile] = await db
         .insert(profiles)
@@ -65,70 +50,48 @@ export const profilesRouter = router({
           displayName: input.displayName,
           bio: input.bio,
           lookingFor: input.lookingFor,
-          socialProfile,
-          interests,
-          embedding,
         })
         .returning();
 
-      // Queue connection analyses for nearby users (non-blocking)
-      if (profile.latitude && profile.longitude) {
-        enqueueUserPairAnalysis(
-          ctx.userId,
-          profile.latitude,
-          profile.longitude
-        ).catch(() => {});
-      }
+      // Enqueue AI generation (socialProfile, embedding, interests)
+      // WS event 'profileReady' will fire when done
+      enqueueProfileAI(ctx.userId, input.bio, input.lookingFor).catch((err) => {
+        console.error('[profiles] Failed to enqueue profile AI job:', err);
+      });
 
       return profile;
     }),
 
-  // Update profile
+  // Update profile (async — AI regeneration via queue if bio/lookingFor changed)
   update: protectedProcedure
     .input(updateProfileSchema)
     .mutation(async ({ ctx, input }) => {
-      const updateData: Record<string, unknown> = {
-        ...input,
-        updatedAt: new Date(),
-      };
-
-      // Regenerate socialProfile + embedding + interests if bio or lookingFor changed
-      if (input.bio || input.lookingFor) {
-        const [currentProfile] = await db
-          .select()
-          .from(profiles)
-          .where(eq(profiles.userId, ctx.userId));
-
-        if (currentProfile) {
-          const bio = input.bio || currentProfile.bio;
-          const lookingFor = input.lookingFor || currentProfile.lookingFor;
-
-          const socialProfile = await generateSocialProfile(bio, lookingFor);
-          const [embedding, interests] = await Promise.all([
-            generateEmbedding(socialProfile),
-            extractInterests(socialProfile),
-          ]);
-
-          updateData.socialProfile = socialProfile;
-          updateData.embedding = embedding;
-          updateData.interests = interests;
-
-          // Queue new analyses (profile changed → old analyses are stale)
-          if (currentProfile.latitude && currentProfile.longitude) {
-            enqueueUserPairAnalysis(
-              ctx.userId,
-              currentProfile.latitude,
-              currentProfile.longitude
-            ).catch(() => {});
-          }
-        }
-      }
-
       const [profile] = await db
         .update(profiles)
-        .set(updateData)
+        .set({
+          ...input,
+          updatedAt: new Date(),
+        })
         .where(eq(profiles.userId, ctx.userId))
         .returning();
+
+      // If bio or lookingFor changed, re-run AI pipeline async
+      if (input.bio || input.lookingFor) {
+        const bio = profile.bio;
+        const lookingFor = profile.lookingFor;
+        enqueueProfileAI(ctx.userId, bio, lookingFor).catch((err) => {
+          console.error('[profiles] Failed to enqueue profile AI job:', err);
+        });
+
+        // Also re-analyze connections (profile changed → analyses stale)
+        if (profile.latitude && profile.longitude) {
+          enqueueUserPairAnalysis(
+            ctx.userId,
+            profile.latitude,
+            profile.longitude
+          ).catch(() => {});
+        }
+      }
 
       return profile;
     }),

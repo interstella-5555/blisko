@@ -76,6 +76,33 @@ export const blockUserSchema = z.object({
   userId: z.string().min(1),
 });
 
+// Profiling validators
+export const startProfilingSchema = z.object({
+  basedOnSessionId: z.string().uuid().optional(),
+});
+
+export const answerQuestionSchema = z.object({
+  sessionId: z.string().uuid(),
+  answer: z.string().min(1).max(500),
+});
+
+export const requestMoreQuestionsSchema = z.object({
+  sessionId: z.string().uuid(),
+  directionHint: z.string().max(200).optional(),
+});
+
+export const completeProfilingSchema = z.object({
+  sessionId: z.string().uuid(),
+});
+
+export const applyProfilingSchema = z.object({
+  sessionId: z.string().uuid(),
+  displayName: z.string().min(2).max(50),
+  portraitSharedForMatching: z.boolean(),
+  bio: z.string().min(10).max(500).optional(),
+  lookingFor: z.string().min(10).max(500).optional(),
+});
+
 // Type exports from schemas
 export type CreateProfileInput = z.infer<typeof createProfileSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
@@ -89,3 +116,8 @@ export type SearchMessagesInput = z.infer<typeof searchMessagesSchema>;
 export type GetNearbyUsersInput = z.infer<typeof getNearbyUsersSchema>;
 export type GetNearbyUsersForMapInput = z.infer<typeof getNearbyUsersForMapSchema>;
 export type BlockUserInput = z.infer<typeof blockUserSchema>;
+export type StartProfilingInput = z.infer<typeof startProfilingSchema>;
+export type AnswerQuestionInput = z.infer<typeof answerQuestionSchema>;
+export type RequestMoreQuestionsInput = z.infer<typeof requestMoreQuestionsSchema>;
+export type CompleteProfilingInput = z.infer<typeof completeProfilingSchema>;
+export type ApplyProfilingInput = z.infer<typeof applyProfilingSchema>;

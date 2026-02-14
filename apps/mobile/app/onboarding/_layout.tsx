@@ -48,8 +48,11 @@ export default function OnboardingLayout() {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen name="profile-method" />
       <Stack.Screen name="bio" />
       <Stack.Screen name="looking-for" />
+      <Stack.Screen name="profiling" />
+      <Stack.Screen name="profiling-result" />
     </Stack>
   );
 }

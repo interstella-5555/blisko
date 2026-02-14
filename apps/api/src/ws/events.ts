@@ -62,3 +62,18 @@ export interface AnalysisReadyEvent {
 export interface NearbyChangedEvent {
   forUserId: string;
 }
+
+export interface ProfileReadyEvent {
+  userId: string;
+}
+
+export interface QuestionReadyEvent {
+  userId: string;
+  sessionId: string;
+  questionNumber: number;
+}
+
+export interface ProfilingCompleteEvent {
+  userId: string;
+  sessionId: string;
+}

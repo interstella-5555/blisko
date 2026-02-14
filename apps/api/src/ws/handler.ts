@@ -3,7 +3,7 @@ import { eq, and, gt } from 'drizzle-orm';
 import { db } from '../db';
 import { session as sessionTable, conversationParticipants } from '../db/schema';
 import { ee } from './events';
-import type { NewMessageEvent, TypingEvent, ReactionEvent, NewWaveEvent, WaveRespondedEvent, AnalysisReadyEvent, NearbyChangedEvent } from './events';
+import type { NewMessageEvent, TypingEvent, ReactionEvent, NewWaveEvent, WaveRespondedEvent, AnalysisReadyEvent, NearbyChangedEvent, ProfileReadyEvent, QuestionReadyEvent, ProfilingCompleteEvent } from './events';
 
 export interface WSData {
   userId: string | null;
@@ -159,6 +159,25 @@ ee.on('analysisReady', (event: AnalysisReadyEvent) => {
 
 ee.on('nearbyChanged', (event: NearbyChangedEvent) => {
   broadcastToUser(event.forUserId, { type: 'nearbyChanged' });
+});
+
+ee.on('profileReady', (event: ProfileReadyEvent) => {
+  broadcastToUser(event.userId, { type: 'profileReady' });
+});
+
+ee.on('questionReady', (event: QuestionReadyEvent) => {
+  broadcastToUser(event.userId, {
+    type: 'questionReady',
+    sessionId: event.sessionId,
+    questionNumber: event.questionNumber,
+  });
+});
+
+ee.on('profilingComplete', (event: ProfilingCompleteEvent) => {
+  broadcastToUser(event.userId, {
+    type: 'profilingComplete',
+    sessionId: event.sessionId,
+  });
 });
 
 // Forward per-conversation typing events

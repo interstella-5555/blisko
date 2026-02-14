@@ -19,7 +19,7 @@ export default function OnboardingNameScreen() {
   const handleNext = () => {
     if (name.trim().length < 2) return;
     setDisplayName(name.trim());
-    router.push('/onboarding/bio');
+    router.push('/onboarding/profile-method');
   };
 
   return (

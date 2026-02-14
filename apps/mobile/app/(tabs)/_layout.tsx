@@ -32,6 +32,10 @@ export default function TabsLayout() {
       if (msg.type === 'waveResponded' && msg.accepted && msg.conversationId) {
         sendWsMessage({ type: 'subscribe', conversationId: msg.conversationId });
       }
+      if (msg.type === 'profileReady') {
+        // AI pipeline completed — refresh profile with socialProfile/embedding/interests
+        utilsRef.current.profiles.me.refetch();
+      }
     },
     []
   );
