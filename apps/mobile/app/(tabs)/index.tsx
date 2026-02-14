@@ -4,9 +4,9 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
-  Alert,
   Dimensions,
   Animated,
+  Easing,
   Pressable,
 } from 'react-native';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -23,6 +23,7 @@ import {
   type NearbyMapRef,
 } from '../../src/components/nearby';
 import { UserRow } from '../../src/components/nearby/UserRow';
+import type { UserRowStatus } from '../../src/components/nearby/UserRow';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { IconPin } from '../../src/components/ui/icons';
 import { Button } from '../../src/components/ui/Button';
@@ -31,8 +32,6 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.4;
 
 export default function NearbyScreen() {
-  const [wavingAt, setWavingAt] = useState<string | null>(null);
-  const [wavedUsers, setWavedUsers] = useState<Set<string>>(new Set());
   const [selectedCluster, setSelectedCluster] = useState<GridCluster | null>(null);
   const { latitude, longitude, permissionStatus, setLocation, setPermissionStatus } =
     useLocationStore();
@@ -44,20 +43,43 @@ export default function NearbyScreen() {
   const utils = trpc.useUtils();
 
   const wsHandler = useCallback((msg: any) => {
-    if (msg.type === 'analysisReady') {
+    if (msg.type === 'analysisReady' || msg.type === 'nearbyChanged') {
       utils.profiles.getNearbyUsersForMap.invalidate();
     }
   }, []);
   useWebSocket(wsHandler);
 
   const updateLocationMutation = trpc.profiles.updateLocation.useMutation();
-  const sendWaveMutation = trpc.waves.send.useMutation();
 
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
+
+  // Infinite query for the list (paginated)
   const {
-    data: mapUsers,
+    data: listData,
+    isLoading: isLoadingList,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch: refetchList,
+  } = trpc.profiles.getNearbyUsersForMap.useInfiniteQuery(
+    {
+      latitude: latitude!,
+      longitude: longitude!,
+      radiusMeters: 5000,
+      limit: 20,
+    },
+    {
+      enabled: !!latitude && !!longitude,
+      staleTime: 30000,
+      getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+      initialCursor: 0,
+    }
+  );
+
+  // Separate query for map markers (needs all users, no pagination)
+  const {
+    data: mapData,
     isLoading: isLoadingMap,
-    isRefetching: isRefetchingMap,
-    refetch: refetchMap,
   } = trpc.profiles.getNearbyUsersForMap.useQuery(
     {
       latitude: latitude!,
@@ -72,27 +94,43 @@ export default function NearbyScreen() {
     }
   );
 
-  // Fetch sent waves
-  const { data: sentWaves } = trpc.waves.getSent.useQuery();
+  const mapUsers = mapData?.users;
+  const totalCount = listData?.pages[0]?.totalCount ?? 0;
 
-  // Users to display in sheet: filtered by cluster or all
+  // Fetch waves for status badges
+  const { data: sentWaves } = trpc.waves.getSent.useQuery();
+  const { data: receivedWaves } = trpc.waves.getReceived.useQuery();
+
+  const waveStatusMap = useMemo(() => {
+    const map = new Map<string, 'waved' | 'incoming' | 'friend'>();
+
+    for (const w of sentWaves ?? []) {
+      if (w.wave.status === 'accepted') map.set(w.wave.toUserId, 'friend');
+      else if (w.wave.status === 'pending') map.set(w.wave.toUserId, 'waved');
+    }
+
+    for (const w of receivedWaves ?? []) {
+      if (w.wave.status === 'accepted') map.set(w.wave.fromUserId, 'friend');
+      else if (w.wave.status === 'pending' && !map.has(w.wave.fromUserId))
+        map.set(w.wave.fromUserId, 'incoming');
+    }
+
+    return map;
+  }, [sentWaves, receivedWaves]);
+
+  // Flatten all pages into a single list
+  const allListUsers = useMemo(() => {
+    if (!listData?.pages) return [];
+    return listData.pages.flatMap((page) => page.users);
+  }, [listData]);
+
+  // Users to display in list: filtered by cluster or all
   const displayUsers = useMemo(() => {
     if (selectedCluster) {
       return selectedCluster.users;
     }
-    return (mapUsers as MapUser[]) || [];
-  }, [selectedCluster, mapUsers]);
-
-  useEffect(() => {
-    if (sentWaves) {
-      const waved = new Set(
-        sentWaves
-          .filter((w) => w.wave.status === 'pending')
-          .map((w) => w.wave.toUserId)
-      );
-      setWavedUsers(waved);
-    }
-  }, [sentWaves]);
+    return allListUsers as MapUser[];
+  }, [selectedCluster, allListUsers]);
 
   useEffect(() => {
     requestLocationPermission();
@@ -133,28 +171,6 @@ export default function NearbyScreen() {
     }
   };
 
-  const handleWave = async (userId: string, displayName: string) => {
-    if (wavedUsers.has(userId)) {
-      return;
-    }
-
-    setWavingAt(userId);
-    try {
-      await sendWaveMutation.mutateAsync({ toUserId: userId });
-      setWavedUsers((prev) => new Set([...prev, userId]));
-      utils.waves.getSent.invalidate();
-    } catch (error: any) {
-      const errorMsg = error.message || error.toString();
-      if (errorMsg.includes('already waved')) {
-        setWavedUsers((prev) => new Set([...prev, userId]));
-      } else {
-        Alert.alert('Błąd', `Nie udało się wysłać zaczepienia: ${errorMsg}`);
-      }
-    } finally {
-      setWavingAt(null);
-    }
-  };
-
   const handleClusterPress = useCallback((cluster: GridCluster) => {
     setSelectedCluster(cluster);
     mapRef.current?.animateToRegion(cluster.gridLat, cluster.gridLng);
@@ -165,19 +181,27 @@ export default function NearbyScreen() {
   }, []);
 
   const handleRefresh = useCallback(() => {
-    refetchMap();
-  }, [refetchMap]);
+    setIsManualRefresh(true);
+    refetchList().finally(() => setIsManualRefresh(false));
+  }, [refetchList]);
 
   const toggleMap = useCallback(() => {
     const toValue = mapExpanded ? 0 : MAP_EXPANDED_HEIGHT;
-    Animated.spring(mapHeight, {
-      toValue,
-      useNativeDriver: false,
-    }).start();
+    const animation = mapExpanded
+      ? Animated.timing(mapHeight, {
+          toValue,
+          duration: 300,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false,
+        })
+      : Animated.spring(mapHeight, {
+          toValue,
+          useNativeDriver: false,
+        });
+    animation.start();
     setMapExpanded((v) => !v);
   }, [mapExpanded, mapHeight]);
 
-  const totalCount = (mapUsers as MapUser[])?.length ?? 0;
   const displayCount = displayUsers.length;
 
   // Permission denied
@@ -210,8 +234,8 @@ export default function NearbyScreen() {
     );
   }
 
-  // Loading map data
-  if (isLoadingMap && !(mapUsers as MapUser[] | undefined)?.length) {
+  // Loading data
+  if (isLoadingList && !allListUsers.length) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={colors.ink} />
@@ -227,7 +251,7 @@ export default function NearbyScreen() {
         <View style={{ height: MAP_EXPANDED_HEIGHT }}>
           <NearbyMapView
             ref={mapRef}
-            users={(mapUsers as MapUser[]) || []}
+            users={(mapUsers as MapUser[] | undefined) || []}
             userLatitude={latitude!}
             userLongitude={longitude!}
             onClusterPress={handleClusterPress}
@@ -261,7 +285,9 @@ export default function NearbyScreen() {
       <FlatList
         data={displayUsers}
         keyExtractor={(item) => item.profile.id}
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          const status: UserRowStatus = waveStatusMap.get(item.profile.userId) ?? 'none';
+          return (
           <UserRow
             userId={item.profile.userId}
             displayName={item.profile.displayName}
@@ -272,9 +298,7 @@ export default function NearbyScreen() {
             commonInterests={item.commonInterests}
             shortSnippet={item.shortSnippet}
             analysisReady={item.analysisReady}
-            hasWaved={wavedUsers.has(item.profile.userId)}
-            isWaving={wavingAt === item.profile.userId}
-            onWave={() => handleWave(item.profile.userId, item.profile.displayName)}
+            status={status}
             onPress={() =>
               router.push({
                 pathname: '/(modals)/user/[userId]',
@@ -284,20 +308,35 @@ export default function NearbyScreen() {
                   rankScore: String(item.rankScore),
                   commonInterests: JSON.stringify(item.commonInterests),
                   displayName: item.profile.displayName,
+                  avatarUrl: item.profile.avatarUrl ?? '',
                 },
               })
             }
           />
-        )}
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.emptyList}>
             <Text style={styles.emptyListText}>Nikogo w pobliżu</Text>
           </View>
         }
         onRefresh={handleRefresh}
-        refreshing={isRefetchingMap}
+        refreshing={isManualRefresh}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage && !selectedCluster) {
+            fetchNextPage();
+          }
+        }}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View style={styles.loadingFooter}>
+              <ActivityIndicator size="small" color={colors.muted} />
+            </View>
+          ) : null
+        }
       />
     </View>
   );
@@ -373,5 +412,9 @@ const styles = StyleSheet.create({
   emptyListText: {
     ...typ.body,
     color: colors.muted,
+  },
+  loadingFooter: {
+    paddingVertical: spacing.column,
+    alignItems: 'center',
   },
 });

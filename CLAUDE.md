@@ -31,6 +31,16 @@ The screenshot mode is built into the codebase — no temporary changes needed.
 - `apps/design/src/routes/design-book.tsx` — `?screenshot` detection and early return
 - `apps/design/src/components/design-book/Screens.tsx` — `onlyFirstRow` prop
 
+## Running locally
+
+```bash
+# API (with auto-restart on file changes)
+cd apps/api && pnpm dev
+
+# Mobile (Expo)
+cd apps/mobile && npx expo start
+```
+
 ## Dev CLI
 
 Interactive CLI for testing waves, chats, and messages without the mobile app. Calls the API via HTTP so WebSocket events fire properly.

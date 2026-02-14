@@ -58,3 +58,7 @@ export interface AnalysisReadyEvent {
   aboutUserId: string;
   shortSnippet: string;
 }
+
+export interface NearbyChangedEvent {
+  forUserId: string;
+}

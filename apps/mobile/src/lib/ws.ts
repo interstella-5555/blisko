@@ -12,7 +12,8 @@ type WSMessage =
   | { type: 'reaction'; conversationId: string; messageId: string; emoji: string; userId: string; action: 'added' | 'removed' }
   | { type: 'newWave'; wave: any }
   | { type: 'waveResponded'; waveId: string; accepted: boolean; conversationId: string | null }
-  | { type: 'analysisReady'; aboutUserId: string; shortSnippet: string };
+  | { type: 'analysisReady'; aboutUserId: string; shortSnippet: string }
+  | { type: 'nearbyChanged' };
 
 type MessageHandler = (msg: WSMessage) => void;
 
@@ -156,7 +157,7 @@ export function useWebSocket(onMessage?: MessageHandler) {
 export function useTypingIndicator(conversationId: string | undefined) {
   const userId = useAuthStore((s) => s.user?.id);
   const [typingUsers, setTypingUsers] = useState<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleMessage = useCallback(
     (msg: WSMessage) => {

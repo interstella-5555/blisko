@@ -3,9 +3,9 @@ import { eq, and, gt } from 'drizzle-orm';
 import { db } from '../db';
 import { session as sessionTable, conversationParticipants } from '../db/schema';
 import { ee } from './events';
-import type { NewMessageEvent, TypingEvent, ReactionEvent, NewWaveEvent, WaveRespondedEvent, AnalysisReadyEvent } from './events';
+import type { NewMessageEvent, TypingEvent, ReactionEvent, NewWaveEvent, WaveRespondedEvent, AnalysisReadyEvent, NearbyChangedEvent } from './events';
 
-interface WSData {
+export interface WSData {
   userId: string | null;
   subscriptions: Set<string>;
 }
@@ -155,6 +155,10 @@ ee.on('analysisReady', (event: AnalysisReadyEvent) => {
     aboutUserId: event.aboutUserId,
     shortSnippet: event.shortSnippet,
   });
+});
+
+ee.on('nearbyChanged', (event: NearbyChangedEvent) => {
+  broadcastToUser(event.forUserId, { type: 'nearbyChanged' });
 });
 
 // Forward per-conversation typing events

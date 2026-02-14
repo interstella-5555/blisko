@@ -143,7 +143,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="waves"
         options={{
-          title: 'Zagadaj',
+          title: 'Zaczepki',
           tabBarIcon: ({ color }) => <IconWave size={20} color={color} />,
           tabBarAccessibilityLabel: 'tab-waves',
           tabBarBadge: pendingWaves > 0 ? pendingWaves : undefined,
@@ -163,7 +163,6 @@ export default function TabsLayout() {
           title: 'Czaty',
           tabBarIcon: ({ color }) => <IconChat size={20} color={color} />,
           tabBarAccessibilityLabel: 'tab-chats',
-          tabBarTestID: 'tab-chats',
           tabBarBadge: totalUnread > 0 ? totalUnread : undefined,
           tabBarBadgeStyle: {
             backgroundColor: colors.accent,

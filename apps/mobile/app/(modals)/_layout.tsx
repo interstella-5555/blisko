@@ -6,7 +6,7 @@ export default function ModalsLayout() {
     <Stack
       screenOptions={{
         headerStyle: { backgroundColor: colors.bg },
-        headerTitleStyle: { ...typ.heading, fontSize: 18 },
+        headerTitleStyle: { fontFamily: typ.heading.fontFamily, fontSize: 18 },
         headerShadowVisible: false,
         headerTintColor: colors.ink,
         contentStyle: { backgroundColor: colors.bg },

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eq, and, or, desc } from 'drizzle-orm';
+import { eq, and, or, desc, inArray } from 'drizzle-orm';
 import { router, protectedProcedure } from '../trpc';
 import { db } from '../../db';
 import {
@@ -104,7 +104,10 @@ export const wavesRouter = router({
       .from(waves)
       .innerJoin(profiles, eq(waves.fromUserId, profiles.userId))
       .where(
-        and(eq(waves.toUserId, ctx.userId), eq(waves.status, 'pending'))
+        and(
+          eq(waves.toUserId, ctx.userId),
+          inArray(waves.status, ['pending', 'accepted'])
+        )
       )
       .orderBy(desc(waves.createdAt));
 
@@ -125,6 +128,39 @@ export const wavesRouter = router({
 
     return sentWaves;
   }),
+
+  // Cancel a sent wave
+  cancel: protectedProcedure
+    .input(z.object({ waveId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const [wave] = await db
+        .select()
+        .from(waves)
+        .where(
+          and(eq(waves.id, input.waveId), eq(waves.fromUserId, ctx.userId))
+        );
+
+      if (!wave) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Wave not found',
+        });
+      }
+
+      if (wave.status !== 'pending') {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Can only cancel pending waves',
+        });
+      }
+
+      const [deleted] = await db
+        .delete(waves)
+        .where(eq(waves.id, input.waveId))
+        .returning();
+
+      return deleted;
+    }),
 
   // Respond to a wave (accept or decline)
   respond: protectedProcedure

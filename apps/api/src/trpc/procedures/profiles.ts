@@ -20,6 +20,7 @@ import {
   enqueueUserPairAnalysis,
   enqueuePairAnalysis,
 } from '../../services/queue';
+import { ee } from '../../ws/events';
 
 export const profilesRouter = router({
   // Get current user's profile
@@ -154,6 +155,29 @@ export const profilesRouter = router({
         input.longitude
       ).catch(() => {});
 
+      // Notify nearby users that someone's location changed
+      const radiusMeters = 5000;
+      const latDelta = radiusMeters / 111000;
+      const lonDelta =
+        radiusMeters / (111000 * Math.cos((input.latitude * Math.PI) / 180));
+
+      db.select({ userId: profiles.userId })
+        .from(profiles)
+        .where(
+          and(
+            ne(profiles.userId, ctx.userId),
+            eq(profiles.isHidden, false),
+            sql`${profiles.latitude} BETWEEN ${input.latitude - latDelta} AND ${input.latitude + latDelta}`,
+            sql`${profiles.longitude} BETWEEN ${input.longitude - lonDelta} AND ${input.longitude + lonDelta}`
+          )
+        )
+        .then((nearbyUsers) => {
+          for (const u of nearbyUsers) {
+            ee.emit('nearbyChanged', { forUserId: u.userId });
+          }
+        })
+        .catch(() => {});
+
       return profile;
     }),
 
@@ -255,7 +279,8 @@ export const profilesRouter = router({
   getNearbyUsersForMap: protectedProcedure
     .input(getNearbyUsersForMapSchema)
     .query(async ({ ctx, input }) => {
-      const { latitude, longitude, radiusMeters, limit } = input;
+      const { latitude, longitude, radiusMeters, limit, cursor } = input;
+      const offset = cursor ?? 0;
 
       // Calculate bounding box for initial filter (uses index!)
       const latDelta = radiusMeters / 111000;
@@ -267,8 +292,28 @@ export const profilesRouter = router({
       const minLon = longitude - lonDelta;
       const maxLon = longitude + lonDelta;
 
-      // Get blocked users + current profile + pre-computed analyses in parallel
-      const [blockedUsers, blockedByUsers, currentProfileResult, analyses] =
+      // Haversine distance formula
+      const distanceFormula = sql<number>`
+        6371000 * acos(
+          LEAST(1.0, GREATEST(-1.0,
+            cos(radians(${latitude})) * cos(radians(${profiles.latitude})) *
+            cos(radians(${profiles.longitude}) - radians(${longitude})) +
+            sin(radians(${latitude})) * sin(radians(${profiles.latitude}))
+          ))
+        )
+      `;
+
+      // Base WHERE conditions (reused for count + paginated query)
+      const baseWhere = and(
+        ne(profiles.userId, ctx.userId),
+        eq(profiles.isHidden, false),
+        sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
+        sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
+        sql`${distanceFormula} <= ${radiusMeters}`
+      );
+
+      // Get blocked users + current profile + analyses + totalCount in parallel
+      const [blockedUsers, blockedByUsers, currentProfileResult, analyses, countResult] =
         await Promise.all([
           db
             .select({ blockedId: blocks.blockedId })
@@ -283,6 +328,10 @@ export const profilesRouter = router({
             .select()
             .from(connectionAnalyses)
             .where(eq(connectionAnalyses.fromUserId, ctx.userId)),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(profiles)
+            .where(baseWhere),
         ]);
 
       const allBlockedIds = new Set([
@@ -290,40 +339,27 @@ export const profilesRouter = router({
         ...blockedByUsers.map((b) => b.blockerId),
       ]);
 
+      const rawCount = Number(countResult[0]?.count ?? 0);
+      // Subtract blocked users from count (approximate — blocked users may not all be in range)
+      const totalCount = Math.max(0, rawCount - allBlockedIds.size);
+
       const currentProfile = currentProfileResult[0];
 
       const analysisMap = new Map(
         analyses.map((a) => [a.toUserId, a])
       );
 
-      // Haversine distance formula
-      const distanceFormula = sql<number>`
-        6371000 * acos(
-          LEAST(1.0, GREATEST(-1.0,
-            cos(radians(${latitude})) * cos(radians(${profiles.latitude})) *
-            cos(radians(${profiles.longitude}) - radians(${longitude})) +
-            sin(radians(${latitude})) * sin(radians(${profiles.latitude}))
-          ))
-        )
-      `;
-
+      // Fetch extra rows to account for blocked users being filtered out
       const nearbyUsers = await db
         .select({
           profile: profiles,
           distance: distanceFormula,
         })
         .from(profiles)
-        .where(
-          and(
-            ne(profiles.userId, ctx.userId),
-            eq(profiles.isHidden, false),
-            sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
-            sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
-            sql`${distanceFormula} <= ${radiusMeters}`
-          )
-        )
+        .where(baseWhere)
         .orderBy(distanceFormula)
-        .limit(limit + allBlockedIds.size);
+        .limit(limit + allBlockedIds.size)
+        .offset(offset);
 
       const myInterests = currentProfile?.interests ?? [];
       const myEmbedding = currentProfile?.embedding ?? null;
@@ -398,7 +434,9 @@ export const profilesRouter = router({
         enqueuePairAnalysis(ctx.userId, theirUserId).catch(() => {});
       }
 
-      return results;
+      const nextCursor = offset + limit < totalCount ? offset + limit : null;
+
+      return { users: results, totalCount, nextCursor };
     }),
 
   // Get AI connection analysis for a specific user

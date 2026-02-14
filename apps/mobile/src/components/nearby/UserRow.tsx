@@ -1,31 +1,25 @@
-import {
-  View,
-  Text,
-  Animated,
-  ActivityIndicator,
-  StyleSheet,
-  Pressable,
-} from 'react-native';
-import { useRef, useEffect } from 'react';
-import { colors, fonts, spacing } from '../../theme';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { colors, fonts, type as typ, spacing } from '../../theme';
 import { Avatar } from '../ui/Avatar';
-import { Button } from '../ui/Button';
-import { IconWave, IconCheck, IconBulletRose } from '../ui/icons';
+import { IconBulletRose } from '../ui/icons';
+
+export type UserRowStatus = 'none' | 'waved' | 'incoming' | 'friend';
 
 interface UserRowProps {
   userId: string;
   displayName: string;
   avatarUrl: string | null;
-  distance: number;
   bio: string | null;
-  rankScore: number;
-  commonInterests: string[];
-  shortSnippet: string | null;
-  analysisReady: boolean;
-  hasWaved: boolean;
-  isWaving: boolean;
-  onWave: () => void;
+  status: UserRowStatus;
   onPress: () => void;
+  // Nearby-only (optional)
+  distance?: number;
+  rankScore?: number;
+  commonInterests?: string[];
+  shortSnippet?: string | null;
+  analysisReady?: boolean;
+  // Waves-only (optional)
+  timestamp?: string;
 }
 
 const formatDistance = (meters: number): string => {
@@ -39,6 +33,18 @@ const formatDistance = (meters: number): string => {
   return `~${(rounded / 1000).toFixed(1)} km`;
 };
 
+const formatRelativeTime = (dateString: string): string => {
+  const diffMs = Date.now() - new Date(dateString).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'teraz';
+  if (diffMins < 60) return `${diffMins} min temu`;
+  const diffHours = Math.floor(diffMs / 3600000);
+  if (diffHours < 24) return `${diffHours} godz. temu`;
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays < 7) return `${diffDays} dni temu`;
+  return new Date(dateString).toLocaleDateString('pl-PL');
+};
+
 function getSnippetText(
   shortSnippet: string | null,
   analysisReady: boolean,
@@ -47,12 +53,11 @@ function getSnippetText(
 ): { text: string | null; isAnalyzing: boolean } {
   if (shortSnippet) return { text: shortSnippet, isAnalyzing: false };
   if (!analysisReady && bio) {
-    const truncated = bio.length > 80 ? bio.slice(0, 77) + '...' : bio;
-    return { text: truncated, isAnalyzing: true };
+    return { text: bio, isAnalyzing: true };
   }
   if (commonInterests.length > 0)
     return {
-      text: `Łączy was: ${commonInterests.slice(0, 3).join(', ')}`,
+      text: `Wspólne: ${commonInterests.slice(0, 3).join(', ')}`,
       isAnalyzing: false,
     };
   return { text: bio || null, isAnalyzing: false };
@@ -64,6 +69,15 @@ function getMatchColor(percent: number): string {
   return colors.muted;
 }
 
+const statusConfig: Record<
+  Exclude<UserRowStatus, 'none'>,
+  { label: string; color: string }
+> = {
+  waved: { label: 'ZACZEPIONO', color: colors.muted },
+  incoming: { label: 'CHCE CIĘ POZNAĆ', color: colors.status.warning.text },
+  friend: { label: 'ZNAJOMY', color: colors.status.success.text },
+};
+
 export function UserRow({
   displayName,
   avatarUrl,
@@ -73,46 +87,20 @@ export function UserRow({
   commonInterests,
   shortSnippet,
   analysisReady,
-  hasWaved,
-  isWaving,
-  onWave,
+  status,
   onPress,
+  timestamp,
 }: UserRowProps) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const prevHasWaved = useRef(hasWaved);
-
-  useEffect(() => {
-    if (hasWaved && !prevHasWaved.current) {
-      Animated.sequence([
-        Animated.spring(scale, {
-          toValue: 1.4,
-          useNativeDriver: true,
-          speed: 50,
-          bounciness: 12,
-        }),
-        Animated.spring(scale, {
-          toValue: 1,
-          useNativeDriver: true,
-          speed: 30,
-          bounciness: 8,
-        }),
-      ]).start();
-    }
-    prevHasWaved.current = hasWaved;
-  }, [hasWaved]);
-
-  const { text: snippet, isAnalyzing } = getSnippetText(
-    shortSnippet,
-    analysisReady,
-    commonInterests,
-    bio
-  );
-  const matchPercent = Math.round(rankScore * 100);
-  const isHighlight = !!shortSnippet || commonInterests.length > 0;
+  const hasNearbyData = distance !== undefined;
+  const { text: snippet, isAnalyzing } = hasNearbyData
+    ? getSnippetText(shortSnippet ?? null, analysisReady ?? false, commonInterests ?? [], bio)
+    : { text: bio || null, isAnalyzing: false };
+  const matchPercent = Math.round((rankScore ?? 0) * 100);
+  const isHighlight = !!shortSnippet || (commonInterests ?? []).length > 0;
 
   return (
     <Pressable onPress={onPress} style={styles.row}>
-      <Avatar uri={avatarUrl} name={displayName} size={48} />
+      <Avatar uri={avatarUrl} name={displayName} size={44} />
       <View style={styles.info}>
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>
@@ -126,12 +114,23 @@ export function UserRow({
               </Text>
             </View>
           )}
-          <Text style={styles.distance}>{formatDistance(distance)}</Text>
+          {distance !== undefined && (
+            <Text style={styles.distance}>{formatDistance(distance)}</Text>
+          )}
+          {!distance && timestamp && (
+            <Text style={styles.distance}>{formatRelativeTime(timestamp)}</Text>
+          )}
+          <View style={{ flex: 1 }} />
+          {status !== 'none' && (
+            <Text style={[styles.statusLabel, { color: statusConfig[status].color }]}>
+              {statusConfig[status].label}
+            </Text>
+          )}
         </View>
         {snippet && (
           <Text
             style={[styles.snippet, isHighlight && styles.snippetHighlight]}
-            numberOfLines={2}
+            numberOfLines={4}
           >
             {snippet}
           </Text>
@@ -140,21 +139,6 @@ export function UserRow({
           <Text style={styles.analyzingText}>Analizujemy dopasowanie...</Text>
         )}
       </View>
-      <Animated.View style={{ transform: [{ scale }] }}>
-        <Button
-          variant="wave"
-          onPress={onWave}
-          disabled={hasWaved || isWaving}
-        >
-          {isWaving ? (
-            <ActivityIndicator size="small" color={colors.ink} />
-          ) : hasWaved ? (
-            <IconCheck size={16} color={colors.ink} />
-          ) : (
-            <IconWave size={16} color={colors.ink} />
-          )}
-        </Button>
-      </Animated.View>
     </Pressable>
   );
 }
@@ -162,8 +146,8 @@ export function UserRow({
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.compact,
+    alignItems: 'flex-start',
+    paddingVertical: spacing.gutter,
     paddingHorizontal: spacing.column,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.rule,
@@ -196,6 +180,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 12,
     color: colors.muted,
+  },
+  statusLabel: {
+    ...typ.label,
   },
   snippet: {
     fontFamily: fonts.sans,

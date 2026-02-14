@@ -40,6 +40,10 @@ function getAnalysisQueue(): Queue {
   if (!_queue) {
     _queue = new Queue('connection-analysis', {
       connection: getConnectionConfig(),
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: { count: 100 },
+      },
     });
   }
   return _queue!;
@@ -213,7 +217,19 @@ async function processAnalyzeUserPairs(
     ...blockedByUsers.map((b) => b.blockerId),
   ]);
 
-  // Find nearby users
+  // Fetch current user's embedding & interests for ranking
+  const [myProfile] = await db
+    .select({
+      embedding: profiles.embedding,
+      interests: profiles.interests,
+    })
+    .from(profiles)
+    .where(eq(profiles.userId, userId));
+
+  const myEmbedding = myProfile?.embedding ?? [];
+  const myInterests = new Set(myProfile?.interests ?? []);
+
+  // Find nearby users with data needed for priority ranking
   const distanceFormula = sql<number>`
     6371000 * acos(
       LEAST(1.0, GREATEST(-1.0,
@@ -225,7 +241,12 @@ async function processAnalyzeUserPairs(
   `;
 
   const nearbyUsers = await db
-    .select({ userId: profiles.userId })
+    .select({
+      userId: profiles.userId,
+      embedding: profiles.embedding,
+      interests: profiles.interests,
+      distance: distanceFormula,
+    })
     .from(profiles)
     .where(
       and(
@@ -238,17 +259,49 @@ async function processAnalyzeUserPairs(
     )
     .limit(100);
 
-  // Queue analyze-pair for each nearby user (deduplicated)
-  for (const other of nearbyUsers) {
-    if (allBlockedIds.has(other.userId)) continue;
+  // Score and sort so top-of-list users get analyzed first
+  const scored = nearbyUsers
+    .filter((u) => !allBlockedIds.has(u.userId))
+    .map((u) => {
+      let similarity = 0;
+      if (myEmbedding.length && u.embedding?.length) {
+        similarity = cosineSimilarity(myEmbedding, u.embedding);
+      }
+      const theirInterests = u.interests ?? [];
+      const common = theirInterests.filter((i) => myInterests.has(i)).length;
+      const interestScore = myInterests.size > 0 ? common / myInterests.size : 0;
 
-    const [a, b] = [userId, other.userId].sort();
+      const matchScore = similarity > 0
+        ? 0.7 * similarity + 0.3 * interestScore
+        : interestScore;
+      const proximity = 1 - Math.min(u.distance, radiusMeters) / radiusMeters;
+      const rankScore = 0.6 * matchScore + 0.4 * proximity;
+
+      return { userId: u.userId, rankScore };
+    })
+    .sort((a, b) => b.rankScore - a.rankScore);
+
+  // Queue analyze-pair jobs — priority 1 (highest) for top-ranked users
+  for (let i = 0; i < scored.length; i++) {
+    const [a, b] = [userId, scored[i].userId].sort();
     await queue.add(
       'analyze-pair',
       { type: 'analyze-pair', userAId: a, userBId: b },
-      { jobId: `pair-${a}-${b}` }
+      { jobId: `pair-${a}-${b}`, priority: i + 1 }
     );
   }
+}
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 0;
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
 async function processJob(job: Job<AnalysisJob>) {

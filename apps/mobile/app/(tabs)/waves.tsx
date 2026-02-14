@@ -3,25 +3,19 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
-  Alert,
 } from 'react-native';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
+import { router } from 'expo-router';
 import { trpc } from '../../src/lib/trpc';
-import { useWebSocket, sendWsMessage } from '../../src/lib/ws';
+import { useWebSocket } from '../../src/lib/ws';
 import { WaveTabBar, WaveTab } from '../../src/components/waves/WaveTabBar';
 import { EmptyWavesState } from '../../src/components/waves/EmptyWavesState';
-import { WaveCard } from '../../src/components/waves/WaveCard';
-import { colors, spacing } from '../../src/theme';
-
-type WaveStatus = 'pending' | 'accepted' | 'declined';
+import { UserRow } from '../../src/components/nearby/UserRow';
+import { colors } from '../../src/theme';
 
 export default function WavesScreen() {
   const [activeTab, setActiveTab] = useState<WaveTab>('received');
   const [refreshing, setRefreshing] = useState(false);
-  const [respondingTo, setRespondingTo] = useState<{
-    waveId: string;
-    action: 'accept' | 'decline';
-  } | null>(null);
 
   const utils = trpc.useUtils();
   const utilsRef = useRef(utils);
@@ -51,64 +45,20 @@ export default function WavesScreen() {
     refetch: refetchSent,
   } = trpc.waves.getSent.useQuery();
 
-  const respondMutation = trpc.waves.respond.useMutation({
-    onSuccess: (data, variables) => {
-      utils.waves.getReceived.invalidate();
-      utils.waves.getSent.invalidate();
-
-      if (variables.accept && data.conversationId) {
-        sendWsMessage({ type: 'subscribe', conversationId: data.conversationId });
-        utils.messages.getConversations.refetch();
-      }
-
-      if (variables.accept) {
-        Alert.alert(
-          'Zaakceptowano!',
-          'Możecie teraz rozmawiać w zakładce Czaty',
-          [{ text: 'OK' }]
-        );
-      }
-    },
-    onError: (error) => {
-      Alert.alert('Błąd', error.message || 'Nie udało się odpowiedzieć na zaczepienie');
-    },
-    onSettled: () => {
-      setRespondingTo(null);
-    },
-  });
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([refetchReceived(), refetchSent()]);
     setRefreshing(false);
   }, [refetchReceived, refetchSent]);
 
-  const handleAccept = (waveId: string) => {
-    setRespondingTo({ waveId, action: 'accept' });
-    respondMutation.mutate({ waveId, accept: true });
-  };
-
-  const handleDecline = (waveId: string) => {
-    Alert.alert(
-      'Odrzuć zaczepienie',
-      'Czy na pewno chcesz odrzucić to zaczepienie?',
-      [
-        { text: 'Anuluj', style: 'cancel' },
-        {
-          text: 'Odrzuć',
-          style: 'destructive',
-          onPress: () => {
-            setRespondingTo({ waveId, action: 'decline' });
-            respondMutation.mutate({ waveId, accept: false });
-          },
-        },
-      ]
-    );
-  };
-
   const pendingReceivedCount = receivedWaves?.length ?? 0;
   const pendingSentCount =
     sentWaves?.filter((w) => w.wave.status === 'pending').length ?? 0;
+
+  const filteredSent = useMemo(
+    () => sentWaves?.filter((w) => w.wave.status !== 'declined') ?? [],
+    [sentWaves]
+  );
 
   const isLoading = activeTab === 'received' ? isLoadingReceived : isLoadingSent;
 
@@ -117,23 +67,21 @@ export default function WavesScreen() {
       data={receivedWaves || []}
       keyExtractor={(item) => item.wave.id}
       renderItem={({ item }) => (
-        <WaveCard
-          wave={{
-            ...item.wave,
-            status: item.wave.status as WaveStatus,
-          }}
-          profile={item.fromProfile}
-          type="received"
-          onAccept={() => handleAccept(item.wave.id)}
-          onDecline={() => handleDecline(item.wave.id)}
-          isAccepting={
-            respondingTo?.waveId === item.wave.id &&
-            respondingTo?.action === 'accept'
-          }
-          isDeclining={
-            respondingTo?.waveId === item.wave.id &&
-            respondingTo?.action === 'decline'
-          }
+        <UserRow
+          userId={item.fromProfile.userId}
+          displayName={item.fromProfile.displayName}
+          avatarUrl={item.fromProfile.avatarUrl}
+          bio={item.fromProfile.bio}
+          status={item.wave.status === 'accepted' ? 'friend' : 'incoming'}
+          timestamp={item.wave.createdAt}
+          onPress={() => router.push({
+            pathname: '/(modals)/user/[userId]',
+            params: {
+              userId: item.fromProfile.userId,
+              displayName: item.fromProfile.displayName,
+              avatarUrl: item.fromProfile.avatarUrl ?? '',
+            },
+          })}
         />
       )}
       contentContainerStyle={styles.list}
@@ -148,16 +96,24 @@ export default function WavesScreen() {
 
   const renderSentList = () => (
     <FlatList
-      data={sentWaves || []}
+      data={filteredSent}
       keyExtractor={(item) => item.wave.id}
       renderItem={({ item }) => (
-        <WaveCard
-          wave={{
-            ...item.wave,
-            status: item.wave.status as WaveStatus,
-          }}
-          profile={item.toProfile}
-          type="sent"
+        <UserRow
+          userId={item.toProfile.userId}
+          displayName={item.toProfile.displayName}
+          avatarUrl={item.toProfile.avatarUrl}
+          bio={item.toProfile.bio}
+          status={item.wave.status === 'accepted' ? 'friend' : 'waved'}
+          timestamp={item.wave.createdAt}
+          onPress={() => router.push({
+            pathname: '/(modals)/user/[userId]',
+            params: {
+              userId: item.toProfile.userId,
+              displayName: item.toProfile.displayName,
+              avatarUrl: item.toProfile.avatarUrl ?? '',
+            },
+          })}
         />
       )}
       contentContainerStyle={styles.list}
@@ -189,7 +145,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   list: {
-    padding: spacing.column,
+    paddingBottom: 40,
     flexGrow: 1,
   },
 });

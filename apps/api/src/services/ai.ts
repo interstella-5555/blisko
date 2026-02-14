@@ -42,8 +42,8 @@ export async function generateSocialProfile(
       system: `Na podstawie profilu użytkownika (bio: kim jestem, lookingFor: kogo szukam), wygeneruj bogaty profil społeczny (200-300 słów) opisujący:
 - Kim jest ta osoba: zainteresowania, hobby, styl życia, osobowość
 - Czego szuka u innych: ROZWIĄŻ ogólne sformułowania na konkretne cechy (np. "ludzi o podobnych zainteresowaniach" → wymień jakich zainteresowaniach na podstawie bio)
-- Jaki typ osoby byłby dobrym matchem dla tego użytkownika
-Pisz w 3. osobie, naturalnym językiem polskim. Nie używaj nagłówków ani list — pisz płynnym tekstem.`,
+- Jakie tematy i aktywności są dla tej osoby ważne
+Nie oceniaj, nie wartościuj — opisuj. Pisz w 3. osobie, naturalnym językiem polskim. Nie używaj nagłówków ani list — pisz płynnym tekstem.`,
       prompt: `Bio: ${bio}\n\nLooking for: ${lookingFor}`,
     });
 
@@ -86,8 +86,8 @@ export async function extractInterests(
 
 const connectionAnalysisSchema = z.object({
   matchScore: z.number().min(0).max(100),
-  snippetForA: z.string().max(150),
-  snippetForB: z.string().max(150),
+  snippetForA: z.string().max(90),
+  snippetForB: z.string().max(90),
   descriptionForA: z.string().max(500),
   descriptionForB: z.string().max(500),
 });
@@ -104,13 +104,17 @@ export async function analyzeConnection(
     model: openai('gpt-4o-mini'),
     schema: connectionAnalysisSchema,
     temperature: 0.7,
-    system: `Jesteś ekspertem od łączenia ludzi. Analizujesz dwa profile i oceniasz jakość dopasowania.
+    system: `Analizujesz profile dwóch osób i identyfikujesz obiektywne punkty wspólne.
 
 Zasady:
-- matchScore: 0-100 uwzględniając: wspólne pasje (waga 40%), komplementarne umiejętności (30%), podobny styl życia (20%), potencjał wspólnych aktywności (10%)
-- snippetForA/B: max 150 znaków, perspektywa DRUGIEJ osoby, 2. osoba ("Ty"/"Twoje"), konkretny hook — dlaczego warto poznać tę osobę. NIE generyczne "łączy was sport". Przykład: "Szuka partnera do ultramaratonów w górach — Ty biegniesz Tatry co miesiąc"
-- descriptionForA/B: 2-3 zdania, pełna analiza połączenia z perspektywy viewera. Co moglibyście razem robić, co jest wyjątkowe w tym dopasowaniu.
-- Pisz po polsku, naturalnym językiem`,
+- matchScore: 0-100 — obiektywna miara wspólnych zainteresowań (50%), podobnych doświadczeń/tła (30%), zbieżnego stylu życia (20%). Punktujesz wyłącznie to, co jest WPROST wymienione w profilach.
+- snippetForA/B: max 90 znaków, zwięzłe wyliczenie wspólnych zainteresowań. Najważniejsze na początku. Pisz bezosobowo. Przykłady:
+  "Oboje: ultramaratony górskie, fotografia analogowa"
+  "Wspólne: D&D, literatura fantasy, Kraków"
+  "Zbieżne: jazz, winyl, Rust"
+  Bez "warto poznać", "szuka partnera", "moglibyście". Bez 2. osoby ("Ty"). Bez sugestii relacji.
+- descriptionForA/B: 2-3 zdania, faktyczny opis wspólnych i zbieżnych elementów profili. Bez oceniania dopasowania. Bez sugestii aktywności. Bez zwrotów relacyjnych. Wymień co się pokrywa i czym się różnią.
+- Pisz po polsku, rzeczowym językiem. Ton: encyklopedyczny, nie entuzjastyczny.`,
     prompt: `Profil A (${profileA.displayName}):\n${profileA.socialProfile}\n\nProfil B (${profileB.displayName}):\n${profileB.socialProfile}`,
   });
   return object;

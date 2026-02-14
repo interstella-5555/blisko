@@ -4,12 +4,13 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
-  ActivityIndicator,
+  Animated,
   Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { trpc } from '../../../src/lib/trpc';
+import { sendWsMessage } from '../../../src/lib/ws';
 import { colors, type as typ, spacing, fonts } from '../../../src/theme';
 import { Avatar } from '../../../src/components/ui/Avatar';
 import { IconWave, IconCheck, IconChat } from '../../../src/components/ui/icons';
@@ -21,6 +22,39 @@ const formatDistance = (meters: number): string => {
   return `~${(rounded / 1000).toFixed(1)} km`;
 };
 
+function SkeletonLines({ count }: { count: number }) {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.7, duration: 800, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, []);
+
+  const widths = ['100%', '90%', '75%', '85%'];
+  return (
+    <View style={{ gap: spacing.tight }}>
+      {Array.from({ length: count }, (_, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            height: 14,
+            width: widths[i % widths.length] as `${number}%`,
+            backgroundColor: colors.rule,
+            borderRadius: 4,
+            opacity,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function UserProfileScreen() {
   const params = useLocalSearchParams<{
     userId: string;
@@ -28,6 +62,7 @@ export default function UserProfileScreen() {
     rankScore: string;
     commonInterests: string;
     displayName: string;
+    avatarUrl: string;
   }>();
 
   const userId = params.userId;
@@ -36,9 +71,10 @@ export default function UserProfileScreen() {
   const commonInterests: string[] = params.commonInterests
     ? JSON.parse(params.commonInterests)
     : [];
+  const avatarUrl = params.avatarUrl || null;
 
-  const [wavingAt, setWavingAt] = useState(false);
-  const [hasWaved, setHasWaved] = useState(false);
+  const [pendingWaveId, setPendingWaveId] = useState<string | null>(null);
+  const busyRef = useRef(false);
 
   const { data: profile, isLoading } = trpc.profiles.getById.useQuery(
     { userId },
@@ -55,9 +91,18 @@ export default function UserProfileScreen() {
     : Math.round(rankScore * 100);
 
   const { data: sentWaves } = trpc.waves.getSent.useQuery();
+  const { data: receivedWaves } = trpc.waves.getReceived.useQuery();
   const { data: allConversations } = trpc.messages.getConversations.useQuery();
   const utils = trpc.useUtils();
   const sendWaveMutation = trpc.waves.send.useMutation();
+  const cancelWaveMutation = trpc.waves.cancel.useMutation();
+  const respondMutation = trpc.waves.respond.useMutation();
+
+  const [optimisticAction, setOptimisticAction] = useState<'accepted' | 'declined' | null>(null);
+
+  const incomingWave = useMemo(() => {
+    return receivedWaves?.find(w => w.wave.fromUserId === userId && w.wave.status === 'pending');
+  }, [receivedWaves, userId]);
 
   // Find conversation with this user (if any)
   const conversationId = useMemo(() => {
@@ -68,31 +113,50 @@ export default function UserProfileScreen() {
     return conv?.conversation.id ?? null;
   }, [allConversations, userId]);
 
+  // Sync from server only when no mutation is in-flight
   useEffect(() => {
+    if (busyRef.current) return;
     if (sentWaves) {
-      const waved = sentWaves.some(
+      const pending = sentWaves.find(
         (w) => w.wave.toUserId === userId && w.wave.status === 'pending'
       );
-      setHasWaved(waved);
+      setPendingWaveId(pending?.wave.id ?? null);
     }
   }, [sentWaves, userId]);
 
   const handleWave = async () => {
-    if (hasWaved || conversationId) return;
-    setWavingAt(true);
+    if (busyRef.current || pendingWaveId || conversationId) return;
+    busyRef.current = true;
+    setPendingWaveId('optimistic');
     try {
-      await sendWaveMutation.mutateAsync({ toUserId: userId });
-      setHasWaved(true);
-      utils.waves.getSent.invalidate();
+      const wave = await sendWaveMutation.mutateAsync({ toUserId: userId });
+      setPendingWaveId(wave.id);
+      await utils.waves.getSent.invalidate();
     } catch (error: any) {
       const errorMsg = error.message || error.toString();
       if (errorMsg.includes('already waved')) {
-        setHasWaved(true);
+        // Already waved — keep pending state, let next sync pick up the real ID
       } else {
+        setPendingWaveId(null);
         Alert.alert('Błąd', `Nie udało się wysłać zaczepienia: ${errorMsg}`);
       }
     } finally {
-      setWavingAt(false);
+      busyRef.current = false;
+    }
+  };
+
+  const handleCancelWave = async () => {
+    if (busyRef.current || !pendingWaveId || pendingWaveId === 'optimistic') return;
+    busyRef.current = true;
+    const prevId = pendingWaveId;
+    setPendingWaveId(null);
+    try {
+      await cancelWaveMutation.mutateAsync({ waveId: prevId });
+      await utils.waves.getSent.invalidate();
+    } catch {
+      setPendingWaveId(prevId);
+    } finally {
+      busyRef.current = false;
     }
   };
 
@@ -102,15 +166,55 @@ export default function UserProfileScreen() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.ink} />
-      </View>
-    );
-  }
+  const handleAccept = async () => {
+    if (busyRef.current || !incomingWave) return;
+    busyRef.current = true;
+    setOptimisticAction('accepted');
+    try {
+      const result = await respondMutation.mutateAsync({ waveId: incomingWave.wave.id, accept: true });
+      if (result.conversationId) {
+        sendWsMessage({ type: 'subscribe', conversationId: result.conversationId });
+      }
+      await Promise.all([
+        utils.waves.getReceived.invalidate(),
+        utils.waves.getSent.invalidate(),
+        utils.messages.getConversations.invalidate(),
+      ]);
+    } catch {
+      setOptimisticAction(null);
+    } finally {
+      busyRef.current = false;
+    }
+  };
 
-  if (!profile) {
+  const handleDecline = () => {
+    if (busyRef.current || !incomingWave) return;
+    Alert.alert(
+      'Odrzuć zaczepienie',
+      'Czy na pewno chcesz odrzucić to zaczepienie?',
+      [
+        { text: 'Anuluj', style: 'cancel' },
+        {
+          text: 'Odrzuć',
+          style: 'destructive',
+          onPress: async () => {
+            busyRef.current = true;
+            setOptimisticAction('declined');
+            try {
+              await respondMutation.mutateAsync({ waveId: incomingWave.wave.id, accept: false });
+              await utils.waves.getReceived.invalidate();
+            } catch {
+              setOptimisticAction(null);
+            } finally {
+              busyRef.current = false;
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  if (!isLoading && !profile) {
     return (
       <View style={styles.centered}>
         <Text style={styles.emptyText}>Nie znaleziono profilu</Text>
@@ -118,22 +222,26 @@ export default function UserProfileScreen() {
     );
   }
 
-  // Action state: conversation exists > waved pending > can wave
-  const actionState = conversationId
+  // Action state: conversation/accepted > waved pending > incoming wave > idle
+  const actionState = conversationId || optimisticAction === 'accepted'
     ? 'chat'
-    : hasWaved
+    : pendingWaveId
       ? 'pending'
-      : 'idle';
+      : optimisticAction === 'declined'
+        ? 'idle'
+        : incomingWave
+          ? 'incoming'
+          : 'idle';
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
     >
-      {/* Header */}
+      {/* Header — always visible from list params */}
       <View style={styles.header}>
-        <Avatar uri={profile.avatarUrl} name={profile.displayName} size={100} />
-        <Text style={styles.displayName}>{profile.displayName}</Text>
+        <Avatar uri={profile?.avatarUrl ?? avatarUrl} name={params.displayName} size={100} />
+        <Text style={styles.displayName}>{params.displayName}</Text>
         <View style={styles.meta}>
           {matchPercent > 0 && (
             <Text style={styles.matchBadge}>{matchPercent}% dopasowania</Text>
@@ -144,25 +252,25 @@ export default function UserProfileScreen() {
         {/* Inline action */}
         <View style={styles.actionRow}>
           {actionState === 'idle' && (
-            <Pressable
-              style={styles.actionPill}
-              onPress={handleWave}
-              disabled={wavingAt}
-            >
-              {wavingAt ? (
-                <ActivityIndicator size="small" color={colors.bg} />
-              ) : (
-                <>
-                  <IconWave size={13} color={colors.bg} />
-                  <Text style={styles.actionPillText}>Zagadaj</Text>
-                </>
-              )}
+            <Pressable style={styles.actionPill} onPress={handleWave}>
+              <IconWave size={13} color={colors.bg} />
+              <Text style={styles.actionPillText}>Zaczep</Text>
             </Pressable>
           )}
           {actionState === 'pending' && (
-            <View style={styles.pendingPill}>
+            <Pressable style={styles.pendingPill} onPress={handleCancelWave}>
               <IconCheck size={12} color={colors.muted} />
-              <Text style={styles.pendingPillText}>Zagadano</Text>
+              <Text style={styles.pendingPillText}>Zaczepiono</Text>
+            </Pressable>
+          )}
+          {actionState === 'incoming' && (
+            <View style={styles.incomingActions}>
+              <Pressable style={styles.declinePill} onPress={handleDecline}>
+                <Text style={styles.declinePillText}>Odrzuć</Text>
+              </Pressable>
+              <Pressable style={styles.actionPill} onPress={handleAccept}>
+                <Text style={styles.actionPillText}>Akceptuj</Text>
+              </Pressable>
             </View>
           )}
           {actionState === 'chat' && (
@@ -177,12 +285,12 @@ export default function UserProfileScreen() {
       {/* AI connection analysis */}
       {analysis?.longDescription ? (
         <View style={styles.snippetBlock}>
-          <Text style={styles.snippetLabel}>ŁĄCZY WAS</Text>
+          <Text style={styles.snippetLabel}>WSPÓLNE</Text>
           <Text style={styles.snippetText}>{analysis.longDescription}</Text>
         </View>
       ) : commonInterests.length > 0 ? (
         <View style={styles.snippetBlock}>
-          <Text style={styles.snippetLabel}>ŁĄCZY WAS</Text>
+          <Text style={styles.snippetLabel}>WSPÓLNE</Text>
           <View style={styles.pillRow}>
             {commonInterests.map((interest) => (
               <View key={interest} style={styles.pill}>
@@ -196,17 +304,25 @@ export default function UserProfileScreen() {
       {/* Bio */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>O mnie</Text>
-        <Text style={styles.sectionContent}>
-          {profile.bio || 'Brak opisu'}
-        </Text>
+        {isLoading ? (
+          <SkeletonLines count={3} />
+        ) : (
+          <Text style={styles.sectionContent}>
+            {profile!.bio || 'Brak opisu'}
+          </Text>
+        )}
       </View>
 
       {/* Looking for */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Kogo szukam</Text>
-        <Text style={styles.sectionContent}>
-          {profile.lookingFor || 'Brak opisu'}
-        </Text>
+        {isLoading ? (
+          <SkeletonLines count={2} />
+        ) : (
+          <Text style={styles.sectionContent}>
+            {profile!.lookingFor || 'Brak opisu'}
+          </Text>
+        )}
       </View>
     </ScrollView>
   );
@@ -272,6 +388,27 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
     color: colors.bg,
+  },
+  incomingActions: {
+    flexDirection: 'row',
+    gap: spacing.gutter,
+  },
+  declinePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tick,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    paddingVertical: spacing.compact,
+    paddingHorizontal: spacing.column,
+    borderRadius: 20,
+  },
+  declinePillText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: colors.muted,
   },
   pendingPill: {
     flexDirection: 'row',

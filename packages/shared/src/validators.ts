@@ -68,6 +68,7 @@ export const getNearbyUsersForMapSchema = z.object({
   longitude: z.number().min(-180).max(180),
   radiusMeters: z.number().min(100).max(50000).default(5000),
   limit: z.number().min(1).max(100).default(50),
+  cursor: z.number().int().min(0).optional(),
 });
 
 // Block validator

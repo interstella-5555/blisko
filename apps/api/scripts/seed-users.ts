@@ -18,58 +18,104 @@ function randomInRange(center: number, spread: number) {
 }
 
 // --- Diverse Polish first names ---
-const NAMES = [
+const FEMALE_NAMES = [
   'Ania', 'Kasia', 'Magda', 'Ola', 'Zuzia', 'Basia', 'Ewa', 'Marta', 'Joanna', 'Agnieszka',
   'Natalia', 'Weronika', 'Paulina', 'Karolina', 'Dominika', 'Sylwia', 'Monika', 'Izabela', 'Patrycja', 'Aleksandra',
   'Kamila', 'Justyna', 'Beata', 'Dorota', 'Renata', 'Hanna', 'Lena', 'Maja', 'Zofia', 'Alicja',
   'Julia', 'Emilia', 'Gabriela', 'Sandra', 'Klaudia', 'Dagmara', 'Marzena', 'Iwona', 'Teresa', 'Celina',
+];
+
+const MALE_NAMES = [
   'Tomek', 'Bartek', 'Michał', 'Kuba', 'Paweł', 'Piotr', 'Maciek', 'Kamil', 'Dawid', 'Łukasz',
   'Adam', 'Marcin', 'Jakub', 'Szymon', 'Krzysztof', 'Grzegorz', 'Wojtek', 'Mateusz', 'Filip', 'Rafał',
   'Damian', 'Adrian', 'Hubert', 'Igor', 'Oskar', 'Wiktor', 'Artur', 'Robert', 'Jan', 'Andrzej',
   'Sebastian', 'Daniel', 'Marek', 'Norbert', 'Patryk', 'Konrad', 'Radek', 'Olek', 'Leon', 'Tadeusz',
 ];
 
-// --- Bio building blocks (mix & match for diversity) ---
-const OCCUPATIONS = [
-  'Programista po godzinach odkrywający kuchnię azjatycką',
+// --- Bio building blocks (gendered for natural Polish) ---
+const OCCUPATIONS_F = [
+  'Programistka po godzinach odkrywająca kuchnię azjatycką',
   'Architektka wnętrz z zamiłowaniem do vintage',
   'Nauczycielka angielskiego, wieczna podróżniczka',
-  'Fizjoterapeuta i fan triatlonu',
+  'Fizjoterapeutka i fanka triatlonu',
   'Graficzka freelancerka, rysuje komiksy',
-  'Barista i sommelier kawy speciality',
+  'Baristka i sommelierka kawy speciality',
   'Prawniczka z duszą artystki',
-  'Muzyk grający na saksofonie w jazzowym trio',
+  'Muzyczka grająca na saksofonie w jazzowym trio',
   'Dziennikarka radiowa, zbiera winyle',
-  'Fotograf uliczny, dokumentuje Warszawę',
+  'Fotografka uliczna, dokumentuje Warszawę',
   'Studentka psychologii, wolontariuszka w schronisku',
-  'Inżynier dźwięku, produkuje muzykę elektroniczną',
-  'Kucharz w restauracji fusion',
-  'Tłumaczka z japońskiego, fan anime i mangi',
+  'Inżynierka dźwięku, produkuje muzykę elektroniczną',
+  'Kucharka w restauracji fusion',
+  'Tłumaczka z japońskiego, fanka anime i mangi',
   'Lekarka, biegaczka ultramaratonów',
-  'UX designer z obsesją na punkcie typografii',
+  'UX designerka z obsesją na punkcie typografii',
   'Ogrodniczka miejska, prowadzi działkę na Saskiej Kępie',
-  'Trener personalny i instruktor jogi',
+  'Trenerka personalna i instruktorka jogi',
   'Ceramiczka, prowadzi warsztaty garncarskie',
-  'Analityk danych, geek boardgamingowy',
-  'Pisarz, pracuje nad swoją pierwszą powieścią',
+  'Analityczka danych, fanka gier planszowych',
+  'Pisarka, pracuje nad swoją pierwszą powieścią',
   'Aktorka teatralna, gra w offowym teatrze',
   'Weterynarka, ma trzy koty i psa',
-  'Stolarz, robi meble z odzysku',
+  'Rzemieślniczka, robi meble z odzysku',
   'Influencerka zero waste, uczy ekologicznego życia',
-  'Chemik w laboratorium kosmetycznym',
+  'Chemiczka w laboratorium kosmetycznym',
   'Pilotka szybowcowa, lata w weekendy',
   'Tatuażystka specjalizująca się w dotworkach',
   'Bibliotekarka i bookstagramerka',
+  'Developerka gier indie, tworzy pixel art',
+  'Psycholożka dziecięca, maluje akwarele',
+  'Szefowa kuchni wegetariańskiej',
+  'Instruktorka wspinaczki, alpinistka',
+  'Maklerka giełdowa, medytuje codziennie',
+  'Projektantka mody streetwearowej',
+  'Doktorantka fizyki kwantowej',
+  'Położna, prowadzi podcast o rodzicielstwie',
+  'Strażaczka ochotniczka, jeździ na rowerze szosowym',
+  'Ilustratorka książek dla dzieci',
+  'Reżyserka filmów dokumentalnych',
+];
+
+const OCCUPATIONS_M = [
+  'Programista po godzinach odkrywający kuchnię azjatycką',
+  'Architekt wnętrz z zamiłowaniem do vintage',
+  'Nauczyciel angielskiego, wieczny podróżnik',
+  'Fizjoterapeuta i fan triatlonu',
+  'Grafik freelancer, rysuje komiksy',
+  'Barista i sommelier kawy speciality',
+  'Prawnik z duszą artysty',
+  'Muzyk grający na saksofonie w jazzowym trio',
+  'Dziennikarz radiowy, zbiera winyle',
+  'Fotograf uliczny, dokumentuje Warszawę',
+  'Student psychologii, wolontariusz w schronisku',
+  'Inżynier dźwięku, produkuje muzykę elektroniczną',
+  'Kucharz w restauracji fusion',
+  'Tłumacz z japońskiego, fan anime i mangi',
+  'Lekarz, biegacz ultramaratonów',
+  'UX designer z obsesją na punkcie typografii',
+  'Ogrodnik miejski, prowadzi działkę na Saskiej Kępie',
+  'Trener personalny i instruktor jogi',
+  'Ceramik, prowadzi warsztaty garncarskie',
+  'Analityk danych, geek boardgamingowy',
+  'Pisarz, pracuje nad swoją pierwszą powieścią',
+  'Aktor teatralny, gra w offowym teatrze',
+  'Weterynarz, ma trzy koty i psa',
+  'Stolarz, robi meble z odzysku',
+  'Influencer zero waste, uczy ekologicznego życia',
+  'Chemik w laboratorium kosmetycznym',
+  'Pilot szybowcowy, lata w weekendy',
+  'Tatuażysta specjalizujący się w dotworkach',
+  'Bibliotekarz i bookstagramer',
   'Developer gier indie, tworzy pixel art',
   'Psycholog dziecięcy, maluje akwarele',
   'Szef kuchni wegetariańskiej',
-  'Instruktor wspinaczki, alpinistka',
-  'Maklerka giełdowa, medytuje codziennie',
+  'Instruktor wspinaczki, alpinista',
+  'Makler giełdowy, medytuje codziennie',
   'Projektant mody streetwearowej',
-  'Doktorantka fizyki kwantowej',
-  'Położna, prowadzi podcast o rodzicielstwie',
+  'Doktorant fizyki kwantowej',
+  'Ratownik medyczny, prowadzi podcast o pierwszej pomocy',
   'Strażak ochotnik, jeździ na rowerze szosowym',
-  'Ilustratorka książek dla dzieci',
+  'Ilustrator książek dla dzieci',
   'Reżyser filmów dokumentalnych',
 ];
 
@@ -116,17 +162,35 @@ const HOBBIES = [
   'Gram w tenisa stołowego w lidze amatorskiej',
 ];
 
-const PERSONALITY_BITS = [
-  'Introvertyk z nutą szaleństwa',
+const PERSONALITY_BITS_F = [
+  'Introvertyczka z nutą szaleństwa',
   'Lubiąca ludzi samotniczka',
-  'Wieczny optymista, nawet w poniedziałki',
+  'Wieczna optymistka, nawet w poniedziałki',
   'Spontaniczna planistka — paradoks, ale działa',
+  'Nocna marka, najlepsze pomysły mam po 23',
+  'Ranny ptaszek, o 6 już po kawie i na macie',
+  'Melancholijna romantyczka z poczuciem humoru',
+  'Głośny śmiech i cicha empatia',
+  'Mól książkowy z dużą dawką ciekawości świata',
+  'Wegetarianka od 5 lat, ale nie oceniam',
+  'Nieuleczalnie ciekawska — zaczynam rozmowę z każdym',
+  'Fanka slow life w szybkim mieście',
+  'Uwielbiam ciszę, ale też głośne koncerty',
+  'Kawa oat milk latte, bez kompromisów',
+  'Herbata, koc, książka — moja definicja luksusu',
+];
+
+const PERSONALITY_BITS_M = [
+  'Introvertyk z nutą szaleństwa',
+  'Lubiący ludzi samotnik',
+  'Wieczny optymista, nawet w poniedziałki',
+  'Spontaniczny planista — paradoks, ale działa',
   'Nocny marek, najlepsze pomysły mam po 23',
   'Ranny ptaszek, o 6 już po kawie i na macie',
   'Melancholijny romantyk z poczuciem humoru',
   'Głośny śmiech i cicha empatia',
-  'Mól książkowy z duża dawką ciekawości świata',
-  'Wegetarianka od 5 lat, ale nie oceniam',
+  'Mól książkowy z dużą dawką ciekawości świata',
+  'Wegetarianin od 5 lat, ale nie oceniam',
   'Nieuleczalny ciekawski — zaczynam rozmowę z każdym',
   'Fan slow life w szybkim mieście',
   'Uwielbiam ciszę, ale też głośne koncerty',
@@ -139,7 +203,7 @@ const LOOKING_FOR_OPENINGS = [
   'Szukam kogoś na',
   'Chętnie poznam osobę do',
   'Fajnie byłoby znaleźć kogoś na',
-  'Szukam towarzysza do',
+  'Szukam kogoś do',
   'Marzę o kimś do',
   'Chcę poznać ludzi do',
 ];
@@ -189,10 +253,10 @@ function pickN<T>(arr: T[], n: number): T[] {
   return shuffled.slice(0, n);
 }
 
-function generateBio(): string {
-  const occ = pick(OCCUPATIONS);
+function generateBio(female: boolean): string {
+  const occ = pick(female ? OCCUPATIONS_F : OCCUPATIONS_M);
   const hobby = pick(HOBBIES);
-  const personality = pick(PERSONALITY_BITS);
+  const personality = pick(female ? PERSONALITY_BITS_F : PERSONALITY_BITS_M);
   return `${occ}. ${hobby}. ${personality}.`;
 }
 
@@ -201,6 +265,32 @@ function generateLookingFor(): string {
   const activities = pickN(LOOKING_FOR_ACTIVITIES, 2).join(', a także ');
   const vibe = pick(LOOKING_FOR_VIBES);
   return `${opening} ${activities}. ${vibe}`;
+}
+
+// --- Avatar generation ---
+
+const FEMALE_NAME_SET = new Set(FEMALE_NAMES);
+
+function detectPetType(bio: string, interests: string[]): 'cat' | 'dog' | null {
+  const text = `${bio} ${interests.join(' ')}`.toLowerCase();
+  const hasCat = text.includes('kot') || text.includes('koty');
+  const hasDog = text.includes('pies') || text.includes('psy') || text.includes('schronisk');
+  const hasGenericPet = text.includes('zwierz') || text.includes('weteryn');
+
+  if (hasCat && !hasDog) return 'cat';
+  if (hasDog) return 'dog';
+  if (hasGenericPet) return 'cat';
+  return null;
+}
+
+function generateAvatarUrl(user: SeedUserData, index: number): string {
+  const pet = detectPetType(user.bio, user.interests);
+  if (pet === 'cat') return `https://placekitten.com/${400 + (index % 20)}/${400 + (index % 15)}`;
+  if (pet === 'dog') return `https://placedog.net/400/400?id=${index + 1}`;
+
+  const isFemale = FEMALE_NAME_SET.has(user.name);
+  const gender = isFemale ? 'women' : 'men';
+  return `https://randomuser.me/api/portraits/${gender}/${index % 100}.jpg`;
 }
 
 // --- Seed cache ---
@@ -360,6 +450,23 @@ async function clearDatabase() {
 
   await sql.end();
   console.log('Database cleared.');
+
+  // Obliterate BullMQ queue so completed jobs don't block re-enqueue
+  const redisUrlMatch = allEnv.match(/REDIS_URL=(.+)/);
+  if (redisUrlMatch) {
+    const { Queue } = await import('bullmq');
+    const url = new URL(redisUrlMatch[1].trim());
+    const queue = new Queue('connection-analysis', {
+      connection: {
+        host: url.hostname,
+        port: Number(url.port) || 6379,
+        password: url.password || undefined,
+      },
+    });
+    await queue.obliterate({ force: true });
+    await queue.close();
+    console.log('BullMQ queue obliterated.');
+  }
 }
 
 async function main() {
@@ -372,9 +479,10 @@ async function main() {
     console.log(`Generating ${USER_COUNT} user profiles...`);
     seedData = [];
     for (let idx = 0; idx < USER_COUNT; idx++) {
-      const name = pick(NAMES);
+      const female = idx % 2 === 0;
+      const name = pick(female ? FEMALE_NAMES : MALE_NAMES);
       const email = `user${idx}@example.com`;
-      const bio = generateBio();
+      const bio = generateBio(female);
       const lookingFor = generateLookingFor();
       const lat = randomInRange(WARSAW_CENTER.lat, SPREAD);
       const lng = randomInRange(WARSAW_CENTER.lng, SPREAD);
@@ -409,8 +517,8 @@ async function main() {
     );
   }
 
-  // Backfill interests directly into DB for speed (avoids AI calls per user)
-  console.log('Backfilling interests...');
+  // Backfill interests and avatars directly into DB
+  console.log('Backfilling interests and avatars...');
   const envPath = `${import.meta.dir}/../.env.local`;
   const envFile = await Bun.file(envPath).text().catch(() => '');
   const mainEnvPath = `${import.meta.dir}/../.env`;
@@ -421,20 +529,21 @@ async function main() {
     const { default: postgres } = await import('postgres');
     const sql = postgres(dbUrlMatch[1].trim());
 
-    for (const userData of seedData) {
-      if (userData.interests.length > 0) {
-        await sql`
-          UPDATE profiles
-          SET interests = ${userData.interests}
-          WHERE user_id IN (
-            SELECT id FROM "user" WHERE email = ${userData.email}
-          )
-        `;
-      }
+    for (let i = 0; i < seedData.length; i++) {
+      const userData = seedData[i];
+      const avatarUrl = generateAvatarUrl(userData, i);
+      await sql`
+        UPDATE profiles
+        SET interests = ${userData.interests.length > 0 ? userData.interests : sql`interests`},
+            avatar_url = ${avatarUrl}
+        WHERE user_id IN (
+          SELECT id FROM "user" WHERE email = ${userData.email}
+        )
+      `;
     }
 
     await sql.end();
-    console.log('Interests backfilled.');
+    console.log('Interests and avatars backfilled.');
   }
 
   // Show a random test user email for quick login

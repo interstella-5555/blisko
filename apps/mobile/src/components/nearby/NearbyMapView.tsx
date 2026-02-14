@@ -18,6 +18,8 @@ export interface MapUser {
   gridId: string;
   rankScore: number;
   commonInterests: string[];
+  shortSnippet: string | null;
+  analysisReady: boolean;
 }
 
 export interface GridCluster {

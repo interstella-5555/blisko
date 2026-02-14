@@ -161,7 +161,7 @@ export default function ChatScreen() {
         const optimisticMessage = {
           id: `temp-${Date.now()}`,
           conversationId,
-          senderId: userId,
+          senderId: userId!,
           content: newMsg.content,
           type: 'text',
           metadata: null,
@@ -260,7 +260,7 @@ export default function ChatScreen() {
 
       options.push({ text: 'Anuluj', style: 'cancel', onPress: () => {} });
 
-      Alert.alert(undefined, undefined, options);
+      Alert.alert('', '', options);
     },
     [deleteMessage]
   );
