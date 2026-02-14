@@ -1,9 +1,8 @@
 import { z } from 'zod';
-import { eq, and, ne, or, sql } from 'drizzle-orm';
-import { createHash } from 'crypto';
+import { eq, and, ne, sql } from 'drizzle-orm';
 import { router, protectedProcedure } from '../trpc';
 import { db } from '../../db';
-import { profiles, blocks, connectionSnippets } from '../../db/schema';
+import { profiles, blocks, connectionAnalyses } from '../../db/schema';
 import {
   createProfileSchema,
   updateProfileSchema,
@@ -16,15 +15,11 @@ import {
   generateEmbedding,
   generateSocialProfile,
   extractInterests,
-  generateConnectionSnippet,
 } from '../../services/ai';
-
-function profileHash(bio: string, lookingFor: string): string {
-  return createHash('sha256')
-    .update(`${bio}|${lookingFor}`)
-    .digest('hex')
-    .slice(0, 8);
-}
+import {
+  enqueueUserPairAnalysis,
+  enqueuePairAnalysis,
+} from '../../services/queue';
 
 export const profilesRouter = router({
   // Get current user's profile
@@ -75,6 +70,15 @@ export const profilesRouter = router({
         })
         .returning();
 
+      // Queue connection analyses for nearby users (non-blocking)
+      if (profile.latitude && profile.longitude) {
+        enqueueUserPairAnalysis(
+          ctx.userId,
+          profile.latitude,
+          profile.longitude
+        ).catch(() => {});
+      }
+
       return profile;
     }),
 
@@ -107,6 +111,15 @@ export const profilesRouter = router({
           updateData.socialProfile = socialProfile;
           updateData.embedding = embedding;
           updateData.interests = interests;
+
+          // Queue new analyses (profile changed → old analyses are stale)
+          if (currentProfile.latitude && currentProfile.longitude) {
+            enqueueUserPairAnalysis(
+              ctx.userId,
+              currentProfile.latitude,
+              currentProfile.longitude
+            ).catch(() => {});
+          }
         }
       }
 
@@ -133,6 +146,13 @@ export const profilesRouter = router({
         })
         .where(eq(profiles.userId, ctx.userId))
         .returning();
+
+      // Queue connection analyses for new location
+      enqueueUserPairAnalysis(
+        ctx.userId,
+        input.latitude,
+        input.longitude
+      ).catch(() => {});
 
       return profile;
     }),
@@ -247,8 +267,8 @@ export const profilesRouter = router({
       const minLon = longitude - lonDelta;
       const maxLon = longitude + lonDelta;
 
-      // Get blocked users + current profile in parallel
-      const [blockedUsers, blockedByUsers, currentProfileResult] =
+      // Get blocked users + current profile + pre-computed analyses in parallel
+      const [blockedUsers, blockedByUsers, currentProfileResult, analyses] =
         await Promise.all([
           db
             .select({ blockedId: blocks.blockedId })
@@ -259,6 +279,10 @@ export const profilesRouter = router({
             .from(blocks)
             .where(eq(blocks.blockedId, ctx.userId)),
           db.select().from(profiles).where(eq(profiles.userId, ctx.userId)),
+          db
+            .select()
+            .from(connectionAnalyses)
+            .where(eq(connectionAnalyses.fromUserId, ctx.userId)),
         ]);
 
       const allBlockedIds = new Set([
@@ -267,6 +291,10 @@ export const profilesRouter = router({
       ]);
 
       const currentProfile = currentProfileResult[0];
+
+      const analysisMap = new Map(
+        analyses.map((a) => [a.toUserId, a])
+      );
 
       // Haversine distance formula
       const distanceFormula = sql<number>`
@@ -314,6 +342,8 @@ export const profilesRouter = router({
         // Ranking calculation
         const proximity = 1 - Math.min(u.distance, radiusMeters) / radiusMeters;
 
+        const analysis = analysisMap.get(u.profile.userId);
+
         let similarity: number | null = null;
         if (myEmbedding?.length && u.profile.embedding?.length) {
           similarity = cosineSimilarity(myEmbedding, u.profile.embedding);
@@ -328,8 +358,10 @@ export const profilesRouter = router({
             ? commonInterests.length / myInterests.length
             : 0;
 
-        const matchScore =
-          similarity != null
+        // Use AI score when available, fallback to embedding + interests
+        const matchScore = analysis
+          ? analysis.aiMatchScore / 100
+          : similarity != null
             ? 0.7 * similarity + 0.3 * interestScore
             : interestScore;
         const rankScore = 0.6 * matchScore + 0.4 * proximity;
@@ -349,147 +381,47 @@ export const profilesRouter = router({
           gridId: gridPos.gridId,
           rankScore: Math.round(rankScore * 100) / 100,
           commonInterests,
+          shortSnippet: analysis?.shortSnippet ?? null,
+          analysisReady: !!analysis,
         });
       }
 
       // Sort by rankScore descending
       results.sort((a, b) => b.rankScore - a.rankScore);
 
+      // Safety net: queue analyses for users without one
+      const missingAnalysisUserIds = results
+        .filter((r) => !analysisMap.has(r.profile.userId))
+        .map((r) => r.profile.userId);
+
+      for (const theirUserId of missingAnalysisUserIds) {
+        enqueuePairAnalysis(ctx.userId, theirUserId).catch(() => {});
+      }
+
       return results;
     }),
 
-  // Get connection snippets for a batch of users (async LLM layer)
-  getConnectionSnippets: protectedProcedure
-    .input(z.object({ userIds: z.array(z.string()).max(20) }))
+  // Get AI connection analysis for a specific user
+  getConnectionAnalysis: protectedProcedure
+    .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input }) => {
-      if (input.userIds.length === 0) return {};
-
-      // Fetch my profile + all target profiles
-      const [myProfileResult, targetProfiles] = await Promise.all([
-        db.select().from(profiles).where(eq(profiles.userId, ctx.userId)),
-        db
-          .select()
-          .from(profiles)
-          .where(
-            or(...input.userIds.map((id) => eq(profiles.userId, id)))
-          ),
-      ]);
-
-      const myProfile = myProfileResult[0];
-      if (!myProfile?.socialProfile) return {};
-
-      const myHash = profileHash(myProfile.bio, myProfile.lookingFor);
-      const result: Record<string, string> = {};
-
-      // Check cache for all pairs
-      const pairKeys = input.userIds.map((theirUserId) => {
-        const [a, b] = [ctx.userId, theirUserId].sort();
-        return { userAId: a, userBId: b, theirUserId };
-      });
-
-      const cachedSnippets = await db
+      const [analysis] = await db
         .select()
-        .from(connectionSnippets)
+        .from(connectionAnalyses)
         .where(
-          or(
-            ...pairKeys.map((p) =>
-              and(
-                eq(connectionSnippets.userAId, p.userAId),
-                eq(connectionSnippets.userBId, p.userBId)
-              )
-            )
+          and(
+            eq(connectionAnalyses.fromUserId, ctx.userId),
+            eq(connectionAnalyses.toUserId, input.userId)
           )
         );
 
-      // Map cache results
-      const cacheMap = new Map<string, (typeof cachedSnippets)[0]>();
-      for (const cs of cachedSnippets) {
-        cacheMap.set(`${cs.userAId}|${cs.userBId}`, cs);
-      }
-
-      // Identify cache misses and valid cache hits
-      const targetProfileMap = new Map(
-        targetProfiles.map((p) => [p.userId, p])
-      );
-      const missedPairs: typeof pairKeys = [];
-
-      for (const pair of pairKeys) {
-        const cached = cacheMap.get(`${pair.userAId}|${pair.userBId}`);
-        const theirProfile = targetProfileMap.get(pair.theirUserId);
-        if (!theirProfile) continue;
-
-        const theirHash = profileHash(
-          theirProfile.bio,
-          theirProfile.lookingFor
-        );
-
-        if (
-          cached &&
-          cached.profileHashA === (pair.userAId === ctx.userId ? myHash : theirHash) &&
-          cached.profileHashB === (pair.userBId === ctx.userId ? myHash : theirHash)
-        ) {
-          result[pair.theirUserId] = cached.snippet;
-        } else {
-          missedPairs.push(pair);
-        }
-      }
-
-      // Generate missing snippets in parallel (max 10 concurrent)
-      const CONCURRENCY = 10;
-      for (let i = 0; i < missedPairs.length; i += CONCURRENCY) {
-        const batch = missedPairs.slice(i, i + CONCURRENCY);
-        const snippets = await Promise.all(
-          batch.map(async (pair) => {
-            const theirProfile = targetProfileMap.get(pair.theirUserId);
-            if (!theirProfile?.socialProfile) return { pair, snippet: '' };
-
-            const snippet = await generateConnectionSnippet(
-              { socialProfile: myProfile.socialProfile! },
-              {
-                socialProfile: theirProfile.socialProfile,
-                displayName: theirProfile.displayName,
-              }
-            );
-            return { pair, snippet };
-          })
-        );
-
-        // Save to DB and collect results
-        for (const { pair, snippet } of snippets) {
-          if (!snippet) continue;
-
-          const theirProfile = targetProfileMap.get(pair.theirUserId)!;
-          const theirHash = profileHash(
-            theirProfile.bio,
-            theirProfile.lookingFor
-          );
-
-          const hashA = pair.userAId === ctx.userId ? myHash : theirHash;
-          const hashB = pair.userBId === ctx.userId ? myHash : theirHash;
-
-          // Upsert: delete old + insert new
-          await db
-            .delete(connectionSnippets)
-            .where(
-              and(
-                eq(connectionSnippets.userAId, pair.userAId),
-                eq(connectionSnippets.userBId, pair.userBId)
-              )
-            );
-
-          await db.insert(connectionSnippets).values({
-            userAId: pair.userAId,
-            userBId: pair.userBId,
-            snippet,
-            profileHashA: hashA,
-            profileHashB: hashB,
-          });
-
-          result[pair.theirUserId] = snippet;
-        }
-      }
-
-      return result;
+      return analysis
+        ? {
+            shortSnippet: analysis.shortSnippet,
+            longDescription: analysis.longDescription,
+            aiMatchScore: analysis.aiMatchScore,
+          }
+        : null;
     }),
 
   // Get profile by user ID

@@ -231,24 +231,28 @@ export const pushTokens = pgTable(
   })
 );
 
-// Connection snippets (cached LLM-generated descriptions of what connects two users)
-export const connectionSnippets = pgTable(
-  'connection_snippets',
+// Connection analyses (AI-generated per-viewer descriptions of what connects two users)
+export const connectionAnalyses = pgTable(
+  'connection_analyses',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userAId: text('user_a_id')
+    fromUserId: text('from_user_id')
       .notNull()
       .references(() => user.id),
-    userBId: text('user_b_id')
+    toUserId: text('to_user_id')
       .notNull()
       .references(() => user.id),
-    snippet: text('snippet').notNull(),
-    profileHashA: text('profile_hash_a').notNull(),
-    profileHashB: text('profile_hash_b').notNull(),
+    shortSnippet: text('short_snippet').notNull(),
+    longDescription: text('long_description').notNull(),
+    aiMatchScore: real('ai_match_score').notNull(),
+    fromProfileHash: varchar('from_profile_hash', { length: 8 }).notNull(),
+    toProfileHash: varchar('to_profile_hash', { length: 8 }).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => ({
-    pairIdx: index('cs_pair_idx').on(table.userAId, table.userBId),
+    pairIdx: index('ca_pair_idx').on(table.fromUserId, table.toUserId),
+    toUserIdx: index('ca_to_user_idx').on(table.toUserId),
   })
 );
 

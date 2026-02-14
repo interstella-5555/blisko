@@ -74,20 +74,6 @@ export default function NearbyScreen() {
     return (mapUsers as MapUser[]) || [];
   }, [selectedCluster, mapUsers]);
 
-  // Connection snippets for visible users (async LLM layer)
-  const userIds = useMemo(
-    () => displayUsers.map((u) => u.profile.userId),
-    [displayUsers]
-  );
-
-  const { data: snippets } = trpc.profiles.getConnectionSnippets.useQuery(
-    { userIds },
-    {
-      enabled: userIds.length > 0,
-      staleTime: 300_000, // 5min — DB cache handles invalidation
-    }
-  );
-
   useEffect(() => {
     if (sentWaves) {
       const waved = new Set(
@@ -275,7 +261,8 @@ export default function NearbyScreen() {
             bio={item.profile.bio}
             rankScore={item.rankScore}
             commonInterests={item.commonInterests}
-            connectionSnippet={snippets?.[item.profile.userId]}
+            shortSnippet={item.shortSnippet}
+            analysisReady={item.analysisReady}
             hasWaved={wavedUsers.has(item.profile.userId)}
             isWaving={wavingAt === item.profile.userId}
             onWave={() => handleWave(item.profile.userId, item.profile.displayName)}

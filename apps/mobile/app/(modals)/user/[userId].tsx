@@ -36,7 +36,6 @@ export default function UserProfileScreen() {
   const commonInterests: string[] = params.commonInterests
     ? JSON.parse(params.commonInterests)
     : [];
-  const matchPercent = Math.round(rankScore * 100);
 
   const [wavingAt, setWavingAt] = useState(false);
   const [hasWaved, setHasWaved] = useState(false);
@@ -46,10 +45,14 @@ export default function UserProfileScreen() {
     { enabled: !!userId }
   );
 
-  const { data: snippets } = trpc.profiles.getConnectionSnippets.useQuery(
-    { userIds: [userId] },
+  const { data: analysis } = trpc.profiles.getConnectionAnalysis.useQuery(
+    { userId },
     { enabled: !!userId }
   );
+
+  const matchPercent = analysis
+    ? Math.round(analysis.aiMatchScore)
+    : Math.round(rankScore * 100);
 
   const { data: sentWaves } = trpc.waves.getSent.useQuery();
   const { data: allConversations } = trpc.messages.getConversations.useQuery();
@@ -115,8 +118,6 @@ export default function UserProfileScreen() {
     );
   }
 
-  const connectionSnippet = snippets?.[userId];
-
   // Action state: conversation exists > waved pending > can wave
   const actionState = conversationId
     ? 'chat'
@@ -173,18 +174,15 @@ export default function UserProfileScreen() {
         </View>
       </View>
 
-      {/* Connection snippet */}
-      {connectionSnippet && (
+      {/* AI connection analysis */}
+      {analysis?.longDescription ? (
         <View style={styles.snippetBlock}>
           <Text style={styles.snippetLabel}>ŁĄCZY WAS</Text>
-          <Text style={styles.snippetText}>{connectionSnippet}</Text>
+          <Text style={styles.snippetText}>{analysis.longDescription}</Text>
         </View>
-      )}
-
-      {/* Common interests */}
-      {commonInterests.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Wspólne zainteresowania</Text>
+      ) : commonInterests.length > 0 ? (
+        <View style={styles.snippetBlock}>
+          <Text style={styles.snippetLabel}>ŁĄCZY WAS</Text>
           <View style={styles.pillRow}>
             {commonInterests.map((interest) => (
               <View key={interest} style={styles.pill}>
@@ -193,7 +191,7 @@ export default function UserProfileScreen() {
             ))}
           </View>
         </View>
-      )}
+      ) : null}
 
       {/* Bio */}
       <View style={styles.section}>

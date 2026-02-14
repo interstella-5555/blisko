@@ -198,6 +198,10 @@ app.onError((err, c) => {
   return c.json({ error: 'Internal Server Error' }, 500);
 });
 
+// Start BullMQ worker for connection analysis
+import { startWorker } from './services/queue';
+startWorker();
+
 const port = Number(process.env.PORT) || 3000;
 
 console.log(`🚀 Server starting on port ${port}`);

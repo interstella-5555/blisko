@@ -345,7 +345,7 @@ async function clearDatabase() {
   const { default: postgres } = await import('postgres');
   const sql = postgres(dbUrlMatch[1].trim());
 
-  await sql`DELETE FROM connection_snippets`;
+  await sql`DELETE FROM connection_analyses`;
   await sql`DELETE FROM message_reactions`;
   await sql`DELETE FROM messages`;
   await sql`DELETE FROM conversation_participants`;

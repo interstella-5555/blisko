@@ -16,14 +16,16 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.29",
     "@hono/node-server": "^1.19.9",
     "@hono/trpc-server": "^0.3.0",
     "@repo/shared": "workspace:*",
     "@trpc/server": "^11.0.0-rc.0",
+    "ai": "^6.0.86",
     "better-auth": "^1.4.17",
+    "bullmq": "^5.69.2",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.5.0",
-    "openai": "^4.50.0",
     "pg": "^8.17.2",
     "postgres": "^3.4.0",
     "resend": "^6.8.0",

@@ -89,6 +89,12 @@ export interface NearbyUser {
   similarityScore: number | null;
 }
 
+export interface ConnectionAnalysis {
+  shortSnippet: string;
+  longDescription: string;
+  aiMatchScore: number;
+}
+
 export interface ConversationWithLastMessage {
   conversation: Conversation;
   participant: Profile;

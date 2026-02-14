@@ -20,7 +20,8 @@ interface UserRowProps {
   bio: string | null;
   rankScore: number;
   commonInterests: string[];
-  connectionSnippet?: string;
+  shortSnippet: string | null;
+  analysisReady: boolean;
   hasWaved: boolean;
   isWaving: boolean;
   onWave: () => void;
@@ -39,14 +40,22 @@ const formatDistance = (meters: number): string => {
 };
 
 function getSnippetText(
-  connectionSnippet: string | undefined,
+  shortSnippet: string | null,
+  analysisReady: boolean,
   commonInterests: string[],
   bio: string | null
-): string | null {
-  if (connectionSnippet) return connectionSnippet;
+): { text: string | null; isAnalyzing: boolean } {
+  if (shortSnippet) return { text: shortSnippet, isAnalyzing: false };
+  if (!analysisReady && bio) {
+    const truncated = bio.length > 80 ? bio.slice(0, 77) + '...' : bio;
+    return { text: truncated, isAnalyzing: true };
+  }
   if (commonInterests.length > 0)
-    return `Łączy was: ${commonInterests.slice(0, 3).join(', ')}`;
-  return bio || null;
+    return {
+      text: `Łączy was: ${commonInterests.slice(0, 3).join(', ')}`,
+      isAnalyzing: false,
+    };
+  return { text: bio || null, isAnalyzing: false };
 }
 
 function getMatchColor(percent: number): string {
@@ -62,7 +71,8 @@ export function UserRow({
   bio,
   rankScore,
   commonInterests,
-  connectionSnippet,
+  shortSnippet,
+  analysisReady,
   hasWaved,
   isWaving,
   onWave,
@@ -91,9 +101,14 @@ export function UserRow({
     prevHasWaved.current = hasWaved;
   }, [hasWaved]);
 
-  const snippet = getSnippetText(connectionSnippet, commonInterests, bio);
+  const { text: snippet, isAnalyzing } = getSnippetText(
+    shortSnippet,
+    analysisReady,
+    commonInterests,
+    bio
+  );
   const matchPercent = Math.round(rankScore * 100);
-  const isHighlight = connectionSnippet || commonInterests.length > 0;
+  const isHighlight = !!shortSnippet || commonInterests.length > 0;
 
   return (
     <Pressable onPress={onPress} style={styles.row}>
@@ -120,6 +135,9 @@ export function UserRow({
           >
             {snippet}
           </Text>
+        )}
+        {isAnalyzing && (
+          <Text style={styles.analyzingText}>Analizujemy dopasowanie...</Text>
         )}
       </View>
       <Animated.View style={{ transform: [{ scale }] }}>
@@ -188,5 +206,12 @@ const styles = StyleSheet.create({
   snippetHighlight: {
     color: colors.ink,
     fontFamily: fonts.sansMedium,
+  },
+  analyzingText: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    color: colors.muted,
+    fontStyle: 'italic',
+    marginTop: 2,
   },
 });
