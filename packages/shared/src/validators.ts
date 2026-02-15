@@ -35,7 +35,7 @@ export const sendMessageSchema = z.object({
   conversationId: z.string().min(1),
   content: z.string().min(1).max(2000),
   type: z.enum(['text', 'image', 'location']).default('text'),
-  metadata: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   replyToId: z.string().uuid().optional(),
 });
 

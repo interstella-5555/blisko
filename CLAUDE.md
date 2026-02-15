@@ -138,6 +138,25 @@ as that user for 5 minutes (activity-based detection).
 - `OPENAI_API_KEY` — same as API
 - `BOT_POLL_INTERVAL_MS` — default `3000`
 
+## Database migrations (Drizzle)
+
+Schema source of truth: `apps/api/src/db/schema.ts`
+Migrations folder: `apps/api/drizzle/`
+
+**After changing `schema.ts`:**
+
+```bash
+cd apps/api
+npx drizzle-kit generate --name=describe-change   # creates SQL migration + snapshot
+npx drizzle-kit migrate                            # applies to database
+```
+
+- Never use `db:push` in production — always generate migration files.
+- `db:push` is OK for local dev if you don't need migration history.
+- Review generated SQL before running `migrate` — drizzle-kit can't handle every alteration (e.g. `text → jsonb` needs manual `USING` clause).
+- For custom/manual SQL (extensions, data migrations, casts with USING), use `npx drizzle-kit generate --custom --name=describe-change` and write the SQL yourself.
+- Migration files are committed to git. The `drizzle/meta/` snapshots are also committed — they're how drizzle-kit diffs against previous state.
+
 ## After restarting the app / seeding
 
 After any restart that involves re-seeding the database, display a random test user email for quick login. Seeded users have emails `user0@example.com` through `user249@example.com`.

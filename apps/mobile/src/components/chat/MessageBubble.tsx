@@ -7,7 +7,7 @@ export type BubblePosition = 'solo' | 'first' | 'mid' | 'last';
 interface MessageBubbleProps {
   content: string;
   type?: 'text' | 'image' | 'location';
-  metadata?: string | null;
+  metadata?: Record<string, unknown> | null;
   isMine: boolean;
   createdAt: string;
   readAt: string | null;
@@ -80,36 +80,26 @@ export function MessageBubble({
         </View>
       )}
       {type === 'image' && metadata ? (
-        (() => {
-          const meta = JSON.parse(metadata);
-          return (
-            <Image
-              source={{ uri: meta.imageUrl }}
-              style={styles.imageContent}
-              resizeMode="cover"
-            />
-          );
-        })()
+        <Image
+          source={{ uri: metadata.imageUrl as string }}
+          style={styles.imageContent}
+          resizeMode="cover"
+        />
       ) : type === 'location' && metadata ? (
-        (() => {
-          const meta = JSON.parse(metadata);
-          return (
-            <Pressable
-              style={styles.locationContent}
-              onPress={() => {
-                const url = Platform.OS === 'ios'
-                  ? `maps:0,0?q=${meta.latitude},${meta.longitude}`
-                  : `geo:${meta.latitude},${meta.longitude}`;
-                Linking.openURL(url);
-              }}
-            >
-              <Text style={styles.locationIcon}>📍</Text>
-              <Text style={[styles.locationLabel, isMine ? styles.contentMine : styles.contentTheirs]}>
-                Udostępniona lokalizacja
-              </Text>
-            </Pressable>
-          );
-        })()
+        <Pressable
+          style={styles.locationContent}
+          onPress={() => {
+            const url = Platform.OS === 'ios'
+              ? `maps:0,0?q=${metadata.latitude},${metadata.longitude}`
+              : `geo:${metadata.latitude},${metadata.longitude}`;
+            Linking.openURL(url);
+          }}
+        >
+          <Text style={styles.locationIcon}>📍</Text>
+          <Text style={[styles.locationLabel, isMine ? styles.contentMine : styles.contentTheirs]}>
+            Udostępniona lokalizacja
+          </Text>
+        </Pressable>
       ) : (
         <Text style={[styles.content, isMine ? styles.contentMine : styles.contentTheirs]}>
           {content}

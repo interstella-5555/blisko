@@ -12,7 +12,7 @@ export interface NewMessageEvent {
     senderId: string;
     content: string;
     type: string;
-    metadata: string | null;
+    metadata: Record<string, unknown> | null;
     replyToId: string | null;
     createdAt: Date;
     readAt: Date | null;

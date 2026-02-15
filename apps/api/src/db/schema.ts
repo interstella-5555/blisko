@@ -9,6 +9,7 @@ import {
   primaryKey,
   boolean,
   integer,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -161,7 +162,7 @@ export const messages = pgTable(
       .references(() => user.id),
     content: text('content').notNull(),
     type: varchar('type', { length: 20 }).notNull().default('text'),
-    metadata: text('metadata'),
+    metadata: jsonb('metadata'),
     replyToId: uuid('reply_to_id'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     readAt: timestamp('read_at'),

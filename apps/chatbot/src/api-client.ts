@@ -67,5 +67,5 @@ export async function sendMessage(
   conversationId: string,
   content: string,
 ): Promise<void> {
-  await trpc('messages.send', token, { conversationId, content });
+  await trpc('messages.send', token, { conversationId, content, metadata: { source: 'chatbot' } });
 }

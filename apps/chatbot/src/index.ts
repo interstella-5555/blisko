@@ -16,7 +16,7 @@ import { generateBotMessage } from './ai';
 
 const POLL_INTERVAL = Number(process.env.BOT_POLL_INTERVAL_MS) || 3000;
 const WAVE_DELAY_MIN = 10_000;
-const WAVE_DELAY_MAX = 60_000;
+const WAVE_DELAY_MAX = 30_000;
 const MSG_DELAY_MIN = 5_000;
 const MSG_DELAY_MAX = 30_000;
 const OPENING_DELAY_MIN = 3_000;
@@ -40,8 +40,6 @@ let lastWaveCheck = new Date();
 let lastMessageCheck = new Date();
 const pendingWaves = new Set<string>(); // wave IDs with scheduled responses
 const pendingConversations = new Map<string, Timer>(); // conversationId → debounce timer
-const botSentTimestamps = new Map<string, number>(); // `${userId}:${conversationId}` → timestamp of last bot-sent msg
-
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function randomDelay(min: number, max: number): number {
@@ -52,12 +50,7 @@ function isSeedEmail(email: string): boolean {
   return email.endsWith('@example.com');
 }
 
-/** Record that the bot sent a message (for human activity detection) */
-function trackBotSent(seedUserId: string, conversationId: string) {
-  botSentTimestamps.set(`${seedUserId}:${conversationId}`, Date.now());
-}
-
-/** Check if a seed user has recent activity (human controlling them) */
+/** Check if a seed user has recent human activity (non-bot messages) */
 async function isHumanControlled(
   seedUserId: string,
   conversationId?: string,
@@ -67,32 +60,18 @@ async function isHumanControlled(
     eq(messages.senderId, seedUserId),
     gt(messages.createdAt, cutoff),
     sql`${messages.deletedAt} IS NULL`,
+    sql`(${messages.metadata} IS NULL OR ${messages.metadata}->>'source' != 'chatbot')`,
   ];
   if (conversationId) {
     conditions.push(eq(messages.conversationId, conversationId));
   }
 
-  const recent = await db
-    .select({ createdAt: messages.createdAt, conversationId: messages.conversationId })
+  const [result] = await db
+    .select({ count: sql<number>`count(*)` })
     .from(messages)
-    .where(and(...conditions))
-    .orderBy(desc(messages.createdAt))
-    .limit(5);
+    .where(and(...conditions));
 
-  // Filter out messages that the bot itself sent (by checking our tracking map)
-  for (const msg of recent) {
-    const key = `${seedUserId}:${msg.conversationId}`;
-    const botSentAt = botSentTimestamps.get(key);
-    // If we have no record of the bot sending in this conv, it's human
-    if (!botSentAt) return true;
-    // If the message was created before we last sent, it's from before our reply
-    // If after, it could be our message — skip it
-    const msgTime = msg.createdAt.getTime();
-    // Allow 2s tolerance for API processing delay
-    if (msgTime < botSentAt - 2000) return true;
-  }
-
-  return false;
+  return Number(result?.count ?? 0) > 0;
 }
 
 /** Get match score from connection_analyses for the wave recipient's view */
@@ -129,6 +108,14 @@ function shouldAcceptWave(matchScore: number | null): boolean {
 
   const acceptProbability = 0.1 + (matchScore / 75) * 0.9;
   return Math.random() < acceptProbability;
+}
+
+/** Decide if bot initiates conversation after accepting a wave */
+function shouldInitiateConversation(matchScore: number | null): boolean {
+  if (matchScore === null) return Math.random() < 0.3;
+  if (matchScore >= 75) return true;
+  // Linear: 0 → 5%, 75 → 100%
+  return Math.random() < 0.05 + (matchScore / 75) * 0.95;
 }
 
 async function getProfileByUserId(userId: string) {
@@ -173,28 +160,18 @@ async function handleWave(wave: {
       return;
     }
 
-    // Activity guard
-    if (await isHumanControlled(wave.toUserId)) {
-      console.log(`[bot] ${seedUser.email} has human activity, skipping wave`);
-      pendingWaves.delete(wave.id);
-      return;
-    }
-
-    // Check if sender is also a seed user — prevent seed-to-seed loops
+    // Look up sender for logging
     const [sender] = await db
       .select({ email: user.email })
       .from(user)
       .where(eq(user.id, wave.fromUserId))
       .limit(1);
 
-    if (sender && isSeedEmail(sender.email)) {
-      // Only respond if the sender has recent human activity (human is using them)
-      const senderHasHuman = await isHumanControlled(wave.fromUserId);
-      if (!senderHasHuman) {
-        console.log(`[bot] Seed-to-seed wave without human activity, skipping`);
-        pendingWaves.delete(wave.id);
-        return;
-      }
+    // Activity guard
+    if (await isHumanControlled(wave.toUserId)) {
+      console.log(`[bot] ${seedUser.email} has human activity, skipping wave`);
+      pendingWaves.delete(wave.id);
+      return;
     }
 
     const { token } = await getToken(seedUser.email);
@@ -211,35 +188,40 @@ async function handleWave(wave: {
     const result = await respondToWave(token, wave.id, accept);
 
     if (accept && result.conversationId) {
-      // Send opening message after extra delay
-      const openingDelay = randomDelay(OPENING_DELAY_MIN, OPENING_DELAY_MAX);
-      console.log(
-        `[bot] Scheduling opening message in ${(openingDelay / 1000).toFixed(0)}s`,
-      );
+      if (shouldInitiateConversation(matchScore)) {
+        // Send opening message after extra delay
+        const openingDelay = randomDelay(OPENING_DELAY_MIN, OPENING_DELAY_MAX);
+        console.log(
+          `[bot] ${seedUser.email} initiating conversation (match: ${scoreStr}), opening in ${(openingDelay / 1000).toFixed(0)}s`,
+        );
 
-      setTimeout(async () => {
-        try {
-          const botProfile = await getProfileByUserId(wave.toUserId);
-          const otherProfile = await getProfileByUserId(wave.fromUserId);
+        setTimeout(async () => {
+          try {
+            const botProfile = await getProfileByUserId(wave.toUserId);
+            const otherProfile = await getProfileByUserId(wave.fromUserId);
 
-          if (!botProfile || !otherProfile) return;
+            if (!botProfile || !otherProfile) return;
 
-          const content = await generateBotMessage(
-            botProfile,
-            otherProfile,
-            [],
-            true,
-          );
+            const content = await generateBotMessage(
+              botProfile,
+              otherProfile,
+              [],
+              true,
+            );
 
-          trackBotSent(wave.toUserId, result.conversationId!);
-          await sendMessage(token, result.conversationId!, content);
-          console.log(
-            `[bot] ${seedUser.email} sent opening: "${content.slice(0, 50)}..."`,
-          );
-        } catch (err) {
-          console.error('[bot] Opening message error:', err);
-        }
-      }, openingDelay);
+            await sendMessage(token, result.conversationId!, content);
+            console.log(
+              `[bot] ${seedUser.email} sent opening: "${content.slice(0, 50)}..."`,
+            );
+          } catch (err) {
+            console.error('[bot] Opening message error:', err);
+          }
+        }, openingDelay);
+      } else {
+        console.log(
+          `[bot] ${seedUser.email} accepted wave, waiting for first message (match: ${scoreStr})`,
+        );
+      }
     }
   } catch (err) {
     console.error(`[bot] handleWave error:`, err);
@@ -312,7 +294,6 @@ async function handleMessage(
 
     const content = await generateBotMessage(botProfile, otherProfile, history, false);
 
-    trackBotSent(seedUserId, conversationId);
     await sendMessage(token, conversationId, content);
     console.log(
       `[bot] ${seedEmail} replied in ${conversationId.slice(0, 8)}: "${content.slice(0, 50)}..."`,

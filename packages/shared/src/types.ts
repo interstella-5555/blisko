@@ -52,7 +52,7 @@ export interface Message {
   senderId: string;
   content: string;
   type: MessageType;
-  metadata: string | null;
+  metadata: Record<string, unknown> | null;
   replyToId: string | null;
   createdAt: Date;
   readAt: Date | null;

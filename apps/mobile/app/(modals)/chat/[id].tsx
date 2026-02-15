@@ -307,11 +307,11 @@ export default function ChatScreen() {
         conversationId,
         content: '[Zdjęcie]',
         type: 'image',
-        metadata: JSON.stringify({
+        metadata: {
           imageUrl: url,
           width: asset.width,
           height: asset.height,
-        }),
+        },
       });
     } catch (error) {
       Alert.alert('Błąd', 'Nie udało się wysłać zdjęcia');
@@ -332,10 +332,10 @@ export default function ChatScreen() {
         conversationId,
         content: 'Moja lokalizacja',
         type: 'location',
-        metadata: JSON.stringify({
+        metadata: {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
-        }),
+        },
       });
     } catch (error) {
       Alert.alert('Błąd', 'Nie udało się pobrać lokalizacji');
