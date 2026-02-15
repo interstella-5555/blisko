@@ -77,6 +77,67 @@ cd packages/dev-cli && bun run src/cli.ts reanalyze user42@example.com --clear-a
 
 This truncates all `connection_analyses` and enqueues new pair analyses for the given user's nearby connections. Check results in the DB or mobile app.
 
+## Running on physical iPhone
+
+The API URL is controlled by `EXPO_PUBLIC_API_URL` in `apps/mobile/.env.local`.
+
+**For physical device (Railway API):**
+```bash
+# Set .env.local to Railway
+echo 'EXPO_PUBLIC_API_URL=https://api.meetapp.work' > apps/mobile/.env.local
+
+# Build and install on connected iPhone
+cd apps/mobile && npx expo run:ios --device
+```
+
+**To switch back to local dev:**
+```bash
+echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:3000' > apps/mobile/.env.local
+```
+
+The iPhone UDID is `00008130-00065CE826A0001C` (Karol iPhone 15). Use `xcrun xctrace list devices` to verify.
+
+## Seed user locations
+
+Seed users are scattered across 5 central districts (Ochota, Włochy, Wola, Śródmieście, Mokotów):
+- **Bounds:** lat `52.17–52.27`, lng `20.92–21.06`
+- **Constants:** `WARSAW_CENTER = {lat: 52.22, lng: 20.99}`, `SPREAD_LAT = 0.05`, `SPREAD_LNG = 0.07`
+
+To re-scatter existing users without re-seeding (goes through the API so side-effects fire):
+```bash
+cd apps/api && bun run scripts/scatter-locations.ts
+```
+
+For a fresh seed with new locations, delete the cache first:
+```bash
+rm apps/api/scripts/.seed-cache.json
+cd apps/api && bun run scripts/seed-users.ts
+```
+
+## Chatbot (seed user auto-responses)
+
+Separate app that makes seed users respond to waves and messages automatically.
+
+**Run:**
+```bash
+cd apps/chatbot && bun dev
+```
+
+Requires the API to be running. Seed users auto-respond with AI-generated messages
+in character. Wave acceptance is match-based: higher AI match score = higher chance
+of accepting (>=75% always accepts, scales linearly down to 10% at score 0).
+
+If you log in as a seed user and send messages, the bot stops responding
+as that user for 5 minutes (activity-based detection).
+
+**Location:** `apps/chatbot/`
+
+**Env vars** (reads from API's `.env` or own):
+- `DATABASE_URL` — same as API
+- `API_URL` — defaults to `http://localhost:3000`
+- `OPENAI_API_KEY` — same as API
+- `BOT_POLL_INTERVAL_MS` — default `3000`
+
 ## After restarting the app / seeding
 
 After any restart that involves re-seeding the database, display a random test user email for quick login. Seeded users have emails `user0@example.com` through `user249@example.com`.
