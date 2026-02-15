@@ -44,6 +44,9 @@ importers:
       hono:
         specifier: ^4.5.0
         version: 4.11.5
+      ioredis:
+        specifier: ^5.9.0
+        version: 5.9.3
       pg:
         specifier: ^8.17.2
         version: 8.17.2
@@ -14413,7 +14416,6 @@ snapshots:
       standard-as-callback: 2.1.0
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   is-alphabetical@2.0.1: {}
 
