@@ -1,6 +1,9 @@
-FROM oven/bun:1-alpine
+FROM node:24-alpine
 
-RUN npm i -g corepack@latest && corepack enable && corepack prepare pnpm@9 --activate
+RUN apk add --no-cache bash curl unzip \
+ && curl -fsSL https://bun.sh/install | bash \
+ && ln -s /root/.bun/bin/bun /usr/local/bin/bun
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 WORKDIR /app
 
