@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View,
   TextInput,
   Text,
   StyleSheet,
   Pressable,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, spacing } from '../../theme';
@@ -34,8 +35,15 @@ export function ChatInput({
   onTyping,
 }: ChatInputProps) {
   const [text, setText] = useState('');
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const { bottom } = useSafeAreaInsets();
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardWillShow', () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener('keyboardWillHide', () => setKeyboardVisible(false));
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
 
   const handleSend = () => {
     const trimmed = text.trim();
@@ -51,7 +59,7 @@ export function ChatInput({
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: bottom }]}>
+    <View style={[styles.container, { paddingBottom: keyboardVisible ? 0 : bottom }]}>
       {replyingTo && (
         <View style={styles.replyBar}>
           <View style={styles.replyContent}>
