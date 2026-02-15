@@ -1,6 +1,7 @@
 import { Queue, Worker, type Job } from 'bullmq';
 import { createHash } from 'crypto';
 import { eq, and, ne, sql } from 'drizzle-orm';
+import Redis from 'ioredis';
 import { cosineSimilarity } from '@repo/shared';
 import { db } from '../db';
 import { profiles, connectionAnalyses, blocks, profilingSessions, profilingQA } from '../db/schema';
@@ -21,6 +22,16 @@ function getConnectionConfig() {
     password: url.password || undefined,
     maxRetriesPerRequest: null as null,
   };
+}
+
+let _redisPub: Redis | null = null;
+
+function getRedisPub(): Redis | null {
+  if (!process.env.REDIS_URL) return null;
+  if (!_redisPub) {
+    _redisPub = new Redis(process.env.REDIS_URL);
+  }
+  return _redisPub;
 }
 
 // --- Job types ---
@@ -200,6 +211,11 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
     shortSnippet: result.snippetForA,
   });
 
+  getRedisPub()?.publish('analysis:ready', JSON.stringify({
+    forUserId: userAId,
+    aboutUserId: userBId,
+  }));
+
   const [existingBA] = await db
     .select()
     .from(connectionAnalyses)
@@ -241,6 +257,11 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
     aboutUserId: userAId,
     shortSnippet: result.snippetForB,
   });
+
+  getRedisPub()?.publish('analysis:ready', JSON.stringify({
+    forUserId: userBId,
+    aboutUserId: userAId,
+  }));
 
   const tWrite = performance.now();
 
