@@ -121,11 +121,13 @@ export const profilesRouter = router({
         .returning();
 
       // Queue connection analyses for new location
-      enqueueUserPairAnalysis(
-        ctx.userId,
-        input.latitude,
-        input.longitude
-      ).catch(() => {});
+      if (!input.skipAnalysis) {
+        enqueueUserPairAnalysis(
+          ctx.userId,
+          input.latitude,
+          input.longitude
+        ).catch(() => {});
+      }
 
       // Notify nearby users that someone's location changed
       const radiusMeters = 5000;

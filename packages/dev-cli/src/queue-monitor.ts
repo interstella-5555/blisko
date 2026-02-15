@@ -44,6 +44,13 @@ function padLeft(s: string, n: number): string {
   return s.length >= n ? s.slice(0, n) : " ".repeat(n - s.length) + s;
 }
 
+function pairLabel(data: any): string {
+  if (data?.type !== "analyze-pair") return "";
+  const a = data.nameA ?? data.userAId?.slice(0, 8) ?? "?";
+  const b = data.nameB ?? data.userBId?.slice(0, 8) ?? "?";
+  return `${a} → ${b}`;
+}
+
 // --- Main ---
 
 const queue = new Queue("ai-jobs", { connection: getConnectionConfig() });
@@ -69,6 +76,8 @@ async function render() {
   // --- Build output ---
   const lines: string[] = [];
 
+  const totalPending = waiting + active + delayed;
+
   lines.push("");
   lines.push("  Queue: ai-jobs");
   lines.push("  " + "─".repeat(60));
@@ -76,15 +85,15 @@ async function render() {
     `  Waiting: ${padLeft(String(waiting), 4)}    Active: ${padLeft(String(active), 3)}    Delayed: ${padLeft(String(delayed), 3)}    Failed: ${padLeft(String(failed), 3)}`
   );
   lines.push(
-    `  Completed (kept): ${padLeft(String(completed), 4)}    Rate limit: 20/min    Concurrency: 5`
+    `  Completed: ${padLeft(String(completed), 4)}    Total pending: ${padLeft(String(totalPending), 4)}    Rate limit: 20/min`
   );
   lines.push("");
 
   // --- Recent jobs ---
   lines.push("  Recent Jobs (last 20 completed)");
-  lines.push("  " + "─".repeat(60));
+  lines.push("  " + "─".repeat(100));
   lines.push(
-    `  ${pad("Job ID", 36)} ${pad("Type", 22)} ${padLeft("Wait", 8)} ${padLeft("Process", 8)} ${padLeft("Total", 8)}  St`
+    `  ${pad("Type", 18)} ${pad("Pair", 28)} ${pad("For", 12)} ${padLeft("Wait", 8)} ${padLeft("Process", 8)} ${padLeft("Total", 8)}  St`
   );
 
   const recent = completedJobs.slice(0, 20);
@@ -97,11 +106,12 @@ async function render() {
         : 0;
     const totalMs = waitMs + processMs;
 
-    const id = (job.id ?? "?").slice(0, 35);
-    const type = (job.data?.type ?? "?").slice(0, 21);
+    const type = (job.data?.type ?? "?").slice(0, 17);
+    const pair = pairLabel(job.data);
+    const reqBy = (job.data?.requestedBy ?? "").slice(0, 11);
 
     lines.push(
-      `  ${pad(id, 36)} ${pad(type, 22)} ${padLeft(fmtDuration(waitMs), 8)} ${padLeft(fmtDuration(processMs), 8)} ${padLeft(fmtDuration(totalMs), 8)}  ✓`
+      `  ${pad(type, 18)} ${pad(pair, 28)} ${pad(reqBy, 12)} ${padLeft(fmtDuration(waitMs), 8)} ${padLeft(fmtDuration(processMs), 8)} ${padLeft(fmtDuration(totalMs), 8)}  ✓`
     );
   }
 
@@ -115,10 +125,10 @@ async function render() {
     lines.push(`  Recent Failed (${failedJobs.length})`);
     lines.push("  " + "─".repeat(60));
     for (const job of failedJobs.slice(0, 5)) {
-      const id = (job.id ?? "?").slice(0, 35);
-      const type = (job.data?.type ?? "?").slice(0, 21);
+      const type = (job.data?.type ?? "?").slice(0, 17);
+      const pair = pairLabel(job.data);
       const reason = (job.failedReason ?? "unknown").slice(0, 50);
-      lines.push(`  ${pad(id, 36)} ${pad(type, 22)} ${reason}`);
+      lines.push(`  ${pad(type, 18)} ${pad(pair || (job.id ?? "?").slice(0, 27), 28)} ${reason}`);
     }
   }
 
@@ -170,11 +180,29 @@ async function render() {
     lines.push(`  Active Jobs (${active})`);
     lines.push("  " + "─".repeat(60));
     for (const job of activeJobs) {
-      const id = (job.id ?? "?").slice(0, 35);
-      const type = (job.data?.type ?? "?").slice(0, 21);
+      const type = (job.data?.type ?? "?").slice(0, 17);
+      const pair = pairLabel(job.data);
+      const reqBy = (job.data?.requestedBy ?? "").slice(0, 11);
       const elapsed = job.processedOn ? Date.now() - job.processedOn : 0;
       lines.push(
-        `  ${pad(id, 36)} ${pad(type, 22)} running ${fmtDuration(elapsed)}`
+        `  ${pad(type, 18)} ${pad(pair || (job.id ?? "?").slice(0, 27), 28)} ${pad(reqBy, 12)} running ${fmtDuration(elapsed)}`
+      );
+    }
+  }
+
+  // --- Waiting jobs (next in queue) ---
+  if (waiting > 0) {
+    const waitingJobs = await queue.getJobs(["waiting"], 0, 14);
+    lines.push("");
+    lines.push(`  Waiting Jobs (showing ${Math.min(waitingJobs.length, 15)} of ${waiting})`);
+    lines.push("  " + "─".repeat(60));
+    for (const job of waitingJobs) {
+      const type = (job.data?.type ?? "?").slice(0, 17);
+      const pair = pairLabel(job.data);
+      const reqBy = (job.data?.requestedBy ?? "").slice(0, 11);
+      const age = Date.now() - job.timestamp;
+      lines.push(
+        `  ${pad(type, 18)} ${pad(pair || (job.id ?? "?").slice(0, 27), 28)} ${pad(reqBy, 12)} queued ${fmtDuration(age)}`
       );
     }
   }

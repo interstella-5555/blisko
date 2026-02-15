@@ -18,6 +18,7 @@ export const updateProfileSchema = z.object({
 export const updateLocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
+  skipAnalysis: z.boolean().optional(),
 });
 
 // Wave validators

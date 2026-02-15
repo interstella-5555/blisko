@@ -47,9 +47,9 @@ Interactive CLI for testing waves, chats, and messages without the mobile app. C
 
 **Location:** `packages/dev-cli/`
 
-**Run:**
+**Run from root:**
 ```bash
-cd packages/dev-cli && bun run src/cli.ts
+pnpm dev-cli -- <command> [args]
 ```
 
 **Commands:**
@@ -72,7 +72,7 @@ Users are referenced by name (e.g. "ania"). The CLI resolves names to userId/tok
 After modifying AI prompts in `apps/api/src/services/ai.ts`, clear stale analyses and re-trigger for a test user:
 
 ```bash
-cd packages/dev-cli && bun run src/cli.ts reanalyze user42@example.com --clear-all
+pnpm dev-cli -- reanalyze user42@example.com --clear-all
 ```
 
 This truncates all `connection_analyses` and enqueues new pair analyses for the given user's nearby connections. Check results in the DB or mobile app.
@@ -138,6 +138,38 @@ as that user for 5 minutes (activity-based detection).
 - `OPENAI_API_KEY` — same as API
 - `BOT_POLL_INTERVAL_MS` — default `3000`
 
+## Queue monitor (BullMQ debugging)
+
+Live dashboard for the `ai-jobs` BullMQ queue. Shows waiting/active/completed jobs, timing breakdowns (queue wait vs AI call vs DB), and per-job pair names.
+
+**Run:** `pnpm dev-cli:queue-monitor`
+
+Reads `REDIS_URL` from env or `apps/api/.env`. Refreshes every 2s.
+
+**What it shows:**
+- Queue counts (waiting, active, delayed, failed, completed)
+- Recent completed jobs with wait/process/total times
+- Averages by job type
+- Active + waiting jobs with user pair names and who requested the analysis
+
+**Key file:** `packages/dev-cli/src/queue-monitor.ts`
+
+## Chatbot monitor
+
+Live dashboard showing what the chatbot sees: pending waves, wave decisions, active conversations with last messages.
+
+**Run:** `pnpm dev-cli:chatbot-monitor`
+
+Reads `DATABASE_URL` from env or `apps/api/.env`. Refreshes every 3s. Does NOT require the chatbot to be running — reads DB directly.
+
+**What it shows:**
+- Stats (bot vs human messages, accepted/declined waves in last hour)
+- Pending waves waiting for seed user response
+- Recent wave accept/decline decisions with match scores
+- Active conversations with last 3 messages (`🤖` = bot, `[name]` = seed user)
+
+**Key file:** `packages/dev-cli/src/chatbot-monitor.ts`
+
 ## Database migrations (Drizzle)
 
 Schema source of truth: `apps/api/src/db/schema.ts`
@@ -160,6 +192,23 @@ npx drizzle-kit migrate                            # applies to database
 ## Layout: aligning controls with labels
 
 When placing a Switch/toggle next to a label + description block, don't wrap both texts in one View and use `alignItems: 'center'` — the control will center against the whole block (label + description), not just the label. Instead, put only the label and the control in a flex row with `alignItems: 'center'`, and render the description as a separate element below the row. Same principle applies to any row where a control should align with the first line of text.
+
+## Scripts convention
+
+All runnable tools must have a `scripts` entry in their own `package.json` AND a corresponding entry in the root `package.json` using the `pnpm --filter` pattern. Always run from the root directory using the root script.
+
+**Pattern:** `"<package>:<script>": "pnpm --filter @repo/<package> <script>"`
+
+**Example:**
+```json
+// root package.json
+"dev-cli:queue-monitor": "pnpm --filter @repo/dev-cli monitor"
+
+// packages/dev-cli/package.json
+"monitor": "bun run src/queue-monitor.ts"
+```
+
+When creating new CLI tools, scripts, or monitors — always add both entries.
 
 ## After restarting the app / seeding
 

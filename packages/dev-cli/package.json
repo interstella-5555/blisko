@@ -3,10 +3,13 @@
   "private": true,
   "scripts": {
     "cli": "bun run src/cli.ts",
-    "monitor": "bun run src/queue-monitor.ts"
+    "monitor": "bun run src/queue-monitor.ts",
+    "chatbot-monitor": "bun run src/chatbot-monitor.ts"
   },
   "dependencies": {
     "bullmq": "^5.49.2",
-    "commander": "^14.0.3"
+    "commander": "^14.0.3",
+    "drizzle-orm": "^0.45.1",
+    "postgres": "^3.4.0"
   }
 }

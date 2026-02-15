@@ -103,7 +103,7 @@ function profileHash(bio: string, lookingFor: string): string {
 
 // --- Connection analysis processors (unchanged) ---
 
-async function processAnalyzePair(userAId: string, userBId: string) {
+async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, userBId: string) {
   const t0 = performance.now();
 
   // --- db-fetch phase ---
@@ -116,8 +116,11 @@ async function processAnalyzePair(userAId: string, userBId: string) {
     .from(profiles)
     .where(eq(profiles.userId, userBId));
 
+  const nameA = job.data.nameA ?? profileA?.displayName ?? userAId.slice(0, 8);
+  const nameB = job.data.nameB ?? profileB?.displayName ?? userBId.slice(0, 8);
+
   if (!profileA?.socialProfile || !profileB?.socialProfile) {
-    console.log(`[queue] analyze-pair skip (no profile) | db-fetch: ${(performance.now() - t0).toFixed(0)}ms | pair: ${userAId.slice(0, 8)} → ${userBId.slice(0, 8)}`);
+    console.log(`[queue] analyze-pair skip (no profile) | db-fetch: ${(performance.now() - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB}`);
     return;
   }
 
@@ -141,7 +144,7 @@ async function processAnalyzePair(userAId: string, userBId: string) {
     existingAB.fromProfileHash === hashA &&
     existingAB.toProfileHash === hashB
   ) {
-    console.log(`[queue] analyze-pair done | db-fetch: ${(tFetch - t0).toFixed(0)}ms | total: ${(tFetch - t0).toFixed(0)}ms | pair: ${userAId.slice(0, 8)} → ${userBId.slice(0, 8)} | skipped: true`);
+    console.log(`[queue] analyze-pair done | db-fetch: ${(tFetch - t0).toFixed(0)}ms | total: ${(tFetch - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB} | skipped: true`);
     return;
   }
 
@@ -241,7 +244,7 @@ async function processAnalyzePair(userAId: string, userBId: string) {
 
   const tWrite = performance.now();
 
-  console.log(`[queue] analyze-pair done | db-fetch: ${(tFetch - t0).toFixed(0)}ms | ai: ${(tAi - tAi0).toFixed(0)}ms | db-write: ${(tWrite - tWrite0).toFixed(0)}ms | total: ${(tWrite - t0).toFixed(0)}ms | pair: ${userAId.slice(0, 8)} → ${userBId.slice(0, 8)} | skipped: false`);
+  console.log(`[queue] analyze-pair done | db-fetch: ${(tFetch - t0).toFixed(0)}ms | ai: ${(tAi - tAi0).toFixed(0)}ms | db-write: ${(tWrite - tWrite0).toFixed(0)}ms | total: ${(tWrite - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB} | skipped: false`);
 }
 
 async function processAnalyzeUserPairs(
@@ -280,6 +283,7 @@ async function processAnalyzeUserPairs(
   // Fetch current user's embedding & interests for ranking
   const [myProfile] = await db
     .select({
+      displayName: profiles.displayName,
       embedding: profiles.embedding,
       interests: profiles.interests,
     })
@@ -303,6 +307,7 @@ async function processAnalyzeUserPairs(
   const nearbyUsers = await db
     .select({
       userId: profiles.userId,
+      displayName: profiles.displayName,
       embedding: profiles.embedding,
       interests: profiles.interests,
       distance: distanceFormula,
@@ -337,16 +342,21 @@ async function processAnalyzeUserPairs(
       const proximity = 1 - Math.min(u.distance, radiusMeters) / radiusMeters;
       const rankScore = 0.6 * matchScore + 0.4 * proximity;
 
-      return { userId: u.userId, rankScore };
+      return { userId: u.userId, displayName: u.displayName, rankScore };
     })
     .sort((a, b) => b.rankScore - a.rankScore);
 
+  const myName = myProfile?.displayName ?? userId.slice(0, 8);
+
   // Queue analyze-pair jobs — priority 1 (highest) for top-ranked users
   for (let i = 0; i < scored.length; i++) {
-    const [a, b] = [userId, scored[i].userId].sort();
+    const other = scored[i];
+    const [a, b] = [userId, other.userId].sort();
+    const nameA = a === userId ? myName : other.displayName;
+    const nameB = b === userId ? myName : other.displayName;
     await queue.add(
       'analyze-pair',
-      { type: 'analyze-pair', userAId: a, userBId: b },
+      { type: 'analyze-pair', userAId: a, userBId: b, nameA, nameB, requestedBy: myName },
       { jobId: `pair-${a}-${b}`, priority: i + 1 }
     );
   }
@@ -436,7 +446,7 @@ async function processJob(job: Job<AIJob>) {
 
   switch (data.type) {
     case 'analyze-pair':
-      await processAnalyzePair(data.userAId, data.userBId);
+      await processAnalyzePair(job as Job<AnalyzePairJob>, data.userAId, data.userBId);
       break;
     case 'analyze-user-pairs':
       await processAnalyzeUserPairs(
@@ -511,15 +521,19 @@ export async function enqueueUserPairAnalysis(
 
 export async function enqueuePairAnalysis(
   userAId: string,
-  userBId: string
+  userBId: string,
+  opts?: { nameA?: string; nameB?: string; requestedBy?: string }
 ) {
   if (!process.env.REDIS_URL) return;
 
   const [a, b] = [userAId, userBId].sort();
+  // Match names to sorted order
+  const nameA = a === userAId ? opts?.nameA : opts?.nameB;
+  const nameB = b === userAId ? opts?.nameA : opts?.nameB;
   const queue = getQueue();
   await queue.add(
     'analyze-pair',
-    { type: 'analyze-pair', userAId: a, userBId: b },
+    { type: 'analyze-pair', userAId: a, userBId: b, nameA, nameB, requestedBy: opts?.requestedBy },
     { jobId: `pair-${a}-${b}` }
   );
 }

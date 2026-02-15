@@ -38,7 +38,7 @@ async function updateLocation(token: string, latitude: number, longitude: number
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ latitude, longitude }),
+    body: JSON.stringify({ latitude, longitude, skipAnalysis: true }),
   });
   if (!res.ok) {
     const text = await res.text();

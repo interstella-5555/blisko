@@ -3,19 +3,20 @@
   "description": "Location-based social app for finding people with shared interests",
   "private": true,
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "test": "turbo test",
-    "lint": "turbo lint",
-    "typecheck": "turbo typecheck",
-    "clean": "turbo clean && rm -rf node_modules",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
+    "api:dev": "pnpm --filter @repo/api dev",
+    "api:build": "pnpm --filter @repo/api build",
+    "api:test": "pnpm --filter @repo/api test",
+    "chatbot:dev": "pnpm --filter @repo/chatbot dev",
     "design:dev": "pnpm --filter @repo/design dev",
     "design:build": "pnpm --filter @repo/design build",
     "design:start": "pnpm --filter @repo/design start",
-    "design:preview": "pnpm --filter @repo/design preview"
+    "design:preview": "pnpm --filter @repo/design preview",
+    "dev-cli": "pnpm --filter @repo/dev-cli cli",
+    "dev-cli:queue-monitor": "pnpm --filter @repo/dev-cli monitor",
+    "dev-cli:chatbot-monitor": "pnpm --filter @repo/dev-cli chatbot-monitor"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
     "typescript": "^5.3.0"
   },
   "packageManager": "pnpm@9.0.0",
