@@ -18,8 +18,6 @@ import { initEvents, closeEvents, emit } from './events';
 const POLL_INTERVAL = Number(process.env.BOT_POLL_INTERVAL_MS) || 3000;
 const WAVE_DELAY_MIN = 10_000;
 const WAVE_DELAY_MAX = 30_000;
-const MSG_DELAY_MIN = 5_000;
-const MSG_DELAY_MAX = 30_000;
 const OPENING_DELAY_MIN = 3_000;
 const OPENING_DELAY_MAX = 15_000;
 const ACTIVITY_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -78,7 +76,6 @@ if (process.env.REDIS_URL) {
 let lastWaveCheck = new Date();
 let lastMessageCheck = new Date();
 const pendingWaves = new Set<string>(); // wave IDs with scheduled responses
-const pendingConversations = new Map<string, Timer>(); // conversationId → debounce timer
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -479,21 +476,11 @@ async function pollMessages() {
       );
       if (convMessages.length === 0) continue;
 
-      // Debounce
-      const existingTimer = pendingConversations.get(convId);
-      if (existingTimer) clearTimeout(existingTimer);
-
-      const delay = randomDelay(MSG_DELAY_MIN, MSG_DELAY_MAX);
       const botName = await getDisplayName(seedParticipant.userId);
       const senderName = await getDisplayName(convMessages[0].senderId);
-      emit({ type: 'message_received', bot: botName, from: senderName, delay: `${(delay / 1000).toFixed(0)}s` });
+      emit({ type: 'message_received', bot: botName, from: senderName });
 
-      const timer = setTimeout(() => {
-        pendingConversations.delete(convId);
-        handleMessage(convId, seedParticipant.userId, seedParticipant.email);
-      }, delay);
-
-      pendingConversations.set(convId, timer);
+      handleMessage(convId, seedParticipant.userId, seedParticipant.email);
     }
   } catch (err) {
     console.error('[bot] pollMessages error:', err);
@@ -533,7 +520,6 @@ main().catch((err) => {
 
 process.on('SIGINT', () => {
   console.log('\n[bot] Shutting down...');
-  for (const timer of pendingConversations.values()) clearTimeout(timer);
   closeEvents();
   client.end();
   process.exit(0);
