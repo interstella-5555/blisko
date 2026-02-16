@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
 import { colors, fonts, type as typ, spacing } from '../../theme';
 import { Avatar } from '../ui/Avatar';
 import { IconBulletRose } from '../ui/icons';
@@ -51,17 +52,49 @@ function getSnippetText(
   analysisReady: boolean,
   commonInterests: string[],
   bio: string | null
-): { text: string | null; isAnalyzing: boolean } {
-  if (shortSnippet) return { text: shortSnippet, isAnalyzing: false };
+): { text: string | null; isAnalyzing: boolean; isHighlight: boolean } {
+  if (shortSnippet) return { text: shortSnippet, isAnalyzing: false, isHighlight: true };
   if (!analysisReady && bio) {
-    return { text: bio, isAnalyzing: true };
+    return { text: bio, isAnalyzing: true, isHighlight: false };
   }
   if (commonInterests.length > 0)
     return {
       text: `Wspólne: ${commonInterests.slice(0, 3).join(', ')}`,
       isAnalyzing: false,
+      isHighlight: true,
     };
-  return { text: bio || null, isAnalyzing: false };
+  return { text: bio || null, isAnalyzing: false, isHighlight: false };
+}
+
+function PulsingRosette() {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [opacity]);
+
+  return (
+    <Animated.View style={{ opacity }}>
+      <IconBulletRose size={10} color={colors.muted} />
+    </Animated.View>
+  );
 }
 
 function getMatchColor(percent: number): string {
@@ -94,11 +127,11 @@ export function UserRow({
   timestamp,
 }: UserRowProps) {
   const hasNearbyData = distance !== undefined;
-  const { text: snippet, isAnalyzing } = hasNearbyData
+  const { text: snippet, isAnalyzing, isHighlight } = hasNearbyData
     ? getSnippetText(shortSnippet ?? null, analysisReady ?? false, commonInterests ?? [], bio)
-    : { text: bio || null, isAnalyzing: false };
+    : { text: bio || null, isAnalyzing: false, isHighlight: false };
   const matchPercent = matchScore ?? Math.round((rankScore ?? 0) * 100);
-  const isHighlight = !!shortSnippet || (commonInterests ?? []).length > 0;
+  const showAnalyzing = isAnalyzing;
 
   return (
     <Pressable onPress={onPress} style={styles.row}>
@@ -123,6 +156,12 @@ export function UserRow({
             <Text style={styles.distance}>{formatRelativeTime(timestamp)}</Text>
           )}
           <View style={{ flex: 1 }} />
+          {showAnalyzing && status === 'none' && (
+            <View style={styles.analyzingBadge}>
+              <PulsingRosette />
+              <Text style={styles.analyzingText}>analizowanie</Text>
+            </View>
+          )}
           {status !== 'none' && (
             <Text style={[styles.statusLabel, { color: statusConfig[status].color }]}>
               {statusConfig[status].label}
@@ -136,9 +175,6 @@ export function UserRow({
           >
             {snippet}
           </Text>
-        )}
-        {isAnalyzing && (
-          <Text style={styles.analyzingText}>Analizujemy dopasowanie...</Text>
         )}
       </View>
     </Pressable>
@@ -196,11 +232,15 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontFamily: fonts.sansMedium,
   },
+  analyzingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   analyzingText: {
     fontFamily: fonts.sans,
     fontSize: 11,
     color: colors.muted,
     fontStyle: 'italic',
-    marginTop: 2,
   },
 });
