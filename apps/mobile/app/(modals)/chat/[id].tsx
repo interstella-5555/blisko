@@ -17,7 +17,7 @@ import { MessageBubble, type BubblePosition } from '../../../src/components/chat
 import { ChatInput } from '../../../src/components/chat/ChatInput';
 import { ReactionPicker } from '../../../src/components/chat/ReactionPicker';
 import { useWebSocket, useTypingIndicator } from '../../../src/lib/ws';
-import { useChatStore } from '../../../src/stores/chatStore';
+import { useConversationsStore } from '../../../src/stores/conversationsStore';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Avatar } from '../../../src/components/ui/Avatar';
@@ -39,12 +39,11 @@ export default function ChatScreen() {
 
   const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
 
-  // Get other participant's name for header
-  const { data: conversations } = trpc.messages.getConversations.useQuery();
-  const conversation = conversations?.find(
-    (c) => c.conversation.id === conversationId
+  // Get other participant from conversations store (no extra tRPC query needed)
+  const storeConversation = useConversationsStore((s) =>
+    s.conversations.find((c) => c.id === conversationId)
   );
-  const participantName = conversation?.participant?.displayName ?? 'Czat';
+  const participantName = storeConversation?.participant?.displayName ?? 'Czat';
 
   // Fetch messages with infinite scroll
   const {
@@ -92,7 +91,9 @@ export default function ChatScreen() {
     [allMessages]
   );
 
-  // WebSocket: real-time message & reaction updates
+  // WebSocket: real-time message & reaction updates via stores
+  // (global _layout.tsx handler handles store prepend + conversation updates)
+  // This handler syncs tRPC cache for this screen's infinite query
   const utilsRef = useRef(utils);
   utilsRef.current = utils;
 
@@ -101,7 +102,7 @@ export default function ChatScreen() {
       if (!conversationId) return;
 
       if (msg.type === 'newMessage' && msg.conversationId === conversationId) {
-        // Add new message to cache (skip if from us — optimistic update handles it)
+        // Skip own messages — optimistic update handles them
         if (msg.message.senderId !== userId) {
           utilsRef.current.messages.getMessages.setInfiniteData(
             { conversationId, limit: 50 },
@@ -118,13 +119,12 @@ export default function ChatScreen() {
               return { ...old, pages: newPages };
             }
           );
-          // Also update conversations list
-          utilsRef.current.messages.getConversations.invalidate();
         }
       }
 
       if (msg.type === 'reaction' && msg.conversationId === conversationId) {
-        // Invalidate to refetch with updated reactions
+        // Reactions are handled by the global WS handler via messagesStore.updateReaction
+        // Still invalidate tRPC cache to reconcile
         utilsRef.current.messages.getMessages.invalidate();
       }
     },
@@ -136,26 +136,29 @@ export default function ChatScreen() {
   // Typing indicators
   const { isTyping: someoneTyping, sendTyping } = useTypingIndicator(conversationId);
 
-  // Mark as read on open
+  // Mark as read on open + cleanup to sync server state before leaving
   const markAsRead = trpc.messages.markAsRead.useMutation({
     onSuccess: () => {
       utils.messages.getConversations.invalidate();
     },
   });
 
-  useEffect(() => {
-    if (conversationId) {
-      markAsRead.mutate({ conversationId });
-    }
-  }, [conversationId]);
+  const markAsReadRef = useRef(markAsRead);
+  markAsReadRef.current = markAsRead;
 
-  // Track active conversation for notification filtering
-  const setActiveConversation = useChatStore((s) => s.setActiveConversation);
+  const setActiveConversation = useConversationsStore((s) => s.setActiveConversation);
+
   useEffect(() => {
     if (conversationId) {
+      markAsReadRef.current.mutate({ conversationId });
       setActiveConversation(conversationId);
     }
-    return () => setActiveConversation(null);
+    return () => {
+      if (conversationId) {
+        markAsReadRef.current.mutate({ conversationId });
+      }
+      setActiveConversation(null);
+    };
   }, [conversationId, setActiveConversation]);
 
   // Send message with optimistic update
@@ -356,7 +359,7 @@ export default function ChatScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
       <Stack.Screen
         options={{
@@ -368,7 +371,7 @@ export default function ChatScreen() {
                     <Path d="M15 19l-7-7 7-7" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                   </Svg>
                   <Avatar
-                    uri={conversation?.participant?.avatarUrl}
+                    uri={storeConversation?.participant?.avatarUrl}
                     name={participantName}
                     size={32}
                   />
@@ -388,7 +391,7 @@ export default function ChatScreen() {
         renderItem={({ item, index }) => {
           const isMine = item.senderId === userId;
           const { position, isLastInGroup } = getGroupInfo(index);
-          const avatarUrl = conversation?.participant?.avatarUrl ?? undefined;
+          const avatarUrl = storeConversation?.participant?.avatarUrl ?? undefined;
 
           // Add spacing between groups from different senders
           // In inverted list: index - 1 = newer (below), so we add top margin

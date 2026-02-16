@@ -16,6 +16,8 @@ import { router } from 'expo-router';
 import { keepPreviousData } from '@tanstack/react-query';
 import { useLocationStore } from '../../src/stores/locationStore';
 import { usePreferencesStore } from '../../src/stores/preferencesStore';
+import { useProfilesStore } from '../../src/stores/profilesStore';
+import { useWavesStore } from '../../src/stores/wavesStore';
 import { trpc } from '../../src/lib/trpc';
 import {
   NearbyMapView,
@@ -100,32 +102,33 @@ export default function NearbyScreen() {
   const mapUsers = mapData?.users;
   const totalCount = listData?.pages[0]?.totalCount ?? 0;
 
-  // Fetch waves for status badges
-  const { data: sentWaves } = trpc.waves.getSent.useQuery();
-  const { data: receivedWaves } = trpc.waves.getReceived.useQuery();
-
-  const waveStatusMap = useMemo(() => {
-    const map = new Map<string, 'waved' | 'incoming' | 'friend'>();
-
-    for (const w of sentWaves ?? []) {
-      if (w.wave.status === 'accepted') map.set(w.wave.toUserId, 'friend');
-      else if (w.wave.status === 'pending') map.set(w.wave.toUserId, 'waved');
-    }
-
-    for (const w of receivedWaves ?? []) {
-      if (w.wave.status === 'accepted') map.set(w.wave.fromUserId, 'friend');
-      else if (w.wave.status === 'pending' && !map.has(w.wave.fromUserId))
-        map.set(w.wave.fromUserId, 'incoming');
-    }
-
-    return map;
-  }, [sentWaves, receivedWaves]);
+  // Wave status from store (populated by _layout.tsx hydration + WS)
+  const waveStatusByUserId = useWavesStore((s) => s.waveStatusByUserId);
 
   // Flatten all pages into a single list
   const allListUsers = useMemo(() => {
     if (!listData?.pages) return [];
     return listData.pages.flatMap((page) => page.users);
   }, [listData]);
+
+  // Populate profiles store for instant profile navigation
+  useEffect(() => {
+    if (allListUsers.length === 0) return;
+    useProfilesStore.getState().mergeMany(
+      allListUsers.map((u) => ({
+        userId: u.profile.userId,
+        displayName: u.profile.displayName,
+        avatarUrl: u.profile.avatarUrl,
+        bio: u.profile.bio,
+        distance: u.distance,
+        matchScore: u.matchScore,
+        commonInterests: u.commonInterests,
+        shortSnippet: u.shortSnippet,
+        analysisReady: u.analysisReady,
+        _partial: true,
+      }))
+    );
+  }, [allListUsers]);
 
   // Self-healing: if analyses are stuck, poke backend after 30s
   const allListUsersRef = useRef(allListUsers);
@@ -309,7 +312,12 @@ export default function NearbyScreen() {
         data={displayUsers}
         keyExtractor={(item) => item.profile.id}
         renderItem={({ item }) => {
-          const status: UserRowStatus = waveStatusMap.get(item.profile.userId) ?? 'none';
+          const waveStatus = waveStatusByUserId.get(item.profile.userId);
+          const status: UserRowStatus = waveStatus
+            ? waveStatus.type === 'connected' ? 'friend'
+              : waveStatus.type === 'sent' ? 'waved'
+              : 'incoming'
+            : 'none';
           return (
           <UserRow
             userId={item.profile.userId}

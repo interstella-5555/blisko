@@ -11,6 +11,9 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { trpc } from '../../../src/lib/trpc';
 import { sendWsMessage, useWebSocket } from '../../../src/lib/ws';
+import { useProfilesStore } from '../../../src/stores/profilesStore';
+import { useWavesStore } from '../../../src/stores/wavesStore';
+import { useConversationsStore } from '../../../src/stores/conversationsStore';
 import { colors, type as typ, spacing, fonts } from '../../../src/theme';
 import { Avatar } from '../../../src/components/ui/Avatar';
 import { IconWave, IconCheck, IconChat } from '../../../src/components/ui/icons';
@@ -78,10 +81,27 @@ export default function UserProfileScreen() {
   const [pendingWaveId, setPendingWaveId] = useState<string | null>(null);
   const busyRef = useRef(false);
 
+  // Read cached profile from store (populated by nearby list / waves)
+  const cached = useProfilesStore((s) => s.profiles.get(userId));
+
+  // Skip getById if we already have full profile data in store
   const { data: profile, isLoading } = trpc.profiles.getById.useQuery(
     { userId },
-    { enabled: !!userId }
+    { enabled: !!userId && cached?._partial !== false }
   );
+
+  // When full profile arrives, merge into store
+  useEffect(() => {
+    if (profile) {
+      useProfilesStore.getState().merge(userId, {
+        displayName: profile.displayName,
+        avatarUrl: profile.avatarUrl,
+        bio: profile.bio ?? undefined,
+        lookingFor: profile.lookingFor ?? undefined,
+        _partial: false,
+      });
+    }
+  }, [profile, userId]);
 
   const { data: analysis, isFetched: analysisFetched } = trpc.profiles.getConnectionAnalysis.useQuery(
     { userId },
@@ -108,13 +128,14 @@ export default function UserProfileScreen() {
     return () => clearTimeout(timer);
   }, [analysisFetched, analysis, userId]);
 
-  const matchPercent = analysis
-    ? Math.round(analysis.aiMatchScore)
-    : matchScore;
+  // Read wave/conversation state from stores
+  const sentWaves = useWavesStore((s) => s.sent);
+  const receivedWaves = useWavesStore((s) => s.received);
+  const conversationId = useConversationsStore((s) => {
+    const conv = s.conversations.find((c) => c.participant?.userId === userId);
+    return conv?.id ?? null;
+  });
 
-  const { data: sentWaves } = trpc.waves.getSent.useQuery();
-  const { data: receivedWaves } = trpc.waves.getReceived.useQuery();
-  const { data: allConversations } = trpc.messages.getConversations.useQuery();
   const sendWaveMutation = trpc.waves.send.useMutation();
   const cancelWaveMutation = trpc.waves.cancel.useMutation();
   const respondMutation = trpc.waves.respond.useMutation();
@@ -122,38 +143,39 @@ export default function UserProfileScreen() {
   const [optimisticAction, setOptimisticAction] = useState<'accepted' | 'declined' | null>(null);
 
   const incomingWave = useMemo(() => {
-    return receivedWaves?.find(w => w.wave.fromUserId === userId && w.wave.status === 'pending');
+    return receivedWaves.find(w => w.wave.fromUserId === userId && w.wave.status === 'pending');
   }, [receivedWaves, userId]);
 
-  // Find conversation with this user (if any)
-  const conversationId = useMemo(() => {
-    if (!allConversations) return null;
-    const conv = allConversations.find(
-      (c) => c.participant?.userId === userId
-    );
-    return conv?.conversation.id ?? null;
-  }, [allConversations, userId]);
-
-  // Sync from server only when no mutation is in-flight
+  // Sync pendingWaveId from store when no mutation is in-flight
   useEffect(() => {
     if (busyRef.current) return;
-    if (sentWaves) {
-      const pending = sentWaves.find(
-        (w) => w.wave.toUserId === userId && w.wave.status === 'pending'
-      );
-      setPendingWaveId(pending?.wave.id ?? null);
-    }
+    const pending = sentWaves.find(
+      (w) => w.wave.toUserId === userId && w.wave.status === 'pending'
+    );
+    setPendingWaveId(pending?.wave.id ?? null);
   }, [sentWaves, userId]);
 
   const handleWave = async () => {
     if (busyRef.current || pendingWaveId || conversationId) return;
     busyRef.current = true;
     setPendingWaveId('optimistic');
+    // Optimistic store update
+    useWavesStore.getState().addSent(
+      { id: 'optimistic', fromUserId: '', toUserId: userId, status: 'pending', createdAt: new Date().toISOString() },
+      cached ? { displayName: cached.displayName, avatarUrl: cached.avatarUrl } : undefined,
+    );
     try {
       const wave = await sendWaveMutation.mutateAsync({ toUserId: userId });
+      // Replace optimistic with real
+      useWavesStore.getState().removeSent('optimistic');
+      useWavesStore.getState().addSent(
+        { id: wave.id, fromUserId: wave.fromUserId, toUserId: wave.toUserId, status: wave.status, createdAt: wave.createdAt.toString() },
+        cached ? { displayName: cached.displayName, avatarUrl: cached.avatarUrl } : undefined,
+      );
       setPendingWaveId(wave.id);
       await utils.waves.getSent.invalidate();
     } catch (error: any) {
+      useWavesStore.getState().removeSent('optimistic');
       const errorMsg = error.message || error.toString();
       if (errorMsg.includes('already waved')) {
         // Already waved — keep pending state, let next sync pick up the real ID
@@ -171,11 +193,14 @@ export default function UserProfileScreen() {
     busyRef.current = true;
     const prevId = pendingWaveId;
     setPendingWaveId(null);
+    useWavesStore.getState().removeSent(prevId);
     try {
       await cancelWaveMutation.mutateAsync({ waveId: prevId });
       await utils.waves.getSent.invalidate();
     } catch {
+      // Re-add on failure (will be reconciled on next sync)
       setPendingWaveId(prevId);
+      await utils.waves.getSent.invalidate();
     } finally {
       busyRef.current = false;
     }
@@ -191,10 +216,24 @@ export default function UserProfileScreen() {
     if (busyRef.current || !incomingWave) return;
     busyRef.current = true;
     setOptimisticAction('accepted');
+    useWavesStore.getState().updateStatus(incomingWave.wave.id, true);
     try {
       const result = await respondMutation.mutateAsync({ waveId: incomingWave.wave.id, accept: true });
       if (result.conversationId) {
         sendWsMessage({ type: 'subscribe', conversationId: result.conversationId });
+        // Add new conversation to store
+        useConversationsStore.getState().addNew({
+          id: result.conversationId,
+          participant: {
+            userId,
+            displayName: cached?.displayName || params.displayName,
+            avatarUrl: cached?.avatarUrl ?? avatarUrl,
+          },
+          lastMessage: null,
+          unreadCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
       }
       await Promise.all([
         utils.waves.getReceived.invalidate(),
@@ -203,6 +242,8 @@ export default function UserProfileScreen() {
       ]);
     } catch {
       setOptimisticAction(null);
+      // Restore to pending, not declined
+      useWavesStore.getState().updateStatus(incomingWave.wave.id, false, 'pending');
     } finally {
       busyRef.current = false;
     }
@@ -221,6 +262,7 @@ export default function UserProfileScreen() {
           onPress: async () => {
             busyRef.current = true;
             setOptimisticAction('declined');
+            useWavesStore.getState().updateStatus(incomingWave.wave.id, false);
             try {
               await respondMutation.mutateAsync({ waveId: incomingWave.wave.id, accept: false });
               await utils.waves.getReceived.invalidate();
@@ -235,7 +277,18 @@ export default function UserProfileScreen() {
     );
   };
 
-  if (!isLoading && !profile) {
+  // Resolve display values: cached store > route params > query
+  const displayName = cached?.displayName || params.displayName;
+  const resolvedAvatarUrl = cached?.avatarUrl ?? avatarUrl;
+  const resolvedBio = cached?.bio ?? profile?.bio;
+  const resolvedLookingFor = cached?.lookingFor ?? profile?.lookingFor;
+  const resolvedDistance = cached?.distance ?? distance;
+  const resolvedMatchScore = cached?.matchScore ?? matchScore;
+  const matchPercent = analysis
+    ? Math.round(analysis.aiMatchScore)
+    : resolvedMatchScore;
+
+  if (!isLoading && !profile && !cached) {
     return (
       <View style={styles.centered}>
         <Text style={styles.emptyText}>Nie znaleziono profilu</Text>
@@ -259,15 +312,15 @@ export default function UserProfileScreen() {
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
     >
-      {/* Header — always visible from list params */}
+      {/* Header — always visible from cached/list params */}
       <View style={styles.header}>
-        <Avatar uri={profile?.avatarUrl ?? avatarUrl} name={params.displayName} size={100} />
-        <Text style={styles.displayName}>{params.displayName}</Text>
+        <Avatar uri={profile?.avatarUrl ?? resolvedAvatarUrl} name={displayName} size={100} />
+        <Text style={styles.displayName}>{displayName}</Text>
         <View style={styles.meta}>
           {matchPercent > 0 && (
             <Text style={styles.matchBadge}>{matchPercent}% dopasowania</Text>
           )}
-          <Text style={styles.distance}>{formatDistance(distance)}</Text>
+          <Text style={styles.distance}>{formatDistance(resolvedDistance)}</Text>
         </View>
 
         {/* Inline action */}
@@ -330,11 +383,11 @@ export default function UserProfileScreen() {
       {/* Bio */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>O mnie</Text>
-        {isLoading ? (
+        {!cached && isLoading ? (
           <SkeletonLines count={3} />
         ) : (
           <Text style={styles.sectionContent}>
-            {profile!.bio || 'Brak opisu'}
+            {resolvedBio || 'Brak opisu'}
           </Text>
         )}
       </View>
@@ -342,11 +395,11 @@ export default function UserProfileScreen() {
       {/* Looking for */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Kogo szukam</Text>
-        {isLoading ? (
+        {!cached && isLoading ? (
           <SkeletonLines count={2} />
         ) : (
           <Text style={styles.sectionContent}>
-            {profile!.lookingFor || 'Brak opisu'}
+            {resolvedLookingFor || 'Brak opisu'}
           </Text>
         )}
       </View>

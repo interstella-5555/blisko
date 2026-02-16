@@ -1,30 +1,20 @@
 import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { trpc } from '../../src/lib/trpc';
-import { useWebSocket } from '../../src/lib/ws';
 import { colors, type as typ, spacing } from '../../src/theme';
 import { IconChat } from '../../src/components/ui/icons';
 import { ConversationRow } from '../../src/components/chat/ConversationRow';
+import { useConversationsStore } from '../../src/stores/conversationsStore';
 
 export default function ChatsScreen() {
   const router = useRouter();
-  const utils = trpc.useUtils();
-  const utilsRef = useRef(utils);
-  utilsRef.current = utils;
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
-  const { data, isLoading, refetch } = trpc.messages.getConversations.useQuery();
+  const { isLoading, refetch } = trpc.messages.getConversations.useQuery();
 
-  // WebSocket: update conversation list on new messages
-  const wsHandler = useCallback(
-    (msg: any) => {
-      if (msg.type === 'newMessage') {
-        utilsRef.current.messages.getConversations.refetch();
-      }
-    },
-    []
-  );
-  useWebSocket(wsHandler);
+  // Read from conversations store (populated by _layout.tsx hydration + WS updates)
+  const conversations = useConversationsStore((s) => s.conversations);
+  const hydrated = useConversationsStore((s) => s._hydrated);
 
   const handleRefresh = useCallback(async () => {
     setIsManualRefreshing(true);
@@ -39,20 +29,20 @@ export default function ChatsScreen() {
     <View style={styles.container} testID="chats-screen">
       <FlatList
         testID="chats-list"
-        data={data ?? []}
-        keyExtractor={(item) => item.conversation.id}
+        data={conversations}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ConversationRow
             displayName={item.participant?.displayName ?? ''}
             avatarUrl={item.participant?.avatarUrl ?? null}
             lastMessage={item.lastMessage?.content ?? null}
-            lastMessageTime={item.lastMessage?.createdAt?.toString() ?? null}
+            lastMessageTime={item.lastMessage?.createdAt ?? null}
             unreadCount={item.unreadCount}
-            onPress={() => router.push(`/(modals)/chat/${item.conversation.id}`)}
+            onPress={() => router.push(`/(modals)/chat/${item.id}`)}
           />
         )}
         ListEmptyComponent={
-          isLoading ? null : (
+          isLoading && !hydrated ? null : (
             <View style={styles.empty} testID="chats-empty">
               <IconChat size={48} color={colors.muted} />
               <Text style={styles.emptyTitle}>Brak czatów</Text>

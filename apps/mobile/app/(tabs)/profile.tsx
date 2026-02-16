@@ -9,6 +9,10 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useProfilesStore } from '../../src/stores/profilesStore';
+import { useConversationsStore } from '../../src/stores/conversationsStore';
+import { useMessagesStore } from '../../src/stores/messagesStore';
+import { useWavesStore } from '../../src/stores/wavesStore';
 import { authClient } from '../../src/lib/auth';
 import { trpc } from '../../src/lib/trpc';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
@@ -40,6 +44,10 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     await authClient.signOut();
     reset();
+    useProfilesStore.getState().reset();
+    useConversationsStore.getState().reset();
+    useMessagesStore.getState().reset();
+    useWavesStore.getState().reset();
   };
 
   return (

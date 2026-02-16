@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from 'react-native';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -22,8 +23,11 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const { setUser, setSession, setProfile, setHasCheckedProfile } = useAuthStore();
 
-  const handleSendMagicLink = async () => {
-    if (!email.trim()) {
+  const seedUserNumber = useMemo(() => Math.floor(Math.random() * 250), []);
+
+  const handleSendMagicLink = async (emailOverride?: string) => {
+    const target = (emailOverride || email).trim();
+    if (!target) {
       setError('Podaj adres email');
       return;
     }
@@ -32,12 +36,12 @@ export default function LoginScreen() {
     setError(null);
 
     // Dev auto-login for @example.com emails
-    if (email.trim().endsWith('@example.com')) {
+    if (target.endsWith('@example.com')) {
       try {
         const response = await fetch(`${API_URL}/dev/auto-login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim() }),
+          body: JSON.stringify({ email: target }),
         });
 
         if (!response.ok) {
@@ -84,7 +88,7 @@ export default function LoginScreen() {
 
     try {
       const result = await authClient.emailOtp.sendVerificationOtp({
-        email: email.trim(),
+        email: target,
         type: 'sign-in',
       });
 
@@ -96,7 +100,7 @@ export default function LoginScreen() {
 
       router.push({
         pathname: '/(auth)/verify',
-        params: { email: email.trim() },
+        params: { email: target },
       });
     } catch (err) {
       setError('Nie udało się wysłać kodu');
@@ -136,11 +140,23 @@ export default function LoginScreen() {
               testID="send-link-button"
               title={isLoading ? 'Wysyłanie...' : 'Wyślij link'}
               variant="accent"
-              onPress={handleSendMagicLink}
+              onPress={() => handleSendMagicLink()}
               disabled={isLoading}
               loading={isLoading}
             />
           </View>
+
+          {__DEV__ && (
+            <Pressable
+              onPress={() => handleSendMagicLink(`user${seedUserNumber}@example.com`)}
+              disabled={isLoading}
+              style={styles.devLogin}
+            >
+              <Text style={styles.devLoginText}>
+                Użyj testowego konta user{seedUserNumber}@example.com
+              </Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -176,5 +192,15 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     color: colors.status.error.text,
     fontSize: 14,
+  },
+  devLogin: {
+    alignSelf: 'center',
+    marginTop: spacing.column,
+  },
+  devLoginText: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    color: colors.muted,
+    textDecorationLine: 'underline',
   },
 });

@@ -4,10 +4,10 @@ import {
   FlatList,
   RefreshControl,
 } from 'react-native';
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { router } from 'expo-router';
 import { trpc } from '../../src/lib/trpc';
-import { useWebSocket } from '../../src/lib/ws';
+import { useWavesStore } from '../../src/stores/wavesStore';
 import { WaveTabBar, WaveTab } from '../../src/components/waves/WaveTabBar';
 import { EmptyWavesState } from '../../src/components/waves/EmptyWavesState';
 import { UserRow } from '../../src/components/nearby/UserRow';
@@ -17,33 +17,14 @@ export default function WavesScreen() {
   const [activeTab, setActiveTab] = useState<WaveTab>('received');
   const [refreshing, setRefreshing] = useState(false);
 
-  const utils = trpc.useUtils();
-  const utilsRef = useRef(utils);
-  utilsRef.current = utils;
+  // tRPC queries for pull-to-refresh (hydration happens in _layout.tsx)
+  const { refetch: refetchReceived } = trpc.waves.getReceived.useQuery();
+  const { refetch: refetchSent } = trpc.waves.getSent.useQuery();
 
-  // WebSocket: update wave lists on real-time events
-  const wsHandler = useCallback(
-    (msg: any) => {
-      if (msg.type === 'newWave' || msg.type === 'waveResponded') {
-        utilsRef.current.waves.getReceived.refetch();
-        utilsRef.current.waves.getSent.refetch();
-      }
-    },
-    []
-  );
-  useWebSocket(wsHandler);
-
-  const {
-    data: receivedWaves,
-    isLoading: isLoadingReceived,
-    refetch: refetchReceived,
-  } = trpc.waves.getReceived.useQuery();
-
-  const {
-    data: sentWaves,
-    isLoading: isLoadingSent,
-    refetch: refetchSent,
-  } = trpc.waves.getSent.useQuery();
+  // Read from waves store (populated by _layout.tsx hydration + WS)
+  const receivedWaves = useWavesStore((s) => s.received);
+  const sentWaves = useWavesStore((s) => s.sent);
+  const hydrated = useWavesStore((s) => s._hydrated);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -51,20 +32,21 @@ export default function WavesScreen() {
     setRefreshing(false);
   }, [refetchReceived, refetchSent]);
 
-  const pendingReceivedCount = receivedWaves?.length ?? 0;
-  const pendingSentCount =
-    sentWaves?.filter((w) => w.wave.status === 'pending').length ?? 0;
+  const pendingReceivedCount = receivedWaves.filter(
+    (w) => w.wave.status === 'pending'
+  ).length;
+  const pendingSentCount = sentWaves.filter(
+    (w) => w.wave.status === 'pending'
+  ).length;
 
   const filteredSent = useMemo(
-    () => sentWaves?.filter((w) => w.wave.status !== 'declined') ?? [],
+    () => sentWaves.filter((w) => w.wave.status !== 'declined'),
     [sentWaves]
   );
 
-  const isLoading = activeTab === 'received' ? isLoadingReceived : isLoadingSent;
-
   const renderReceivedList = () => (
     <FlatList
-      data={receivedWaves || []}
+      data={receivedWaves}
       keyExtractor={(item) => item.wave.id}
       renderItem={({ item }) => (
         <UserRow
@@ -86,7 +68,7 @@ export default function WavesScreen() {
       )}
       contentContainerStyle={styles.list}
       ListEmptyComponent={
-        !isLoading && !refreshing ? <EmptyWavesState type="received" /> : null
+        hydrated && !refreshing ? <EmptyWavesState type="received" /> : null
       }
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.ink} />
@@ -118,7 +100,7 @@ export default function WavesScreen() {
       )}
       contentContainerStyle={styles.list}
       ListEmptyComponent={
-        !isLoading && !refreshing ? <EmptyWavesState type="sent" /> : null
+        hydrated && !refreshing ? <EmptyWavesState type="sent" /> : null
       }
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.ink} />

@@ -2,14 +2,12 @@ import { useCallback } from 'react';
 import { router } from 'expo-router';
 import { useWebSocket, type WSMessage } from '../lib/ws';
 import { useAuthStore } from '../stores/authStore';
-import { useChatStore } from '../stores/chatStore';
+import { useConversationsStore } from '../stores/conversationsStore';
 import { useNotification } from '../providers/NotificationProvider';
-import { trpc } from '../lib/trpc';
 
 export function useInAppNotifications() {
   const userId = useAuthStore((s) => s.user?.id);
   const { showNotification } = useNotification();
-  const utils = trpc.useUtils();
 
   const handler = useCallback(
     (msg: WSMessage) => {
@@ -51,13 +49,12 @@ export function useInAppNotifications() {
         if (msg.message.senderId === userId) return;
 
         // Skip if user is viewing this conversation
-        const activeConversationId = useChatStore.getState().activeConversationId;
-        if (activeConversationId === msg.conversationId) return;
+        const convStore = useConversationsStore.getState();
+        if (convStore.activeConversationId === msg.conversationId) return;
 
-        // Look up participant name from cached conversations data
-        const conversations = utils.messages.getConversations.getData();
-        const conv = conversations?.find(
-          (c) => c.conversation.id === msg.conversationId
+        // Look up participant name from conversations store
+        const conv = convStore.conversations.find(
+          (c) => c.id === msg.conversationId
         );
         const senderName = conv?.participant?.displayName ?? 'Nowa wiadomość';
         const senderAvatar = conv?.participant?.avatarUrl ?? null;
@@ -79,7 +76,7 @@ export function useInAppNotifications() {
         });
       }
     },
-    [userId, showNotification, utils]
+    [userId, showNotification]
   );
 
   useWebSocket(handler);

@@ -67,6 +67,7 @@ Zasady:
 - 1-3 zdania, max 200 znakow
 - Nie naduzywaj emoji
 - Nawiazuj do wspolnych zainteresowań, zadawaj pytania
+- Nie zaczynaj wiadomosci od swojego imienia — pisz tylko tresc
 - Jezeli rozmowca porusza tematy bliskie Twoim zainteresowaniom, preferencjom lub temu czego szukasz — odpowiadaj z wiekszym zaangazowaniem, entuzjazmem, rozwijaj watek i zadawaj pytania
 - Jezeli temat jest Ci obcy lub nie zwiazany z Twoim profilem — odpowiadaj krotko, grzecznie ale bez entuzjazmu, nie rozwijaj watku`,
       prompt: scenario,

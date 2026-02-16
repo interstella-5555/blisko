@@ -7,6 +7,11 @@ import { useWebSocket, sendWsMessage } from '../../src/lib/ws';
 import { colors, type as typ, fonts, spacing } from '../../src/theme';
 import { IconPin, IconWave, IconChat, IconPerson, IconSettings } from '../../src/components/ui/icons';
 import { useInAppNotifications } from '../../src/hooks/useInAppNotifications';
+import { useConversationsStore } from '../../src/stores/conversationsStore';
+import { useMessagesStore } from '../../src/stores/messagesStore';
+import { useProfilesStore } from '../../src/stores/profilesStore';
+import { useWavesStore } from '../../src/stores/wavesStore';
+import { useBackgroundSync } from '../../src/hooks/useBackgroundSync';
 
 export default function TabsLayout() {
   const user = useAuthStore((state) => state.user);
@@ -21,17 +26,77 @@ export default function TabsLayout() {
   const utilsRef = useRef(utils);
   utilsRef.current = utils;
 
-  // WebSocket: real-time updates for badges
+  // WebSocket: real-time updates for badges and stores
+  const userIdRef = useRef(user?.id);
+  userIdRef.current = user?.id;
+
   const wsHandler = useCallback(
     (msg: any) => {
-      if (msg.type === 'newWave' || msg.type === 'waveResponded') {
+      if (msg.type === 'newWave') {
+        const wavesStoreState = useWavesStore.getState();
+        wavesStoreState.addReceived(msg.wave, msg.fromProfile);
+        useProfilesStore.getState().merge(msg.wave.fromUserId, {
+          displayName: msg.fromProfile.displayName,
+          avatarUrl: msg.fromProfile.avatarUrl,
+          _partial: true,
+        });
+        // Still refetch for full profile data
         utilsRef.current.waves.getReceived.refetch();
       }
-      if (msg.type === 'newMessage' || (msg.type === 'waveResponded' && msg.accepted)) {
-        utilsRef.current.messages.getConversations.refetch();
+      if (msg.type === 'waveResponded') {
+        useWavesStore.getState().updateStatus(msg.waveId, msg.accepted);
+        utilsRef.current.waves.getReceived.refetch();
+        utilsRef.current.waves.getSent.refetch();
+      }
+      if (msg.type === 'newMessage') {
+        const convStore = useConversationsStore.getState();
+        const msgStore = useMessagesStore.getState();
+
+        // Update messages store
+        msgStore.prepend(msg.conversationId, {
+          ...msg.message,
+          replyTo: null,
+          reactions: [],
+        });
+
+        // Update conversation's last message
+        convStore.updateLastMessage(msg.conversationId, {
+          id: msg.message.id,
+          content: msg.message.content,
+          senderId: msg.message.senderId,
+          createdAt: msg.message.createdAt,
+          type: msg.message.type ?? 'text',
+        });
+
+        // Increment unread if not viewing this conversation
+        if (
+          msg.message.senderId !== userIdRef.current &&
+          convStore.activeConversationId !== msg.conversationId
+        ) {
+          convStore.incrementUnread(msg.conversationId);
+        }
+      }
+      if (msg.type === 'reaction') {
+        useMessagesStore.getState().updateReaction(
+          msg.conversationId,
+          msg.messageId,
+          msg.emoji,
+          msg.userId,
+          msg.action,
+          userIdRef.current ?? '',
+        );
       }
       if (msg.type === 'waveResponded' && msg.accepted && msg.conversationId) {
         sendWsMessage({ type: 'subscribe', conversationId: msg.conversationId });
+        // Refetch conversations to get full participant data for new conversation
+        utilsRef.current.messages.getConversations.refetch();
+        if (msg.responderProfile) {
+          useProfilesStore.getState().merge(msg.responderId ?? '', {
+            displayName: msg.responderProfile.displayName,
+            avatarUrl: msg.responderProfile.avatarUrl,
+            _partial: true,
+          });
+        }
       }
       if (msg.type === 'profileReady') {
         // AI pipeline completed — refresh profile with socialProfile/embedding/interests
@@ -42,6 +107,7 @@ export default function TabsLayout() {
   );
   useWebSocket(wsHandler);
   useInAppNotifications();
+  useBackgroundSync();
 
   const { data: profileData, isLoading: isLoadingProfile, isError, refetch } =
     trpc.profiles.me.useQuery(undefined, {
@@ -49,19 +115,106 @@ export default function TabsLayout() {
       retry: 2, // Retry twice on failure
     });
 
-  // Pending waves badge (must be before early returns to respect hook rules)
+  // Waves hydration query — store is the source of truth
   const { data: receivedWaves } = trpc.waves.getReceived.useQuery(
     undefined,
-    { enabled: !!user && !!profile, refetchInterval: 15_000 }
+    { enabled: !!user && !!profile, refetchInterval: 60_000 }
   );
-  const pendingWaves = receivedWaves?.length || 0;
+  const { data: sentWavesData } = trpc.waves.getSent.useQuery(
+    undefined,
+    { enabled: !!user && !!profile, refetchInterval: 60_000 }
+  );
 
-  // Unread messages badge
+  // Hydrate waves store when tRPC data arrives
+  useEffect(() => {
+    if (receivedWaves) {
+      useWavesStore.getState().setReceived(
+        receivedWaves.map((w) => ({
+          wave: {
+            id: w.wave.id,
+            fromUserId: w.wave.fromUserId,
+            toUserId: w.wave.toUserId,
+            status: w.wave.status,
+            createdAt: w.wave.createdAt.toString(),
+          },
+          fromProfile: {
+            userId: w.fromProfile.userId,
+            displayName: w.fromProfile.displayName,
+            avatarUrl: w.fromProfile.avatarUrl,
+            bio: w.fromProfile.bio,
+          },
+        }))
+      );
+    }
+  }, [receivedWaves]);
+
+  useEffect(() => {
+    if (sentWavesData) {
+      useWavesStore.getState().setSent(
+        sentWavesData.map((w) => ({
+          wave: {
+            id: w.wave.id,
+            fromUserId: w.wave.fromUserId,
+            toUserId: w.wave.toUserId,
+            status: w.wave.status,
+            createdAt: w.wave.createdAt.toString(),
+          },
+          toProfile: {
+            userId: w.toProfile.userId,
+            displayName: w.toProfile.displayName,
+            avatarUrl: w.toProfile.avatarUrl,
+            bio: w.toProfile.bio,
+          },
+        }))
+      );
+    }
+  }, [sentWavesData]);
+
+  // Read wave badge from store
+  const pendingWaves = useWavesStore(
+    (s) => s.received.filter((w) => w.wave.status === 'pending').length
+  );
+
+  // Unread messages badge — hydration query, store is the source of truth
   const { data: chatConversations } = trpc.messages.getConversations.useQuery(
     undefined,
-    { enabled: !!user && !!profile, refetchInterval: 15_000 }
+    { enabled: !!user && !!profile, refetchInterval: 60_000 }
   );
-  const totalUnread = chatConversations?.reduce((sum, c) => sum + c.unreadCount, 0) || 0;
+
+  // Hydrate conversations store when tRPC data arrives
+  useEffect(() => {
+    if (chatConversations) {
+      useConversationsStore.getState().set(
+        chatConversations.map((c) => ({
+          id: c.conversation.id,
+          participant: c.participant
+            ? {
+                userId: c.participant.userId,
+                displayName: c.participant.displayName,
+                avatarUrl: c.participant.avatarUrl,
+              }
+            : null,
+          lastMessage: c.lastMessage
+            ? {
+                id: c.lastMessage.id,
+                content: c.lastMessage.content,
+                senderId: c.lastMessage.senderId,
+                createdAt: c.lastMessage.createdAt.toString(),
+                type: c.lastMessage.type ?? 'text',
+              }
+            : null,
+          unreadCount: c.unreadCount,
+          createdAt: c.conversation.createdAt.toString(),
+          updatedAt: c.conversation.updatedAt.toString(),
+        }))
+      );
+    }
+  }, [chatConversations]);
+
+  // Read badges from stores (single source of truth)
+  const totalUnread = useConversationsStore(
+    (s) => s.conversations.reduce((sum, c) => sum + c.unreadCount, 0)
+  );
 
   useEffect(() => {
     // Only set profile from query if we haven't checked yet
