@@ -37,9 +37,12 @@ The screenshot mode is built into the codebase — no temporary changes needed.
 # API (with auto-restart on file changes)
 cd apps/api && pnpm dev
 
-# Mobile (Expo)
+# Mobile (Expo) — always start with Cloudflare Tunnel
 cd apps/mobile && npx expo start
+cloudflared tunnel run metro
 ```
+
+When starting Expo, always also start the Cloudflare Tunnel so the physical iPhone can connect via `https://metro.blisko.app` (works over LTE, no WiFi needed). Config lives in `~/.cloudflared/config.yml`, tunnel name is `metro`.
 
 ## Dev CLI
 
