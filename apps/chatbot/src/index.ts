@@ -16,10 +16,6 @@ import { initEvents, closeEvents, emit } from './events';
 // ── Config ───────────────────────────────────────────────────────────
 
 const POLL_INTERVAL = Number(process.env.BOT_POLL_INTERVAL_MS) || 3000;
-const WAVE_DELAY_MIN = 10_000;
-const WAVE_DELAY_MAX = 30_000;
-const OPENING_DELAY_MIN = 3_000;
-const OPENING_DELAY_MAX = 15_000;
 const ACTIVITY_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 // ── DB connection ────────────────────────────────────────────────────
@@ -78,10 +74,6 @@ let lastMessageCheck = new Date();
 const pendingWaves = new Set<string>(); // wave IDs with scheduled responses
 
 // ── Helpers ──────────────────────────────────────────────────────────
-
-function randomDelay(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min) + min);
-}
 
 function isSeedEmail(email: string): boolean {
   return email.endsWith('@example.com');
@@ -270,22 +262,18 @@ async function handleWave(wave: {
       const { initiate, probability: initProb } = shouldInitiateConversation(matchScore);
 
       if (initiate) {
-        const openingDelay = randomDelay(OPENING_DELAY_MIN, OPENING_DELAY_MAX);
         emit({
           type: 'opening_scheduled',
           bot: botName,
           from: fromName,
-          delay: `${(openingDelay / 1000).toFixed(0)}s`,
           probability: `${(initProb * 100).toFixed(0)}%`,
         });
 
-        setTimeout(async () => {
-          try {
-            const botProfile = await getProfileByUserId(wave.toUserId);
-            const otherProfile = await getProfileByUserId(wave.fromUserId);
+        try {
+          const botProfile = await getProfileByUserId(wave.toUserId);
+          const otherProfile = await getProfileByUserId(wave.fromUserId);
 
-            if (!botProfile || !otherProfile) return;
-
+          if (botProfile && otherProfile) {
             const content = await generateBotMessage(
               botProfile,
               otherProfile,
@@ -295,10 +283,10 @@ async function handleWave(wave: {
 
             await sendMessage(token, result.conversationId!, content);
             emit({ type: 'opening_sent', bot: botName, from: fromName, message: content.slice(0, 80) });
-          } catch (err: any) {
-            emit({ type: 'opening_error', bot: botName, from: fromName, error: err.message?.slice(0, 100) });
           }
-        }, openingDelay);
+        } catch (err: any) {
+          emit({ type: 'opening_error', bot: botName, from: fromName, error: err.message?.slice(0, 100) });
+        }
       } else {
         emit({
           type: 'opening_skip',
@@ -415,12 +403,11 @@ async function pollWaves() {
       if (pendingWaves.has(wave.id)) continue;
       pendingWaves.add(wave.id);
 
-      const delay = randomDelay(WAVE_DELAY_MIN, WAVE_DELAY_MAX);
       const botName = await getDisplayName(wave.toUserId);
       const fromName = await getDisplayName(wave.fromUserId);
-      emit({ type: 'wave_received', bot: botName, from: fromName, delay: `${(delay / 1000).toFixed(0)}s` });
+      emit({ type: 'wave_received', bot: botName, from: fromName });
 
-      setTimeout(() => handleWave(wave), delay);
+      await handleWave(wave);
     }
   } catch (err) {
     console.error('[bot] pollWaves error:', err);
