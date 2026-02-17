@@ -12,7 +12,6 @@ COPY apps/mobile/package.json ./apps/mobile/package.json
 COPY apps/api/package.json ./apps/api/package.json
 COPY apps/chatbot/package.json ./apps/chatbot/package.json
 COPY apps/design/package.json ./apps/design/package.json
-COPY apps/tasks/package.json ./apps/tasks/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 COPY packages/dev-cli/package.json ./packages/dev-cli/package.json
 
