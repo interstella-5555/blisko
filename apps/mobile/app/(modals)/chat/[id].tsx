@@ -16,8 +16,9 @@ import { useAuthStore } from '../../../src/stores/authStore';
 import { MessageBubble, type BubblePosition } from '../../../src/components/chat/MessageBubble';
 import { ChatInput } from '../../../src/components/chat/ChatInput';
 import { ReactionPicker } from '../../../src/components/chat/ReactionPicker';
-import { useWebSocket, useTypingIndicator } from '../../../src/lib/ws';
+import { useTypingIndicator } from '../../../src/lib/ws';
 import { useConversationsStore } from '../../../src/stores/conversationsStore';
+import { useMessagesStore, type EnrichedMessage } from '../../../src/stores/messagesStore';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Avatar } from '../../../src/components/ui/Avatar';
@@ -28,7 +29,6 @@ import { colors, fonts, spacing } from '../../../src/theme';
 export default function ChatScreen() {
   const { id: conversationId } = useLocalSearchParams<{ id: string }>();
   const userId = useAuthStore((state) => state.user?.id);
-  const utils = trpc.useUtils();
   const flatListRef = useRef<FlatList>(null);
 
   const [replyingTo, setReplyingTo] = useState<{
@@ -45,7 +45,11 @@ export default function ChatScreen() {
   );
   const participantName = storeConversation?.participant?.displayName ?? 'Czat';
 
-  // Fetch messages with infinite scroll
+  // Read messages from store (instant if cached from prefetch or previous visit)
+  const cached = useMessagesStore((s) => s.chats.get(conversationId!));
+  const storeMessages = cached?.items ?? [];
+
+  // tRPC for initial hydration + pagination (no polling — WS keeps store current)
   const {
     data,
     fetchNextPage,
@@ -57,11 +61,51 @@ export default function ChatScreen() {
     {
       enabled: !!conversationId,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
-      refetchInterval: 30_000, // Fallback polling — WS handles real-time
     }
   );
 
-  const allMessages = data?.pages.flatMap((page) => page.messages) ?? [];
+  // Pipe tRPC data into messagesStore (initial hydration + loadMore pages)
+  const pagesLoadedRef = useRef(0);
+  useEffect(() => {
+    if (!data || !conversationId) return;
+    const pages = data.pages;
+    if (pages.length === pagesLoadedRef.current) return;
+
+    const lastPage = pages[pages.length - 1];
+    const hasMore = !!lastPage?.nextCursor;
+    const store = useMessagesStore.getState();
+
+    const toEnriched = (msg: any): EnrichedMessage => ({
+      id: msg.id,
+      conversationId: msg.conversationId ?? conversationId,
+      senderId: msg.senderId,
+      content: msg.content,
+      type: msg.type ?? 'text',
+      metadata: msg.metadata ?? null,
+      replyToId: msg.replyToId ?? null,
+      createdAt: msg.createdAt?.toISOString?.() ?? String(msg.createdAt),
+      readAt: msg.readAt ? (msg.readAt.toISOString?.() ?? String(msg.readAt)) : null,
+      deletedAt: msg.deletedAt ? (msg.deletedAt.toISOString?.() ?? String(msg.deletedAt)) : null,
+      replyTo: msg.replyTo ?? null,
+      reactions: msg.reactions ?? [],
+    });
+
+    if (pagesLoadedRef.current === 0) {
+      // Initial hydration — set all pages
+      const allMsgs = pages.flatMap((p) => p.messages).map(toEnriched);
+      store.set(conversationId, allMsgs, hasMore, lastPage?.nextCursor);
+    } else {
+      // LoadMore — append only the new page
+      const newMsgs = lastPage.messages.map(toEnriched);
+      store.appendOlder(conversationId, newMsgs, hasMore, lastPage?.nextCursor);
+    }
+
+    pagesLoadedRef.current = pages.length;
+  }, [data, conversationId]);
+
+  // Render from store; fall back to tRPC data during first hydration frame
+  const trpcMessages = data?.pages.flatMap((page) => page.messages) ?? [];
+  const allMessages = storeMessages.length > 0 ? storeMessages : trpcMessages;
 
   // Compute bubble position for message grouping
   // Note: FlatList is inverted, so index 0 = newest message
@@ -91,57 +135,12 @@ export default function ChatScreen() {
     [allMessages]
   );
 
-  // WebSocket: real-time message & reaction updates via stores
-  // (global _layout.tsx handler handles store prepend + conversation updates)
-  // This handler syncs tRPC cache for this screen's infinite query
-  const utilsRef = useRef(utils);
-  utilsRef.current = utils;
-
-  const wsHandler = useCallback(
-    (msg: any) => {
-      if (!conversationId) return;
-
-      if (msg.type === 'newMessage' && msg.conversationId === conversationId) {
-        // Skip own messages — optimistic update handles them
-        if (msg.message.senderId !== userId) {
-          utilsRef.current.messages.getMessages.setInfiniteData(
-            { conversationId, limit: 50 },
-            (old) => {
-              if (!old) return old;
-              const newPages = [...old.pages];
-              newPages[0] = {
-                ...newPages[0],
-                messages: [
-                  { ...msg.message, replyTo: null, reactions: [] },
-                  ...newPages[0].messages,
-                ],
-              };
-              return { ...old, pages: newPages };
-            }
-          );
-        }
-      }
-
-      if (msg.type === 'reaction' && msg.conversationId === conversationId) {
-        // Reactions are handled by the global WS handler via messagesStore.updateReaction
-        // Still invalidate tRPC cache to reconcile
-        utilsRef.current.messages.getMessages.invalidate();
-      }
-    },
-    [conversationId, userId]
-  );
-
-  useWebSocket(wsHandler);
-
   // Typing indicators
+  // (WS message & reaction updates are handled globally by _layout.tsx → messagesStore)
   const { isTyping: someoneTyping, sendTyping } = useTypingIndicator(conversationId);
 
   // Mark as read on open + cleanup to sync server state before leaving
-  const markAsRead = trpc.messages.markAsRead.useMutation({
-    onSuccess: () => {
-      utils.messages.getConversations.invalidate();
-    },
-  });
+  const markAsRead = trpc.messages.markAsRead.useMutation();
 
   const markAsReadRef = useRef(markAsRead);
   markAsReadRef.current = markAsRead;
@@ -161,67 +160,76 @@ export default function ChatScreen() {
     };
   }, [conversationId, setActiveConversation]);
 
-  // Send message with optimistic update
+  // Send message with optimistic update via messagesStore
+  const replyingToRef = useRef(replyingTo);
+  replyingToRef.current = replyingTo;
+
   const sendMessage = trpc.messages.send.useMutation({
     onMutate: async (newMsg) => {
-      await utils.messages.getMessages.cancel();
-
-      const input = { conversationId: conversationId!, limit: 50 };
-      const previousData = utils.messages.getMessages.getInfiniteData(input);
-
-      utils.messages.getMessages.setInfiniteData(input, (old) => {
-        if (!old) return old;
-        const optimisticMessage = {
-          id: `temp-${Date.now()}`,
-          conversationId,
-          senderId: userId!,
-          content: newMsg.content,
-          type: 'text',
-          metadata: null,
-          replyToId: newMsg.replyToId ?? null,
-          createdAt: new Date().toISOString(),
-          readAt: null,
-          deletedAt: null,
-          replyTo: replyingTo,
-          reactions: [],
-        };
-        const newPages = [...old.pages];
-        newPages[0] = {
-          ...newPages[0],
-          messages: [optimisticMessage, ...newPages[0].messages],
-        };
-        return { ...old, pages: newPages };
+      const tempId = `temp-${Date.now()}`;
+      const optimistic: EnrichedMessage = {
+        id: tempId,
+        conversationId: conversationId!,
+        senderId: userId!,
+        content: newMsg.content,
+        type: (newMsg as any).type ?? 'text',
+        metadata: (newMsg as any).metadata ?? null,
+        replyToId: newMsg.replyToId ?? null,
+        createdAt: new Date().toISOString(),
+        readAt: null,
+        deletedAt: null,
+        replyTo: replyingToRef.current,
+        reactions: [],
+      };
+      useMessagesStore.getState().addOptimistic(conversationId!, optimistic);
+      useConversationsStore.getState().updateLastMessage(conversationId!, {
+        id: tempId,
+        content: newMsg.content,
+        senderId: userId!,
+        createdAt: optimistic.createdAt,
+        type: optimistic.type,
       });
-
-      return { previousData, input };
+      return { tempId };
     },
-    onError: (_err, _newMsg, context) => {
-      if (context?.previousData) {
-        utils.messages.getMessages.setInfiniteData(
-          context.input,
-          context.previousData
-        );
+    onSuccess: (_data, _vars, context) => {
+      // WS event will prepend the real message; remove the temp
+      if (context?.tempId) {
+        useMessagesStore.getState().removeOptimistic(conversationId!, context.tempId);
       }
     },
-    onSettled: () => {
-      utils.messages.getMessages.invalidate();
-      utils.messages.getConversations.invalidate();
+    onError: (_err, _vars, context) => {
+      if (context?.tempId) {
+        useMessagesStore.getState().removeOptimistic(conversationId!, context.tempId);
+      }
     },
   });
 
-  // Delete message
+  // Delete message (optimistic via store — no WS event for deletes)
   const deleteMessage = trpc.messages.deleteMessage.useMutation({
-    onSettled: () => {
-      utils.messages.getMessages.invalidate();
+    onMutate: async ({ messageId }) => {
+      const store = useMessagesStore.getState();
+      const chat = store.chats.get(conversationId!);
+      const original = chat?.items.find((m) => m.id === messageId);
+      // Optimistic: mark as deleted
+      if (original) {
+        store.replaceOptimistic(conversationId!, messageId, {
+          ...original,
+          deletedAt: new Date().toISOString(),
+          content: '',
+        });
+      }
+      return { original };
+    },
+    onError: (_err, { messageId }, context) => {
+      // Restore original message on failure
+      if (context?.original) {
+        useMessagesStore.getState().replaceOptimistic(conversationId!, messageId, context.original);
+      }
     },
   });
 
-  // React to message
-  const reactToMessage = trpc.messages.react.useMutation({
-    onSettled: () => {
-      utils.messages.getMessages.invalidate();
-    },
-  });
+  // React to message (WS event updates store via _layout.tsx handler)
+  const reactToMessage = trpc.messages.react.useMutation();
 
   const handleSend = useCallback(
     (text: string, replyToId?: string) => {
@@ -454,7 +462,7 @@ export default function ChatScreen() {
           ) : null
         }
         ListEmptyComponent={
-          isLoading ? (
+          !cached && isLoading ? (
             <ActivityIndicator size="large" color={colors.ink} />
           ) : null
         }

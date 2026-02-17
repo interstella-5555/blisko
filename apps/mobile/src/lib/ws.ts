@@ -16,7 +16,8 @@ export type WSMessage =
   | { type: 'nearbyChanged' }
   | { type: 'profileReady' }
   | { type: 'questionReady'; sessionId: string; questionNumber: number }
-  | { type: 'profilingComplete'; sessionId: string };
+  | { type: 'profilingComplete'; sessionId: string }
+  | { type: 'reconnected' };
 
 type MessageHandler = (msg: WSMessage) => void;
 
@@ -29,6 +30,7 @@ let globalWs: WebSocket | null = null;
 let handlers = new Set<MessageHandler>();
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let isConnecting = false;
+let hasConnectedBefore = false;
 
 async function getToken(): Promise<string | null> {
   // 1. Zustand store — already has token from login, no network needed
@@ -79,6 +81,16 @@ function connect() {
       const data = JSON.parse(event.data) as WSMessage;
       if (data.type === 'auth') {
         console.log('[WS] auth response:', data.status, data.status === 'error' ? (data as any).message : '');
+        // On successful re-auth after reconnect, notify handlers to reconcile
+        if (data.status === 'ok') {
+          if (hasConnectedBefore) {
+            console.log('[WS] reconnected — dispatching reconciliation');
+            for (const handler of handlers) {
+              handler({ type: 'reconnected' });
+            }
+          }
+          hasConnectedBefore = true;
+        }
       } else {
         console.log('[WS] received:', data.type, `(${handlers.size} handlers)`);
       }

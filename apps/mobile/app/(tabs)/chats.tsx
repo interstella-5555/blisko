@@ -1,11 +1,12 @@
-import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, type ViewToken } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { trpc } from '../../src/lib/trpc';
 import { colors, type as typ, spacing } from '../../src/theme';
 import { IconChat } from '../../src/components/ui/icons';
 import { ConversationRow } from '../../src/components/chat/ConversationRow';
 import { useConversationsStore } from '../../src/stores/conversationsStore';
+import { usePrefetchMessages } from '../../src/hooks/usePrefetchMessages';
 
 export default function ChatsScreen() {
   const router = useRouter();
@@ -15,6 +16,19 @@ export default function ChatsScreen() {
   // Read from conversations store (populated by _layout.tsx hydration + WS updates)
   const conversations = useConversationsStore((s) => s.conversations);
   const hydrated = useConversationsStore((s) => s._hydrated);
+
+  // Prefetch messages for visible conversations
+  const prefetch = usePrefetchMessages();
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      for (const token of viewableItems) {
+        if (token.isViewable && token.item?.id) {
+          prefetch(token.item.id);
+        }
+      }
+    },
+  ).current;
 
   const handleRefresh = useCallback(async () => {
     setIsManualRefreshing(true);
@@ -52,6 +66,8 @@ export default function ChatsScreen() {
             </View>
           )
         }
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
         refreshControl={
           <RefreshControl
             refreshing={isManualRefreshing}

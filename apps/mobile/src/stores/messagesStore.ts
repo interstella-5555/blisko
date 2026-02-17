@@ -186,7 +186,11 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
       const existing = chats.get(convId);
       if (!existing) return state;
 
-      const items = existing.items.map((m) => (m.id === tempId ? real : m));
+      // If real message already delivered by WS, just remove the temp
+      const hasReal = existing.items.some((m) => m.id === real.id);
+      const items = hasReal
+        ? existing.items.filter((m) => m.id !== tempId)
+        : existing.items.map((m) => (m.id === tempId ? real : m));
       chats.set(convId, { ...existing, items });
       return { chats };
     });

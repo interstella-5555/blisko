@@ -33,20 +33,15 @@ export default function TabsLayout() {
   const wsHandler = useCallback(
     (msg: any) => {
       if (msg.type === 'newWave') {
-        const wavesStoreState = useWavesStore.getState();
-        wavesStoreState.addReceived(msg.wave, msg.fromProfile);
+        useWavesStore.getState().addReceived(msg.wave, msg.fromProfile);
         useProfilesStore.getState().merge(msg.wave.fromUserId, {
           displayName: msg.fromProfile.displayName,
           avatarUrl: msg.fromProfile.avatarUrl,
           _partial: true,
         });
-        // Still refetch for full profile data
-        utilsRef.current.waves.getReceived.refetch();
       }
       if (msg.type === 'waveResponded') {
         useWavesStore.getState().updateStatus(msg.waveId, msg.accepted);
-        utilsRef.current.waves.getReceived.refetch();
-        utilsRef.current.waves.getSent.refetch();
       }
       if (msg.type === 'newMessage') {
         const convStore = useConversationsStore.getState();
@@ -88,15 +83,36 @@ export default function TabsLayout() {
       }
       if (msg.type === 'waveResponded' && msg.accepted && msg.conversationId) {
         sendWsMessage({ type: 'subscribe', conversationId: msg.conversationId });
-        // Refetch conversations to get full participant data for new conversation
-        utilsRef.current.messages.getConversations.refetch();
+        // Build conversation entry from WS payload — no HTTP refetch needed
+        const responderId = msg.responderId ?? '';
         if (msg.responderProfile) {
-          useProfilesStore.getState().merge(msg.responderId ?? '', {
+          useProfilesStore.getState().merge(responderId, {
             displayName: msg.responderProfile.displayName,
             avatarUrl: msg.responderProfile.avatarUrl,
             _partial: true,
           });
         }
+        const now = new Date().toISOString();
+        useConversationsStore.getState().addNew({
+          id: msg.conversationId,
+          participant: msg.responderProfile
+            ? {
+                userId: responderId,
+                displayName: msg.responderProfile.displayName,
+                avatarUrl: msg.responderProfile.avatarUrl,
+              }
+            : null,
+          lastMessage: null,
+          unreadCount: 0,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+      if (msg.type === 'reconnected') {
+        // Reconcile after WS reconnection — may have missed events
+        utilsRef.current.waves.getReceived.refetch();
+        utilsRef.current.waves.getSent.refetch();
+        utilsRef.current.messages.getConversations.refetch();
       }
       if (msg.type === 'profileReady') {
         // AI pipeline completed — refresh profile with socialProfile/embedding/interests
@@ -115,14 +131,14 @@ export default function TabsLayout() {
       retry: 2, // Retry twice on failure
     });
 
-  // Waves hydration query — store is the source of truth
+  // Waves hydration query — store is the source of truth, useBackgroundSync handles periodic reconciliation
   const { data: receivedWaves } = trpc.waves.getReceived.useQuery(
     undefined,
-    { enabled: !!user && !!profile, refetchInterval: 60_000 }
+    { enabled: !!user && !!profile }
   );
   const { data: sentWavesData } = trpc.waves.getSent.useQuery(
     undefined,
-    { enabled: !!user && !!profile, refetchInterval: 60_000 }
+    { enabled: !!user && !!profile }
   );
 
   // Hydrate waves store when tRPC data arrives
@@ -178,7 +194,7 @@ export default function TabsLayout() {
   // Unread messages badge — hydration query, store is the source of truth
   const { data: chatConversations } = trpc.messages.getConversations.useQuery(
     undefined,
-    { enabled: !!user && !!profile, refetchInterval: 60_000 }
+    { enabled: !!user && !!profile }
   );
 
   // Hydrate conversations store when tRPC data arrives
