@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:24-slim
 
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
