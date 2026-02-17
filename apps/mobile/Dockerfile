@@ -23,7 +23,8 @@ COPY apps/api/ ./apps/api/
 COPY packages/shared/ ./packages/shared/
 
 ENV EXPO_NO_TELEMETRY=1
+ENV CI=1
 
 WORKDIR /app/apps/mobile
 
-CMD npx expo start --port ${PORT:-8081} --host lan --non-interactive
+CMD npx expo start --port ${PORT:-8081} --host lan
