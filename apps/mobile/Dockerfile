@@ -17,6 +17,11 @@ COPY packages/dev-cli/package.json ./packages/dev-cli/package.json
 
 RUN pnpm install --frozen-lockfile --prefer-offline
 
+# Patch Expo CLI to bind Metro on 0.0.0.0 instead of localhost
+# (Expo bug: --host flag only changes displayed URL, not actual bind address)
+RUN find node_modules/.pnpm -path "*/\@expo/cli/build/src/start/server/metro/instantiateMetro.js" \
+    -exec sed -i 's/websocketEndpoints,/host: "0.0.0.0", websocketEndpoints,/' {} +
+
 # Copy source code needed for Metro bundling
 COPY apps/mobile/ ./apps/mobile/
 COPY apps/api/ ./apps/api/
@@ -24,7 +29,6 @@ COPY packages/shared/ ./packages/shared/
 
 ENV EXPO_NO_TELEMETRY=1
 ENV CI=1
-ENV EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
 
 WORKDIR /app/apps/mobile
 
