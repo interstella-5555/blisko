@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
 import { View, ActivityIndicator, AppState, Platform } from 'react-native';
 import { Stack } from 'expo-router';
+// Workaround: expo-router 6.0.22 bug — Stack uses useLinkPreviewContext
+// but ExpoRoot's provider doesn't always reach it (pnpm dual-instance issue)
+// @ts-expect-error internal expo-router module
+import { LinkPreviewContextProvider } from 'expo-router/build/link/preview/LinkPreviewContext';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -70,12 +74,14 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <NotificationProvider>
           <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="onboarding" />
-            <Stack.Screen name="(modals)" options={{ presentation: 'modal' }} />
-          </Stack>
+          <LinkPreviewContextProvider>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="(modals)" options={{ presentation: 'modal' }} />
+            </Stack>
+          </LinkPreviewContextProvider>
           <NotificationOverlay />
         </NotificationProvider>
       </QueryClientProvider>
