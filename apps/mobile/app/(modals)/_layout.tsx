@@ -30,6 +30,14 @@ export default function ModalsLayout() {
           name="profiling-result"
           options={{ title: 'Nowy profil' }}
         />
+        <Stack.Screen
+          name="create-group"
+          options={{ title: 'Nowa grupa' }}
+        />
+        <Stack.Screen
+          name="group/[id]"
+          options={{ title: 'Grupa' }}
+        />
       </Stack>
       <NotificationOverlay />
     </>

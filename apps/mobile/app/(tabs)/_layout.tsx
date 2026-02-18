@@ -52,15 +52,18 @@ export default function TabsLayout() {
           ...msg.message,
           replyTo: null,
           reactions: [],
+          senderName: msg.senderName ?? null,
+          senderAvatarUrl: msg.senderAvatarUrl ?? null,
         });
 
-        // Update conversation's last message
+        // Update conversation's last message (include senderName for groups)
         convStore.updateLastMessage(msg.conversationId, {
           id: msg.message.id,
           content: msg.message.content,
           senderId: msg.message.senderId,
           createdAt: msg.message.createdAt,
           type: msg.message.type ?? 'text',
+          senderName: msg.senderName ?? null,
         });
 
         // Increment unread if not viewing this conversation
@@ -95,6 +98,7 @@ export default function TabsLayout() {
         const now = new Date().toISOString();
         useConversationsStore.getState().addNew({
           id: msg.conversationId,
+          type: 'dm',
           participant: msg.responderProfile
             ? {
                 userId: responderId,
@@ -102,6 +106,9 @@ export default function TabsLayout() {
                 avatarUrl: msg.responderProfile.avatarUrl,
               }
             : null,
+          groupName: null,
+          groupAvatarUrl: null,
+          memberCount: null,
           lastMessage: null,
           unreadCount: 0,
           createdAt: now,
@@ -117,6 +124,27 @@ export default function TabsLayout() {
       if (msg.type === 'profileReady') {
         // AI pipeline completed — refresh profile with socialProfile/embedding/interests
         utilsRef.current.profiles.me.refetch();
+      }
+      if (msg.type === 'groupMember') {
+        const convStore = useConversationsStore.getState();
+        if (msg.action === 'joined') {
+          convStore.updateMemberCount(msg.conversationId, 1);
+        } else if (msg.action === 'left' || msg.action === 'removed') {
+          convStore.updateMemberCount(msg.conversationId, -1);
+        }
+      }
+      if (msg.type === 'groupUpdated') {
+        useConversationsStore
+          .getState()
+          .updateGroupInfo(msg.conversationId, msg.updates);
+      }
+      if (msg.type === 'groupInvited') {
+        // Subscribe to the new group conversation and refetch
+        sendWsMessage({
+          type: 'subscribe',
+          conversationId: msg.conversationId,
+        });
+        utilsRef.current.messages.getConversations.refetch();
       }
     },
     []
@@ -203,6 +231,7 @@ export default function TabsLayout() {
       useConversationsStore.getState().set(
         chatConversations.map((c) => ({
           id: c.conversation.id,
+          type: (c.conversation.type as 'dm' | 'group') ?? 'dm',
           participant: c.participant
             ? {
                 userId: c.participant.userId,
@@ -210,6 +239,9 @@ export default function TabsLayout() {
                 avatarUrl: c.participant.avatarUrl,
               }
             : null,
+          groupName: c.conversation.name ?? null,
+          groupAvatarUrl: c.conversation.avatarUrl ?? null,
+          memberCount: c.memberCount ?? null,
           lastMessage: c.lastMessage
             ? {
                 id: c.lastMessage.id,
@@ -217,6 +249,7 @@ export default function TabsLayout() {
                 senderId: c.lastMessage.senderId,
                 createdAt: c.lastMessage.createdAt.toString(),
                 type: c.lastMessage.type ?? 'text',
+                senderName: c.lastMessageSenderName ?? null,
               }
             : null,
           unreadCount: c.unreadCount,

@@ -1,12 +1,16 @@
+import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Avatar } from '../ui/Avatar';
 import { colors, fonts, spacing } from '../../theme';
 
 interface ConversationRowProps {
+  type?: 'dm' | 'group';
   displayName: string;
   avatarUrl: string | null;
   lastMessage: string | null;
+  lastMessageSenderName?: string | null;
   lastMessageTime: string | null;
+  memberCount?: number;
   unreadCount: number;
   onPress: () => void;
 }
@@ -27,13 +31,33 @@ function formatRelativeTime(dateString: string): string {
 }
 
 export function ConversationRow({
+  type = 'dm',
   displayName,
   avatarUrl,
   lastMessage,
+  lastMessageSenderName,
   lastMessageTime,
+  memberCount,
   unreadCount,
   onPress,
 }: ConversationRowProps) {
+  const isGroup = type === 'group';
+
+  // For groups, build preview with sender name prefix
+  let previewText: React.ReactNode;
+  if (!lastMessage) {
+    previewText = isGroup ? 'Brak wiadomości' : 'Rozpocznij rozmowę';
+  } else if (isGroup && lastMessageSenderName) {
+    previewText = (
+      <Text numberOfLines={1}>
+        <Text style={styles.senderPrefix}>{lastMessageSenderName}: </Text>
+        {lastMessage}
+      </Text>
+    );
+  } else {
+    previewText = lastMessage;
+  }
+
   return (
     <Pressable style={styles.row} onPress={onPress} testID="conversation-row">
       <Avatar uri={avatarUrl} name={displayName} size={48} />
@@ -49,7 +73,7 @@ export function ConversationRow({
             style={[styles.preview, unreadCount > 0 && styles.previewUnread]}
             numberOfLines={1}
           >
-            {lastMessage || 'Rozpocznij rozmowę'}
+            {previewText}
           </Text>
           {unreadCount > 0 && (
             <View style={styles.badge}>
@@ -122,5 +146,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
     color: '#FFFFFF',
+  },
+  senderPrefix: {
+    fontFamily: fonts.sansMedium,
+    color: colors.ink,
   },
 });

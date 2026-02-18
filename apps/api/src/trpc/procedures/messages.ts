@@ -8,6 +8,7 @@ import {
   conversationParticipants,
   profiles,
   messageReactions,
+  topics,
 } from '../../db/schema';
 import {
   sendMessageSchema,
@@ -26,6 +27,7 @@ export const messagesRouter = router({
     const userConversations = await db
       .select({
         conversationId: conversationParticipants.conversationId,
+        lastReadAt: conversationParticipants.lastReadAt,
       })
       .from(conversationParticipants)
       .where(eq(conversationParticipants.userId, ctx.userId));
@@ -36,6 +38,10 @@ export const messagesRouter = router({
       return [];
     }
 
+    const lastReadMap = new Map(
+      userConversations.map((c) => [c.conversationId, c.lastReadAt])
+    );
+
     // For each conversation, get the other participant and last message
     const result = await Promise.all(
       conversationIds.map(async (conversationId) => {
@@ -45,20 +51,36 @@ export const messagesRouter = router({
           .from(conversations)
           .where(eq(conversations.id, conversationId));
 
-        // Get other participant
-        const [otherParticipant] = await db
-          .select({ profile: profiles })
-          .from(conversationParticipants)
-          .innerJoin(
-            profiles,
-            eq(conversationParticipants.userId, profiles.userId)
-          )
-          .where(
-            and(
-              eq(conversationParticipants.conversationId, conversationId),
-              ne(conversationParticipants.userId, ctx.userId)
+        const isGroup = conversation.type === 'group';
+
+        // For DMs: get other participant. For groups: get member count.
+        let participant = null;
+        let memberCount = null;
+
+        if (isGroup) {
+          const [countResult] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(conversationParticipants)
+            .where(
+              eq(conversationParticipants.conversationId, conversationId)
+            );
+          memberCount = Number(countResult.count);
+        } else {
+          const [otherParticipant] = await db
+            .select({ profile: profiles })
+            .from(conversationParticipants)
+            .innerJoin(
+              profiles,
+              eq(conversationParticipants.userId, profiles.userId)
             )
-          );
+            .where(
+              and(
+                eq(conversationParticipants.conversationId, conversationId),
+                ne(conversationParticipants.userId, ctx.userId)
+              )
+            );
+          participant = otherParticipant?.profile || null;
+        }
 
         // Get last message (skip deleted)
         const [lastMessage] = await db
@@ -73,31 +95,80 @@ export const messagesRouter = router({
           .orderBy(desc(messages.createdAt))
           .limit(1);
 
+        // Get sender name for last message (for groups)
+        let lastMessageSenderName: string | null = null;
+        if (isGroup && lastMessage) {
+          const [senderProfile] = await db
+            .select({ displayName: profiles.displayName })
+            .from(profiles)
+            .where(eq(profiles.userId, lastMessage.senderId));
+          lastMessageSenderName = senderProfile?.displayName ?? null;
+        }
+
         // Count unread messages
-        const [unreadResult] = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(messages)
-          .where(
-            and(
-              eq(messages.conversationId, conversationId),
-              ne(messages.senderId, ctx.userId),
-              isNull(messages.readAt),
-              isNull(messages.deletedAt)
-            )
-          );
+        let unreadCount = 0;
+        if (isGroup) {
+          // Groups: count messages after lastReadAt
+          const lastReadAt = lastReadMap.get(conversationId);
+          if (lastReadAt) {
+            const [unreadResult] = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(messages)
+              .where(
+                and(
+                  eq(messages.conversationId, conversationId),
+                  ne(messages.senderId, ctx.userId),
+                  isNull(messages.deletedAt),
+                  sql`${messages.createdAt} > ${lastReadAt}`
+                )
+              );
+            unreadCount = Number(unreadResult?.count || 0);
+          } else {
+            // Never read — count all messages from others
+            const [unreadResult] = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(messages)
+              .where(
+                and(
+                  eq(messages.conversationId, conversationId),
+                  ne(messages.senderId, ctx.userId),
+                  isNull(messages.deletedAt)
+                )
+              );
+            unreadCount = Number(unreadResult?.count || 0);
+          }
+        } else {
+          // DMs: use per-message readAt
+          const [unreadResult] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(messages)
+            .where(
+              and(
+                eq(messages.conversationId, conversationId),
+                ne(messages.senderId, ctx.userId),
+                isNull(messages.readAt),
+                isNull(messages.deletedAt)
+              )
+            );
+          unreadCount = Number(unreadResult?.count || 0);
+        }
 
         return {
           conversation,
-          participant: otherParticipant?.profile || null,
+          participant,
           lastMessage: lastMessage || null,
-          unreadCount: Number(unreadResult?.count || 0),
+          lastMessageSenderName,
+          memberCount,
+          unreadCount,
         };
       })
     );
 
-    // Sort by last message date
+    // Sort by last message date — keep groups even without participant
     return result
-      .filter((r) => r.participant !== null)
+      .filter(
+        (r) => r.conversation.type === 'group' || r.participant !== null
+      )
       .sort((a, b) => {
         const dateA = a.lastMessage?.createdAt || a.conversation.createdAt;
         const dateB = b.lastMessage?.createdAt || b.conversation.createdAt;
@@ -110,6 +181,7 @@ export const messagesRouter = router({
     .input(
       z.object({
         conversationId: z.string().uuid(),
+        topicId: z.string().uuid().optional(),
         limit: z.number().min(1).max(100).default(50),
         cursor: z.string().uuid().optional(),
       })
@@ -133,13 +205,29 @@ export const messagesRouter = router({
         });
       }
 
+      // Check if group conversation for sender enrichment
+      const [conversation] = await db
+        .select({ type: conversations.type })
+        .from(conversations)
+        .where(eq(conversations.id, input.conversationId));
+
+      const isGroup = conversation?.type === 'group';
+
       // Ensure typing listener is set up for this conversation
       ensureTypingListener(input.conversationId);
+
+      // Build WHERE conditions
+      const whereConditions = [
+        eq(messages.conversationId, input.conversationId),
+      ];
+      if (input.topicId) {
+        whereConditions.push(eq(messages.topicId, input.topicId));
+      }
 
       let query = db
         .select()
         .from(messages)
-        .where(eq(messages.conversationId, input.conversationId))
+        .where(and(...whereConditions))
         .orderBy(desc(messages.createdAt))
         .limit(input.limit + 1);
 
@@ -155,7 +243,7 @@ export const messagesRouter = router({
             .from(messages)
             .where(
               and(
-                eq(messages.conversationId, input.conversationId),
+                ...whereConditions,
                 sql`${messages.createdAt} < ${cursorMessage.createdAt}`
               )
             )
@@ -170,6 +258,33 @@ export const messagesRouter = router({
       if (result.length > input.limit) {
         const nextItem = result.pop();
         nextCursor = nextItem?.id;
+      }
+
+      // For groups, batch-fetch sender profiles
+      const senderProfileMap = new Map<
+        string,
+        { displayName: string; avatarUrl: string | null }
+      >();
+      if (isGroup) {
+        const senderIds = [...new Set(result.map((m) => m.senderId))];
+        if (senderIds.length > 0) {
+          const senderProfiles = await db
+            .select({
+              userId: profiles.userId,
+              displayName: profiles.displayName,
+              avatarUrl: profiles.avatarUrl,
+            })
+            .from(profiles)
+            .where(
+              sql`${profiles.userId} IN ${senderIds}`
+            );
+          for (const sp of senderProfiles) {
+            senderProfileMap.set(sp.userId, {
+              displayName: sp.displayName,
+              avatarUrl: sp.avatarUrl,
+            });
+          }
+        }
       }
 
       // Enrich messages with reply-to info and reactions
@@ -188,15 +303,20 @@ export const messagesRouter = router({
               .where(eq(messages.id, msg.replyToId));
 
             if (replyMsg) {
-              const [senderProfile] = await db
-                .select({ displayName: profiles.displayName })
-                .from(profiles)
-                .where(eq(profiles.userId, replyMsg.senderId));
+              const senderProfile =
+                senderProfileMap.get(replyMsg.senderId) ||
+                (
+                  await db
+                    .select({ displayName: profiles.displayName })
+                    .from(profiles)
+                    .where(eq(profiles.userId, replyMsg.senderId))
+                )[0];
 
               replyTo = {
                 id: replyMsg.id,
                 content: replyMsg.content,
-                senderName: senderProfile?.displayName ?? 'Użytkownik',
+                senderName:
+                  senderProfile?.displayName ?? 'Użytkownik',
               };
             }
           }
@@ -232,10 +352,17 @@ export const messagesRouter = router({
             myReaction: r.userIds.includes(ctx.userId),
           }));
 
+          // Add sender info for groups
+          const senderInfo = isGroup
+            ? senderProfileMap.get(msg.senderId) ?? null
+            : null;
+
           return {
             ...msg,
             replyTo,
             reactions,
+            senderName: senderInfo?.displayName ?? null,
+            senderAvatarUrl: senderInfo?.avatarUrl ?? null,
           };
         })
       );
@@ -277,6 +404,7 @@ export const messagesRouter = router({
           type: input.type ?? 'text',
           metadata: input.metadata ?? null,
           replyToId: input.replyToId ?? null,
+          topicId: input.topicId ?? null,
         })
         .returning();
 
@@ -286,10 +414,32 @@ export const messagesRouter = router({
         .set({ updatedAt: new Date() })
         .where(eq(conversations.id, input.conversationId));
 
+      // If message belongs to a topic, update topic stats
+      if (input.topicId) {
+        await db
+          .update(topics)
+          .set({
+            lastMessageAt: new Date(),
+            messageCount: sql`${topics.messageCount} + 1`,
+          })
+          .where(eq(topics.id, input.topicId));
+      }
+
+      // Get sender profile for WS event enrichment
+      const [senderProfile] = await db
+        .select({
+          displayName: profiles.displayName,
+          avatarUrl: profiles.avatarUrl,
+        })
+        .from(profiles)
+        .where(eq(profiles.userId, ctx.userId));
+
       // Emit real-time event
       ee.emit('newMessage', {
         conversationId: input.conversationId,
         message,
+        senderName: senderProfile?.displayName ?? null,
+        senderAvatarUrl: senderProfile?.avatarUrl ?? null,
       });
 
       return message;
@@ -303,16 +453,39 @@ export const messagesRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      await db
-        .update(messages)
-        .set({ readAt: new Date() })
-        .where(
-          and(
-            eq(messages.conversationId, input.conversationId),
-            ne(messages.senderId, ctx.userId),
-            isNull(messages.readAt)
-          )
-        );
+      // Check if this is a group conversation
+      const [conv] = await db
+        .select({ type: conversations.type })
+        .from(conversations)
+        .where(eq(conversations.id, input.conversationId));
+
+      if (conv?.type === 'group') {
+        // Groups: update lastReadAt on participant row
+        await db
+          .update(conversationParticipants)
+          .set({ lastReadAt: new Date() })
+          .where(
+            and(
+              eq(
+                conversationParticipants.conversationId,
+                input.conversationId
+              ),
+              eq(conversationParticipants.userId, ctx.userId)
+            )
+          );
+      } else {
+        // DMs: mark individual messages as read
+        await db
+          .update(messages)
+          .set({ readAt: new Date() })
+          .where(
+            and(
+              eq(messages.conversationId, input.conversationId),
+              ne(messages.senderId, ctx.userId),
+              isNull(messages.readAt)
+            )
+          );
+      }
 
       return { success: true };
     }),
@@ -321,7 +494,6 @@ export const messagesRouter = router({
   deleteMessage: protectedProcedure
     .input(deleteMessageSchema)
     .mutation(async ({ ctx, input }) => {
-      // Verify sender owns the message
       const [msg] = await db
         .select()
         .from(messages)
@@ -334,11 +506,43 @@ export const messagesRouter = router({
         });
       }
 
+      // Check if user can delete: own message OR group admin
       if (msg.senderId !== ctx.userId) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'You can only delete your own messages',
-        });
+        // Check if this is a group and user is admin/owner
+        const [conv] = await db
+          .select({ type: conversations.type })
+          .from(conversations)
+          .where(eq(conversations.id, msg.conversationId));
+
+        if (conv?.type === 'group') {
+          const [participant] = await db
+            .select({ role: conversationParticipants.role })
+            .from(conversationParticipants)
+            .where(
+              and(
+                eq(
+                  conversationParticipants.conversationId,
+                  msg.conversationId
+                ),
+                eq(conversationParticipants.userId, ctx.userId)
+              )
+            );
+
+          if (
+            !participant ||
+            (participant.role !== 'admin' && participant.role !== 'owner')
+          ) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: 'You can only delete your own messages',
+            });
+          }
+        } else {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'You can only delete your own messages',
+          });
+        }
       }
 
       await db

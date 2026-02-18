@@ -38,6 +38,7 @@ export const sendMessageSchema = z.object({
   type: z.enum(['text', 'image', 'location']).default('text'),
   metadata: z.record(z.string(), z.unknown()).optional(),
   replyToId: z.string().uuid().optional(),
+  topicId: z.string().uuid().optional(),
 });
 
 export const deleteMessageSchema = z.object({
@@ -104,6 +105,65 @@ export const applyProfilingSchema = z.object({
   lookingFor: z.string().min(10).max(500).optional(),
 });
 
+// Group validators
+export const createGroupSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  isDiscoverable: z.boolean().default(false),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  memberUserIds: z.array(z.string()).max(199).default([]),
+});
+
+export const updateGroupSchema = z.object({
+  conversationId: z.string().uuid(),
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional(),
+  avatarUrl: z.string().url().nullable().optional(),
+  isDiscoverable: z.boolean().optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  discoveryRadiusMeters: z.number().min(100).max(50000).optional(),
+});
+
+export const joinGroupSchema = z.object({
+  inviteCode: z.string().min(1).max(20),
+});
+
+export const groupMemberActionSchema = z.object({
+  conversationId: z.string().uuid(),
+  userId: z.string().min(1),
+});
+
+export const setGroupRoleSchema = z.object({
+  conversationId: z.string().uuid(),
+  userId: z.string().min(1),
+  role: z.enum(['admin', 'member']),
+});
+
+export const getDiscoverableGroupsSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  radiusMeters: z.number().min(100).max(50000).default(5000),
+  limit: z.number().min(1).max(50).default(20),
+  cursor: z.number().int().min(0).optional(),
+});
+
+// Topic validators
+export const createTopicSchema = z.object({
+  conversationId: z.string().uuid(),
+  name: z.string().min(1).max(100),
+  emoji: z.string().max(8).optional(),
+});
+
+export const updateTopicSchema = z.object({
+  topicId: z.string().uuid(),
+  name: z.string().min(1).max(100).optional(),
+  emoji: z.string().max(8).nullable().optional(),
+  isPinned: z.boolean().optional(),
+  isClosed: z.boolean().optional(),
+});
+
 // Type exports from schemas
 export type CreateProfileInput = z.infer<typeof createProfileSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
@@ -122,3 +182,11 @@ export type AnswerQuestionInput = z.infer<typeof answerQuestionSchema>;
 export type RequestMoreQuestionsInput = z.infer<typeof requestMoreQuestionsSchema>;
 export type CompleteProfilingInput = z.infer<typeof completeProfilingSchema>;
 export type ApplyProfilingInput = z.infer<typeof applyProfilingSchema>;
+export type CreateGroupInput = z.infer<typeof createGroupSchema>;
+export type UpdateGroupInput = z.infer<typeof updateGroupSchema>;
+export type JoinGroupInput = z.infer<typeof joinGroupSchema>;
+export type GroupMemberActionInput = z.infer<typeof groupMemberActionSchema>;
+export type SetGroupRoleInput = z.infer<typeof setGroupRoleSchema>;
+export type GetDiscoverableGroupsInput = z.infer<typeof getDiscoverableGroupsSchema>;
+export type CreateTopicInput = z.infer<typeof createTopicSchema>;
+export type UpdateTopicInput = z.infer<typeof updateTopicSchema>;

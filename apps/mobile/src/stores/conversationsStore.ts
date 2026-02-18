@@ -3,17 +3,22 @@ import { useProfilesStore } from './profilesStore';
 
 export interface ConversationEntry {
   id: string;
+  type: 'dm' | 'group';
   participant: {
     userId: string;
     displayName: string;
     avatarUrl: string | null;
   } | null;
+  groupName: string | null;
+  groupAvatarUrl: string | null;
+  memberCount: number | null;
   lastMessage: {
     id: string;
     content: string;
     senderId: string;
     createdAt: string;
     type: string;
+    senderName?: string | null;
   } | null;
   unreadCount: number;
   createdAt: string;
@@ -34,6 +39,11 @@ interface ConversationsStore {
   incrementUnread(convId: string): void;
   markAsRead(convId: string): void;
   setActiveConversation(id: string | null): void;
+  updateMemberCount(convId: string, delta: number): void;
+  updateGroupInfo(
+    convId: string,
+    updates: { name?: string; description?: string; avatarUrl?: string | null },
+  ): void;
   reset(): void;
 }
 
@@ -113,6 +123,33 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
     if (id) {
       get().markAsRead(id);
     }
+  },
+
+  updateMemberCount(convId, delta) {
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === convId && c.memberCount != null
+          ? { ...c, memberCount: c.memberCount + delta }
+          : c,
+      ),
+    }));
+  },
+
+  updateGroupInfo(convId, updates) {
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === convId
+          ? {
+              ...c,
+              groupName: updates.name ?? c.groupName,
+              groupAvatarUrl:
+                updates.avatarUrl !== undefined
+                  ? updates.avatarUrl
+                  : c.groupAvatarUrl,
+            }
+          : c,
+      ),
+    }));
   },
 
   reset() {

@@ -8,11 +8,14 @@ export interface EnrichedMessage {
   type: string;
   metadata: Record<string, unknown> | null;
   replyToId: string | null;
+  topicId?: string | null;
   createdAt: string;
   readAt: string | null;
   deletedAt: string | null;
   replyTo: { id: string; content: string; senderName: string } | null;
   reactions: Array<{ emoji: string; count: number; myReaction: boolean }>;
+  senderName?: string | null;
+  senderAvatarUrl?: string | null;
 }
 
 export interface ChatCache {

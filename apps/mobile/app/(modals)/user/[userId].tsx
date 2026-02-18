@@ -224,11 +224,15 @@ export default function UserProfileScreen() {
         // Add new conversation to store
         useConversationsStore.getState().addNew({
           id: result.conversationId,
+          type: 'dm',
           participant: {
             userId,
             displayName: cached?.displayName || params.displayName,
             avatarUrl: cached?.avatarUrl ?? avatarUrl,
           },
+          groupName: null,
+          groupAvatarUrl: null,
+          memberCount: null,
           lastMessage: null,
           unreadCount: 0,
           createdAt: new Date().toISOString(),

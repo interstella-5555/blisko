@@ -7,7 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 export type WSMessage =
   | { type: 'auth'; status: 'ok'; conversationIds: string[] }
   | { type: 'auth'; status: 'error'; message: string }
-  | { type: 'newMessage'; conversationId: string; message: any }
+  | { type: 'newMessage'; conversationId: string; message: any; senderName?: string | null; senderAvatarUrl?: string | null }
   | { type: 'typing'; conversationId: string; userId: string; isTyping: boolean }
   | { type: 'reaction'; conversationId: string; messageId: string; emoji: string; userId: string; action: 'added' | 'removed' }
   | { type: 'newWave'; wave: any; fromProfile: { displayName: string; avatarUrl: string | null } }
@@ -17,6 +17,10 @@ export type WSMessage =
   | { type: 'profileReady' }
   | { type: 'questionReady'; sessionId: string; questionNumber: number }
   | { type: 'profilingComplete'; sessionId: string }
+  | { type: 'groupMember'; conversationId: string; userId: string; action: 'joined' | 'left' | 'removed' | 'roleChanged'; role?: string; displayName?: string }
+  | { type: 'groupUpdated'; conversationId: string; updates: { name?: string; description?: string; avatarUrl?: string | null } }
+  | { type: 'topicEvent'; conversationId: string; topic: { id: string; name: string; emoji: string | null }; action: 'created' | 'updated' | 'deleted' | 'closed' }
+  | { type: 'groupInvited'; conversationId: string; groupName: string | null }
   | { type: 'reconnected' };
 
 type MessageHandler = (msg: WSMessage) => void;

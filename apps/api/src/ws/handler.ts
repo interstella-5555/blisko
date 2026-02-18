@@ -3,7 +3,7 @@ import { eq, and, gt } from 'drizzle-orm';
 import { db } from '../db';
 import { session as sessionTable, conversationParticipants } from '../db/schema';
 import { ee } from './events';
-import type { NewMessageEvent, TypingEvent, ReactionEvent, NewWaveEvent, WaveRespondedEvent, AnalysisReadyEvent, NearbyChangedEvent, ProfileReadyEvent, QuestionReadyEvent, ProfilingCompleteEvent } from './events';
+import type { NewMessageEvent, TypingEvent, ReactionEvent, NewWaveEvent, WaveRespondedEvent, AnalysisReadyEvent, NearbyChangedEvent, ProfileReadyEvent, QuestionReadyEvent, ProfilingCompleteEvent, GroupMemberEvent, GroupUpdatedEvent, TopicEvent, GroupInvitedEvent } from './events';
 
 export interface WSData {
   userId: string | null;
@@ -179,6 +179,36 @@ ee.on('profilingComplete', (event: ProfilingCompleteEvent) => {
   broadcastToUser(event.userId, {
     type: 'profilingComplete',
     sessionId: event.sessionId,
+  });
+});
+
+// Group events
+ee.on('groupMember', (event: GroupMemberEvent) => {
+  broadcastToConversation(event.conversationId, {
+    type: 'groupMember',
+    ...event,
+  });
+});
+
+ee.on('groupUpdated', (event: GroupUpdatedEvent) => {
+  broadcastToConversation(event.conversationId, {
+    type: 'groupUpdated',
+    ...event,
+  });
+});
+
+ee.on('topicEvent', (event: TopicEvent) => {
+  broadcastToConversation(event.conversationId, {
+    type: 'topicEvent',
+    ...event,
+  });
+});
+
+ee.on('groupInvited', (event: GroupInvitedEvent) => {
+  broadcastToUser(event.userId, {
+    type: 'groupInvited',
+    conversationId: event.conversationId,
+    groupName: event.groupName,
   });
 });
 

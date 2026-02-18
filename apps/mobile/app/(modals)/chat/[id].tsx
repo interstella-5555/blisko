@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { ReactionPicker } from '../../../src/components/chat/ReactionPicker';
 import { useTypingIndicator } from '../../../src/lib/ws';
 import { useConversationsStore } from '../../../src/stores/conversationsStore';
 import { useMessagesStore, type EnrichedMessage } from '../../../src/stores/messagesStore';
+import { useProfilesStore } from '../../../src/stores/profilesStore';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { Avatar } from '../../../src/components/ui/Avatar';
@@ -26,8 +27,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { colors, fonts, spacing } from '../../../src/theme';
 
+// Deterministic color from userId hash for group sender labels
+const SENDER_COLORS = [
+  '#C0392B', '#2980B9', '#27AE60', '#8E44AD',
+  '#D35400', '#16A085', '#2C3E50', '#E67E22',
+];
+function getSenderColor(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = ((hash << 5) - hash + userId.charCodeAt(i)) | 0;
+  }
+  return SENDER_COLORS[Math.abs(hash) % SENDER_COLORS.length];
+}
+
 export default function ChatScreen() {
-  const { id: conversationId } = useLocalSearchParams<{ id: string }>();
+  const { id: conversationId, topicId } = useLocalSearchParams<{
+    id: string;
+    topicId?: string;
+  }>();
   const userId = useAuthStore((state) => state.user?.id);
   const flatListRef = useRef<FlatList>(null);
 
@@ -39,11 +56,14 @@ export default function ChatScreen() {
 
   const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
 
-  // Get other participant from conversations store (no extra tRPC query needed)
+  // Get conversation from store — detect group mode
   const storeConversation = useConversationsStore((s) =>
     s.conversations.find((c) => c.id === conversationId)
   );
-  const participantName = storeConversation?.participant?.displayName ?? 'Czat';
+  const isGroup = storeConversation?.type === 'group';
+  const participantName = isGroup
+    ? storeConversation?.groupName ?? 'Grupa'
+    : storeConversation?.participant?.displayName ?? 'Czat';
 
   // Read messages from store (instant if cached from prefetch or previous visit)
   const cached = useMessagesStore((s) => s.chats.get(conversationId!));
@@ -57,7 +77,7 @@ export default function ChatScreen() {
     isFetchingNextPage,
     isLoading,
   } = trpc.messages.getMessages.useInfiniteQuery(
-    { conversationId: conversationId!, limit: 50 },
+    { conversationId: conversationId!, topicId, limit: 50 },
     {
       enabled: !!conversationId,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -83,11 +103,14 @@ export default function ChatScreen() {
       type: msg.type ?? 'text',
       metadata: msg.metadata ?? null,
       replyToId: msg.replyToId ?? null,
+      topicId: msg.topicId ?? null,
       createdAt: msg.createdAt?.toISOString?.() ?? String(msg.createdAt),
       readAt: msg.readAt ? (msg.readAt.toISOString?.() ?? String(msg.readAt)) : null,
       deletedAt: msg.deletedAt ? (msg.deletedAt.toISOString?.() ?? String(msg.deletedAt)) : null,
       replyTo: msg.replyTo ?? null,
       reactions: msg.reactions ?? [],
+      senderName: msg.senderName ?? null,
+      senderAvatarUrl: msg.senderAvatarUrl ?? null,
     });
 
     if (pagesLoadedRef.current === 0) {
@@ -137,7 +160,7 @@ export default function ChatScreen() {
 
   // Typing indicators
   // (WS message & reaction updates are handled globally by _layout.tsx → messagesStore)
-  const { isTyping: someoneTyping, sendTyping } = useTypingIndicator(conversationId);
+  const { isTyping: someoneTyping, typingUserIds, sendTyping } = useTypingIndicator(conversationId);
 
   // Mark as read on open + cleanup to sync server state before leaving
   const markAsRead = trpc.messages.markAsRead.useMutation();
@@ -238,9 +261,10 @@ export default function ChatScreen() {
         conversationId,
         content: text,
         replyToId,
+        topicId,
       });
     },
-    [conversationId, sendMessage]
+    [conversationId, topicId, sendMessage]
   );
 
   const handleLoadMore = useCallback(() => {
@@ -363,6 +387,19 @@ export default function ChatScreen() {
     }
   }, [conversationId, sendMessage]);
 
+  // Resolve typing user names for groups
+  const typingDisplayNames = useMemo(() => {
+    if (!isGroup) return [];
+    return typingUserIds.map((uid) => {
+      const profile = useProfilesStore.getState().get(uid);
+      return profile?.displayName ?? 'Ktoś';
+    });
+  }, [isGroup, typingUserIds]);
+
+  const headerAvatarUrl = isGroup
+    ? storeConversation?.groupAvatarUrl
+    : storeConversation?.participant?.avatarUrl;
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -374,16 +411,38 @@ export default function ChatScreen() {
           header: () => (
             <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
               <View style={styles.header}>
-                <Pressable onPress={() => router.back()} style={styles.headerLeft} hitSlop={8}>
+                <Pressable
+                  onPress={() => router.back()}
+                  style={styles.headerBack}
+                  hitSlop={8}
+                >
                   <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
                     <Path d="M15 19l-7-7 7-7" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                   </Svg>
+                </Pressable>
+                <Pressable
+                  style={styles.headerLeft}
+                  onPress={
+                    isGroup
+                      ? () => router.push(`/(modals)/group/${conversationId}`)
+                      : undefined
+                  }
+                >
                   <Avatar
-                    uri={storeConversation?.participant?.avatarUrl}
+                    uri={headerAvatarUrl}
                     name={participantName}
                     size={32}
                   />
-                  <Text style={styles.headerName} numberOfLines={1}>{participantName}</Text>
+                  <View>
+                    <Text style={styles.headerName} numberOfLines={1}>
+                      {participantName}
+                    </Text>
+                    {isGroup && storeConversation?.memberCount != null && (
+                      <Text style={styles.headerSubtitle}>
+                        {storeConversation.memberCount} członków
+                      </Text>
+                    )}
+                  </View>
                 </Pressable>
               </View>
             </SafeAreaView>
@@ -399,16 +458,38 @@ export default function ChatScreen() {
         renderItem={({ item, index }) => {
           const isMine = item.senderId === userId;
           const { position, isLastInGroup } = getGroupInfo(index);
-          const avatarUrl = storeConversation?.participant?.avatarUrl ?? undefined;
+
+          // For groups: use sender-specific avatar; for DMs: use other participant's avatar
+          const avatarUrl = isGroup
+            ? item.senderAvatarUrl ?? undefined
+            : storeConversation?.participant?.avatarUrl ?? undefined;
+
+          const senderName = isGroup
+            ? item.senderName ?? 'Użytkownik'
+            : participantName;
+
+          // In groups, show sender name label above first message in a group from this sender
+          const showSenderLabel =
+            isGroup &&
+            !isMine &&
+            (position === 'first' || position === 'solo');
 
           // Add spacing between groups from different senders
-          // In inverted list: index - 1 = newer (below), so we add top margin
-          // when the message above (index + 1, older) is from a different sender
           const above = allMessages[index + 1];
           const senderSwitch = above && above.senderId !== item.senderId;
 
           return (
             <View style={senderSwitch ? styles.groupGap : undefined}>
+              {showSenderLabel && (
+                <Text
+                  style={[
+                    styles.senderLabel,
+                    { color: getSenderColor(item.senderId) },
+                  ]}
+                >
+                  {senderName}
+                </Text>
+              )}
               <MessageBubble
                 content={item.content}
                 type={item.type as 'text' | 'image' | 'location'}
@@ -422,13 +503,13 @@ export default function ChatScreen() {
                 position={position}
                 showAvatar={!isMine && (position === 'last' || position === 'solo')}
                 avatarUrl={avatarUrl}
-                senderName={participantName}
+                senderName={senderName}
                 onLongPress={() =>
                   handleLongPress(
                     item.id,
                     isMine,
                     item.content,
-                    participantName
+                    senderName
                   )
                 }
                 onReactionPress={(emoji) => handleReactionPress(item.id, emoji)}
@@ -438,7 +519,7 @@ export default function ChatScreen() {
                   <Text style={styles.groupTimeText}>
                     {new Date(item.createdAt as unknown as string).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
                   </Text>
-                  {isMine && (
+                  {isMine && !isGroup && (
                     <Text style={[styles.receipt, item.readAt ? styles.receiptRead : styles.receiptSent]}>
                       {item.readAt ? '✓✓' : '✓'}
                     </Text>
@@ -470,7 +551,11 @@ export default function ChatScreen() {
 
       {someoneTyping && (
         <View style={styles.typingBar}>
-          <Text style={styles.typingText}>pisze...</Text>
+          <Text style={styles.typingText}>
+            {isGroup && typingDisplayNames.length > 0
+              ? `${typingDisplayNames.join(', ')} pisze...`
+              : 'pisze...'}
+          </Text>
         </View>
       )}
 
@@ -520,6 +605,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.section,
     height: 58,
   },
+  headerBack: {
+    marginRight: 4,
+  },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -530,7 +618,19 @@ const styles = StyleSheet.create({
     fontFamily: fonts.serif,
     fontSize: 16,
     color: colors.ink,
-    maxWidth: 160,
+    maxWidth: 200,
+  },
+  headerSubtitle: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.muted,
+  },
+  senderLabel: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 11,
+    marginLeft: 34,
+    marginBottom: 2,
+    marginTop: 2,
   },
   groupGap: {
     marginTop: spacing.tight,

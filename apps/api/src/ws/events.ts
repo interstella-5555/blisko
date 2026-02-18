@@ -14,10 +14,13 @@ export interface NewMessageEvent {
     type: string;
     metadata: Record<string, unknown> | null;
     replyToId: string | null;
+    topicId: string | null;
     createdAt: Date;
     readAt: Date | null;
     deletedAt: Date | null;
   };
+  senderName?: string | null;
+  senderAvatarUrl?: string | null;
 }
 
 export interface TypingEvent {
@@ -78,4 +81,33 @@ export interface QuestionReadyEvent {
 export interface ProfilingCompleteEvent {
   userId: string;
   sessionId: string;
+}
+
+export interface GroupMemberEvent {
+  conversationId: string;
+  userId: string;
+  action: 'joined' | 'left' | 'removed' | 'roleChanged';
+  role?: string;
+  displayName?: string;
+}
+
+export interface GroupUpdatedEvent {
+  conversationId: string;
+  updates: {
+    name?: string;
+    description?: string;
+    avatarUrl?: string | null;
+  };
+}
+
+export interface TopicEvent {
+  conversationId: string;
+  topic: { id: string; name: string; emoji: string | null };
+  action: 'created' | 'updated' | 'deleted' | 'closed';
+}
+
+export interface GroupInvitedEvent {
+  userId: string;
+  conversationId: string;
+  groupName: string | null;
 }

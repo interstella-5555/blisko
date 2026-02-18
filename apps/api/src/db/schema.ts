@@ -124,11 +124,36 @@ export const waves = pgTable(
 );
 
 // Conversations
-export const conversations = pgTable('conversations', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+export const conversations = pgTable(
+  'conversations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    type: varchar('type', { length: 10 }).notNull().default('dm'),
+    name: varchar('name', { length: 100 }),
+    description: text('description'),
+    avatarUrl: text('avatar_url'),
+    inviteCode: varchar('invite_code', { length: 20 }).unique(),
+    creatorId: text('creator_id').references(() => user.id),
+    maxMembers: integer('max_members').default(200),
+    latitude: real('latitude'),
+    longitude: real('longitude'),
+    isDiscoverable: boolean('is_discoverable').default(false),
+    discoveryRadiusMeters: integer('discovery_radius_meters').default(5000),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    typeIdx: index('conversations_type_idx').on(table.type),
+    inviteCodeIdx: index('conversations_invite_code_idx').on(table.inviteCode),
+    locationIdx: index('conversations_location_idx').on(
+      table.latitude,
+      table.longitude
+    ),
+    discoverableIdx: index('conversations_discoverable_idx').on(
+      table.isDiscoverable
+    ),
+  })
+);
 
 // Conversation participants
 export const conversationParticipants = pgTable(
@@ -140,12 +165,45 @@ export const conversationParticipants = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id),
+    role: varchar('role', { length: 10 }).notNull().default('member'),
+    mutedUntil: timestamp('muted_until'),
+    lastReadAt: timestamp('last_read_at'),
     joinedAt: timestamp('joined_at').defaultNow().notNull(),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.conversationId, table.userId] }),
     conversationIdx: index('cp_conversation_idx').on(table.conversationId),
     userIdx: index('cp_user_idx').on(table.userId),
+  })
+);
+
+// Topics (for group conversations)
+export const topics = pgTable(
+  'topics',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 100 }).notNull(),
+    emoji: varchar('emoji', { length: 8 }),
+    creatorId: text('creator_id').references(() => user.id),
+    isPinned: boolean('is_pinned').default(false),
+    isClosed: boolean('is_closed').default(false),
+    sortOrder: integer('sort_order').default(0),
+    lastMessageAt: timestamp('last_message_at'),
+    messageCount: integer('message_count').default(0),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    conversationIdx: index('topics_conversation_idx').on(
+      table.conversationId
+    ),
+    sortIdx: index('topics_sort_idx').on(
+      table.conversationId,
+      table.isPinned,
+      table.sortOrder
+    ),
   })
 );
 
@@ -160,6 +218,9 @@ export const messages = pgTable(
     senderId: text('sender_id')
       .notNull()
       .references(() => user.id),
+    topicId: uuid('topic_id').references(() => topics.id, {
+      onDelete: 'set null',
+    }),
     content: text('content').notNull(),
     type: varchar('type', { length: 20 }).notNull().default('text'),
     metadata: jsonb('metadata'),
@@ -174,6 +235,7 @@ export const messages = pgTable(
     ),
     senderIdx: index('messages_sender_idx').on(table.senderId),
     createdAtIdx: index('messages_created_at_idx').on(table.createdAt),
+    topicIdx: index('messages_topic_idx').on(table.topicId),
   })
 );
 
@@ -337,10 +399,18 @@ export const wavesRelations = relations(waves, ({ one }) => ({
   }),
 }));
 
-export const conversationsRelations = relations(conversations, ({ many }) => ({
-  participants: many(conversationParticipants),
-  messages: many(messages),
-}));
+export const conversationsRelations = relations(
+  conversations,
+  ({ one, many }) => ({
+    creator: one(user, {
+      fields: [conversations.creatorId],
+      references: [user.id],
+    }),
+    participants: many(conversationParticipants),
+    messages: many(messages),
+    topics: many(topics),
+  })
+);
 
 export const conversationParticipantsRelations = relations(
   conversationParticipants,
@@ -356,6 +426,18 @@ export const conversationParticipantsRelations = relations(
   })
 );
 
+export const topicsRelations = relations(topics, ({ one, many }) => ({
+  conversation: one(conversations, {
+    fields: [topics.conversationId],
+    references: [conversations.id],
+  }),
+  creator: one(user, {
+    fields: [topics.creatorId],
+    references: [user.id],
+  }),
+  messages: many(messages),
+}));
+
 export const messagesRelations = relations(messages, ({ one, many }) => ({
   conversation: one(conversations, {
     fields: [messages.conversationId],
@@ -364,6 +446,10 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
   sender: one(user, {
     fields: [messages.senderId],
     references: [user.id],
+  }),
+  topic: one(topics, {
+    fields: [messages.topicId],
+    references: [topics.id],
   }),
   replyTo: one(messages, {
     fields: [messages.replyToId],
