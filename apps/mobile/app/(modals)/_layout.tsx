@@ -31,12 +31,16 @@ export default function ModalsLayout() {
           options={{ title: 'Nowy profil' }}
         />
         <Stack.Screen
+          name="chat/[id]"
+          options={{ title: 'Czat', headerBackTitle: 'Wróć' }}
+        />
+        <Stack.Screen
           name="create-group"
           options={{ title: 'Nowa grupa' }}
         />
         <Stack.Screen
           name="group/[id]"
-          options={{ title: 'Grupa' }}
+          options={{ title: 'Grupa', headerBackTitle: 'Wróć' }}
         />
       </Stack>
       <NotificationOverlay />
