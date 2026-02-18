@@ -34,10 +34,13 @@ importers:
         version: 6.0.86(zod@3.25.76)
       better-auth:
         specifier: ^1.4.17
-        version: 1.4.17(@tanstack/react-start@1.158.1(crossws@0.4.4(srvx@0.11.5))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vite@5.4.21(@types/node@20.19.30)(lightningcss@1.31.1)(terser@5.46.0)))(drizzle-kit@0.31.8)(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(bun-types@1.3.9)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8))(pg@8.17.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.11)(vitest@2.1.9(@types/node@20.19.30)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0))
+        version: 1.4.17(@tanstack/react-start@1.158.1(crossws@0.4.4(srvx@0.11.5))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vite@5.4.21(@types/node@20.19.30)(lightningcss@1.31.1)(terser@5.46.0)))(drizzle-kit@0.31.9)(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(bun-types@1.3.9)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8))(pg@8.17.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.11)(vitest@2.1.9(@types/node@20.19.30)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0))
       bullmq:
         specifier: ^5.69.2
         version: 5.69.2
+      drizzle-kit:
+        specifier: ^0.31.9
+        version: 0.31.9
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@opentelemetry/api@1.9.0)(bun-types@1.3.9)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8)
@@ -63,9 +66,6 @@ importers:
       '@types/node':
         specifier: ^20.14.0
         version: 20.19.30
-      drizzle-kit:
-        specifier: ^0.31.8
-        version: 0.31.8
       tsx:
         specifier: ^4.16.0
         version: 4.21.0
@@ -1650,7 +1650,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {node: '>=0.10.0'}
+    engines: {'0': node >=0.10.0}
 
   '@expo/cli@54.0.22':
     resolution: {integrity: sha512-BTH2FCczhJLfj1cpfcKrzhKnvRLTOztgW4bVloKDqH+G3ZSohWLRFNAIz56XtdjPxBbi2/qWhGBAkl7kBon/Jw==}
@@ -4551,6 +4551,10 @@ packages:
 
   drizzle-kit@0.31.8:
     resolution: {integrity: sha512-O9EC/miwdnRDY10qRxM8P3Pg8hXe3LyU4ZipReKOgTwn4OqANmftj8XJz1UPUAS6NMHf0E2htjsbQujUTkncCg==}
+    hasBin: true
+
+  drizzle-kit@0.31.9:
+    resolution: {integrity: sha512-GViD3IgsXn7trFyBUUHyTFBpH/FsHTxYJ66qdbVggxef4UBPHRYxQaRzYLTuekYnk9i5FIEL9pbBIwMqX/Uwrg==}
     hasBin: true
 
   drizzle-orm@0.45.1:
@@ -12587,7 +12591,7 @@ snapshots:
       solid-js: 1.9.11
       vitest: 2.1.9(@types/node@22.19.9)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)
 
-  better-auth@1.4.17(@tanstack/react-start@1.158.1(crossws@0.4.4(srvx@0.11.5))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vite@5.4.21(@types/node@20.19.30)(lightningcss@1.31.1)(terser@5.46.0)))(drizzle-kit@0.31.8)(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(bun-types@1.3.9)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8))(pg@8.17.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.11)(vitest@2.1.9(@types/node@20.19.30)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)):
+  better-auth@1.4.17(@tanstack/react-start@1.158.1(crossws@0.4.4(srvx@0.11.5))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vite@5.4.21(@types/node@20.19.30)(lightningcss@1.31.1)(terser@5.46.0)))(drizzle-kit@0.31.9)(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(bun-types@1.3.9)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8))(pg@8.17.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.11)(vitest@2.1.9(@types/node@20.19.30)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.31.1)(terser@5.46.0)):
     dependencies:
       '@better-auth/core': 1.4.17(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.3)(kysely@0.28.10)(nanostores@1.1.0)
       '@better-auth/telemetry': 1.4.17(@better-auth/core@1.4.17(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.3)(kysely@0.28.10)(nanostores@1.1.0))
@@ -12603,7 +12607,7 @@ snapshots:
       zod: 4.3.6
     optionalDependencies:
       '@tanstack/react-start': 1.158.1(crossws@0.4.4(srvx@0.11.5))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vite@5.4.21(@types/node@20.19.30)(lightningcss@1.31.1)(terser@5.46.0))
-      drizzle-kit: 0.31.8
+      drizzle-kit: 0.31.9
       drizzle-orm: 0.45.1(@opentelemetry/api@1.9.0)(bun-types@1.3.9)(kysely@0.28.10)(pg@8.17.2)(postgres@3.4.8)
       pg: 8.17.2
       react: 19.2.4
@@ -13340,6 +13344,16 @@ snapshots:
   dotenv@16.4.7: {}
 
   drizzle-kit@0.31.8:
+    dependencies:
+      '@drizzle-team/brocli': 0.10.2
+      '@esbuild-kit/esm-loader': 2.6.5
+      esbuild: 0.25.12
+      esbuild-register: 3.6.0(esbuild@0.25.12)
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
+
+  drizzle-kit@0.31.9:
     dependencies:
       '@drizzle-team/brocli': 0.10.2
       '@esbuild-kit/esm-loader': 2.6.5
