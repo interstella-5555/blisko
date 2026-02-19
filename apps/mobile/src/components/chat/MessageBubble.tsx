@@ -1,10 +1,11 @@
+import { forwardRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, Linking, Platform, type ViewStyle } from 'react-native';
 import { Avatar } from '../ui/Avatar';
 import { colors, fonts, spacing } from '../../theme';
 
 export type BubblePosition = 'solo' | 'first' | 'mid' | 'last';
 
-interface MessageBubbleProps {
+export interface MessageBubbleProps {
   content: string;
   type?: 'text' | 'image' | 'location';
   metadata?: Record<string, unknown> | null;
@@ -21,6 +22,7 @@ interface MessageBubbleProps {
   showAvatar?: boolean;
   avatarUrl?: string;
   senderName?: string;
+  hidden?: boolean;
   onLongPress?: () => void;
   onReactionPress?: (emoji: string) => void;
   onReplyPress?: () => void;
@@ -43,7 +45,7 @@ const theirsRadii: Record<BubblePosition, ViewStyle> = {
   last: { borderTopLeftRadius: RADIUS_SMALL, borderTopRightRadius: RADIUS, borderBottomRightRadius: RADIUS, borderBottomLeftRadius: RADIUS },
 };
 
-export function MessageBubble({
+export const MessageBubble = forwardRef<View, MessageBubbleProps>(function MessageBubble({
   content,
   type = 'text',
   metadata,
@@ -55,9 +57,10 @@ export function MessageBubble({
   showAvatar,
   avatarUrl,
   senderName,
+  hidden,
   onLongPress,
   onReactionPress,
-}: MessageBubbleProps) {
+}, ref) {
   if (deletedAt) {
     return (
       <View style={[styles.bubble, styles.bubbleDeleted]} testID="message-deleted">
@@ -109,7 +112,7 @@ export function MessageBubble({
   );
 
   return (
-    <View style={[styles.wrapper, isMine ? styles.wrapperMine : styles.wrapperTheirs]} testID="message-bubble">
+    <View ref={ref} style={[styles.wrapper, isMine ? styles.wrapperMine : styles.wrapperTheirs, hidden && styles.hidden]} testID="message-bubble">
       {!isMine ? (
         <View style={styles.messageRow}>
           {showAvatar ? (
@@ -140,7 +143,7 @@ export function MessageBubble({
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -152,6 +155,9 @@ const styles = StyleSheet.create({
   },
   wrapperTheirs: {
     alignSelf: 'flex-start',
+  },
+  hidden: {
+    opacity: 0,
   },
   messageRow: {
     flexDirection: 'row',

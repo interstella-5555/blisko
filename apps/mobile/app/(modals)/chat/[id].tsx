@@ -9,13 +9,16 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
+  Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import { trpc } from '../../../src/lib/trpc';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { MessageBubble, type BubblePosition } from '../../../src/components/chat/MessageBubble';
 import { ChatInput } from '../../../src/components/chat/ChatInput';
-import { ReactionPicker } from '../../../src/components/chat/ReactionPicker';
+import { MessageContextMenu, type ContextMenuData } from '../../../src/components/chat/MessageContextMenu';
 import { useTypingIndicator } from '../../../src/lib/ws';
 import { useConversationsStore } from '../../../src/stores/conversationsStore';
 import { useMessagesStore, type EnrichedMessage } from '../../../src/stores/messagesStore';
@@ -54,7 +57,8 @@ export default function ChatScreen() {
     senderName: string;
   } | null>(null);
 
-  const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuData | null>(null);
+  const messageRefs = useRef(new Map<string, View>());
 
   // Get conversation from store — detect group mode
   const storeConversation = useConversationsStore((s) =>
@@ -274,40 +278,30 @@ export default function ChatScreen() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleLongPress = useCallback(
-    (messageId: string, isMine: boolean, content: string, senderName: string) => {
-      const options: { text: string; onPress: () => void; style?: 'destructive' | 'cancel' }[] = [
-        {
-          text: 'Reaguj',
-          onPress: () => setReactionPickerMessageId(messageId),
-        },
-        {
-          text: 'Odpowiedz',
-          onPress: () => setReplyingTo({ id: messageId, content, senderName }),
-        },
-      ];
+    (messageId: string, isMine: boolean, bubbleProps: ContextMenuData['bubbleProps']) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      if (isMine) {
-        options.push({
-          text: 'Usuń',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Usuń wiadomość', 'Czy na pewno chcesz usunąć tę wiadomość?', [
-              { text: 'Anuluj', style: 'cancel' },
-              {
-                text: 'Usuń',
-                style: 'destructive',
-                onPress: () => deleteMessage.mutate({ messageId }),
-              },
-            ]);
-          },
+      const viewRef = messageRefs.current.get(messageId);
+      if (!viewRef) return;
+
+      const keyboardVisible = Keyboard.isVisible?.() ?? false;
+      if (keyboardVisible) Keyboard.dismiss();
+
+      const delay = keyboardVisible ? (Platform.OS === 'ios' ? 350 : 100) : 0;
+
+      setTimeout(() => {
+        viewRef.measureInWindow((x, y, width, height) => {
+          if (width === 0 && height === 0) return;
+          setContextMenu({
+            messageId,
+            isMine,
+            layout: { x, y, width, height },
+            bubbleProps,
+          });
         });
-      }
-
-      options.push({ text: 'Anuluj', style: 'cancel', onPress: () => {} });
-
-      Alert.alert('', '', options);
+      }, delay);
     },
-    [deleteMessage]
+    []
   );
 
   const handleReactionPress = useCallback(
@@ -455,6 +449,7 @@ export default function ChatScreen() {
         testID="message-list"
         data={allMessages}
         keyExtractor={(item) => item.id}
+        scrollEnabled={!contextMenu}
         renderItem={({ item, index }) => {
           const isMine = item.senderId === userId;
           const { position, isLastInGroup } = getGroupInfo(index);
@@ -491,6 +486,10 @@ export default function ChatScreen() {
                 </Text>
               )}
               <MessageBubble
+                ref={(ref: View | null) => {
+                  if (ref) messageRefs.current.set(item.id, ref);
+                  else messageRefs.current.delete(item.id);
+                }}
                 content={item.content}
                 type={item.type as 'text' | 'image' | 'location'}
                 metadata={item.metadata}
@@ -504,13 +503,26 @@ export default function ChatScreen() {
                 showAvatar={!isMine && (position === 'last' || position === 'solo')}
                 avatarUrl={avatarUrl}
                 senderName={senderName}
-                onLongPress={() =>
-                  handleLongPress(
-                    item.id,
-                    isMine,
-                    item.content,
-                    senderName
-                  )
+                hidden={contextMenu?.messageId === item.id}
+                onLongPress={
+                  item.deletedAt
+                    ? undefined
+                    : () =>
+                        handleLongPress(item.id, isMine, {
+                          content: item.content,
+                          type: item.type as 'text' | 'image' | 'location',
+                          metadata: item.metadata,
+                          isMine,
+                          createdAt: item.createdAt as unknown as string,
+                          readAt: item.readAt as unknown as string | null,
+                          deletedAt: item.deletedAt as unknown as string | null,
+                          replyTo: item.replyTo,
+                          reactions: item.reactions,
+                          position,
+                          showAvatar: !isMine && (position === 'last' || position === 'solo'),
+                          avatarUrl,
+                          senderName,
+                        })
                 }
                 onReactionPress={(emoji) => handleReactionPress(item.id, emoji)}
               />
@@ -568,15 +580,42 @@ export default function ChatScreen() {
         onTyping={() => sendTyping(true)}
       />
 
-      <ReactionPicker
-        visible={!!reactionPickerMessageId}
-        onSelect={(emoji) => {
-          if (reactionPickerMessageId) {
-            reactToMessage.mutate({ messageId: reactionPickerMessageId, emoji });
-          }
-        }}
-        onClose={() => setReactionPickerMessageId(null)}
-      />
+      {contextMenu && (
+        <MessageContextMenu
+          data={contextMenu}
+          onReact={(emoji) => {
+            reactToMessage.mutate({ messageId: contextMenu.messageId, emoji });
+          }}
+          onReply={() => {
+            const msg = allMessages.find((m) => m.id === contextMenu.messageId);
+            if (msg) {
+              const name = isGroup
+                ? msg.senderName ?? 'Użytkownik'
+                : participantName;
+              setReplyingTo({ id: msg.id, content: msg.content, senderName: name });
+            }
+          }}
+          onCopy={() => {
+            const msg = allMessages.find((m) => m.id === contextMenu.messageId);
+            if (msg) {
+              Clipboard.setStringAsync(
+                msg.type === 'image' ? '[Zdjęcie]' : msg.content
+              );
+            }
+          }}
+          onDelete={() => {
+            Alert.alert('Usuń wiadomość', 'Czy na pewno chcesz usunąć tę wiadomość?', [
+              { text: 'Anuluj', style: 'cancel' },
+              {
+                text: 'Usuń',
+                style: 'destructive',
+                onPress: () => deleteMessage.mutate({ messageId: contextMenu.messageId }),
+              },
+            ]);
+          }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }

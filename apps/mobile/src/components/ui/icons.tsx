@@ -152,3 +152,31 @@ export function IconSearch({ size = defaultSize, color = defaultColor }: IconPro
     </Svg>
   );
 }
+
+export function IconReply({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Polyline points="9,17 4,12 9,7" />
+      <Path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+    </Svg>
+  );
+}
+
+export function IconCopy({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z" />
+      <Path d="M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
+    </Svg>
+  );
+}
+
+export function IconTrash({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M3 6h18" />
+      <Path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+      <Path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+    </Svg>
+  );
+}

@@ -26,6 +26,8 @@
     "@trpc/react-query": "^11.0.0-rc.0",
     "better-auth": "^1.4.17",
     "expo": "~54.0.32",
+    "expo-blur": "~15.0.8",
+    "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.13",
     "expo-dev-client": "^6.0.20",
     "expo-font": "^14.0.11",
