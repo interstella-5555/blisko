@@ -8,7 +8,6 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MessageBubble, type MessageBubbleProps } from './MessageBubble';
 import { IconReply, IconCopy, IconTrash } from '../ui/icons';
@@ -178,11 +177,6 @@ export function MessageContextMenu({
       {/* Backdrop */}
       <Pressable style={StyleSheet.absoluteFill} onPress={() => dismiss()}>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: backdropAnim }]}>
-          <BlurView
-            intensity={Platform.OS === 'ios' ? 40 : 0}
-            tint="light"
-            style={StyleSheet.absoluteFill}
-          />
           <View style={styles.dimLayer} />
         </Animated.View>
       </Pressable>
@@ -299,7 +293,7 @@ const styles = StyleSheet.create({
   },
   dimLayer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(26, 26, 26, 0.15)',
+    backgroundColor: 'rgba(26, 26, 26, 0.4)',
   },
   floatingMessage: {
     position: 'absolute',
