@@ -1,4 +1,4 @@
-export const GPT_MODEL = 'gpt-4.1';
+export const GPT_MODEL = 'gpt-5-mini';
 export const EMBEDDING_MODEL = 'text-embedding-3-small';
 
 export interface OnboardingQuestion {
