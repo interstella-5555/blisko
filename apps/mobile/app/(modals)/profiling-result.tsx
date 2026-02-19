@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,15 @@ import {
   ScrollView,
   Pressable,
   Switch,
-  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { trpc } from '../../src/lib/trpc';
+import { useWebSocket } from '../../src/lib/ws';
 import { useOnboardingStore } from '../../src/stores/onboardingStore';
 import { useAuthStore } from '../../src/stores/authStore';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Button } from '../../src/components/ui/Button';
+import { ThinkingIndicator } from '../../src/components/ui/ThinkingIndicator';
 
 export default function ProfilingResultModal() {
   const { profilingSessionId } = useOnboardingStore();
@@ -30,6 +31,7 @@ export default function ProfilingResultModal() {
   const [portraitExpanded, setPortraitExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [isGenerating, setIsGenerating] = useState(true);
 
   const utils = trpc.useUtils();
   const sessionState = trpc.profiling.getSessionState.useQuery(
@@ -39,14 +41,40 @@ export default function ProfilingResultModal() {
 
   const applyProfile = trpc.profiling.applyProfile.useMutation();
 
+  // Load generated profile data when session completes
   useEffect(() => {
     if (sessionState.data?.session) {
       const s = sessionState.data.session;
-      if (s.generatedBio) setBio(s.generatedBio);
-      if (s.generatedLookingFor) setLookingFor(s.generatedLookingFor);
-      if (s.generatedPortrait) setPortrait(s.generatedPortrait);
+      if (s.generatedBio && s.generatedLookingFor) {
+        setBio(s.generatedBio);
+        setLookingFor(s.generatedLookingFor);
+        if (s.generatedPortrait) setPortrait(s.generatedPortrait);
+        setIsGenerating(false);
+      }
     }
   }, [sessionState.data]);
+
+  // Listen for WS event when profile generation completes
+  const handleWsMessage = useCallback(
+    (msg: any) => {
+      if (!profilingSessionId) return;
+      if (msg.type === 'profilingComplete' && msg.sessionId === profilingSessionId) {
+        sessionState.refetch();
+      }
+    },
+    [profilingSessionId, sessionState]
+  );
+
+  useWebSocket(handleWsMessage);
+
+  // Fallback polling every 5s while generating
+  useEffect(() => {
+    if (!isGenerating || !profilingSessionId) return;
+    const interval = setInterval(() => {
+      sessionState.refetch();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isGenerating, profilingSessionId, sessionState]);
 
   const handleApply = async () => {
     if (!profilingSessionId || !profile) return;
@@ -66,16 +94,23 @@ export default function ProfilingResultModal() {
       router.dismiss();
     } catch (err) {
       console.error('Failed to apply profile:', err);
-      setError('Nie udalo sie zapisac profilu. Sprobuj ponownie.');
+      setError('Nie udało się zapisać profilu. Spróbuj ponownie.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (sessionState.isLoading) {
+  // Show generating indicator while waiting for AI
+  if (isGenerating) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={colors.accent} />
+        <ThinkingIndicator
+          messages={[
+            'Generuję Twój profil…',
+            'Analizuję Twoje odpowiedzi…',
+            'Jeszcze chwilka…',
+          ]}
+        />
       </View>
     );
   }
@@ -88,7 +123,7 @@ export default function ProfilingResultModal() {
     >
       <Text style={styles.title}>Nowy profil</Text>
       <Text style={styles.subtitle}>
-        Mozesz edytowac tekst przed zapisaniem
+        Możesz edytować tekst przed zapisaniem
       </Text>
 
       <Text style={styles.label}>O MNIE</Text>
@@ -119,9 +154,9 @@ export default function ProfilingResultModal() {
             onPress={() => setPortraitExpanded(!portraitExpanded)}
             style={styles.portraitHeader}
           >
-            <Text style={styles.label}>PORTRET OSOBOWOSCI</Text>
+            <Text style={styles.label}>PORTRET OSOBOWOŚCI</Text>
             <Text style={typ.caption}>
-              {portraitExpanded ? 'Schowaj' : 'Pokaz'}
+              {portraitExpanded ? 'Schowaj' : 'Pokaż'}
             </Text>
           </Pressable>
           {portraitExpanded && (
@@ -130,7 +165,7 @@ export default function ProfilingResultModal() {
 
           <View style={styles.toggleRow}>
             <Text style={styles.toggleLabel}>
-              Udostepnij portret do lepszego dopasowywania
+              Udostępnij portret do lepszego dopasowywania
             </Text>
             <Switch
               value={portraitShared}

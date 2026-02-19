@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
 import { colors, fonts } from '../../theme';
 
@@ -15,7 +15,6 @@ interface ThinkingIndicatorProps {
 }
 
 // --- Ink Ripple ---
-// Three concentric rings pulse outward from center, staggered
 
 function InkRipple() {
   const ring1 = useRef(new Animated.Value(0)).current;
@@ -27,14 +26,12 @@ function InkRipple() {
       Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
-          Animated.parallel([
-            Animated.timing(val, {
-              toValue: 1,
-              duration: 2000,
-              easing: Easing.out(Easing.cubic),
-              useNativeDriver: true,
-            }),
-          ]),
+          Animated.timing(val, {
+            toValue: 1,
+            duration: 2000,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
           Animated.timing(val, {
             toValue: 0,
             duration: 0,
@@ -78,7 +75,6 @@ function InkRipple() {
 
   return (
     <View style={rippleStyles.container}>
-      {/* Center dot — steady pulse */}
       <CenterDot />
       <Animated.View style={makeRingStyle(ring1)} />
       <Animated.View style={makeRingStyle(ring2)} />
@@ -113,10 +109,7 @@ function CenterDot() {
 
   return (
     <Animated.View
-      style={[
-        rippleStyles.centerDot,
-        { transform: [{ scale }] },
-      ]}
+      style={[rippleStyles.centerDot, { transform: [{ scale }] }]}
     />
   );
 }
@@ -137,7 +130,6 @@ const rippleStyles = StyleSheet.create({
 });
 
 // --- Typewriter Text ---
-// Reveals message character by character, then pauses, then clears and moves to next
 
 function TypewriterText({ messages }: { messages: string[] }) {
   const [msgIndex, setMsgIndex] = useState(0);
@@ -154,13 +146,13 @@ function TypewriterText({ messages }: { messages: string[] }) {
       Animated.sequence([
         Animated.timing(cursorOpacity, {
           toValue: 0,
-          duration: 400,
+          duration: 500,
           easing: Easing.step0,
           useNativeDriver: true,
         }),
         Animated.timing(cursorOpacity, {
           toValue: 1,
-          duration: 400,
+          duration: 500,
           easing: Easing.step0,
           useNativeDriver: true,
         }),
@@ -174,11 +166,10 @@ function TypewriterText({ messages }: { messages: string[] }) {
   useEffect(() => {
     if (phase === 'typing') {
       if (charCount < currentMessage.length) {
-        const delay = 30 + Math.random() * 40; // natural variation
+        const delay = 30 + Math.random() * 40;
         const timer = setTimeout(() => setCharCount((c) => c + 1), delay);
         return () => clearTimeout(timer);
       } else {
-        // Done typing — hold for a while
         setPhase('holding');
       }
     }
@@ -197,7 +188,6 @@ function TypewriterText({ messages }: { messages: string[] }) {
         const timer = setTimeout(() => setCharCount((c) => c - 1), 15);
         return () => clearTimeout(timer);
       } else {
-        // Move to next message
         setMsgIndex((i) => (i + 1) % messages.length);
         setPhase('typing');
       }
@@ -208,10 +198,8 @@ function TypewriterText({ messages }: { messages: string[] }) {
     <View style={typeStyles.container}>
       <Text style={typeStyles.text}>
         {displayText}
-        <Animated.Text style={[typeStyles.cursor, { opacity: cursorOpacity }]}>
-          |
-        </Animated.Text>
       </Text>
+      <Animated.View style={[typeStyles.cursor, { opacity: cursorOpacity }]} />
     </View>
   );
 }
@@ -219,7 +207,9 @@ function TypewriterText({ messages }: { messages: string[] }) {
 const typeStyles = StyleSheet.create({
   container: {
     minHeight: 22,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   text: {
     fontFamily: fonts.serifItalic,
@@ -227,10 +217,10 @@ const typeStyles = StyleSheet.create({
     color: colors.muted,
   },
   cursor: {
-    fontFamily: fonts.sans,
-    fontSize: 15,
-    color: colors.accent,
-    fontWeight: '300',
+    width: 1.5,
+    height: 16,
+    backgroundColor: colors.accent,
+    marginLeft: 2,
   },
 });
 
@@ -240,7 +230,6 @@ export function ThinkingIndicator({ messages = DEFAULT_MESSAGES }: ThinkingIndic
   return (
     <View style={styles.container}>
       <InkRipple />
-      <View style={{ height: 20 }} />
       <TypewriterText messages={messages} />
     </View>
   );
@@ -249,5 +238,6 @@ export function ThinkingIndicator({ messages = DEFAULT_MESSAGES }: ThinkingIndic
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
+    gap: 32,
   },
 });

@@ -1,376 +1,353 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TextInput,
   StyleSheet,
-  Pressable,
-  Animated,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
+  Animated,
+  Pressable,
+  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
+import { ONBOARDING_QUESTIONS } from '@repo/shared';
 import { trpc } from '../../src/lib/trpc';
-import { useWebSocket } from '../../src/lib/ws';
 import { useOnboardingStore } from '../../src/stores/onboardingStore';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Button } from '../../src/components/ui/Button';
 import { ThinkingIndicator } from '../../src/components/ui/ThinkingIndicator';
 
-interface QAItem {
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+type Phase = 'questions' | 'submitting' | 'followups' | 'generating';
+
+interface FollowUp {
+  id: string;
   question: string;
-  suggestions: string[];
-  answer: string | null;
-  sufficient: boolean;
 }
 
 export default function ProfilingModal() {
   const { setProfilingSessionId } = useOnboardingStore();
+
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [currentText, setCurrentText] = useState('');
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [phase, setPhase] = useState<Phase>('questions');
+  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
+  const [followUpIndex, setFollowUpIndex] = useState(0);
+  const [followUpText, setFollowUpText] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [questions, setQuestions] = useState<QAItem[]>([]);
-  const [currentAnswer, setCurrentAnswer] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSufficientUI, setShowSufficientUI] = useState(false);
-  const [extraQuestionsRemaining, setExtraQuestionsRemaining] = useState(5);
-  const [directionHint, setDirectionHint] = useState('');
-  const [showDirectionInput, setShowDirectionInput] = useState(false);
   const [error, setError] = useState('');
-  const [answerError, setAnswerError] = useState('');
+
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const hasStarted = useRef(false);
+  const inputRef = useRef<TextInput>(null);
 
-  const startSession = trpc.profiling.startSession.useMutation();
-  const answerQuestion = trpc.profiling.answerQuestion.useMutation();
-  const requestMore = trpc.profiling.requestMoreQuestions.useMutation();
+  const submitOnboarding = trpc.profiling.submitOnboarding.useMutation();
+  const answerFollowUp = trpc.profiling.answerFollowUp.useMutation();
   const completeSession = trpc.profiling.completeSession.useMutation();
-  const getSessionState = trpc.profiling.getSessionState.useQuery(
-    { sessionId: sessionId! },
-    { enabled: false }
-  );
 
-  const getSessionStateRef = useRef(getSessionState);
-  getSessionStateRef.current = getSessionState;
+  const totalQuestions = ONBOARDING_QUESTIONS.length;
+  const currentQuestion = ONBOARDING_QUESTIONS[questionIndex];
 
-  const refreshSessionState = useCallback(() => {
-    getSessionStateRef.current.refetch().then(({ data }) => {
-      if (!data) return;
-      const items: QAItem[] = data.questions.map((q: any) => ({
-        question: q.question,
-        suggestions: q.suggestions ?? [],
-        answer: q.answer,
-        sufficient: q.sufficient,
-      }));
-      setQuestions(items);
-      setIsLoading(false);
-      setIsSubmitting(false);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [questionIndex, followUpIndex, phase]);
 
-      const latest = items[items.length - 1];
-      if (latest && !latest.answer && latest.sufficient) {
-        setShowSufficientUI(true);
-      } else {
-        setShowSufficientUI(false);
-      }
-
-      slideAnim.setValue(300);
+  const animateSlide = (direction: 'forward' | 'back', callback: () => void) => {
+    const toValue = direction === 'forward' ? -SCREEN_WIDTH : SCREEN_WIDTH;
+    Animated.timing(slideAnim, {
+      toValue,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      callback();
+      slideAnim.setValue(direction === 'forward' ? SCREEN_WIDTH : -SCREEN_WIDTH);
       Animated.spring(slideAnim, {
         toValue: 0,
         damping: 20,
         useNativeDriver: true,
       }).start();
     });
-  }, [slideAnim]);
+  };
 
-  const handleWsMessage = useCallback(
-    (msg: any) => {
-      if (!sessionId) return;
+  const handleNext = () => {
+    if (!currentQuestion) return;
+    const trimmed = currentText.trim();
+    if (!trimmed && currentQuestion.required) return;
 
-      if (msg.type === 'questionReady' && msg.sessionId === sessionId) {
-        refreshSessionState();
-      }
+    const newAnswers = trimmed
+      ? { ...answers, [currentQuestion.id]: trimmed }
+      : answers;
+    setAnswers(newAnswers);
 
-      if (msg.type === 'profilingComplete' && msg.sessionId === sessionId) {
-        router.replace('/(modals)/profiling-result');
-      }
-    },
-    [sessionId, refreshSessionState]
-  );
-
-  useWebSocket(handleWsMessage);
-
-  useEffect(() => {
-    if (!isSubmitting && !isLoading) return;
-    if (!sessionId) return;
-    const timeout = setTimeout(() => {
-      refreshSessionState();
-    }, 15000);
-    return () => clearTimeout(timeout);
-  }, [isSubmitting, isLoading, sessionId, refreshSessionState]);
-
-  useEffect(() => {
-    if (hasStarted.current) return;
-    hasStarted.current = true;
-
-    startSession.mutateAsync({}).then(({ sessionId: sid }) => {
-      setSessionId(sid);
-      setProfilingSessionId(sid);
-    }).catch((err) => {
-      console.error('Failed to start profiling session:', err);
-      setIsLoading(false);
-      setError('Nie udalo sie rozpoczac sesji. Sprobuj ponownie.');
-    });
-  }, []);
-
-  const currentQuestion = questions.length > 0
-    ? questions[questions.length - 1]
-    : null;
-
-  const answeredCount = questions.filter((q) => q.answer != null).length;
-
-  const handleAnswer = async () => {
-    if (!sessionId || !currentAnswer.trim() || isSubmitting) return;
-    setIsSubmitting(true);
-    setAnswerError('');
-
-    const answer = currentAnswer.trim();
-    setCurrentAnswer('');
-
-    try {
-      const result = await answerQuestion.mutateAsync({
-        sessionId,
-        answer,
+    if (questionIndex < totalQuestions - 1) {
+      animateSlide('forward', () => {
+        setQuestionIndex((i) => i + 1);
+        setCurrentText('');
       });
-
-      if (result.done) {
-        await completeSession.mutateAsync({ sessionId });
-        setIsLoading(true);
-      }
-    } catch (err: any) {
-      setCurrentAnswer(answer);
-      setIsSubmitting(false);
-      const msg = err?.message ?? '';
-      if (msg.includes('narusza regulamin')) {
-        setAnswerError('Twoja odpowiedz narusza regulamin. Sprobuj napisac inaczej.');
-      } else {
-        setAnswerError('Cos poszlo nie tak. Sprobuj ponownie.');
-      }
+    } else {
+      handleSubmitAll(newAnswers);
     }
   };
 
-  const handleSuggestionTap = (suggestion: string) => {
-    setCurrentAnswer(suggestion);
-  };
+  const handleSkip = () => {
+    if (!currentQuestion) return;
 
-  const handleRequestMore = async () => {
-    if (!sessionId) return;
-    setShowSufficientUI(false);
-    setIsSubmitting(true);
-    setAnswerError('');
-
-    try {
-      const result = await requestMore.mutateAsync({
-        sessionId,
-        directionHint: directionHint.trim() || undefined,
+    if (questionIndex < totalQuestions - 1) {
+      animateSlide('forward', () => {
+        setQuestionIndex((i) => i + 1);
+        setCurrentText('');
       });
-      setExtraQuestionsRemaining(result.extraQuestionsRemaining);
-      setDirectionHint('');
-      setShowDirectionInput(false);
-    } catch (err: any) {
-      setShowSufficientUI(true);
-      setIsSubmitting(false);
-      const msg = err?.message ?? '';
-      if (msg.includes('narusza regulamin')) {
-        setAnswerError('Twoja odpowiedz narusza regulamin. Sprobuj napisac inaczej.');
-      } else {
-        setAnswerError('Cos poszlo nie tak. Sprobuj ponownie.');
-      }
+    } else {
+      handleSubmitAll(answers);
     }
   };
 
-  const handleComplete = async () => {
-    if (!sessionId) return;
-    setIsLoading(true);
+  const handleBack = () => {
+    if (questionIndex > 0) {
+      animateSlide('back', () => {
+        const prev = ONBOARDING_QUESTIONS[questionIndex - 1];
+        setQuestionIndex((i) => i - 1);
+        setCurrentText(prev ? answers[prev.id] ?? '' : '');
+      });
+    } else {
+      router.back();
+    }
+  };
+
+  const handleSubmitAll = async (finalAnswers: Record<string, string>) => {
+    setPhase('submitting');
+    setError('');
+
+    const answersArray = Object.entries(finalAnswers)
+      .filter(([, v]) => v.trim())
+      .map(([questionId, answer]) => ({ questionId, answer }));
+
+    const answeredIds = new Set(answersArray.map((a) => a.questionId));
+    const allSkipped = ONBOARDING_QUESTIONS
+      .map((q) => q.id)
+      .filter((id) => !answeredIds.has(id));
 
     try {
-      await completeSession.mutateAsync({ sessionId });
+      const result = await submitOnboarding.mutateAsync({
+        answers: answersArray,
+        skipped: allSkipped,
+      });
+
+      setSessionId(result.sessionId);
+      setProfilingSessionId(result.sessionId);
+
+      if (result.followUpQuestions.length > 0) {
+        setFollowUps(result.followUpQuestions);
+        setFollowUpIndex(0);
+        setFollowUpText('');
+        setPhase('followups');
+      } else {
+        await triggerProfileGeneration(result.sessionId);
+      }
     } catch (err) {
-      console.error('Failed to complete:', err);
-      setIsLoading(false);
+      console.error('Failed to submit:', err);
+      setError('Nie udało się przesłać odpowiedzi. Spróbuj ponownie.');
+      setPhase('questions');
     }
   };
 
-  if (error) {
+  const handleFollowUpNext = async () => {
+    const trimmed = followUpText.trim();
+    if (!trimmed) return;
+
+    const currentFollowUp = followUps[followUpIndex];
+    if (!currentFollowUp || !sessionId) return;
+
+    setError('');
+
+    try {
+      await answerFollowUp.mutateAsync({
+        sessionId,
+        questionId: currentFollowUp.id,
+        answer: trimmed,
+      });
+
+      if (followUpIndex < followUps.length - 1) {
+        animateSlide('forward', () => {
+          setFollowUpIndex((i) => i + 1);
+          setFollowUpText('');
+        });
+      } else {
+        await triggerProfileGeneration(sessionId);
+      }
+    } catch (err) {
+      console.error('Failed to answer follow-up:', err);
+      setError('Nie udało się zapisać odpowiedzi. Spróbuj ponownie.');
+    }
+  };
+
+  const triggerProfileGeneration = async (sid: string) => {
+    setPhase('generating');
+    try {
+      await completeSession.mutateAsync({ sessionId: sid });
+      router.replace('/(modals)/profiling-result');
+    } catch (err) {
+      console.error('Failed to complete session:', err);
+      setError('Nie udało się wygenerować profilu. Spróbuj ponownie.');
+    }
+  };
+
+  // --- Submitting ---
+  if (phase === 'submitting') {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Text style={[typ.body, { color: colors.muted, marginBottom: spacing.column, textAlign: 'center' }]}>
-          {error}
-        </Text>
-        <Button
-          title="Sprobuj ponownie"
-          variant="accent"
-          onPress={() => {
-            setError('');
-            setIsLoading(true);
-            hasStarted.current = false;
-            startSession.mutateAsync({}).then(({ sessionId: sid }) => {
-              setSessionId(sid);
-              setProfilingSessionId(sid);
-            }).catch((err) => {
-              console.error('Failed to start profiling session:', err);
-              setIsLoading(false);
-              setError('Nie udalo sie rozpoczac sesji. Sprobuj ponownie.');
-            });
-          }}
-        />
+        <ThinkingIndicator messages={['Analizuję Twoje odpowiedzi…']} />
       </View>
     );
   }
 
-  if (questions.length === 0) {
+  // --- Generating (with error retry) ---
+  if (phase === 'generating') {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ThinkingIndicator messages={['Przygotowuje Twoje pierwsze pytanie...']} />
+        {error ? (
+          <View style={styles.errorRetry}>
+            <Text style={styles.error}>{error}</Text>
+            <View style={{ marginTop: spacing.column }}>
+              <Button
+                title="Spróbuj ponownie"
+                variant="accent"
+                onPress={() => {
+                  setError('');
+                  if (sessionId) triggerProfileGeneration(sessionId);
+                }}
+              />
+            </View>
+          </View>
+        ) : (
+          <ThinkingIndicator
+            messages={[
+              'Generuję Twój profil…',
+              'Analizuję Twoje odpowiedzi…',
+              'Jeszcze chwilka…',
+            ]}
+          />
+        )}
       </View>
     );
   }
+
+  // --- Follow-ups ---
+  if (phase === 'followups') {
+    const currentFU = followUps[followUpIndex];
+    if (!currentFU) return null;
+
+    return (
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.progressBarBg}>
+          <View style={[styles.progressBarFill, { width: '100%' }]} />
+        </View>
+
+        <Animated.View
+          style={[styles.content, { transform: [{ translateX: slideAnim }] }]}
+        >
+          <View style={styles.header}>
+            <View />
+            <Text style={styles.counter}>
+              Jeszcze {followUps.length - followUpIndex}{' '}
+              {followUps.length - followUpIndex === 1 ? 'pytanie' : 'pytania'}
+            </Text>
+          </View>
+
+          <Text style={styles.questionText}>{currentFU.question}</Text>
+
+          <TextInput
+            ref={inputRef}
+            style={styles.input}
+            value={followUpText}
+            onChangeText={setFollowUpText}
+            placeholder="Twoja odpowiedź"
+            placeholderTextColor={colors.muted}
+            multiline
+            maxLength={500}
+            autoFocus
+          />
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <View style={styles.actions}>
+            <Button
+              title="Dalej"
+              variant="accent"
+              onPress={handleFollowUpNext}
+              disabled={!followUpText.trim() || answerFollowUp.isPending}
+              loading={answerFollowUp.isPending}
+            />
+          </View>
+        </Animated.View>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // --- Standard questions ---
+  if (!currentQuestion) return null;
+
+  const progress = (questionIndex + 1) / totalQuestions;
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.content}>
+      <View style={styles.progressBarBg}>
+        <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+      </View>
+
+      <Animated.View
+        style={[styles.content, { transform: [{ translateX: slideAnim }] }]}
+      >
         <View style={styles.header}>
-          {answeredCount > 0 && (
-            <Text style={typ.caption}>
-              {answeredCount} {answeredCount === 1 ? 'odpowiedz' : answeredCount < 5 ? 'odpowiedzi' : 'odpowiedzi'}
-            </Text>
-          )}
+          <Pressable onPress={handleBack} hitSlop={16}>
+            <Text style={styles.backArrow}>←</Text>
+          </Pressable>
+          <Text style={styles.counter}>
+            {questionIndex + 1} / {totalQuestions}
+          </Text>
         </View>
 
-        {isSubmitting || isLoading ? (
-          <View style={styles.centered}>
-            <ThinkingIndicator />
-          </View>
-        ) : currentQuestion && !currentQuestion.answer ? (
-          <Animated.View
-            style={[
-              styles.card,
-              { transform: [{ translateX: slideAnim }] },
-            ]}
-          >
-            <ScrollView
-              contentContainerStyle={styles.cardContent}
-              keyboardShouldPersistTaps="handled"
-            >
-              <Text style={styles.question}>{currentQuestion.question}</Text>
+        <Text style={styles.questionText}>{currentQuestion.question}</Text>
 
-              {currentQuestion.suggestions.length > 0 && (
-                <View style={styles.suggestions}>
-                  {currentQuestion.suggestions.map((s, i) => (
-                    <Pressable
-                      key={i}
-                      style={[
-                        styles.chip,
-                        currentAnswer === s && styles.chipSelected,
-                      ]}
-                      onPress={() => handleSuggestionTap(s)}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          currentAnswer === s && styles.chipTextSelected,
-                        ]}
-                      >
-                        {s}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
+        <TextInput
+          ref={inputRef}
+          style={styles.input}
+          value={currentText}
+          onChangeText={setCurrentText}
+          placeholder="Twoja odpowiedź"
+          placeholderTextColor={colors.muted}
+          multiline
+          maxLength={500}
+          autoFocus
+        />
 
-              <TextInput
-                style={styles.input}
-                value={currentAnswer}
-                onChangeText={(text) => { setCurrentAnswer(text); setAnswerError(''); }}
-                placeholder="Twoja odpowiedz..."
-                placeholderTextColor={colors.muted}
-                multiline
-                maxLength={500}
-              />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-              {answerError ? (
-                <Text style={styles.answerError}>{answerError}</Text>
-              ) : null}
-
-              {showSufficientUI ? (
-                <View style={styles.sufficientBox}>
-                  <Text style={styles.sufficientText}>
-                    Mam wystarczajaco duzo informacji, zeby stworzyc Twoj profil
-                  </Text>
-
-                  <Button
-                    title="Zakoncz i wygeneruj profil"
-                    variant="accent"
-                    onPress={handleComplete}
-                  />
-
-                  {extraQuestionsRemaining > 0 && (
-                    <>
-                      <View style={{ marginTop: spacing.column }}>
-                        <Button
-                          title="Zapytaj mnie o wiecej"
-                          variant="ghost"
-                          onPress={() => {
-                            if (showDirectionInput) {
-                              handleRequestMore();
-                            } else {
-                              setShowDirectionInput(true);
-                            }
-                          }}
-                        />
-                      </View>
-
-                      {showDirectionInput && (
-                        <View style={{ marginTop: spacing.tight }}>
-                          <TextInput
-                            style={styles.directionInput}
-                            value={directionHint}
-                            onChangeText={setDirectionHint}
-                            placeholder="O czym chcesz porozmawiac? (opcjonalnie)"
-                            placeholderTextColor={colors.muted}
-                            maxLength={200}
-                          />
-                          <Button
-                            title="Wyslij"
-                            variant="accent"
-                            onPress={handleRequestMore}
-                          />
-                        </View>
-                      )}
-
-                      <Text style={[typ.caption, { textAlign: 'center', marginTop: spacing.tight }]}>
-                        Mozesz dodac jeszcze {extraQuestionsRemaining}{' '}
-                        {extraQuestionsRemaining === 1 ? 'pytanie' : extraQuestionsRemaining < 5 ? 'pytania' : 'pytan'}
-                      </Text>
-                    </>
-                  )}
-                </View>
-              ) : (
-                <View style={{ marginTop: spacing.column }}>
-                  <Button
-                    title="Dalej"
-                    variant="accent"
-                    onPress={handleAnswer}
-                    disabled={!currentAnswer.trim()}
-                  />
-                </View>
-              )}
-            </ScrollView>
-          </Animated.View>
-        ) : null}
-      </View>
+        <View style={styles.actions}>
+          <Button
+            title="Dalej"
+            variant="accent"
+            onPress={handleNext}
+            disabled={!currentText.trim() && currentQuestion.required}
+          />
+          {!currentQuestion.required && (
+            <Pressable onPress={handleSkip} hitSlop={8}>
+              <Text style={styles.skipText}>Pomiń</Text>
+            </Pressable>
+          )}
+        </View>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
@@ -385,54 +362,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  progressBarBg: {
+    height: 3,
+    backgroundColor: colors.rule,
+    width: '100%',
+  },
+  progressBarFill: {
+    height: 3,
+    backgroundColor: colors.accent,
+  },
   content: {
     flex: 1,
     paddingHorizontal: spacing.section,
-    paddingTop: spacing.section,
+    paddingTop: spacing.block,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.column,
+    marginBottom: spacing.block,
   },
-  card: {
-    flex: 1,
-  },
-  cardContent: {
-    paddingBottom: spacing.block,
-  },
-  question: {
-    fontFamily: fonts.serif,
-    fontSize: 22,
-    color: colors.ink,
-    marginBottom: spacing.section,
-    lineHeight: 30,
-  },
-  suggestions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.tight,
-    marginBottom: spacing.section,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.rule,
-    paddingVertical: spacing.tight,
-    paddingHorizontal: spacing.gutter,
-    borderRadius: 0,
-  },
-  chipSelected: {
-    borderColor: colors.accent,
-    backgroundColor: colors.accent,
-  },
-  chipText: {
-    fontFamily: fonts.sans,
-    fontSize: 14,
+  backArrow: {
+    fontSize: 24,
     color: colors.ink,
   },
-  chipTextSelected: {
-    color: '#FFFFFF',
+  counter: {
+    ...typ.caption,
+  },
+  questionText: {
+    ...typ.heading,
+    marginBottom: spacing.section,
   },
   input: {
     fontFamily: fonts.sans,
@@ -441,30 +400,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.ink,
     paddingVertical: 12,
+    paddingHorizontal: 0,
+    minHeight: 48,
   },
-  answerError: {
-    fontFamily: fonts.sans,
-    fontSize: 13,
-    color: colors.accent,
-    marginTop: spacing.tight,
-  },
-  sufficientBox: {
+  actions: {
     marginTop: spacing.section,
-    gap: spacing.tight,
+    gap: spacing.column,
+    alignItems: 'center',
   },
-  sufficientText: {
-    ...typ.body,
-    textAlign: 'center',
-    marginBottom: spacing.column,
+  skipText: {
+    ...typ.caption,
     color: colors.muted,
   },
-  directionInput: {
-    fontFamily: fonts.sans,
-    fontSize: 14,
-    color: colors.ink,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.rule,
-    paddingVertical: 8,
-    marginBottom: spacing.tight,
+  error: {
+    ...typ.body,
+    color: colors.status.error.text,
+    textAlign: 'center',
+    marginTop: spacing.column,
+  },
+  errorRetry: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.section,
   },
 });
