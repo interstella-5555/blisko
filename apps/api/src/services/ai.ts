@@ -1,6 +1,7 @@
 import { generateText, generateObject, embed } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
+import { GPT_MODEL, EMBEDDING_MODEL } from '@repo/shared';
 
 function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
@@ -14,7 +15,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
   try {
     const { embedding } = await embed({
-      model: openai.embedding('text-embedding-3-small'),
+      model: openai.embedding(EMBEDDING_MODEL),
       value: text,
     });
 
@@ -36,7 +37,7 @@ export async function generateSocialProfile(
 
   try {
     const { text } = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai(GPT_MODEL),
       temperature: 0.7,
       maxOutputTokens: 500,
       system: `Na podstawie profilu użytkownika (bio: kim jestem, lookingFor: kogo szukam), wygeneruj bogaty profil społeczny (200-300 słów) opisujący:
@@ -64,7 +65,7 @@ export async function extractInterests(
 
   try {
     const { object } = await generateObject({
-      model: openai('gpt-4o-mini'),
+      model: openai(GPT_MODEL),
       temperature: 0,
       maxOutputTokens: 200,
       schema: z.object({
@@ -103,7 +104,7 @@ export async function analyzeConnection(
 ): Promise<ConnectionAnalysisResult> {
   try {
     const { object } = await generateObject({
-      model: openai('gpt-4o-mini'),
+      model: openai(GPT_MODEL),
       schema: connectionAnalysisSchema,
       temperature: 0.7,
       system: `Jesteś prowadzącym randkę w ciemno. Znasz obie osoby i prezentujesz każdą z perspektywy drugiej.

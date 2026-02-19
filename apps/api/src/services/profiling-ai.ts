@@ -1,9 +1,63 @@
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
+import { GPT_MODEL } from '@repo/shared';
 
 function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
+}
+
+const followUpQuestionsSchema = z.object({
+  questions: z.array(z.string()).min(0).max(3),
+});
+
+export type FollowUpQuestionsResult = z.infer<typeof followUpQuestionsSchema>;
+
+export async function generateFollowUpQuestions(
+  displayName: string,
+  answeredQA: { question: string; answer: string }[],
+  skippedQuestionIds: string[]
+): Promise<FollowUpQuestionsResult> {
+  if (!isConfigured()) {
+    return { questions: ['Opowiedz mi więcej o sobie.'] };
+  }
+
+  const qaBlock = answeredQA
+    .map((qa) => `P: ${qa.question}\nO: ${qa.answer}`)
+    .join('\n');
+
+  const skippedBlock = skippedQuestionIds.length > 0
+    ? `\n\nPominięte pytania (ID): ${skippedQuestionIds.join(', ')}`
+    : '';
+
+  const { object } = await generateObject({
+    model: openai(GPT_MODEL),
+    schema: followUpQuestionsSchema,
+    temperature: 0.8,
+    maxOutputTokens: 400,
+    system: `Analizujesz odpowiedzi użytkownika z onboardingu aplikacji społecznościowej i generujesz pytania pogłębiające.
+
+Zasady:
+- Wygeneruj od 0 do 3 pytań pogłębiających
+- Jeśli użytkownik odpowiedział na mniej niż 5 pytań, MUSISZ zadać 2-3 pytania — za mało danych na dobry profil
+- Jeśli odpowiedział na 5-7 pytań ale odpowiedzi są krótkie/ogólnikowe, zadaj 1-2 pytania
+- Jeśli odpowiedzi są bogate i pokrywają różne aspekty osobowości (zainteresowania, styl społeczny, motywacje), możesz zwrócić 0 pytań
+- NIE powtarzaj pytań które już padły — zamiast tego podejdź do tematu z innej strony
+- Jeśli użytkownik pominął ważne tematy (np. styl społeczny, co może zaoferować, zainteresowania), dopytaj o to naturalnie
+- Pytania powinny być naturalne, ciepłe, po polsku
+- Krótkie i konkretne (1-2 zdania)
+- Preferuj scenariusze i pytania otwarte
+- Skup się na lukach: czego brakuje do stworzenia bogatego profilu?`,
+    prompt: `<user_name>${displayName}</user_name>
+
+<answered_questions>
+${qaBlock}
+</answered_questions>${skippedBlock}
+
+Wygeneruj pytania pogłębiające (0-3).`,
+  });
+
+  return object;
 }
 
 const nextQuestionSchema = z.object({
@@ -53,7 +107,7 @@ export async function generateNextQuestion(
   }
 
   const { object } = await generateObject({
-    model: openai('gpt-4o-mini'),
+    model: openai(GPT_MODEL),
     schema: nextQuestionSchema,
     temperature: 0.8,
     maxOutputTokens: 300,
@@ -110,7 +164,7 @@ export async function generateProfileFromQA(
     .join('\n');
 
   const { object } = await generateObject({
-    model: openai('gpt-4o-mini'),
+    model: openai(GPT_MODEL),
     schema: profileFromQASchema,
     temperature: 0.7,
     maxOutputTokens: 1000,

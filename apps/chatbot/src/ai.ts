@@ -1,5 +1,6 @@
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { GPT_MODEL } from '@repo/shared';
 
 interface BotProfile {
   displayName: string;
@@ -49,7 +50,7 @@ export async function generateBotMessage(
 
   try {
     const { text } = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai(GPT_MODEL),
       temperature: 0.9,
       maxOutputTokens: 150,
       system: `Jestes ${botProfile.displayName}. Piszesz na czacie w aplikacji Blisko.

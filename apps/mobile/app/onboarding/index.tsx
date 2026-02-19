@@ -19,7 +19,7 @@ export default function OnboardingNameScreen() {
   const handleNext = () => {
     if (name.trim().length < 2) return;
     setDisplayName(name.trim());
-    router.push('/onboarding/profile-method');
+    router.push('/onboarding/visibility');
   };
 
   return (
@@ -28,7 +28,7 @@ export default function OnboardingNameScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        <Text style={styles.step}>1 / 3</Text>
+        <Text style={styles.step}>Krok 1</Text>
         <Text style={styles.title}>Jak masz na imie?</Text>
         <Text style={styles.subtitle}>
           To imie bedzie widoczne dla innych uzytkownikow

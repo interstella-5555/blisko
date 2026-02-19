@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eq, and, asc, desc } from 'drizzle-orm';
+import { eq, and, asc, desc, sql } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc';
 import { db } from '../../db';
@@ -10,6 +10,10 @@ import {
   requestMoreQuestionsSchema,
   completeProfilingSchema,
   applyProfilingSchema,
+  submitOnboardingSchema,
+  answerFollowUpSchema,
+  createGhostProfileSchema,
+  ONBOARDING_QUESTIONS,
 } from '@repo/shared';
 import {
   enqueueProfilingQuestion,
@@ -17,6 +21,7 @@ import {
   enqueueProfileAI,
 } from '../../services/queue';
 import { moderateContent } from '../../services/moderation';
+import { generateFollowUpQuestions } from '../../services/profiling-ai';
 
 // --- Helpers ---
 
@@ -284,8 +289,8 @@ export const profilingRouter = router({
 
       const answeredQA = allQA.map((qa) => ({ question: qa.question, answer: qa.answer! }));
 
-      if (answeredQA.length < 5) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'At least 5 answered questions required' });
+      if (answeredQA.length < 3) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'At least 3 answered questions required' });
       }
 
       const previousSessionQA = await loadPreviousSessionQA(session);
@@ -396,6 +401,183 @@ export const profilingRouter = router({
       enqueueProfileAI(ctx.userId, profile.bio, profile.lookingFor).catch((err) => {
         console.error('[profiling] Failed to enqueue profile AI job:', err);
       });
+
+      return profile;
+    }),
+
+  // Submit structured onboarding answers (new flow)
+  submitOnboarding: protectedProcedure
+    .input(submitOnboardingSchema)
+    .mutation(async ({ ctx, input }) => {
+      // Validate required questions are answered
+      const answeredIds = new Set(input.answers.map((a) => a.questionId));
+      const missingRequired = ONBOARDING_QUESTIONS
+        .filter((q) => q.required && !answeredIds.has(q.id));
+      if (missingRequired.length > 0) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Missing required questions: ${missingRequired.map((q) => q.id).join(', ')}`,
+        });
+      }
+
+      // Validate all questionIds are known
+      const validIds = new Set(ONBOARDING_QUESTIONS.map((q) => q.id));
+      for (const a of input.answers) {
+        if (!validIds.has(a.questionId)) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: `Unknown question: ${a.questionId}` });
+        }
+      }
+
+      // Moderate all answers
+      const allText = input.answers.map((a) => a.answer).join('\n\n');
+      if (allText.trim()) {
+        await moderateContent(allText);
+      }
+
+      // Abandon any existing active session
+      await db
+        .update(profilingSessions)
+        .set({ status: 'abandoned' })
+        .where(
+          and(
+            eq(profilingSessions.userId, ctx.userId),
+            eq(profilingSessions.status, 'active')
+          )
+        );
+
+      // Create new session
+      const [session] = await db
+        .insert(profilingSessions)
+        .values({ userId: ctx.userId })
+        .returning();
+
+      // Insert all standard answers as profilingQA rows
+      const questionMap = new Map(ONBOARDING_QUESTIONS.map((q) => [q.id, q.question]));
+      let questionNumber = 0;
+
+      for (const a of input.answers) {
+        questionNumber++;
+        const questionText = questionMap.get(a.questionId) ?? a.questionId;
+        await db.insert(profilingQA).values({
+          sessionId: session.id,
+          questionNumber,
+          question: questionText,
+          suggestions: [],
+          answer: a.answer,
+          sufficient: false,
+        });
+      }
+
+      // Generate follow-up questions inline (~2-3s)
+      const displayName = await getDisplayName(ctx.userId);
+      const answeredQA = input.answers.map((a) => ({
+        question: questionMap.get(a.questionId) ?? a.questionId,
+        answer: a.answer,
+      }));
+
+      const followUps = await generateFollowUpQuestions(
+        displayName,
+        answeredQA,
+        input.skipped
+      );
+
+      // Insert follow-up questions as additional profilingQA rows
+      const followUpEntries: { id: string; question: string }[] = [];
+      for (const fq of followUps.questions) {
+        questionNumber++;
+        const [row] = await db.insert(profilingQA).values({
+          sessionId: session.id,
+          questionNumber,
+          question: fq,
+          suggestions: [],
+          answer: null,
+          sufficient: false,
+        }).returning({ id: profilingQA.id, question: profilingQA.question });
+        followUpEntries.push(row);
+      }
+
+      return {
+        sessionId: session.id,
+        followUpQuestions: followUpEntries,
+      };
+    }),
+
+  // Answer a follow-up question
+  answerFollowUp: protectedProcedure
+    .input(answerFollowUpSchema)
+    .mutation(async ({ ctx, input }) => {
+      const [session] = await db
+        .select()
+        .from(profilingSessions)
+        .where(
+          and(
+            eq(profilingSessions.id, input.sessionId),
+            eq(profilingSessions.userId, ctx.userId),
+            eq(profilingSessions.status, 'active')
+          )
+        );
+
+      if (!session) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Session not found or not active' });
+      }
+
+      await moderateContent(input.answer);
+
+      // Save answer to the specific profilingQA row
+      const [updated] = await db
+        .update(profilingQA)
+        .set({ answer: input.answer })
+        .where(
+          and(
+            eq(profilingQA.id, input.questionId),
+            eq(profilingQA.sessionId, input.sessionId)
+          )
+        )
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Follow-up question not found' });
+      }
+
+      // Check if all follow-ups are answered (no null answers left)
+      const unanswered = await db
+        .select({ id: profilingQA.id })
+        .from(profilingQA)
+        .where(
+          and(
+            eq(profilingQA.sessionId, input.sessionId),
+            sql`${profilingQA.answer} IS NULL`
+          )
+        );
+
+      return { allAnswered: unanswered.length === 0 };
+    }),
+
+  // Create ghost profile (minimal, hidden)
+  createGhostProfile: protectedProcedure
+    .input(createGhostProfileSchema)
+    .mutation(async ({ ctx, input }) => {
+      await moderateContent(input.displayName);
+
+      const [existing] = await db
+        .select()
+        .from(profiles)
+        .where(eq(profiles.userId, ctx.userId));
+
+      if (existing) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Profile already exists' });
+      }
+
+      const [profile] = await db
+        .insert(profiles)
+        .values({
+          userId: ctx.userId,
+          displayName: input.displayName,
+          bio: '',
+          lookingFor: '',
+          isHidden: true,
+        })
+        .returning();
 
       return profile;
     }),

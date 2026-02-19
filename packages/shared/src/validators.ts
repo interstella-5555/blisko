@@ -105,6 +105,25 @@ export const applyProfilingSchema = z.object({
   lookingFor: z.string().min(10).max(500).optional(),
 });
 
+// New onboarding validators
+export const submitOnboardingSchema = z.object({
+  answers: z.array(z.object({
+    questionId: z.string().min(1),
+    answer: z.string().min(1).max(500),
+  })),
+  skipped: z.array(z.string()),
+});
+
+export const answerFollowUpSchema = z.object({
+  sessionId: z.string().uuid(),
+  questionId: z.string().uuid(),
+  answer: z.string().min(1).max(500),
+});
+
+export const createGhostProfileSchema = z.object({
+  displayName: z.string().min(2).max(50),
+});
+
 // Group validators
 export const createGroupSchema = z.object({
   name: z.string().min(1).max(100),
@@ -182,6 +201,9 @@ export type AnswerQuestionInput = z.infer<typeof answerQuestionSchema>;
 export type RequestMoreQuestionsInput = z.infer<typeof requestMoreQuestionsSchema>;
 export type CompleteProfilingInput = z.infer<typeof completeProfilingSchema>;
 export type ApplyProfilingInput = z.infer<typeof applyProfilingSchema>;
+export type SubmitOnboardingInput = z.infer<typeof submitOnboardingSchema>;
+export type AnswerFollowUpInput = z.infer<typeof answerFollowUpSchema>;
+export type CreateGhostProfileInput = z.infer<typeof createGhostProfileSchema>;
 export type CreateGroupInput = z.infer<typeof createGroupSchema>;
 export type UpdateGroupInput = z.infer<typeof updateGroupSchema>;
 export type JoinGroupInput = z.infer<typeof joinGroupSchema>;
