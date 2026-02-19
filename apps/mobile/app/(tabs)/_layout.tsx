@@ -47,10 +47,20 @@ export default function TabsLayout() {
         const convStore = useConversationsStore.getState();
         const msgStore = useMessagesStore.getState();
 
+        // Resolve replyTo from existing store data (optimistic message may have it)
+        let replyTo = null;
+        if (msg.message.replyToId) {
+          const chat = msgStore.get(msg.conversationId);
+          const match = chat?.items.find(
+            (m) => m.replyToId === msg.message.replyToId && m.replyTo,
+          );
+          replyTo = match?.replyTo ?? null;
+        }
+
         // Update messages store
         msgStore.prepend(msg.conversationId, {
           ...msg.message,
-          replyTo: null,
+          replyTo,
           reactions: [],
           senderName: msg.senderName ?? null,
           senderAvatarUrl: msg.senderAvatarUrl ?? null,
