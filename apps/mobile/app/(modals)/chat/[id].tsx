@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import * as Clipboard from 'expo-clipboard';
 import { trpc } from '../../../src/lib/trpc';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { MessageBubble, type BubblePosition } from '../../../src/components/chat/MessageBubble';
@@ -595,12 +594,11 @@ export default function ChatScreen() {
               setReplyingTo({ id: msg.id, content: msg.content, senderName: name });
             }
           }}
-          onCopy={() => {
+          onCopy={async () => {
             const msg = allMessages.find((m) => m.id === contextMenu.messageId);
             if (msg) {
-              Clipboard.setStringAsync(
-                msg.type === 'image' ? '[Zdjęcie]' : msg.content
-              );
+              const { setStringAsync } = await import('expo-clipboard');
+              setStringAsync(msg.type === 'image' ? '[Zdjęcie]' : msg.content);
             }
           }}
           onDelete={() => {
