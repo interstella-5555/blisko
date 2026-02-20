@@ -16,7 +16,9 @@
     "design:preview": "pnpm --filter @repo/design preview",
     "dev-cli": "pnpm --filter @repo/dev-cli cli",
     "dev-cli:queue-monitor": "pnpm --filter @repo/dev-cli monitor",
-    "dev-cli:chatbot-monitor": "pnpm --filter @repo/dev-cli chatbot-monitor"
+    "dev-cli:chatbot-monitor": "pnpm --filter @repo/dev-cli chatbot-monitor",
+    "website:dev": "pnpm --filter @repo/website dev",
+    "website:start": "pnpm --filter @repo/website start"
   },
   "devDependencies": {
     "typescript": "^5.3.0"

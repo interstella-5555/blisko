@@ -140,6 +140,8 @@ export default function EditProfileScreen() {
             onChangeText={setDisplayName}
             placeholder="Twoje imie"
             placeholderTextColor={colors.muted}
+            spellCheck={false}
+            autoCorrect={false}
             maxLength={50}
           />
         </View>
@@ -153,6 +155,8 @@ export default function EditProfileScreen() {
             onChangeText={setBio}
             placeholder="Napisz kilka slow o sobie..."
             placeholderTextColor={colors.muted}
+            spellCheck={false}
+            autoCorrect={false}
             multiline
             numberOfLines={5}
             textAlignVertical="top"
@@ -170,6 +174,8 @@ export default function EditProfileScreen() {
             onChangeText={setLookingFor}
             placeholder="Opisz, jakie osoby chcialbys poznac..."
             placeholderTextColor={colors.muted}
+            spellCheck={false}
+            autoCorrect={false}
             multiline
             numberOfLines={5}
             textAlignVertical="top"

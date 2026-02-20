@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,19 +10,55 @@ import {
   Pressable,
   Alert,
   Switch,
+  Animated,
+  Easing,
 } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { router } from 'expo-router';
 import { trpc } from '../../src/lib/trpc';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Button } from '../../src/components/ui/Button';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { useConversationsStore } from '../../src/stores/conversationsStore';
+import { useLocationStore } from '../../src/stores/locationStore';
+
+const MAP_HEIGHT = 180;
 
 export default function CreateGroupScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isDiscoverable, setIsDiscoverable] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+
+  const { latitude: userLat, longitude: userLng } = useLocationStore();
+  const hasLocation = !!userLat && !!userLng;
+
+  const [groupLat, setGroupLat] = useState(userLat ?? 0);
+  const [groupLng, setGroupLng] = useState(userLng ?? 0);
+
+  // Update group location when user location becomes available
+  useEffect(() => {
+    if (userLat && userLng && groupLat === 0 && groupLng === 0) {
+      setGroupLat(userLat);
+      setGroupLng(userLng);
+    }
+  }, [userLat, userLng]);
+
+  // Animate map section
+  const mapAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(mapAnim, {
+      toValue: isDiscoverable && hasLocation ? 1 : 0,
+      duration: 250,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [isDiscoverable, hasLocation]);
+
+  const mapSectionHeight = mapAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, MAP_HEIGHT + 32],
+  });
 
   // Get DM contacts from conversations store
   const conversations = useConversationsStore((s) => s.conversations);
@@ -65,6 +101,9 @@ export default function CreateGroupScreen() {
       name: name.trim(),
       description: description.trim() || undefined,
       isDiscoverable,
+      ...(isDiscoverable && hasLocation
+        ? { latitude: groupLat, longitude: groupLng }
+        : {}),
       memberUserIds: [...selectedUserIds],
     });
   };
@@ -102,6 +141,8 @@ export default function CreateGroupScreen() {
             onChangeText={setName}
             placeholder="np. Sąsiedzi z Mokotowa"
             placeholderTextColor={colors.muted}
+            spellCheck={false}
+            autoCorrect={false}
             maxLength={100}
             autoFocus
           />
@@ -116,6 +157,8 @@ export default function CreateGroupScreen() {
             onChangeText={setDescription}
             placeholder="O czym jest ta grupa? (opcjonalnie)"
             placeholderTextColor={colors.muted}
+            spellCheck={false}
+            autoCorrect={false}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
@@ -130,14 +173,50 @@ export default function CreateGroupScreen() {
           <Text style={styles.toggleLabel}>Widoczna w okolicy</Text>
           <Switch
             value={isDiscoverable}
-            onValueChange={setIsDiscoverable}
+            onValueChange={hasLocation ? setIsDiscoverable : undefined}
+            disabled={!hasLocation}
             trackColor={{ false: colors.rule, true: colors.accent }}
             thumbColor={colors.bg}
           />
         </View>
         <Text style={styles.toggleDescription}>
-          Osoby w poblizu beda mogly znalezc i dolaczyc do grupy
+          {hasLocation
+            ? 'Osoby w poblizu beda mogly znalezc i dolaczyc do grupy'
+            : 'Włącz lokalizację, żeby grupa była widoczna'}
         </Text>
+
+        {/* Map section — animated reveal when discoverable */}
+        <Animated.View style={{ height: mapSectionHeight, overflow: 'hidden' }}>
+          <View style={styles.mapContainer}>
+            {hasLocation && (
+              <MapView
+                style={styles.map}
+                initialRegion={{
+                  latitude: groupLat || userLat!,
+                  longitude: groupLng || userLng!,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+                scrollEnabled
+                zoomEnabled
+                rotateEnabled={false}
+                pitchEnabled={false}
+              >
+                <Marker
+                  coordinate={{ latitude: groupLat, longitude: groupLng }}
+                  draggable
+                  onDragEnd={(e) => {
+                    setGroupLat(e.nativeEvent.coordinate.latitude);
+                    setGroupLng(e.nativeEvent.coordinate.longitude);
+                  }}
+                />
+              </MapView>
+            )}
+          </View>
+          <Text style={styles.mapHint}>
+            Przesuń pin, żeby ustawić lokalizację
+          </Text>
+        </Animated.View>
 
         {dmContacts.length > 0 && (
           <View style={styles.membersSection}>
@@ -240,7 +319,22 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 12,
     color: colors.muted,
-    marginBottom: spacing.section,
+    marginBottom: spacing.gutter,
+  },
+  mapContainer: {
+    height: MAP_HEIGHT,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: colors.mapBg,
+    marginTop: spacing.tight,
+  },
+  map: {
+    flex: 1,
+  },
+  mapHint: {
+    ...typ.caption,
+    marginTop: spacing.tick,
+    marginBottom: spacing.gutter,
   },
   membersSection: {
     marginBottom: spacing.section,

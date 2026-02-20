@@ -85,6 +85,8 @@ export function ChatInput({
           onChangeText={handleChangeText}
           placeholder="Wpisz wiadomość..."
           placeholderTextColor={colors.muted}
+          spellCheck={false}
+          autoCorrect={false}
           multiline
           maxLength={2000}
           testID="chat-input"

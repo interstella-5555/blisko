@@ -7,6 +7,7 @@ import {
   Pressable,
   Alert,
   Share,
+  TextInput,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { trpc } from '../../../src/lib/trpc';
@@ -14,6 +15,7 @@ import { useAuthStore } from '../../../src/stores/authStore';
 import { useConversationsStore } from '../../../src/stores/conversationsStore';
 import { colors, type as typ, spacing, fonts } from '../../../src/theme';
 import { Avatar } from '../../../src/components/ui/Avatar';
+import { Button } from '../../../src/components/ui/Button';
 import Svg, { Path } from 'react-native-svg';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -34,15 +36,22 @@ export default function GroupInfoScreen() {
   const { id: conversationId } = useLocalSearchParams<{ id: string }>();
   const userId = useAuthStore((s) => s.user?.id);
   const [showAllMembers, setShowAllMembers] = useState(false);
+  const [showTopicForm, setShowTopicForm] = useState(false);
+  const [topicName, setTopicName] = useState('');
+  const [topicEmoji, setTopicEmoji] = useState('💬');
+
+  const utils = trpc.useUtils();
 
   const { data: groupInfo, isLoading } = trpc.groups.getGroupInfo.useQuery(
     { conversationId: conversationId! },
     { enabled: !!conversationId },
   );
 
+  const isMember = groupInfo?.isMember ?? false;
+
   const { data: members } = trpc.groups.getMembers.useQuery(
     { conversationId: conversationId! },
-    { enabled: !!conversationId },
+    { enabled: !!conversationId && isMember },
   );
 
   const leaveGroup = trpc.groups.leave.useMutation({
@@ -52,6 +61,43 @@ export default function GroupInfoScreen() {
     },
     onError: (error) => {
       Alert.alert('Blad', error.message);
+    },
+  });
+
+  const joinGroup = trpc.groups.joinDiscoverable.useMutation({
+    onSuccess: (data) => {
+      useConversationsStore.getState().addNew({
+        id: data.id,
+        type: 'group',
+        participant: null,
+        groupName: data.name,
+        groupAvatarUrl: data.avatarUrl,
+        memberCount: (groupInfo?.memberCount ?? 0) + 1,
+        lastMessage: null,
+        unreadCount: 0,
+        createdAt: String(data.createdAt),
+        updatedAt: String(data.updatedAt),
+      });
+      router.replace(`/(modals)/chat/${data.id}`);
+    },
+    onError: (error) => {
+      if (error.message === 'Group is full') {
+        Alert.alert('Blad', 'Ta grupa jest pełna');
+      } else {
+        Alert.alert('Blad', 'Nie udalo sie dolaczyc do grupy');
+      }
+    },
+  });
+
+  const createTopic = trpc.topics.create.useMutation({
+    onSuccess: () => {
+      setShowTopicForm(false);
+      setTopicName('');
+      setTopicEmoji('💬');
+      utils.groups.getGroupInfo.invalidate({ conversationId: conversationId! });
+    },
+    onError: () => {
+      Alert.alert('Blad', 'Nie udalo sie utworzyc watku');
     },
   });
 
@@ -70,7 +116,7 @@ export default function GroupInfoScreen() {
     if (!groupInfo?.inviteCode) return;
     try {
       await Share.share({
-        message: `Dolacz do grupy "${groupInfo.name}" w Blisko! Kod: ${groupInfo.inviteCode}`,
+        message: `Dołącz do grupy „${groupInfo.name}" w Blisko!\nhttps://blisko.app/join/${groupInfo.inviteCode}`,
       });
     } catch {
       // User cancelled
@@ -83,6 +129,19 @@ export default function GroupInfoScreen() {
     },
     [conversationId],
   );
+
+  const handleJoin = useCallback(() => {
+    joinGroup.mutate({ conversationId: conversationId! });
+  }, [conversationId, joinGroup]);
+
+  const handleCreateTopic = useCallback(() => {
+    if (!topicName.trim()) return;
+    createTopic.mutate({
+      conversationId: conversationId!,
+      name: topicName.trim(),
+      emoji: topicEmoji || undefined,
+    });
+  }, [conversationId, topicName, topicEmoji, createTopic]);
 
   const myRole = members?.find((m) => m.userId === userId)?.role;
   const isAdmin = myRole === 'admin' || myRole === 'owner';
@@ -104,6 +163,39 @@ export default function GroupInfoScreen() {
       <>
         <Stack.Screen options={{ title: 'Grupa' }} />
         <View style={styles.container} />
+      </>
+    );
+  }
+
+  // Non-member view: discovery preview with join button
+  if (!isMember) {
+    return (
+      <>
+        <Stack.Screen options={{ title: '' }} />
+        <View style={styles.container}>
+          <View style={styles.previewContent}>
+            <Avatar
+              uri={groupInfo.avatarUrl}
+              name={groupInfo.name ?? 'G'}
+              size={80}
+            />
+            <Text style={styles.groupName}>{groupInfo.name}</Text>
+            {groupInfo.description ? (
+              <Text style={styles.groupDescription}>{groupInfo.description}</Text>
+            ) : null}
+            <Text style={styles.memberCountLabel}>
+              {groupInfo.memberCount} czlonkow
+            </Text>
+            <View style={styles.joinButtonContainer}>
+              <Button
+                title="Dołącz"
+                variant="fullWidth"
+                onPress={handleJoin}
+                loading={joinGroup.isPending}
+              />
+            </View>
+          </View>
+        </View>
       </>
     );
   }
@@ -132,7 +224,7 @@ export default function GroupInfoScreen() {
         </View>
 
         {/* Topics */}
-        {groupInfo.topics.length > 0 && (
+        {(groupInfo.topics.length > 0 || isAdmin) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Watki</Text>
             {groupInfo.topics.map((topic) => (
@@ -157,6 +249,50 @@ export default function GroupInfoScreen() {
                 <ChevronRight />
               </Pressable>
             ))}
+
+            {/* Topic creation — admin only */}
+            {isAdmin && !showTopicForm && (
+              <Pressable
+                style={styles.addTopicRow}
+                onPress={() => setShowTopicForm(true)}
+              >
+                <Text style={styles.addTopicText}>+ Nowy wątek</Text>
+              </Pressable>
+            )}
+            {isAdmin && showTopicForm && (
+              <View style={styles.topicForm}>
+                <TextInput
+                  style={styles.topicEmojiInput}
+                  value={topicEmoji}
+                  onChangeText={(t) => setTopicEmoji(t.slice(-2))}
+                  maxLength={2}
+                  spellCheck={false}
+                  autoCorrect={false}
+                  textAlign="center"
+                />
+                <TextInput
+                  style={styles.topicNameInput}
+                  value={topicName}
+                  onChangeText={setTopicName}
+                  placeholder="Nazwa wątku"
+                  placeholderTextColor={colors.muted}
+                  spellCheck={false}
+                  autoCorrect={false}
+                  maxLength={50}
+                  autoFocus
+                />
+                <Pressable
+                  style={[
+                    styles.topicFormBtn,
+                    !topicName.trim() && styles.topicFormBtnDisabled,
+                  ]}
+                  onPress={handleCreateTopic}
+                  disabled={!topicName.trim() || createTopic.isPending}
+                >
+                  <Text style={styles.topicFormBtnText}>UTWÓRZ</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         )}
 
@@ -248,6 +384,12 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 60,
   },
+  previewContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.section,
+  },
   header: {
     alignItems: 'center',
     paddingHorizontal: spacing.section,
@@ -274,6 +416,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.muted,
     marginTop: spacing.tight,
+  },
+  joinButtonContainer: {
+    width: '100%',
+    marginTop: spacing.block,
+    paddingHorizontal: spacing.section,
   },
   section: {
     paddingHorizontal: spacing.section,
@@ -310,6 +457,60 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 12,
     color: colors.muted,
+  },
+  addTopicRow: {
+    paddingVertical: spacing.compact,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.rule,
+    marginTop: spacing.tight,
+  },
+  addTopicText: {
+    fontFamily: fonts.sans,
+    fontSize: 15,
+    color: colors.accent,
+  },
+  topicForm: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tight,
+    marginTop: spacing.tight,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.rule,
+    paddingTop: spacing.compact,
+  },
+  topicEmojiInput: {
+    width: 40,
+    height: 40,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderRadius: 8,
+    fontSize: 20,
+    textAlign: 'center',
+    backgroundColor: colors.bg,
+  },
+  topicNameInput: {
+    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: 15,
+    color: colors.ink,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+    paddingVertical: spacing.tight,
+  },
+  topicFormBtn: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.gutter,
+    paddingVertical: spacing.tick,
+    borderRadius: 8,
+  },
+  topicFormBtnDisabled: {
+    opacity: 0.3,
+  },
+  topicFormBtnText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: '#FFFFFF',
   },
   memberRow: {
     flexDirection: 'row',

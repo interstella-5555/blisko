@@ -271,6 +271,8 @@ export default function ProfilingModal() {
             onChangeText={setFollowUpText}
             placeholder="Twoja odpowiedź"
             placeholderTextColor={colors.muted}
+            spellCheck={false}
+            autoCorrect={false}
             multiline
             maxLength={500}
             autoFocus
@@ -327,6 +329,8 @@ export default function ProfilingModal() {
           onChangeText={setCurrentText}
           placeholder="Twoja odpowiedź"
           placeholderTextColor={colors.muted}
+          spellCheck={false}
+          autoCorrect={false}
           multiline
           maxLength={500}
           autoFocus

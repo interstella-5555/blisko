@@ -27,6 +27,7 @@ import {
 } from '../../src/components/nearby';
 import { UserRow } from '../../src/components/nearby/UserRow';
 import type { UserRowStatus } from '../../src/components/nearby/UserRow';
+import { GroupRow } from '../../src/components/nearby/GroupRow';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { IconPin } from '../../src/components/ui/icons';
 import { Button } from '../../src/components/ui/Button';
@@ -34,8 +35,17 @@ import { Button } from '../../src/components/ui/Button';
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.4;
 
+type NearbyFilter = 'all' | 'people' | 'groups';
+
+const FILTER_CHIPS: { key: NearbyFilter; label: string }[] = [
+  { key: 'all', label: 'Wszystko' },
+  { key: 'people', label: 'Osoby' },
+  { key: 'groups', label: 'Grupy' },
+];
+
 export default function NearbyScreen() {
   const [selectedCluster, setSelectedCluster] = useState<GridCluster | null>(null);
+  const [nearbyFilter, setNearbyFilter] = useState<NearbyFilter>('all');
   const { latitude, longitude, permissionStatus, setLocation, setPermissionStatus } =
     useLocationStore();
   const { nearbyRadiusMeters, loadPreferences } = usePreferencesStore();
@@ -99,6 +109,19 @@ export default function NearbyScreen() {
     }
   );
 
+  // Groups query — only when filter includes groups
+  const { data: nearbyGroups } = trpc.groups.getDiscoverable.useQuery(
+    {
+      latitude: latitude!,
+      longitude: longitude!,
+      radiusMeters: nearbyRadiusMeters,
+    },
+    {
+      enabled: !!latitude && !!longitude && nearbyFilter !== 'people',
+      staleTime: 30000,
+    }
+  );
+
   const mapUsers = mapData?.users;
   const totalCount = listData?.pages[0]?.totalCount ?? 0;
 
@@ -156,6 +179,50 @@ export default function NearbyScreen() {
     return allListUsers as MapUser[];
   }, [selectedCluster, allListUsers]);
 
+  // Build combined list data for FlatList
+  type NearbyGroup = NonNullable<typeof nearbyGroups>[number];
+  type ListItem =
+    | { type: 'userHeader'; count: number }
+    | { type: 'user'; data: MapUser }
+    | { type: 'groupHeader'; count: number }
+    | { type: 'group'; data: NearbyGroup }
+    | { type: 'groupsEmpty' };
+
+  const listItems = useMemo((): ListItem[] => {
+    const items: ListItem[] = [];
+    const groups = nearbyGroups ?? [];
+
+    if (nearbyFilter === 'people') {
+      // People only — same as before, header handled outside FlatList
+      for (const u of displayUsers) {
+        items.push({ type: 'user', data: u });
+      }
+    } else if (nearbyFilter === 'groups') {
+      if (groups.length === 0) {
+        items.push({ type: 'groupsEmpty' });
+      } else {
+        for (const g of groups) {
+          items.push({ type: 'group', data: g });
+        }
+      }
+    } else {
+      // "all" — users section then groups section
+      if (displayUsers.length > 0) {
+        items.push({ type: 'userHeader', count: selectedCluster ? displayUsers.length : totalCount });
+        for (const u of displayUsers) {
+          items.push({ type: 'user', data: u });
+        }
+      }
+      if (groups.length > 0) {
+        items.push({ type: 'groupHeader', count: groups.length });
+        for (const g of groups) {
+          items.push({ type: 'group', data: g });
+        }
+      }
+    }
+    return items;
+  }, [nearbyFilter, displayUsers, nearbyGroups, selectedCluster, totalCount]);
+
   useEffect(() => {
     loadPreferences();
     requestLocationPermission();
@@ -207,8 +274,10 @@ export default function NearbyScreen() {
 
   const handleRefresh = useCallback(() => {
     setIsManualRefresh(true);
-    utils.profiles.getNearbyUsersForMap.invalidate()
-      .finally(() => setIsManualRefresh(false));
+    Promise.all([
+      utils.profiles.getNearbyUsersForMap.invalidate(),
+      utils.groups.getDiscoverable.invalidate(),
+    ]).finally(() => setIsManualRefresh(false));
   }, [utils]);
 
   const toggleMap = useCallback(() => {
@@ -270,6 +339,113 @@ export default function NearbyScreen() {
     );
   }
 
+  const renderItem = ({ item }: { item: ListItem }) => {
+    switch (item.type) {
+      case 'userHeader': {
+        const count = item.count;
+        return (
+          <View style={styles.listHeader}>
+            <Text style={styles.listHeaderTitle}>
+              {selectedCluster
+                ? `${displayCount} ${displayCount === 1 ? 'OSOBA' : 'OSÓB'} W TYM MIEJSCU`
+                : `${count} ${count === 1 ? 'OSOBA' : 'OSÓB'} W POBLIŻU`}
+            </Text>
+            {selectedCluster && (
+              <Text style={styles.clearButtonText} onPress={handleClearFilter}>
+                POKAŻ WSZYSTKICH
+              </Text>
+            )}
+          </View>
+        );
+      }
+      case 'user': {
+        const u = item.data;
+        const waveStatus = waveStatusByUserId.get(u.profile.userId);
+        const status: UserRowStatus = waveStatus
+          ? waveStatus.type === 'connected' ? 'friend'
+            : waveStatus.type === 'sent' ? 'waved'
+            : 'incoming'
+          : 'none';
+        return (
+          <UserRow
+            userId={u.profile.userId}
+            displayName={u.profile.displayName}
+            avatarUrl={u.profile.avatarUrl}
+            distance={u.distance}
+            bio={u.profile.bio}
+            rankScore={u.rankScore}
+            matchScore={u.matchScore}
+            commonInterests={u.commonInterests}
+            shortSnippet={u.shortSnippet}
+            analysisReady={u.analysisReady}
+            status={status}
+            onPress={() =>
+              router.push({
+                pathname: '/(modals)/user/[userId]',
+                params: {
+                  userId: u.profile.userId,
+                  distance: String(u.distance),
+                  rankScore: String(u.rankScore),
+                  matchScore: String(u.matchScore),
+                  commonInterests: JSON.stringify(u.commonInterests),
+                  displayName: u.profile.displayName,
+                  avatarUrl: u.profile.avatarUrl ?? '',
+                },
+              })
+            }
+          />
+        );
+      }
+      case 'groupHeader':
+        return (
+          <View style={styles.listHeader}>
+            <Text style={styles.listHeaderTitle}>
+              {item.count} {item.count === 1 ? 'GRUPA' : 'GRUP'} W POBLIŻU
+            </Text>
+          </View>
+        );
+      case 'group': {
+        const g = item.data;
+        return (
+          <GroupRow
+            conversationId={g.id}
+            name={g.name}
+            avatarUrl={g.avatarUrl}
+            description={g.description}
+            distance={g.distance}
+            memberCount={g.memberCount}
+          />
+        );
+      }
+      case 'groupsEmpty':
+        return (
+          <View style={styles.emptyList}>
+            <Text style={styles.emptyListText}>Brak grup w okolicy</Text>
+            <View style={{ marginTop: spacing.gutter }}>
+              <Button
+                title="Utwórz grupę"
+                variant="accent"
+                onPress={() => router.push('/(modals)/create-group')}
+              />
+            </View>
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const getItemKey = (item: ListItem, index: number) => {
+    switch (item.type) {
+      case 'userHeader': return 'user-header';
+      case 'user': return `user-${item.data.profile.id}`;
+      case 'groupHeader': return 'group-header';
+      case 'group': return `group-${item.data.id}`;
+      case 'groupsEmpty': return 'groups-empty';
+      default: return String(index);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Collapsible map */}
@@ -293,72 +469,67 @@ export default function NearbyScreen() {
         </Text>
       </Pressable>
 
-      {/* List header */}
-      <View style={styles.listHeader}>
-        <Text style={styles.listHeaderTitle}>
-          {selectedCluster
-            ? `${displayCount} ${displayCount === 1 ? 'OSOBA' : 'OSÓB'} W TYM MIEJSCU`
-            : `${totalCount} ${totalCount === 1 ? 'OSOBA' : 'OSÓB'} W POBLIŻU`}
-        </Text>
-        {selectedCluster && (
-          <Text style={styles.clearButtonText} onPress={handleClearFilter}>
-            POKAŻ WSZYSTKICH
-          </Text>
-        )}
+      {/* Filter chips */}
+      <View style={styles.filterRow}>
+        {FILTER_CHIPS.map((chip) => (
+          <Pressable
+            key={chip.key}
+            style={[
+              styles.filterChip,
+              nearbyFilter === chip.key
+                ? styles.filterChipActive
+                : styles.filterChipInactive,
+            ]}
+            onPress={() => setNearbyFilter(chip.key)}
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                nearbyFilter === chip.key
+                  ? styles.filterChipTextActive
+                  : styles.filterChipTextInactive,
+              ]}
+            >
+              {chip.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
 
-      {/* User list */}
+      {/* People-only header (when filter = people) */}
+      {nearbyFilter === 'people' && (
+        <View style={styles.listHeader}>
+          <Text style={styles.listHeaderTitle}>
+            {selectedCluster
+              ? `${displayCount} ${displayCount === 1 ? 'OSOBA' : 'OSÓB'} W TYM MIEJSCU`
+              : `${totalCount} ${totalCount === 1 ? 'OSOBA' : 'OSÓB'} W POBLIŻU`}
+          </Text>
+          {selectedCluster && (
+            <Text style={styles.clearButtonText} onPress={handleClearFilter}>
+              POKAŻ WSZYSTKICH
+            </Text>
+          )}
+        </View>
+      )}
+
+      {/* Combined list */}
       <FlatList
-        data={displayUsers}
-        keyExtractor={(item) => item.profile.id}
-        renderItem={({ item }) => {
-          const waveStatus = waveStatusByUserId.get(item.profile.userId);
-          const status: UserRowStatus = waveStatus
-            ? waveStatus.type === 'connected' ? 'friend'
-              : waveStatus.type === 'sent' ? 'waved'
-              : 'incoming'
-            : 'none';
-          return (
-          <UserRow
-            userId={item.profile.userId}
-            displayName={item.profile.displayName}
-            avatarUrl={item.profile.avatarUrl}
-            distance={item.distance}
-            bio={item.profile.bio}
-            rankScore={item.rankScore}
-            matchScore={item.matchScore}
-            commonInterests={item.commonInterests}
-            shortSnippet={item.shortSnippet}
-            analysisReady={item.analysisReady}
-            status={status}
-            onPress={() =>
-              router.push({
-                pathname: '/(modals)/user/[userId]',
-                params: {
-                  userId: item.profile.userId,
-                  distance: String(item.distance),
-                  rankScore: String(item.rankScore),
-                  matchScore: String(item.matchScore),
-                  commonInterests: JSON.stringify(item.commonInterests),
-                  displayName: item.profile.displayName,
-                  avatarUrl: item.profile.avatarUrl ?? '',
-                },
-              })
-            }
-          />
-          );
-        }}
+        data={listItems}
+        keyExtractor={getItemKey}
+        renderItem={renderItem}
         ListEmptyComponent={
-          <View style={styles.emptyList}>
-            <Text style={styles.emptyListText}>Nikogo w pobliżu</Text>
-          </View>
+          nearbyFilter === 'people' ? (
+            <View style={styles.emptyList}>
+              <Text style={styles.emptyListText}>Nikogo w pobliżu</Text>
+            </View>
+          ) : null
         }
         onRefresh={handleRefresh}
         refreshing={isManualRefresh}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         onEndReached={() => {
-          if (hasNextPage && !isFetchingNextPage && !selectedCluster) {
+          if (nearbyFilter !== 'groups' && hasNextPage && !isFetchingNextPage && !selectedCluster) {
             fetchNextPage();
           }
         }}
@@ -415,6 +586,36 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1.5,
     color: colors.muted,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing.tight,
+    paddingHorizontal: spacing.section,
+    marginVertical: spacing.gutter,
+  },
+  filterChip: {
+    paddingHorizontal: spacing.gutter,
+    paddingVertical: spacing.tick,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  filterChipActive: {
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
+  },
+  filterChipInactive: {
+    backgroundColor: 'transparent',
+    borderColor: colors.rule,
+  },
+  filterChipText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+  },
+  filterChipTextActive: {
+    color: colors.bg,
+  },
+  filterChipTextInactive: {
+    color: colors.ink,
   },
   listHeader: {
     paddingHorizontal: spacing.column,

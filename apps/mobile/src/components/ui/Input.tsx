@@ -12,6 +12,8 @@ export function Input({ label, style, ...props }: InputProps) {
       <TextInput
         style={[styles.input, style]}
         placeholderTextColor={colors.muted}
+        spellCheck={false}
+        autoCorrect={false}
         {...props}
       />
     </View>

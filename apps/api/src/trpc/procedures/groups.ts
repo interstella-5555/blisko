@@ -260,6 +260,67 @@ export const groupsRouter = router({
       return conv;
     }),
 
+  joinDiscoverable: protectedProcedure
+    .input(z.object({ conversationId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const conv = await requireGroup(input.conversationId);
+
+      if (!conv.isDiscoverable) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'This group is not discoverable',
+        });
+      }
+
+      // Check if already a member
+      const [existing] = await db
+        .select()
+        .from(conversationParticipants)
+        .where(
+          and(
+            eq(conversationParticipants.conversationId, conv.id),
+            eq(conversationParticipants.userId, ctx.userId)
+          )
+        );
+
+      if (existing) {
+        return conv;
+      }
+
+      // Check member limit
+      const [countResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(conversationParticipants)
+        .where(eq(conversationParticipants.conversationId, conv.id));
+
+      if (Number(countResult.count) >= (conv.maxMembers ?? 200)) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Group is full',
+        });
+      }
+
+      await db.insert(conversationParticipants).values({
+        conversationId: conv.id,
+        userId: ctx.userId,
+        role: 'member',
+      });
+
+      const [profile] = await db
+        .select({ displayName: profiles.displayName })
+        .from(profiles)
+        .where(eq(profiles.userId, ctx.userId));
+
+      ee.emit('groupMember', {
+        conversationId: conv.id,
+        userId: ctx.userId,
+        action: 'joined',
+        displayName: profile?.displayName,
+      });
+
+      return conv;
+    }),
+
   leave: protectedProcedure
     .input(z.object({ conversationId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -613,12 +674,55 @@ export const groupsRouter = router({
     .input(z.object({ conversationId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const conv = await requireGroup(input.conversationId);
-      await requireGroupParticipant(input.conversationId, ctx.userId);
+
+      // Check if user is a member
+      const [participant] = await db
+        .select()
+        .from(conversationParticipants)
+        .where(
+          and(
+            eq(conversationParticipants.conversationId, input.conversationId),
+            eq(conversationParticipants.userId, ctx.userId)
+          )
+        );
+
+      const isMember = !!participant;
+
+      // Non-members can only see discoverable groups
+      if (!isMember && !conv.isDiscoverable) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You are not a member of this group',
+        });
+      }
 
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(conversationParticipants)
         .where(eq(conversationParticipants.conversationId, input.conversationId));
+
+      // Members get full info; non-members get a preview
+      if (!isMember) {
+        return {
+          id: conv.id,
+          name: conv.name,
+          description: conv.description,
+          avatarUrl: conv.avatarUrl,
+          isDiscoverable: conv.isDiscoverable,
+          memberCount: Number(countResult.count),
+          isMember: false as const,
+          topics: [],
+          inviteCode: null,
+          type: conv.type,
+          createdAt: conv.createdAt,
+          updatedAt: conv.updatedAt,
+          creatorId: null,
+          latitude: conv.latitude,
+          longitude: conv.longitude,
+          maxMembers: conv.maxMembers,
+          discoveryRadiusMeters: conv.discoveryRadiusMeters,
+        };
+      }
 
       const topicsList = await db
         .select()
@@ -631,6 +735,7 @@ export const groupsRouter = router({
       return {
         ...conv,
         memberCount: Number(countResult.count),
+        isMember: true as const,
         topics: topicsList,
       };
     }),

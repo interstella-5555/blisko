@@ -133,6 +133,8 @@ export default function ProfilingResultModal() {
         onChangeText={setBio}
         multiline
         maxLength={500}
+        spellCheck={false}
+        autoCorrect={false}
         placeholderTextColor={colors.muted}
       />
       <Text style={styles.charCount}>{bio.length} / 500</Text>
@@ -144,6 +146,8 @@ export default function ProfilingResultModal() {
         onChangeText={setLookingFor}
         multiline
         maxLength={500}
+        spellCheck={false}
+        autoCorrect={false}
         placeholderTextColor={colors.muted}
       />
       <Text style={styles.charCount}>{lookingFor.length} / 500</Text>
