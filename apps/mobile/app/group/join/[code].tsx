@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { trpc } from '../../../src/lib/trpc';
+import { sendWsMessage } from '../../../src/lib/ws';
 import { useConversationsStore } from '../../../src/stores/conversationsStore';
 import { ThinkingIndicator } from '../../../src/components/ui/ThinkingIndicator';
 import { colors, fonts, spacing } from '../../../src/theme';
@@ -14,6 +15,7 @@ export default function JoinGroupScreen() {
 
   const joinGroup = trpc.groups.join.useMutation({
     onSuccess: (data) => {
+      sendWsMessage({ type: 'subscribe', conversationId: data.id });
       useConversationsStore.getState().addNew({
         id: data.id,
         type: 'group',

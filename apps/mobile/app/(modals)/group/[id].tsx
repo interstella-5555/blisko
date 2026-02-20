@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { trpc } from '../../../src/lib/trpc';
+import { sendWsMessage } from '../../../src/lib/ws';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useConversationsStore } from '../../../src/stores/conversationsStore';
 import { colors, type as typ, spacing, fonts } from '../../../src/theme';
@@ -66,6 +67,7 @@ export default function GroupInfoScreen() {
 
   const joinGroup = trpc.groups.joinDiscoverable.useMutation({
     onSuccess: (data) => {
+      sendWsMessage({ type: 'subscribe', conversationId: data.id });
       useConversationsStore.getState().addNew({
         id: data.id,
         type: 'group',

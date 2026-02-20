@@ -16,6 +16,7 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import { router } from 'expo-router';
 import { trpc } from '../../src/lib/trpc';
+import { sendWsMessage } from '../../src/lib/ws';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Button } from '../../src/components/ui/Button';
 import { Avatar } from '../../src/components/ui/Avatar';
@@ -72,6 +73,8 @@ export default function CreateGroupScreen() {
 
   const createGroup = trpc.groups.create.useMutation({
     onSuccess: (data) => {
+      // Subscribe to WS events for the new group
+      sendWsMessage({ type: 'subscribe', conversationId: data.id });
       // Add the new group to conversations store
       useConversationsStore.getState().addNew({
         id: data.id,
