@@ -13,6 +13,7 @@ RUN pnpm install --frozen-lockfile --prefer-offline
 
 COPY apps/chatbot/ ./apps/chatbot/
 COPY apps/api/src/db/ ./apps/api/src/db/
+COPY packages/shared/ ./packages/shared/
 
 ENV NODE_ENV=production
 
