@@ -99,11 +99,16 @@ The iPhone UDID is `00008130-00065CE826A0001C` (Karol iPhone 15). Use `xcrun xct
 
 ## Seed user locations
 
-Seed users are scattered across 5 central districts (Ochota, Włochy, Wola, Śródmieście, Mokotów):
-- **Bounds:** lat `52.17–52.27`, lng `20.92–21.06`
-- **Constants:** `WARSAW_CENTER = {lat: 52.22, lng: 20.99}`, `SPREAD_LAT = 0.05`, `SPREAD_LNG = 0.07`
+Seed users are scattered across 7 Warsaw districts using real boundary polygons from `apps/api/scripts/warszawa-dzielnice.geojson` (source: [andilabs/warszawa-dzielnice-geojson](https://github.com/andilabs/warszawa-dzielnice-geojson)).
 
-To re-scatter existing users without re-seeding (goes through the API so side-effects fire):
+**Target districts** (configurable in `TARGET_DISTRICTS` array): Ochota, Włochy, Wola, Śródmieście, Mokotów, Ursynów, Bemowo.
+
+To re-scatter existing users (direct DB, no API needed):
+```bash
+pnpm api:scatter
+```
+
+To re-scatter via API (fires side-effects like AI re-analysis and WS broadcasts):
 ```bash
 cd apps/api && bun run scripts/scatter-locations.ts
 ```

@@ -8,15 +8,80 @@
 const API = process.env.API_URL || 'http://localhost:3000';
 const USER_COUNT = 250;
 const CACHE_PATH = `${import.meta.dir}/.seed-cache.json`;
+const GEOJSON_PATH = `${import.meta.dir}/warszawa-dzielnice.geojson`;
 
-// Ochota / Włochy / Wola / Śródmieście / Mokotów
-const WARSAW_CENTER = { lat: 52.22, lng: 20.99 };
-const SPREAD_LAT = 0.05;
-const SPREAD_LNG = 0.07;
+const TARGET_DISTRICTS = [
+  'Ochota', 'Włochy', 'Wola', 'Śródmieście', 'Mokotów', 'Ursynów', 'Bemowo',
+];
 
-function randomInRange(center: number, spread: number) {
-  return center + (Math.random() - 0.5) * 2 * spread;
+// --- Point-in-polygon (ray casting) ---
+
+type Ring = [number, number][];
+type MultiPolygon = Ring[][][];
+
+function pointInRing(lat: number, lng: number, ring: Ring): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
 }
+
+function pointInMultiPolygon(lat: number, lng: number, mp: MultiPolygon): boolean {
+  for (const polygon of mp) {
+    for (const ring of polygon) {
+      if (pointInRing(lat, lng, ring)) return true;
+    }
+  }
+  return false;
+}
+
+interface BBox { latMin: number; latMax: number; lngMin: number; lngMax: number }
+
+function computeBBox(mp: MultiPolygon): BBox {
+  let latMin = Infinity, latMax = -Infinity, lngMin = Infinity, lngMax = -Infinity;
+  for (const polygon of mp) {
+    for (const ring of polygon) {
+      for (const [lng, lat] of ring) {
+        if (lat < latMin) latMin = lat;
+        if (lat > latMax) latMax = lat;
+        if (lng < lngMin) lngMin = lng;
+        if (lng > lngMax) lngMax = lng;
+      }
+    }
+  }
+  return { latMin, latMax, lngMin, lngMax };
+}
+
+interface District { name: string; coords: MultiPolygon; bbox: BBox }
+
+async function loadDistricts(): Promise<District[]> {
+  const geo = await Bun.file(GEOJSON_PATH).json();
+  const targetSet = new Set(TARGET_DISTRICTS);
+  return geo.features
+    .filter((f: any) => targetSet.has(f.properties.name))
+    .map((f: any) => ({
+      name: f.properties.name,
+      coords: f.geometry.coordinates,
+      bbox: computeBBox(f.geometry.coordinates),
+    }));
+}
+
+function randomPointInDistricts(districts: District[]): { lat: number; lng: number } {
+  const d = districts[Math.floor(Math.random() * districts.length)];
+  for (let attempt = 0; attempt < 1000; attempt++) {
+    const lat = d.bbox.latMin + Math.random() * (d.bbox.latMax - d.bbox.latMin);
+    const lng = d.bbox.lngMin + Math.random() * (d.bbox.lngMax - d.bbox.lngMin);
+    if (pointInMultiPolygon(lat, lng, d.coords)) return { lat, lng };
+  }
+  return { lat: (d.bbox.latMin + d.bbox.latMax) / 2, lng: (d.bbox.lngMin + d.bbox.lngMax) / 2 };
+}
+
+const _districts = await loadDistricts();
 
 // --- Diverse Polish first names ---
 const FEMALE_NAMES = [
@@ -488,8 +553,7 @@ async function main() {
       const email = `user${idx}@example.com`;
       const bio = generateBio(female);
       const lookingFor = generateLookingFor();
-      const lat = randomInRange(WARSAW_CENTER.lat, SPREAD_LAT);
-      const lng = randomInRange(WARSAW_CENTER.lng, SPREAD_LNG);
+      const { lat, lng } = randomPointInDistricts(_districts);
       const interests = await generateInterestsFromBio(bio, lookingFor);
 
       seedData.push({ name, email, bio, lookingFor, lat, lng, interests });
