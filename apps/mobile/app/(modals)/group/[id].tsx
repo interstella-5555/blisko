@@ -31,12 +31,11 @@ const ROLE_ORDER: Record<string, number> = {
   member: 2,
 };
 
-const MAX_VISIBLE_MEMBERS = 5;
+const MAX_INLINE_MEMBERS = 5;
 
 export default function GroupInfoScreen() {
   const { id: conversationId } = useLocalSearchParams<{ id: string }>();
   const userId = useAuthStore((s) => s.user?.id);
-  const [showAllMembers, setShowAllMembers] = useState(false);
   const [showTopicForm, setShowTopicForm] = useState(false);
   const [topicName, setTopicName] = useState('');
   const [topicEmoji, setTopicEmoji] = useState('💬');
@@ -154,11 +153,8 @@ export default function GroupInfoScreen() {
       )
     : [];
 
-  const visibleMembers = showAllMembers
-    ? sortedMembers
-    : sortedMembers.slice(0, MAX_VISIBLE_MEMBERS);
-
-  const hasMoreMembers = sortedMembers.length > MAX_VISIBLE_MEMBERS;
+  const visibleMembers = sortedMembers.slice(0, MAX_INLINE_MEMBERS);
+  const hasMoreMembers = sortedMembers.length > MAX_INLINE_MEMBERS;
 
   if (isLoading || !groupInfo) {
     return (
@@ -333,13 +329,15 @@ export default function GroupInfoScreen() {
               ) : null}
             </Pressable>
           ))}
-          {hasMoreMembers && !showAllMembers && (
+          {hasMoreMembers && (
             <Pressable
               style={styles.showAllBtn}
-              onPress={() => setShowAllMembers(true)}
+              onPress={() =>
+                router.push(`/(modals)/group/members/${conversationId}`)
+              }
             >
               <Text style={styles.showAllText}>
-                Pokaz wszystkich ({sortedMembers.length})
+                Pokaż wszystkich ({groupInfo.memberCount}) →
               </Text>
             </Pressable>
           )}

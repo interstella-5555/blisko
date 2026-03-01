@@ -42,6 +42,10 @@ export default function ModalsLayout() {
           name="group/[id]"
           options={{ title: 'Grupa', headerBackTitle: 'Wróć' }}
         />
+        <Stack.Screen
+          name="group/members/[id]"
+          options={{ title: 'Członkowie', headerBackTitle: 'Wróć' }}
+        />
       </Stack>
       <NotificationOverlay />
     </>
