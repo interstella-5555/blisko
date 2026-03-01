@@ -322,6 +322,7 @@ Query: team=Blisko, status=Todo, label=Overnight. Sort by priority DESC (Urgent 
 4. **VERIFY**
    - `pnpm --filter @repo/api typecheck`
    - `pnpm --filter @repo/shared typecheck`
+   - `pnpm --filter @repo/mobile typecheck`
    - `pnpm --filter @repo/api test` (if tests exist)
    - If tests fail: 2 attempts to fix, then treat as blocked.
 
@@ -373,3 +374,75 @@ Splitting process:
 2. `git log --oneline -20` — see what was merged overnight
 3. Blocked tickets: read the comment, fix the issue (add API key, clarify requirement), put back to Todo + Overnight
 4. Queue new tickets for the next night: set Todo + Overnight label
+
+### Overnight prep
+
+Batch preparation of Backlog tickets for overnight work. Triggered by "przygotuj tickety na noc" or similar.
+
+#### Workflow
+
+1. Query: team=Blisko, status=Backlog, label=Idea
+2. For each ticket:
+   a. Read description + comments
+   b. Explore relevant codebase areas (schema, API routes, mobile screens, shared types)
+   c. Write structured description using the Backlog→Todo template:
+      - Problem / Kontekst
+      - Rozwiązanie
+      - Plan implementacji (specific files, components, approach)
+      - Kryteria akceptacji (testable checkboxes)
+   d. Update ticket description in Linear (structured content above original)
+   e. Move status to Todo
+   f. Add label Overnight, keep label Idea
+   g. Comment: "Prepared for overnight. Implementation plan: ..."
+3. After all tickets: report summary to user — what was prepared, any tickets skipped (too vague, needs user input)
+
+#### Skip conditions
+- Ticket too vague to plan (no clear outcome) → comment asking for clarification, leave in Backlog
+- Ticket requires external info (API keys, design decisions) → comment "Needs: ...", leave in Backlog
+- Ticket already has structured description → skip, just add Overnight label
+
+#### User review
+After prep, Karol reviews in Linear:
+- Remove Overnight label from tickets not ready
+- Adjust priorities if needed
+- Add missing context to skipped tickets
+
+### Morning report
+
+Generates a summary of overnight work. Triggered by "morning report" or "co się stało w nocy".
+
+#### What to check
+
+1. **Linear tickets** — query team=Blisko, updatedAt last 12h. Group by status:
+   - **Done** — list with summary of changes from merge comment
+   - **In Progress + has "BLOCKED" comment** — list with block reason
+   - **In Progress (no block)** — still being worked on or session ended mid-work
+
+2. **Git log** — `git log --oneline --since="12 hours ago"` on main branch. Count commits, summarize changes.
+
+3. **CI status** — check if latest GitHub Actions runs passed (if CI workflow exists)
+
+#### Output format
+
+```
+## Overnight report — [date]
+
+### Done (merged to main)
+- BLI-X: [title] — [1-line summary of changes]
+- BLI-Y: [title] — [1-line summary of changes]
+
+### Blocked (needs attention)
+- BLI-Z: [title] — BLOCKED: [reason]. Branch: `branch-name`
+  → Recommended: [action to unblock]
+
+### Git activity
+[N] commits, [+added/-removed] lines
+Key changes: [summary]
+
+### CI status
+[pass/fail] — [link if failed]
+
+### Recommended actions
+1. [action for blocked ticket]
+2. [action for next steps]
+```

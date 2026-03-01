@@ -20,14 +20,25 @@
     "api:scatter": "pnpm --filter @repo/api scatter",
     "website:dev": "pnpm --filter @repo/website dev",
     "website:start": "pnpm --filter @repo/website start",
-    "mobile:testflight": "pnpm --filter @repo/mobile testflight"
+    "mobile:testflight": "pnpm --filter @repo/mobile testflight",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.1",
     "typescript": "^5.3.0"
   },
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=20"
+  },
+  "lint-staged": {
+    "apps/api/src/**/*.ts": "pnpm --filter @repo/api typecheck",
+    "apps/mobile/**/*.{ts,tsx}": "pnpm --filter @repo/mobile typecheck",
+    "packages/shared/src/**/*.ts": "pnpm --filter @repo/shared typecheck"
   }
 }
