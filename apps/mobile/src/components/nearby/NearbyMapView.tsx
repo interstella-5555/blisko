@@ -2,6 +2,7 @@ import { useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { View, StyleSheet } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { GridClusterMarker, type ClusterUser } from './GridClusterMarker';
+import { GroupMarker } from './GroupMarker';
 
 export interface MapUser {
   profile: {
@@ -34,17 +35,28 @@ export interface NearbyMapRef {
   animateToRegion: (lat: number, lng: number) => void;
 }
 
+export interface MapGroup {
+  id: string;
+  name: string | null;
+  avatarUrl: string | null;
+  latitude: number;
+  longitude: number;
+  nearbyMemberCount: number;
+}
+
 interface NearbyMapViewProps {
   users: MapUser[];
   userLatitude: number;
   userLongitude: number;
   onClusterPress?: (cluster: GridCluster) => void;
   highlightedGridId?: string | null;
+  groups?: MapGroup[];
+  onGroupPress?: (group: MapGroup) => void;
 }
 
 export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
   (
-    { users, userLatitude, userLongitude, onClusterPress, highlightedGridId },
+    { users, userLatitude, userLongitude, onClusterPress, highlightedGridId, groups, onGroupPress },
     ref
   ) => {
     const mapRef = useRef<MapView>(null);
@@ -118,6 +130,19 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
               <GridClusterMarker
                 users={clusterUsers(cluster)}
                 highlighted={cluster.gridId === highlightedGridId}
+              />
+            </Marker>
+          ))}
+          {groups?.map((group) => (
+            <Marker
+              key={`group-${group.id}`}
+              coordinate={{ latitude: group.latitude, longitude: group.longitude }}
+              onPress={() => onGroupPress?.(group)}
+            >
+              <GroupMarker
+                name={group.name}
+                avatarUrl={group.avatarUrl}
+                nearbyCount={group.nearbyMemberCount}
               />
             </Marker>
           ))}
