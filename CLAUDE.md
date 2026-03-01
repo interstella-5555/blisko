@@ -260,9 +260,28 @@ pnpm mobile:testflight
 
 After any restart that involves re-seeding the database, display a random test user email for quick login. Seeded users have emails `user0@example.com` through `user249@example.com`.
 
+## Design Book
+
+Located at `apps/design/`, served at `localhost:3000/design-book`.
+
+- CSS modules used throughout — class names are mangled, can't target them with plain CSS selectors from outside
+- Root nav is `<nav className="nav">` in `__root.tsx`
+- Screens: `apps/design/src/components/design-book/Screens.tsx` — phone frame mockups
+- CSS: `screens.module.css`, `form-elements.module.css`, `components.module.css`
+- Variants: `apps/design/src/variants/v2-*/` — each variant has its own tab bar with hardcoded labels
+- PhoneFrame: max 402px wide, aspect 402:874, in screenCol constrained to 280px
+
 ## Linear integration
 
 Team: **Blisko**, key: **BLI**
+
+### Linear API — markdown formatting
+
+- Pass raw markdown strings to `save_issue` description — NOT escaped strings with `\\n`. Just use normal newlines in the parameter value.
+- Avoid starting a line with `>` followed by text (e.g. `>5 członków`) — Linear's markdown parser treats it as a blockquote. Use words instead: "Więcej niż 5" or "ponad 5".
+- Checkboxes: use `- [ ]` not `\[ \]`
+- Always double-check the response from `save_issue` to verify markdown rendered correctly before moving on.
+- NEVER try to attach screenshots/images to Linear tickets via `create_attachment` — the base64 upload workflow doesn't work reliably (size limits, tool output issues). Just reference HTML mockup file paths in ticket descriptions instead.
 
 ### Capturing ideas
 
@@ -275,7 +294,7 @@ When user shares an idea, feedback, or feature concept:
   - **Bug** = broken thing
   - **Idea** = vague, needs refinement
 - **Priority**: set when user expresses urgency, otherwise leave unset (None).
-- **Sub-issues**: when a feature has distinct parts, create sub-issues with `parentId`. Discover naturally — don't force upfront decomposition.
+- **Sub-issues**: when a feature has distinct parts, create sub-issues with `parentId`. Discover naturally — don't force upfront decomposition. Every sub-ticket MUST have its own acceptance criteria — never reference parent's criteria. Each sub-ticket stands alone.
 - **Specs & plans**: use **Linear Documents** attached to the parent ticket (`create_document` with `issue` param) for implementation plans, PRDs, and technical specs. **Never save plans as local files** — `docs/plans/` is legacy. When using `writing-plans` skill, save output as Linear Document instead of local file. Each sub-ticket must be **self-contained** — all info needed to implement it should be in its description (code snippets, file paths, props, styles). Never reference external files from ticket descriptions.
 - **Mid-conversation**: if something worth tracking comes up, create the issue immediately.
 - **External feedback**: when user relays feedback from others (e.g. Jarek), capture each distinct point as a separate Idea issue. Tag description with who gave the feedback ("Feedback od Jarka:").

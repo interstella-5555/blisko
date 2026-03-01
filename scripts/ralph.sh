@@ -52,6 +52,7 @@ while [[ $# -gt 0 ]]; do
     --stagnation-limit) STAGNATION_LIMIT="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     --verbose) VERBOSE=true; shift ;;
+    --no-resume) echo "==> Skipping session resume"; rm -f "$SCRIPT_DIR/ralph-session.txt"; shift ;;
     --reset) echo "==> Clearing progress and session files"; rm -f "$PROGRESS_FILE" "$SCRIPT_DIR/ralph-session.txt"; shift ;;
     -h|--help)
       echo "Usage: ralph.sh [OPTIONS]"
@@ -64,6 +65,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --model MODEL          Claude model (default: opus)"
       echo "  --dry-run              Preview ticket queue only"
       echo "  --verbose              Show full Claude output"
+      echo "  --no-resume            Skip session resume, start fresh (keeps progress file)"
       echo "  --reset                Clear progress and session files before starting"
       echo "  -h, --help             Show this help"
       exit 0
