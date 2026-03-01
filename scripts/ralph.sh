@@ -77,6 +77,16 @@ done
 # Ensure we're in the project directory
 cd "$PROJECT_DIR"
 
+# Kill any leftover Ralph processes from previous runs
+EXISTING_RALPHS=$(pgrep -f "ralph.sh" | grep -v $$ | grep -v $PPID || true)
+if [[ -n "$EXISTING_RALPHS" ]]; then
+  echo "==> Killing leftover Ralph processes..."
+  echo "$EXISTING_RALPHS" | xargs kill 2>/dev/null || true
+  sleep 1
+  # Force kill any stragglers
+  echo "$EXISTING_RALPHS" | xargs kill -9 2>/dev/null || true
+fi
+
 # Ensure on main and up to date
 echo "==> Ensuring on main branch..."
 git checkout main
