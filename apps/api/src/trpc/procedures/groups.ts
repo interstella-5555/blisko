@@ -356,7 +356,13 @@ export const groupsRouter = router({
     }),
 
   getMembers: protectedProcedure
-    .input(z.object({ conversationId: z.string().uuid() }))
+    .input(
+      z.object({
+        conversationId: z.string().uuid(),
+        limit: z.number().min(1).max(100).default(50),
+        cursor: z.number().int().min(0).optional(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       await requireGroupParticipant(input.conversationId, ctx.userId);
 
@@ -375,7 +381,14 @@ export const groupsRouter = router({
         )
         .where(
           eq(conversationParticipants.conversationId, input.conversationId)
-        );
+        )
+        .orderBy(
+          sql`CASE ${conversationParticipants.role}
+            WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END`,
+          conversationParticipants.joinedAt
+        )
+        .limit(input.limit)
+        .offset(input.cursor ?? 0);
 
       return members;
     }),
@@ -750,7 +763,31 @@ export const groupsRouter = router({
         memberCount: Number(countResult.count),
         isMember: true as const,
         topics: topicsList,
+        locationVisible: participant.locationVisible,
       };
+    }),
+
+  setLocationVisibility: protectedProcedure
+    .input(
+      z.object({
+        conversationId: z.string().uuid(),
+        visible: z.boolean(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await requireGroupParticipant(input.conversationId, ctx.userId);
+
+      await db
+        .update(conversationParticipants)
+        .set({ locationVisible: input.visible })
+        .where(
+          and(
+            eq(conversationParticipants.conversationId, input.conversationId),
+            eq(conversationParticipants.userId, ctx.userId)
+          )
+        );
+
+      return { ok: true };
     }),
 
   getNearbyMembers: protectedProcedure
