@@ -50,8 +50,8 @@ export default function NearbyScreen() {
     useLocationStore();
   const { nearbyRadiusMeters, loadPreferences } = usePreferencesStore();
 
-  const [mapExpanded, setMapExpanded] = useState(false);
-  const mapHeight = useRef(new Animated.Value(0)).current;
+  const [mapExpanded, setMapExpanded] = useState(true);
+  const mapHeight = useRef(new Animated.Value(MAP_EXPANDED_HEIGHT)).current;
   const mapRef = useRef<NearbyMapRef>(null);
 
   const utils = trpc.useUtils();
