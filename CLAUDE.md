@@ -280,6 +280,26 @@ When user shares an idea, feedback, or feature concept:
 - **Mid-conversation**: if something worth tracking comes up, create the issue immediately.
 - **External feedback**: when user relays feedback from others (e.g. Jarek), capture each distinct point as a separate Idea issue. Tag description with who gave the feedback ("Feedback od Jarka:").
 
+### Development workflow — Superpowers skills
+
+Superpowers skills are **mandatory** at each stage, not optional. Use `brainstorming` skill before any creative/design work. Use `writing-plans` skill for implementation plans (output → Linear Document). Use `verification-before-completion` skill before claiming anything is done.
+
+| Stage | Skill | When |
+|-------|-------|------|
+| New idea / feature design | `brainstorming` | Before any Backlog→Todo, before non-trivial implementation |
+| Implementation plan | `writing-plans` | After brainstorming, for tickets with 3+ acceptance criteria |
+| Executing plan with sub-tasks | `executing-plans` | Working through sub-issues or multi-step plans |
+| Parallel independent tasks | `dispatching-parallel-agents` | 2+ tasks with no shared state |
+| Writing code | `test-driven-development` | Any feature or bugfix — test before code |
+| Bug / test failure | `systematic-debugging` | Before proposing any fix — diagnose first |
+| Before Done / merge | `verification-before-completion` | Always. Run checks, confirm output |
+| After implementation | `requesting-code-review` | Before merge, after all tests pass |
+| Receiving feedback | `receiving-code-review` | When getting review comments — verify before implementing |
+| Branch complete | `finishing-a-development-branch` | Deciding merge/PR/cleanup |
+| Feature isolation | `using-git-worktrees` | When user explicitly requests worktree |
+
+Ralph uses the same pipeline automatically — skills trigger on context.
+
 ### Working on a ticket
 
 When user says "work on BLI-X" or similar:
@@ -287,11 +307,12 @@ When user says "work on BLI-X" or similar:
 1. **Fetch & understand** — get issue description + comments + sub-issues.
 2. **Status → In Progress** — do this immediately, don't ask.
 3. **Create branch** — use Linear's `gitBranchName` from the issue (format: `kwypchlo/bli-X-slug`).
-4. **Plan if needed** — for non-trivial work, brainstorm/plan first. Save as Linear Document attached to the ticket.
-5. **Implement** — normal skills flow (brainstorm → plan → code → test).
+4. **Brainstorm if needed** — for non-trivial work, use `brainstorming` skill first. Then `writing-plans` skill → save as Linear Document attached to the ticket.
+5. **Implement** — use `test-driven-development` skill. If bugs arise, use `systematic-debugging` skill.
 6. **Commit** — issue ID at end of message: `Fix map default state (BLI-6)`. Keep existing style (imperative, verb-first).
-7. **Finish** — merge branch to main, set status → **Done**. No PR needed (solo dev). If CI is added later, create PR and use **In Review** status before merge.
-8. **Sub-tasks** — work through sub-issues in order. Set each to In Progress/Done individually. Parent → Done when all children done.
+7. **Verify** — use `verification-before-completion` skill before claiming done.
+8. **Finish** — merge branch to main, set status → **Done**. No PR needed (solo dev). If CI is added later, create PR and use **In Review** status before merge.
+9. **Sub-tasks** — work through sub-issues in order. Each sub-issue uses its **own branch** (`gitBranchName` from the sub-issue) and gets merged to main independently. Parent → Done when all children done.
 
 Technical notes: add as comments on the Linear issue when making non-obvious decisions.
 
@@ -320,8 +341,8 @@ Every iteration queries Linear. The memory file is never authoritative for "what
 5. **If selected ticket has a parentId** — it's a sub-issue. Before starting:
    a. Fetch all siblings (sub-issues of the same parent).
    b. Check if any earlier sibling (lower identifier number) is still not Done — if so, work on that one first instead.
-   c. Use the parent's `gitBranchName` for the branch.
-   d. After the last sibling is done, verify the parent's acceptance criteria. If all pass → merge, parent → Done. If something is missing → create a new sub-issue.
+   c. Use the **sub-issue's own `gitBranchName`** for the branch (each sub-issue = own branch, merged to main independently).
+   d. After the last sibling is done, verify the parent's acceptance criteria. If all pass → parent → Done. If something is missing → create a new sub-issue.
 
 #### Per-task workflow
 
@@ -333,7 +354,7 @@ Every iteration queries Linear. The memory file is never authoritative for "what
 
 4. **SETUP**
    - `git checkout main && git pull origin main`
-   - Create or checkout branch (`gitBranchName` from Linear; sub-issues use parent's branch)
+   - Create or checkout branch (`gitBranchName` from Linear; each sub-issue uses its own branch)
    - Set status → In Progress in Linear (only if not already)
 
 5. **PRE-FLIGHT CHECK**
@@ -355,8 +376,8 @@ Every iteration queries Linear. The memory file is never authoritative for "what
 8. **UPDATE MEMORY FILE** — always, before finishing. Write technical context for the next session (branch, decisions, known issues). Do NOT track task queue here — that's Linear's job.
 
 9. **FINISH**
-   - **All done + tests pass** → merge to main, delete branch, Linear status → Done, remove Ralph label, output `RALPH_MERGED`
-   - **Sub-task done, more remain** → push branch, update sub-task in Linear → Done, output `RALPH_MERGED`
+   - **Standalone ticket done** → merge to main, delete branch, Linear status → Done, remove Ralph label, output `RALPH_MERGED`
+   - **Sub-task done** → merge sub-task branch to main, delete branch, sub-task → Done. If last sub-task: verify parent acceptance criteria, parent → Done, remove Ralph label. Output `RALPH_MERGED`
    - **Blocked** → push branch, comment blocker on Linear ticket, output `RALPH_BLOCKED`
 
 #### Linear usage
@@ -397,9 +418,9 @@ Commit: abc1234
 When picking a ticket that has sub-issues, **always work through sub-issues** — never the parent directly.
 
 1. Query sub-issues of the parent ticket. Work through them in order (by identifier).
-2. All sub-issues work on **the same branch** (parent's `gitBranchName`).
-3. Each sub-issue = one iteration. One at a time.
-4. After the last sub-issue is done, **verify the parent ticket**: check all acceptance criteria from the parent description. If something is missing or broken, create a new sub-issue and continue. If everything passes — merge to main, set parent → Done, remove Ralph label.
+2. Each sub-issue uses **its own branch** (`gitBranchName` from the sub-issue). Merged to main independently after completion.
+3. Each sub-issue = one iteration. One at a time. Start from fresh main (`git checkout main && git pull`).
+4. After the last sub-issue is done, **verify the parent ticket**: check all acceptance criteria from the parent description. If something is missing or broken, create a new sub-issue and continue. If everything passes → parent → Done, remove Ralph label.
 
 #### Splitting large tickets
 
