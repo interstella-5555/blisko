@@ -14,7 +14,9 @@ import { trpc } from '../../../src/lib/trpc';
 import { sendWsMessage } from '../../../src/lib/ws';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useConversationsStore } from '../../../src/stores/conversationsStore';
+import { useLocationStore } from '../../../src/stores/locationStore';
 import { colors, type as typ, spacing, fonts } from '../../../src/theme';
+import { formatDistance } from '../../../src/lib/format';
 import { Avatar } from '../../../src/components/ui/Avatar';
 import { Button } from '../../../src/components/ui/Button';
 import Svg, { Path } from 'react-native-svg';
@@ -48,6 +50,18 @@ export default function GroupInfoScreen() {
   );
 
   const isMember = groupInfo?.isMember ?? false;
+
+  const lat = useLocationStore((s) => s.latitude);
+  const lng = useLocationStore((s) => s.longitude);
+
+  const { data: nearbyData } = trpc.groups.getNearbyMembers.useQuery(
+    {
+      conversationId: conversationId!,
+      latitude: lat!,
+      longitude: lng!,
+    },
+    { enabled: !!conversationId && lat != null && lng != null && !isMember },
+  );
 
   const { data: members } = trpc.groups.getMembers.useQuery(
     { conversationId: conversationId! },
@@ -184,6 +198,30 @@ export default function GroupInfoScreen() {
             <Text style={styles.memberCountLabel}>
               {groupInfo.memberCount} czlonkow
             </Text>
+            {nearbyData && nearbyData.totalNearby > 0 && (
+              <View style={styles.nearbySection}>
+                <Text style={[styles.sectionTitle, styles.nearbyTitle]}>
+                  W pobliżu ({nearbyData.totalNearby})
+                </Text>
+                <View style={styles.nearbyCard}>
+                  {nearbyData.members.slice(0, 5).map((member) => (
+                    <View key={member.userId} style={styles.nearbyRow}>
+                      <Avatar
+                        uri={member.avatarUrl}
+                        name={member.displayName}
+                        size={32}
+                      />
+                      <Text style={styles.nearbyName} numberOfLines={1}>
+                        {member.displayName}
+                      </Text>
+                      <Text style={styles.nearbyDist}>
+                        {formatDistance(member.distance)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
             <View style={styles.joinButtonContainer}>
               <Button
                 title="Dołącz"
@@ -572,5 +610,35 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 15,
     color: colors.accent,
+  },
+  nearbySection: {
+    width: '100%',
+    marginTop: spacing.block,
+    paddingHorizontal: spacing.section,
+  },
+  nearbyTitle: {
+    color: '#22c55e',
+  },
+  nearbyCard: {
+    backgroundColor: '#EEF2EE',
+    borderRadius: 12,
+    padding: spacing.gutter,
+    gap: spacing.compact,
+  },
+  nearbyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.gutter,
+  },
+  nearbyName: {
+    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  nearbyDist: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: '#22c55e',
   },
 });
