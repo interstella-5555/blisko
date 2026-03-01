@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   Share,
   TextInput,
+  Switch,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { trpc } from '../../../src/lib/trpc';
@@ -41,6 +42,8 @@ export default function GroupInfoScreen() {
   const [showTopicForm, setShowTopicForm] = useState(false);
   const [topicName, setTopicName] = useState('');
   const [topicEmoji, setTopicEmoji] = useState('💬');
+  const [showAllNearby, setShowAllNearby] = useState(false);
+  const [locationVisible, setLocationVisible] = useState(true);
 
   const utils = trpc.useUtils();
 
@@ -60,7 +63,7 @@ export default function GroupInfoScreen() {
       latitude: lat!,
       longitude: lng!,
     },
-    { enabled: !!conversationId && lat != null && lng != null && !isMember },
+    { enabled: !!conversationId && lat != null && lng != null },
   );
 
   const { data: members } = trpc.groups.getMembers.useQuery(
@@ -116,6 +119,27 @@ export default function GroupInfoScreen() {
     },
   });
 
+  const setVisibility = trpc.groups.setLocationVisibility.useMutation({
+    onSuccess: () => {
+      utils.groups.getNearbyMembers.invalidate({ conversationId: conversationId! });
+    },
+  });
+
+  const serverLocationVisible = groupInfo?.isMember ? groupInfo.locationVisible : undefined;
+  useEffect(() => {
+    if (serverLocationVisible != null) {
+      setLocationVisible(serverLocationVisible);
+    }
+  }, [serverLocationVisible]);
+
+  const handleToggleVisibility = useCallback(
+    (value: boolean) => {
+      setLocationVisible(value);
+      setVisibility.mutate({ conversationId: conversationId!, visible: value });
+    },
+    [conversationId, setVisibility],
+  );
+
   const handleLeave = useCallback(() => {
     Alert.alert('Opusc grupe', 'Czy na pewno chcesz opuscic te grupe?', [
       { text: 'Anuluj', style: 'cancel' },
@@ -169,6 +193,17 @@ export default function GroupInfoScreen() {
 
   const visibleMembers = sortedMembers.slice(0, MAX_INLINE_MEMBERS);
   const hasMoreMembers = sortedMembers.length > MAX_INLINE_MEMBERS;
+
+  // For inline distance badges when <=5 members
+  const nearbyMap = new Map(
+    nearbyData?.members.map((m) => [m.userId, m.distance]) ?? [],
+  );
+  const isSmallGroup = sortedMembers.length <= MAX_INLINE_MEMBERS;
+
+  // For the nearby section when >5 members
+  const nearbyVisible = showAllNearby
+    ? nearbyData?.members ?? []
+    : (nearbyData?.members ?? []).slice(0, 5);
 
   if (isLoading || !groupInfo) {
     return (
@@ -332,6 +367,51 @@ export default function GroupInfoScreen() {
           </View>
         )}
 
+        {/* Nearby members — only for groups with >5 members */}
+        {!isSmallGroup && nearbyData && nearbyData.totalNearby > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, styles.nearbyTitle]}>
+              W pobliżu ({nearbyData.totalNearby})
+            </Text>
+            <View style={styles.nearbyCard}>
+              {nearbyVisible.map((member) => (
+                <Pressable
+                  key={member.userId}
+                  style={styles.nearbyRow}
+                  onPress={() => router.push(`/(modals)/user/${member.userId}`)}
+                >
+                  <Avatar
+                    uri={member.avatarUrl}
+                    name={member.displayName}
+                    size={32}
+                  />
+                  <Text style={styles.nearbyName} numberOfLines={1}>
+                    {member.displayName}
+                  </Text>
+                  <Text style={styles.nearbyDist}>
+                    {formatDistance(member.distance)}
+                  </Text>
+                </Pressable>
+              ))}
+              {nearbyData.totalNearby > 5 && !showAllNearby && (
+                <Pressable onPress={() => setShowAllNearby(true)}>
+                  <Text style={styles.expandText}>Pokaż w pobliżu →</Text>
+                </Pressable>
+              )}
+              {showAllNearby && nearbyData.totalNearby > 5 && (
+                <Pressable onPress={() => setShowAllNearby(false)}>
+                  <Text style={styles.expandText}>Zwiń</Text>
+                </Pressable>
+              )}
+              {nearbyData.totalNearby > 20 && (
+                <Text style={styles.nearbyNote}>
+                  20 najbliższych z {nearbyData.totalNearby}
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Members */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
@@ -358,7 +438,11 @@ export default function GroupInfoScreen() {
                   {member.userId === userId ? ' (Ty)' : ''}
                 </Text>
               </View>
-              {ROLE_LABELS[member.role] ? (
+              {isSmallGroup && nearbyMap.has(member.userId) ? (
+                <Text style={styles.inlineDistance}>
+                  {formatDistance(nearbyMap.get(member.userId)!)}
+                </Text>
+              ) : ROLE_LABELS[member.role] ? (
                 <View style={styles.roleBadge}>
                   <Text style={styles.roleBadgeText}>
                     {ROLE_LABELS[member.role]}
@@ -387,6 +471,19 @@ export default function GroupInfoScreen() {
             <Text style={styles.actionText}>Link zaproszenia</Text>
             <Text style={styles.actionHint}>Udostepnij</Text>
           </Pressable>
+
+          <View style={styles.toggleSection}>
+            <View style={styles.toggleLabelRow}>
+              <Text style={styles.actionText}>Pokaż moją lokalizację</Text>
+              <Switch
+                value={locationVisible}
+                onValueChange={handleToggleVisibility}
+              />
+            </View>
+            <Text style={styles.toggleDesc}>
+              Inni członkowie zobaczą, że jesteś w pobliżu
+            </Text>
+          </View>
 
           <Pressable
             style={[styles.actionRow, styles.dangerAction]}
@@ -640,5 +737,39 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 12,
     color: '#22c55e',
+  },
+  expandText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    color: '#5B7A5E',
+    paddingTop: spacing.tight,
+  },
+  nearbyNote: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: '#5B7A5E',
+    fontStyle: 'italic',
+    paddingTop: spacing.tight,
+  },
+  inlineDistance: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: '#22c55e',
+  },
+  toggleSection: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+  },
+  toggleLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toggleDesc: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
   },
 });
