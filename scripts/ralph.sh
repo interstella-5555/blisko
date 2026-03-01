@@ -4,21 +4,6 @@ set -euo pipefail
 # Ralph — autonomous worker loop for Blisko
 # Runs Claude in a loop, one task per iteration, using progress.txt for state.
 
-# Auto-launch in tmux if --tmux flag is present
-for arg in "$@"; do
-  if [[ "$arg" == "--tmux" ]]; then
-    # Remove --tmux from args and relaunch inside tmux
-    ARGS=("${@/--tmux/}")
-    tmux kill-session -t ralph 2>/dev/null || true
-    tmux new-session -d -s ralph "$0 ${ARGS[*]}"
-    echo "Ralph running in tmux session 'ralph'."
-    echo "  Attach:  tmux attach -t ralph"
-    echo "  Detach:  Ctrl+B then D"
-    echo "  Kill:    tmux kill-session -t ralph"
-    exit 0
-  fi
-done
-
 # Kill all child processes (including Claude) on exit/interrupt
 # Session file is preserved so next run can --resume
 cleanup() {
@@ -82,7 +67,6 @@ while [[ $# -gt 0 ]]; do
       echo "  --verbose              Show full Claude output"
       echo "  --no-resume            Skip session resume, start fresh (keeps progress file)"
       echo "  --reset                Clear progress and session files before starting"
-      echo "  --tmux                 Run in background tmux session (attach: tmux attach -t ralph)"
       echo "  -h, --help             Show this help"
       exit 0
       ;;
@@ -154,7 +138,7 @@ echo ""
 while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
   ITERATION=$((ITERATION + 1))
   TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-  LOG_FILE="$LOG_DIR/ralph_${TIMESTAMP}_iter${ITERATION}.log"
+  LOG_FILE="$LOG_DIR/ralph_${TIMESTAMP}_iter${ITERATION}.json"
 
   echo "==> Iteration $ITERATION/$MAX_ITERATIONS"
 
@@ -184,14 +168,17 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
   CURRENT_SESSION=$(uuidgen | tr '[:upper:]' '[:lower:]')
   echo "$CURRENT_SESSION" > "$SESSION_FILE"
 
-  # Build claude command (text output for live streaming via tee)
+  # Build claude command
   if [[ -n "$RESUME_SESSION" ]]; then
-    CLAUDE_CMD=(claude -p --resume "$RESUME_SESSION" --model "$MODEL" --output-format text --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
+    # Resume interrupted session — no prompt needed, context is preserved
+    CLAUDE_CMD=(claude -p --resume "$RESUME_SESSION" --model "$MODEL" --output-format json --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
   else
-    CLAUDE_CMD=(claude -p --session-id "$CURRENT_SESSION" --model "$MODEL" --output-format text --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
+    CLAUDE_CMD=(claude -p --session-id "$CURRENT_SESSION" --model "$MODEL" --output-format json --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
   fi
 
-  # Run Claude with live output (tee streams to terminal + log file)
+  # Run Claude with progress file as context (concatenated into prompt)
+  # Wall-clock timeout prevents infinite hangs
+  # When resuming, send minimal prompt (session already has context)
   if [[ -n "$RESUME_SESSION" ]]; then
     PROMPT_INPUT="Continue where you left off. Check Linear and progress file for current state."
   else
@@ -199,13 +186,22 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
   fi
 
   if [[ -n "$TIMEOUT_CMD" ]]; then
-    OUTPUT=$(echo "$PROMPT_INPUT" | $TIMEOUT_CMD "${TIMEOUT_MINUTES}m" "${CLAUDE_CMD[@]}" 2>&1 | tee "$LOG_FILE") || true
+    OUTPUT=$(echo "$PROMPT_INPUT" | $TIMEOUT_CMD "${TIMEOUT_MINUTES}m" "${CLAUDE_CMD[@]}" 2>&1) || true
   else
-    OUTPUT=$(echo "$PROMPT_INPUT" | "${CLAUDE_CMD[@]}" 2>&1 | tee "$LOG_FILE") || true
+    OUTPUT=$(echo "$PROMPT_INPUT" | "${CLAUDE_CMD[@]}" 2>&1) || true
   fi
 
   # Session completed normally — clear session file
   rm -f "$SESSION_FILE"
+
+  # Save log
+  echo "$OUTPUT" > "$LOG_FILE"
+
+  if $VERBOSE; then
+    echo "--- Full output ---"
+    echo "$OUTPUT"
+    echo "--- End output ---"
+  fi
 
   # Check if git HEAD changed (independent progress verification)
   HEAD_AFTER=$(git rev-parse HEAD 2>/dev/null || echo "$HEAD_BEFORE")
