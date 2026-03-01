@@ -2,17 +2,17 @@
 set -euo pipefail
 
 # Ralph — autonomous worker loop for Blisko
-# Runs Claude in a loop, one ticket per iteration, using Linear as state tracker.
+# Runs Claude in a loop, one task per iteration, using progress.txt for state.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROMPT_FILE="$SCRIPT_DIR/ralph-prompt.md"
+PROGRESS_FILE="$SCRIPT_DIR/ralph-progress.txt"
 LOG_DIR="$SCRIPT_DIR/ralph-logs"
 
 # Defaults
 MAX_ITERATIONS=20
-BUDGET_PER=5
-TOTAL_BUDGET=50
+MAX_TURNS=50
 MODEL="opus"
 DRY_RUN=false
 VERBOSE=false
@@ -21,21 +21,21 @@ VERBOSE=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --max-iterations) MAX_ITERATIONS="$2"; shift 2 ;;
-    --budget-per) BUDGET_PER="$2"; shift 2 ;;
-    --total-budget) TOTAL_BUDGET="$2"; shift 2 ;;
+    --max-turns) MAX_TURNS="$2"; shift 2 ;;
     --model) MODEL="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     --verbose) VERBOSE=true; shift ;;
+    --reset) echo "==> Clearing progress file"; rm -f "$PROGRESS_FILE"; shift ;;
     -h|--help)
       echo "Usage: ralph.sh [OPTIONS]"
       echo ""
       echo "Options:"
       echo "  --max-iterations N   Max iterations (default: 20)"
-      echo "  --budget-per N       USD budget per iteration (default: 5)"
-      echo "  --total-budget N     USD total budget cap (default: 50)"
+      echo "  --max-turns N        Max agent turns per iteration (default: 50)"
       echo "  --model MODEL        Claude model (default: opus)"
       echo "  --dry-run            Preview ticket queue only"
       echo "  --verbose            Show full Claude output"
+      echo "  --reset              Clear progress file before starting"
       echo "  -h, --help           Show this help"
       exit 0
       ;;
@@ -68,20 +68,26 @@ fi
 # Create log directory
 mkdir -p "$LOG_DIR"
 
+# Initialize progress file if it doesn't exist
+if [[ ! -f "$PROGRESS_FILE" ]]; then
+  echo "# Ralph Progress" > "$PROGRESS_FILE"
+  echo "" >> "$PROGRESS_FILE"
+  echo "No work started yet." >> "$PROGRESS_FILE"
+fi
+
 # Stats
 DONE_COUNT=0
 BLOCKED_COUNT=0
 ITERATION=0
-SPENT=0
 
 echo ""
 echo "======================================"
 echo "  Ralph — autonomous worker"
 echo "======================================"
 echo "  Max iterations: $MAX_ITERATIONS"
-echo "  Budget per iteration: \$$BUDGET_PER"
-echo "  Total budget cap: \$$TOTAL_BUDGET"
-echo "  Model: $MODEL"
+echo "  Max turns/iter: $MAX_TURNS"
+echo "  Model:          $MODEL"
+echo "  Progress file:  $PROGRESS_FILE"
 echo "======================================"
 echo ""
 
@@ -91,35 +97,23 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
   TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
   LOG_FILE="$LOG_DIR/ralph_${TIMESTAMP}_iter${ITERATION}.json"
 
-  echo "==> Iteration $ITERATION/$MAX_ITERATIONS (spent so far: ~\$$SPENT)"
-
-  # Budget check
-  if (( $(echo "$SPENT >= $TOTAL_BUDGET" | bc -l) )); then
-    echo "==> Total budget cap reached (\$$TOTAL_BUDGET). Stopping."
-    break
-  fi
+  echo "==> Iteration $ITERATION/$MAX_ITERATIONS"
 
   # Ensure on main between iterations
   git checkout main 2>/dev/null
   git pull origin main 2>/dev/null
 
-  # Run Claude
+  # Run Claude with progress file as context
   OUTPUT=$(cat "$PROMPT_FILE" | claude -p \
     --model "$MODEL" \
     --output-format json \
-    --max-budget-usd "$BUDGET_PER" \
+    --max-turns "$MAX_TURNS" \
     --dangerously-skip-permissions \
+    -a "@$PROGRESS_FILE" \
     2>&1) || true
 
   # Save log
   echo "$OUTPUT" > "$LOG_FILE"
-
-  # Extract cost from JSON (best effort)
-  ITER_COST=$(echo "$OUTPUT" | grep -o '"cost_usd":[0-9.]*' | head -1 | cut -d: -f2 || echo "0")
-  if [[ -z "$ITER_COST" ]]; then
-    ITER_COST="$BUDGET_PER"
-  fi
-  SPENT=$(echo "$SPENT + $ITER_COST" | bc -l 2>/dev/null || echo "$SPENT")
 
   if $VERBOSE; then
     echo "--- Full output ---"
@@ -133,13 +127,14 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
     break
   elif echo "$OUTPUT" | grep -q "RALPH_MERGED"; then
     DONE_COUNT=$((DONE_COUNT + 1))
-    echo "==> Ticket merged successfully. ($DONE_COUNT done so far)"
+    echo "==> Task completed and merged. ($DONE_COUNT done so far)"
   elif echo "$OUTPUT" | grep -q "RALPH_BLOCKED"; then
     BLOCKED_COUNT=$((BLOCKED_COUNT + 1))
-    echo "==> Ticket blocked. ($BLOCKED_COUNT blocked so far)"
+    echo "==> Task blocked. ($BLOCKED_COUNT blocked so far)"
+  elif echo "$OUTPUT" | grep -q "error_max_turns"; then
+    echo "==> Hit max turns ($MAX_TURNS). Task left in progress for next iteration."
   else
     echo "==> No clear signal detected. Check log: $LOG_FILE"
-    # Continue anyway — might be a partial output
   fi
 
   echo ""
@@ -156,6 +151,6 @@ echo "======================================"
 echo "  Iterations: $ITERATION"
 echo "  Merged:     $DONE_COUNT"
 echo "  Blocked:    $BLOCKED_COUNT"
-echo "  Est. cost:  ~\$$SPENT"
 echo "  Logs:       $LOG_DIR/"
+echo "  Progress:   $PROGRESS_FILE"
 echo "======================================"

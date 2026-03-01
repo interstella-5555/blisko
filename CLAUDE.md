@@ -298,62 +298,63 @@ Technical notes: add as comments on the Linear issue when making non-obvious dec
 ### Ralph protocol
 
 Autonomous worker protocol — Ralph works through queued tickets.
+State is tracked in `scripts/ralph-progress.txt` (primary) and Linear (secondary).
+Runner script: `scripts/ralph.sh` (`pnpm ralph` / `pnpm ralph:dry`).
+
+#### Key principle: one task per iteration
+
+Each iteration is a fresh Claude session that does ONE thing:
+- One sub-issue of a larger ticket, OR
+- One small standalone ticket
+
+The progress file (`scripts/ralph-progress.txt`) bridges context between sessions.
 
 #### Ticket selection
 
-Query: team=Blisko, status=Todo, label=Ralph. Sort by priority DESC (Urgent first), then identifier ASC (BLI-10 before BLI-20).
+1. **Check progress file first** — if there's in-progress work with remaining sub-tasks, continue it.
+2. **Otherwise query Linear:** team=Blisko, status=Todo, label=Ralph. Pick based on: dependencies > priority > size > identifier.
 
-#### Per-ticket workflow
+#### Per-task workflow
 
-1. **ASSESS** — fetch ticket, read description + comments. Always check for sub-issues.
-   - **Has sub-issues?** → work through sub-issues sequentially (they are the unit of work, not the parent).
-   - **No sub-issues, too large?** → splitting protocol (see below).
-
-2. **SETUP**
+1. **SETUP**
    - `git checkout main && git pull origin main`
-   - `git checkout -b <gitBranchName from Linear>` (use parent's branch for sub-issues)
-   - Status → In Progress (parent + current sub-issue)
-   - Comment: "Starting Ralph work. Branch: `<branch>`"
+   - Create or checkout branch (`gitBranchName` from Linear; sub-issues use parent's branch)
+   - Set status → In Progress in Linear (only if not already)
 
-3. **IMPLEMENT**
-   - If sub-issues: work sequentially in identifier order. Each sub-issue: In Progress → implement → Done. Commit references sub-issue ID: `Verb description (BLI-X)`.
-   - If no sub-issues: follow the plan from ticket description. Commit format: `Verb description (BLI-X)` (GPG signed, never `--no-gpg-sign`).
+2. **IMPLEMENT**
+   - One task, one commit. Format: `Verb description (BLI-X)` (GPG signed).
 
-4. **VERIFY**
+3. **VERIFY**
    - `pnpm --filter @repo/api typecheck`
    - `pnpm --filter @repo/shared typecheck`
    - `pnpm --filter @repo/mobile typecheck`
    - `pnpm --filter @repo/api test` (if tests exist)
    - If tests fail: 2 attempts to fix, then treat as blocked.
 
-5. **FINISH (tests pass)**
-   - `git checkout main && git merge <branch> && git push origin main`
-   - Delete branch: `git branch -d <branch>`
-   - Status → Done
-   - Remove label "Ralph"
-   - Comment: "Merged to main. Changes: ..."
-   - Output: `RALPH_MERGED`
+4. **UPDATE PROGRESS FILE** — always, before finishing. This is how the next session knows what happened.
 
-6. **FINISH (tests fail / blocked)**
-   - Do NOT merge to main.
-   - `git push -u origin <branch>` (leave branch for review)
-   - Keep status In Progress.
-   - Comment: "BLOCKED: <what's failing, what's needed>. Branch: `<branch>`"
-   - Output: `RALPH_BLOCKED`
+5. **FINISH**
+   - **All done + tests pass** → merge to main, delete branch, Linear status → Done, remove Ralph label, output `RALPH_MERGED`
+   - **Sub-task done, more remain** → push branch, update sub-task in Linear → Done, output `RALPH_MERGED`
+   - **Blocked** → push branch, comment blocker on Linear ticket, output `RALPH_BLOCKED`
 
-When run via `ralph.sh`, each iteration is a fresh Claude session — one ticket per session. The script handles returning to main between iterations.
+#### Linear usage — minimal
+
+Linear MCP calls are expensive (token-heavy). Use Linear only for:
+- **Fetching tickets** — when progress file has no in-progress work
+- **Status changes** — Todo → In Progress, → Done
+- **Completion/blocker comments** — short summary when finishing or blocked
+- **Removing Ralph label** — when ticket is done
+
+Do NOT use Linear for: progress updates mid-task, reading comments repeatedly, listing issues you already know about from the progress file.
 
 #### Splitting large tickets
 
-A ticket is "too large" when:
-- It touches 3+ separate areas (e.g. schema + API + mobile + shared)
-- It has 4+ independent acceptance criteria
-- The description explicitly lists phases/stages
+A ticket is "too large" when it has 4+ acceptance criteria or touches 3+ areas.
 
-Splitting process:
 1. Create sub-issues in Linear as children of the parent ticket.
 2. All sub-issues work on **the same branch** (parent's `gitBranchName`).
-3. Work sequentially: each sub-issue In Progress → Done.
+3. Each sub-issue = one iteration. One at a time.
 4. Merge to main only when ALL sub-issues are done.
 5. Parent ticket → Done after merge.
 
@@ -361,18 +362,19 @@ Splitting process:
 
 | Situation | Action |
 |-----------|--------|
-| Blocked (missing info/API key) | Comment "BLOCKED: ...", keep In Progress, move to next |
-| Tests fail after 2 attempts | Push branch without merge, comment with details, keep In Progress |
-| Git merge conflict | Attempt to resolve; if complex → push branch, comment |
-| End of budget/session | Commit+push current work, comment on remaining tickets |
+| Blocked (missing info/API key) | Update progress file, comment on Linear, output `RALPH_BLOCKED` |
+| Tests fail after 2 attempts | Push branch, update progress with details, output `RALPH_BLOCKED` |
+| Git merge conflict | Attempt to resolve; if complex → push branch, output `RALPH_BLOCKED` |
+| Session ends (max turns) | Commit+push current work, update progress file |
 | DB migration needed | Generate migration file, but NEVER run `drizzle-kit migrate` on production |
 
 #### Review (for Karol)
 
-1. Check Linear: tickets marked Done = complete, In Progress with "BLOCKED" = needs help
-2. `git log --oneline -20` — see what was merged by Ralph
-3. Blocked tickets: read the comment, fix the issue (add API key, clarify requirement), put back to Todo + Ralph
-4. Queue new tickets for the next run: set Todo + Ralph label
+1. Check `scripts/ralph-progress.txt` for current state
+2. Check Linear: Done = complete, In Progress + "BLOCKED" comment = needs help
+3. `git log --oneline -20` — see what was merged
+4. Blocked tickets: fix the issue, put back to Todo + Ralph
+5. `pnpm ralph --reset` to clear progress file for a fresh start
 
 ### Ralph prep
 
