@@ -312,7 +312,15 @@ The progress file (`scripts/ralph-progress.txt`) bridges context between session
 #### Ticket selection
 
 1. **Check progress file first** — if there's in-progress work with remaining sub-tasks, continue it.
-2. **Otherwise query Linear:** team=Blisko, status=Todo, label=Ralph. Pick based on: dependencies > priority > size > identifier.
+2. **In-progress parents take priority** — check if any parent ticket is In Progress with remaining Todo sub-issues. If so, pick the next sub-issue (lowest identifier) before taking any new ticket.
+3. **Otherwise query Linear:** team=Blisko, status=Todo, label=Ralph.
+4. **Ordering** — pick ticket based on: small before large (fewer acceptance criteria / fewer files to touch) > priority > identifier.
+5. **Check blockers** — fetch the selected ticket with `includeRelations: true`. If it has `blockedBy` relations that aren't Done, skip it and pick the next one.
+6. **If selected ticket has a parentId** — it's a sub-issue. Before starting:
+   a. Fetch all siblings (sub-issues of the same parent).
+   b. Check if any earlier sibling (lower identifier number) is still not Done — if so, work on that one first instead.
+   c. Use the parent's `gitBranchName` for the branch.
+   d. After the last sibling is done, verify the parent's acceptance criteria. If all pass → merge, parent → Done. If something is missing → create a new sub-issue.
 
 #### Per-task workflow
 
@@ -321,19 +329,25 @@ The progress file (`scripts/ralph-progress.txt`) bridges context between session
    - Create or checkout branch (`gitBranchName` from Linear; sub-issues use parent's branch)
    - Set status → In Progress in Linear (only if not already)
 
-2. **IMPLEMENT**
-   - One task, one commit. Format: `Verb description (BLI-X)` (GPG signed).
+2. **PRE-FLIGHT CHECK**
+   - Scan the ticket description for file paths and function/component names it references.
+   - Verify they exist in the codebase (Glob/Grep). If a ticket says "modify `GroupMarker.tsx`" but the file doesn't exist and this ticket doesn't create it → it depends on another ticket. Skip, treat as blocked.
+   - This is a quick check (few Glob calls), not a deep analysis.
 
-3. **VERIFY**
+3. **IMPLEMENT**
+   - One task, one commit. Format: `Verb description (BLI-X)` (GPG signed).
+   - **Stuck detection:** if you hit the same error 3 times or spend more than ~15 turns without progress, stop and treat as blocked. Don't burn iterations on a dead end.
+
+4. **VERIFY**
    - `pnpm --filter @repo/api typecheck`
    - `pnpm --filter @repo/shared typecheck`
    - `pnpm --filter @repo/mobile typecheck`
    - `pnpm --filter @repo/api test` (if tests exist)
    - If tests fail: 2 attempts to fix, then treat as blocked.
 
-4. **UPDATE PROGRESS FILE** — always, before finishing. This is how the next session knows what happened.
+5. **UPDATE PROGRESS FILE** — always, before finishing. This is how the next session knows what happened.
 
-5. **FINISH**
+6. **FINISH**
    - **All done + tests pass** → merge to main, delete branch, Linear status → Done, remove Ralph label, output `RALPH_MERGED`
    - **Sub-task done, more remain** → push branch, update sub-task in Linear → Done, output `RALPH_MERGED`
    - **Blocked** → push branch, comment blocker on Linear ticket, output `RALPH_BLOCKED`
@@ -348,15 +362,21 @@ Linear MCP calls are expensive (token-heavy). Use Linear only for:
 
 Do NOT use Linear for: progress updates mid-task, reading comments repeatedly, listing issues you already know about from the progress file.
 
+#### Tickets with sub-issues
+
+When picking a ticket that has sub-issues, **always work through sub-issues** — never the parent directly.
+
+1. Query sub-issues of the parent ticket. Work through them in order (by identifier).
+2. All sub-issues work on **the same branch** (parent's `gitBranchName`).
+3. Each sub-issue = one iteration. One at a time.
+4. After the last sub-issue is done, **verify the parent ticket**: check all acceptance criteria from the parent description. If something is missing or broken, create a new sub-issue and continue. If everything passes — merge to main, set parent → Done, remove Ralph label.
+
 #### Splitting large tickets
 
 A ticket is "too large" when it has 4+ acceptance criteria or touches 3+ areas.
 
 1. Create sub-issues in Linear as children of the parent ticket.
-2. All sub-issues work on **the same branch** (parent's `gitBranchName`).
-3. Each sub-issue = one iteration. One at a time.
-4. Merge to main only when ALL sub-issues are done.
-5. Parent ticket → Done after merge.
+2. Follow the "Tickets with sub-issues" flow above.
 
 #### Error handling
 
