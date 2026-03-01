@@ -739,4 +739,63 @@ export const groupsRouter = router({
         topics: topicsList,
       };
     }),
+
+  getNearbyMembers: protectedProcedure
+    .input(
+      z.object({
+        conversationId: z.string().uuid(),
+        latitude: z.number().min(-90).max(90),
+        longitude: z.number().min(-180).max(180),
+        radiusMeters: z.number().min(100).max(50000).default(5000),
+        limit: z.number().min(1).max(20).default(20),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const { conversationId, latitude, longitude, radiusMeters, limit } = input;
+
+      const distanceSql = sql<number>`
+        6371000 * acos(
+          cos(radians(${latitude})) * cos(radians(${profiles.latitude})) *
+          cos(radians(${profiles.longitude}) - radians(${longitude})) +
+          sin(radians(${latitude})) * sin(radians(${profiles.latitude}))
+        )
+      `;
+
+      const baseWhere = and(
+        eq(conversationParticipants.conversationId, conversationId),
+        eq(conversationParticipants.locationVisible, true),
+        sql`${profiles.latitude} IS NOT NULL`,
+        sql`${distanceSql} <= ${radiusMeters}`,
+        sql`${conversationParticipants.userId} != ${ctx.userId}`
+      );
+
+      const [countResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(conversationParticipants)
+        .innerJoin(profiles, eq(conversationParticipants.userId, profiles.userId))
+        .where(baseWhere);
+
+      const totalNearby = Number(countResult.count);
+
+      const members = await db
+        .select({
+          userId: conversationParticipants.userId,
+          displayName: profiles.displayName,
+          avatarUrl: profiles.avatarUrl,
+          distance: distanceSql.as('distance'),
+        })
+        .from(conversationParticipants)
+        .innerJoin(profiles, eq(conversationParticipants.userId, profiles.userId))
+        .where(baseWhere)
+        .orderBy(sql`distance`)
+        .limit(limit);
+
+      return {
+        totalNearby,
+        members: members.map((m) => ({
+          ...m,
+          distance: Math.round(m.distance),
+        })),
+      };
+    }),
 });
