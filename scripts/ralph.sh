@@ -125,9 +125,16 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
 
   echo "==> Iteration $ITERATION/$MAX_ITERATIONS"
 
-  # Ensure on main between iterations
+  # Ensure on main between iterations and clean up merged branches
+  CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "main")
   git checkout main 2>/dev/null
   git pull origin main 2>/dev/null
+  if [[ "$CURRENT_BRANCH" != "main" ]]; then
+    # Delete local branch if it was fully merged to main
+    git branch -d "$CURRENT_BRANCH" 2>/dev/null && echo "    Cleaned up branch: $CURRENT_BRANCH" || true
+    # Delete remote branch too
+    git push origin --delete "$CURRENT_BRANCH" 2>/dev/null || true
+  fi
 
   # Snapshot git HEAD before iteration (for progress detection)
   HEAD_BEFORE=$(git rev-parse HEAD)
