@@ -13,9 +13,20 @@ LOG_DIR="$SCRIPT_DIR/ralph-logs"
 # Defaults
 MAX_ITERATIONS=20
 MAX_TURNS=50
+TIMEOUT_MINUTES=30
+STAGNATION_LIMIT=3
 MODEL="opus"
 DRY_RUN=false
 VERBOSE=false
+
+# Detect timeout command (gtimeout on macOS, timeout on Linux)
+if command -v gtimeout &>/dev/null; then
+  TIMEOUT_CMD="gtimeout"
+elif command -v timeout &>/dev/null; then
+  TIMEOUT_CMD="timeout"
+else
+  TIMEOUT_CMD=""
+fi
 
 # Parse flags
 while [[ $# -gt 0 ]]; do
@@ -23,6 +34,8 @@ while [[ $# -gt 0 ]]; do
     --max-iterations) MAX_ITERATIONS="$2"; shift 2 ;;
     --max-turns) MAX_TURNS="$2"; shift 2 ;;
     --model) MODEL="$2"; shift 2 ;;
+    --timeout) TIMEOUT_MINUTES="$2"; shift 2 ;;
+    --stagnation-limit) STAGNATION_LIMIT="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     --verbose) VERBOSE=true; shift ;;
     --reset) echo "==> Clearing progress file"; rm -f "$PROGRESS_FILE"; shift ;;
@@ -30,13 +43,15 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: ralph.sh [OPTIONS]"
       echo ""
       echo "Options:"
-      echo "  --max-iterations N   Max iterations (default: 20)"
-      echo "  --max-turns N        Max agent turns per iteration (default: 50)"
-      echo "  --model MODEL        Claude model (default: opus)"
-      echo "  --dry-run            Preview ticket queue only"
-      echo "  --verbose            Show full Claude output"
-      echo "  --reset              Clear progress file before starting"
-      echo "  -h, --help           Show this help"
+      echo "  --max-iterations N     Max iterations (default: 20)"
+      echo "  --max-turns N          Max agent turns per iteration (default: 50)"
+      echo "  --timeout N            Max minutes per iteration (default: 30)"
+      echo "  --stagnation-limit N   Stop after N iterations with no progress (default: 3)"
+      echo "  --model MODEL          Claude model (default: opus)"
+      echo "  --dry-run              Preview ticket queue only"
+      echo "  --verbose              Show full Claude output"
+      echo "  --reset                Clear progress file before starting"
+      echo "  -h, --help             Show this help"
       exit 0
       ;;
     *) echo "Unknown option: $1"; exit 1 ;;
@@ -56,12 +71,11 @@ if $DRY_RUN; then
   echo ""
   echo "==> DRY RUN: Querying Linear for Ralph tickets..."
   echo ""
-  cat "$PROMPT_FILE" | claude -p \
+  { cat "$PROMPT_FILE"; echo -e "\n\nQuery Linear: team=Blisko, status=Todo, label=Ralph. List all matching tickets sorted by priority DESC then identifier ASC. Output each as: [identifier] [title] [priority]. If none found, say 'No Ralph tickets in queue.'. Do NOT work on any ticket — just list them."; } | claude -p \
     --model "$MODEL" \
     --output-format text \
     --max-turns 3 \
-    --dangerously-skip-permissions \
-    -a "Query Linear: team=Blisko, status=Todo, label=Ralph. List all matching tickets sorted by priority DESC then identifier ASC. Output each as: [identifier] [title] [priority]. If none found, say 'No Ralph tickets in queue.'. Do NOT work on any ticket — just list them."
+    --dangerously-skip-permissions
   exit 0
 fi
 
@@ -78,16 +92,19 @@ fi
 # Stats
 DONE_COUNT=0
 BLOCKED_COUNT=0
+STAGNATION_COUNT=0
 ITERATION=0
 
 echo ""
 echo "======================================"
 echo "  Ralph — autonomous worker"
 echo "======================================"
-echo "  Max iterations: $MAX_ITERATIONS"
-echo "  Max turns/iter: $MAX_TURNS"
-echo "  Model:          $MODEL"
-echo "  Progress file:  $PROGRESS_FILE"
+echo "  Max iterations:    $MAX_ITERATIONS"
+echo "  Max turns/iter:    $MAX_TURNS"
+echo "  Timeout/iter:      ${TIMEOUT_MINUTES}m"
+echo "  Stagnation limit:  $STAGNATION_LIMIT"
+echo "  Model:             $MODEL"
+echo "  Progress file:     $PROGRESS_FILE"
 echo "======================================"
 echo ""
 
@@ -103,13 +120,19 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
   git checkout main 2>/dev/null
   git pull origin main 2>/dev/null
 
+  # Snapshot git HEAD before iteration (for progress detection)
+  HEAD_BEFORE=$(git rev-parse HEAD)
+
+  # Build claude command
+  CLAUDE_CMD=(claude -p --model "$MODEL" --output-format json --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
+
   # Run Claude with progress file as context (concatenated into prompt)
-  OUTPUT=$({ cat "$PROMPT_FILE"; echo -e "\n\n---\n\n## Current progress file contents\n"; cat "$PROGRESS_FILE"; } | claude -p \
-    --model "$MODEL" \
-    --output-format json \
-    --max-turns "$MAX_TURNS" \
-    --dangerously-skip-permissions \
-    2>&1) || true
+  # Wall-clock timeout prevents infinite hangs
+  if [[ -n "$TIMEOUT_CMD" ]]; then
+    OUTPUT=$({ cat "$PROMPT_FILE"; echo -e "\n\n---\n\n## Current progress file contents\n"; cat "$PROGRESS_FILE"; } | $TIMEOUT_CMD "${TIMEOUT_MINUTES}m" "${CLAUDE_CMD[@]}" 2>&1) || true
+  else
+    OUTPUT=$({ cat "$PROMPT_FILE"; echo -e "\n\n---\n\n## Current progress file contents\n"; cat "$PROGRESS_FILE"; } | "${CLAUDE_CMD[@]}" 2>&1) || true
+  fi
 
   # Save log
   echo "$OUTPUT" > "$LOG_FILE"
@@ -120,20 +143,45 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
     echo "--- End output ---"
   fi
 
+  # Check if git HEAD changed (independent progress verification)
+  HEAD_AFTER=$(git rev-parse HEAD 2>/dev/null || echo "$HEAD_BEFORE")
+  if [[ "$HEAD_BEFORE" != "$HEAD_AFTER" ]]; then
+    GIT_CHANGED=true
+  else
+    GIT_CHANGED=false
+  fi
+
   # Parse signal from output
+  MADE_PROGRESS=false
   if echo "$OUTPUT" | grep -q "RALPH_DONE"; then
     echo "==> No more tickets. Ralph is done."
     break
   elif echo "$OUTPUT" | grep -q "RALPH_MERGED"; then
     DONE_COUNT=$((DONE_COUNT + 1))
+    MADE_PROGRESS=true
     echo "==> Task completed and merged. ($DONE_COUNT done so far)"
   elif echo "$OUTPUT" | grep -q "RALPH_BLOCKED"; then
     BLOCKED_COUNT=$((BLOCKED_COUNT + 1))
+    MADE_PROGRESS=true  # blocked is still a valid outcome
     echo "==> Task blocked. ($BLOCKED_COUNT blocked so far)"
   elif echo "$OUTPUT" | grep -q "error_max_turns"; then
     echo "==> Hit max turns ($MAX_TURNS). Task left in progress for next iteration."
+    $GIT_CHANGED && MADE_PROGRESS=true
   else
     echo "==> No clear signal detected. Check log: $LOG_FILE"
+    $GIT_CHANGED && MADE_PROGRESS=true
+  fi
+
+  # Stagnation detection: stop after N consecutive iterations with no progress
+  if $MADE_PROGRESS || $GIT_CHANGED; then
+    STAGNATION_COUNT=0
+  else
+    STAGNATION_COUNT=$((STAGNATION_COUNT + 1))
+    echo "==> No progress detected. ($STAGNATION_COUNT/$STAGNATION_LIMIT before auto-stop)"
+    if [[ $STAGNATION_COUNT -ge $STAGNATION_LIMIT ]]; then
+      echo "==> Stagnation limit reached ($STAGNATION_LIMIT iterations with no progress). Stopping."
+      break
+    fi
   fi
 
   echo ""
@@ -147,9 +195,10 @@ echo ""
 echo "======================================"
 echo "  Ralph — summary"
 echo "======================================"
-echo "  Iterations: $ITERATION"
-echo "  Merged:     $DONE_COUNT"
-echo "  Blocked:    $BLOCKED_COUNT"
+echo "  Iterations:  $ITERATION"
+echo "  Merged:      $DONE_COUNT"
+echo "  Blocked:     $BLOCKED_COUNT"
+echo "  Stagnated:   $STAGNATION_COUNT"
 echo "  Logs:       $LOG_DIR/"
 echo "  Progress:   $PROGRESS_FILE"
 echo "======================================"
