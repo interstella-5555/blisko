@@ -103,13 +103,12 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
   git checkout main 2>/dev/null
   git pull origin main 2>/dev/null
 
-  # Run Claude with progress file as context
-  OUTPUT=$(cat "$PROMPT_FILE" | claude -p \
+  # Run Claude with progress file as context (concatenated into prompt)
+  OUTPUT=$({ cat "$PROMPT_FILE"; echo -e "\n\n---\n\n## Current progress file contents\n"; cat "$PROGRESS_FILE"; } | claude -p \
     --model "$MODEL" \
     --output-format json \
     --max-turns "$MAX_TURNS" \
     --dangerously-skip-permissions \
-    -a "@$PROGRESS_FILE" \
     2>&1) || true
 
   # Save log
