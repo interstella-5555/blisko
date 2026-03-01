@@ -17,13 +17,7 @@ import { useConversationsStore } from '../../../src/stores/conversationsStore';
 import { colors, type as typ, spacing, fonts } from '../../../src/theme';
 import { Avatar } from '../../../src/components/ui/Avatar';
 import { IconWave, IconCheck, IconChat } from '../../../src/components/ui/icons';
-
-const formatDistance = (meters: number): string => {
-  if (meters < 50) return 'tuż obok';
-  const rounded = Math.round(meters / 100) * 100;
-  if (rounded < 1000) return `~${rounded} m`;
-  return `~${(rounded / 1000).toFixed(1)} km`;
-};
+import { formatDistance } from '../../../src/lib/format';
 
 function SkeletonLines({ count }: { count: number }) {
   const opacity = useRef(new Animated.Value(0.3)).current;

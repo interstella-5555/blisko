@@ -25,9 +25,7 @@ export default function ProfilingResultModal() {
   const [bio, setBio] = useState('');
   const [lookingFor, setLookingFor] = useState('');
   const [portrait, setPortrait] = useState('');
-  const [portraitShared, setPortraitShared] = useState(
-    profile?.portraitSharedForMatching ?? false
-  );
+  const [portraitShared, setPortraitShared] = useState(false);
   const [portraitExpanded, setPortraitExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');

@@ -3,7 +3,6 @@ import { View, ActivityIndicator, AppState, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 // Workaround: expo-router 6.0.22 bug — Stack uses useLinkPreviewContext
 // but ExpoRoot's provider doesn't always reach it (pnpm dual-instance issue)
-// @ts-expect-error internal expo-router module
 import { LinkPreviewContextProvider } from 'expo-router/build/link/preview/LinkPreviewContext';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';

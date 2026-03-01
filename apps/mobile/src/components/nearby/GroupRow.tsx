@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { colors, fonts, spacing } from '../../theme';
 import { Avatar } from '../ui/Avatar';
+import { formatDistance } from '../../lib/format';
 
 interface GroupRowProps {
   conversationId: string;
@@ -11,13 +12,6 @@ interface GroupRowProps {
   distance: number;
   memberCount: number;
 }
-
-const formatDistance = (meters: number): string => {
-  if (meters < 50) return 'tuż obok';
-  const rounded = Math.round(meters / 100) * 100;
-  if (rounded < 1000) return `~${rounded} m`;
-  return `~${(rounded / 1000).toFixed(1)} km`;
-};
 
 export function GroupRow({
   conversationId,

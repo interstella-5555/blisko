@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-nativ
 import { colors, fonts, type as typ, spacing } from '../../theme';
 import { Avatar } from '../ui/Avatar';
 import { IconBulletRose } from '../ui/icons';
+import { formatDistance } from '../../lib/format';
 
 export type UserRowStatus = 'none' | 'waved' | 'incoming' | 'friend';
 
@@ -23,17 +24,6 @@ interface UserRowProps {
   // Waves-only (optional)
   timestamp?: string;
 }
-
-const formatDistance = (meters: number): string => {
-  if (meters < 50) {
-    return 'tuż obok';
-  }
-  const rounded = Math.round(meters / 100) * 100;
-  if (rounded < 1000) {
-    return `~${rounded} m`;
-  }
-  return `~${(rounded / 1000).toFixed(1)} km`;
-};
 
 const formatRelativeTime = (dateString: string): string => {
   const diffMs = Date.now() - new Date(dateString).getTime();
