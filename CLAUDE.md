@@ -298,7 +298,7 @@ Technical notes: add as comments on the Linear issue when making non-obvious dec
 ### Ralph protocol
 
 Autonomous worker protocol — Ralph works through queued tickets.
-State is tracked in `scripts/ralph-progress.txt` (primary) and Linear (secondary).
+State is tracked in Linear (primary source of truth) and `scripts/ralph-progress.txt` (agent memory between sessions).
 Runner script: `scripts/ralph.sh` (`pnpm ralph` / `pnpm ralph:dry`).
 
 #### Key principle: one task per iteration
@@ -307,16 +307,17 @@ Each iteration is a fresh Claude session that does ONE thing:
 - One sub-issue of a larger ticket, OR
 - One small standalone ticket
 
-The progress file (`scripts/ralph-progress.txt`) bridges context between sessions.
+Linear decides what to work on. The memory file (`scripts/ralph-progress.txt`) carries technical context between sessions (branch state, decisions, known issues) but does NOT determine the task queue.
 
-#### Ticket selection
+#### Ticket selection (Linear-first)
 
-1. **Check progress file first** — if there's in-progress work with remaining sub-tasks, continue it.
-2. **In-progress parents take priority** — check if any parent ticket is In Progress with remaining Todo sub-issues. If so, pick the next sub-issue (lowest identifier) before taking any new ticket.
-3. **Otherwise query Linear:** team=Blisko, status=Todo, label=Ralph.
-4. **Ordering** — pick ticket based on: small before large (fewer acceptance criteria / fewer files to touch) > priority > identifier.
-5. **Check blockers** — fetch the selected ticket with `includeRelations: true`. If it has `blockedBy` relations that aren't Done, skip it and pick the next one.
-6. **If selected ticket has a parentId** — it's a sub-issue. Before starting:
+Every iteration queries Linear. The memory file is never authoritative for "what to do next".
+
+1. **Check In Progress first** — query team=Blisko, status="In Progress". If there's a parent ticket In Progress with sub-issues, find the next Todo sub-issue (lowest identifier) and continue.
+2. **Todo queue** — query team=Blisko, status=Todo, label=Ralph.
+3. **Ordering** — pick ticket based on: small before large (fewer acceptance criteria / fewer files to touch) > priority > identifier.
+4. **Check blockers** — fetch the selected ticket with `includeRelations: true`. If it has `blockedBy` relations that aren't Done, skip it and pick the next one.
+5. **If selected ticket has a parentId** — it's a sub-issue. Before starting:
    a. Fetch all siblings (sub-issues of the same parent).
    b. Check if any earlier sibling (lower identifier number) is still not Done — if so, work on that one first instead.
    c. Use the parent's `gitBranchName` for the branch.
@@ -324,43 +325,72 @@ The progress file (`scripts/ralph-progress.txt`) bridges context between session
 
 #### Per-task workflow
 
-1. **SETUP**
+1. **QUERY LINEAR** — find the next task (see ticket selection above).
+
+2. **CHECK COMMENTS** — read recent comments on the ticket (and parent if sub-issue). Look for feedback, scope changes, blocker resolutions from Karol. This is 1 MCP call — skip only for brand-new tickets.
+
+3. **READ MEMORY** — check the memory file for technical context: branch name, decisions, known issues. If it's stale (refers to a different ticket), ignore it.
+
+4. **SETUP**
    - `git checkout main && git pull origin main`
    - Create or checkout branch (`gitBranchName` from Linear; sub-issues use parent's branch)
    - Set status → In Progress in Linear (only if not already)
 
-2. **PRE-FLIGHT CHECK**
+5. **PRE-FLIGHT CHECK**
    - Scan the ticket description for file paths and function/component names it references.
    - Verify they exist in the codebase (Glob/Grep). If a ticket says "modify `GroupMarker.tsx`" but the file doesn't exist and this ticket doesn't create it → it depends on another ticket. Skip, treat as blocked.
    - This is a quick check (few Glob calls), not a deep analysis.
 
-3. **IMPLEMENT**
+6. **IMPLEMENT**
    - One task, one commit. Format: `Verb description (BLI-X)` (GPG signed).
    - **Stuck detection:** if you hit the same error 3 times or spend more than ~15 turns without progress, stop and treat as blocked. Don't burn iterations on a dead end.
 
-4. **VERIFY**
+7. **VERIFY**
    - `pnpm --filter @repo/api typecheck`
    - `pnpm --filter @repo/shared typecheck`
    - `pnpm --filter @repo/mobile typecheck`
    - `pnpm --filter @repo/api test` (if tests exist)
    - If tests fail: 2 attempts to fix, then treat as blocked.
 
-5. **UPDATE PROGRESS FILE** — always, before finishing. This is how the next session knows what happened.
+8. **UPDATE MEMORY FILE** — always, before finishing. Write technical context for the next session (branch, decisions, known issues). Do NOT track task queue here — that's Linear's job.
 
-6. **FINISH**
+9. **FINISH**
    - **All done + tests pass** → merge to main, delete branch, Linear status → Done, remove Ralph label, output `RALPH_MERGED`
    - **Sub-task done, more remain** → push branch, update sub-task in Linear → Done, output `RALPH_MERGED`
    - **Blocked** → push branch, comment blocker on Linear ticket, output `RALPH_BLOCKED`
 
-#### Linear usage — minimal
+#### Linear usage
 
-Linear MCP calls are expensive (token-heavy). Use Linear only for:
-- **Fetching tickets** — when progress file has no in-progress work
+Linear is queried every iteration (2-3 calls: list issues + get issue + optional list comments). This is the cost of having a single source of truth.
+
+**Per iteration:**
+- **Ticket selection** — list issues (In Progress, then Todo+Ralph)
+- **Ticket details** — get issue with relations
+- **Comments check** — list comments (for feedback/context)
 - **Status changes** — Todo → In Progress, → Done
 - **Completion/blocker comments** — short summary when finishing or blocked
-- **Removing Ralph label** — when ticket is done
 
-Do NOT use Linear for: progress updates mid-task, reading comments repeatedly, listing issues you already know about from the progress file.
+**Avoid:** mid-task status updates, redundant queries for tickets you already fetched this session.
+
+#### Memory file format
+
+The memory file (`scripts/ralph-progress.txt`) stores technical context, not task state:
+
+```
+# Ralph Memory
+
+## Last session
+Ticket: BLI-X — Title
+Branch: kwypchlo/bli-x-slug
+Commit: abc1234
+
+## Technical notes
+- Implementation details the next session needs
+- Known issues not related to our work
+
+## Decisions
+- Why approach X was chosen over Y
+```
 
 #### Tickets with sub-issues
 
@@ -382,19 +412,19 @@ A ticket is "too large" when it has 4+ acceptance criteria or touches 3+ areas.
 
 | Situation | Action |
 |-----------|--------|
-| Blocked (missing info/API key) | Update progress file, comment on Linear, output `RALPH_BLOCKED` |
-| Tests fail after 2 attempts | Push branch, update progress with details, output `RALPH_BLOCKED` |
+| Blocked (missing info/API key) | Update memory file, comment on Linear, output `RALPH_BLOCKED` |
+| Tests fail after 2 attempts | Push branch, update memory file with details, output `RALPH_BLOCKED` |
 | Git merge conflict | Attempt to resolve; if complex → push branch, output `RALPH_BLOCKED` |
-| Session ends (max turns) | Commit+push current work, update progress file |
+| Session ends (max turns) | Commit+push current work, update memory file |
 | DB migration needed | Generate migration file, but NEVER run `drizzle-kit migrate` on production |
 
 #### Review (for Karol)
 
-1. Check `scripts/ralph-progress.txt` for current state
-2. Check Linear: Done = complete, In Progress + "BLOCKED" comment = needs help
-3. `git log --oneline -20` — see what was merged
+1. Check Linear for current state — Done = complete, In Progress + "BLOCKED" comment = needs help
+2. `git log --oneline -20` — see what was merged
+3. `scripts/ralph-progress.txt` — technical context from last session (secondary)
 4. Blocked tickets: fix the issue, put back to Todo + Ralph
-5. `pnpm ralph --reset` to clear progress file for a fresh start
+5. `pnpm ralph --reset` to clear memory file for a fresh start
 
 ### Ralph prep
 
