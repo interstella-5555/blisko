@@ -1,0 +1,1 @@
+ALTER TABLE "conversation_participants" ADD COLUMN "location_visible" boolean DEFAULT true NOT NULL;

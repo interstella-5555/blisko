@@ -15,6 +15,13 @@
       "when": 1771407515712,
       "tag": "0001_add-groups-and-topics",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772396646440,
+      "tag": "0002_add-location-visible",
+      "breakpoints": true
     }
   ]
 }

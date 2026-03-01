@@ -40,6 +40,8 @@ interface AnalyzePairJob {
   type: 'analyze-pair';
   userAId: string;
   userBId: string;
+  nameA?: string;
+  nameB?: string;
 }
 
 interface AnalyzeUserPairsJob {

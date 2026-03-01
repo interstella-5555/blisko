@@ -169,6 +169,7 @@ export const conversationParticipants = pgTable(
     mutedUntil: timestamp('muted_until'),
     lastReadAt: timestamp('last_read_at'),
     joinedAt: timestamp('joined_at').defaultNow().notNull(),
+    locationVisible: boolean('location_visible').default(true).notNull(),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.conversationId, table.userId] }),

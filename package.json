@@ -39,8 +39,8 @@
     "node": ">=20"
   },
   "lint-staged": {
-    "apps/api/src/**/*.ts": "pnpm --filter @repo/api typecheck",
-    "apps/mobile/**/*.{ts,tsx}": "pnpm --filter @repo/mobile typecheck",
-    "packages/shared/src/**/*.ts": "pnpm --filter @repo/shared typecheck"
+    "apps/api/src/**/*.ts": "bash -c 'pnpm --filter @repo/api typecheck'",
+    "apps/mobile/**/*.{ts,tsx}": "bash -c 'pnpm --filter @repo/mobile typecheck'",
+    "packages/shared/src/**/*.ts": "bash -c 'pnpm --filter @repo/shared typecheck'"
   }
 }
