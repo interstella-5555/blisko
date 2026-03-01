@@ -276,7 +276,7 @@ When user shares an idea, feedback, or feature concept:
   - **Idea** = vague, needs refinement
 - **Priority**: set when user expresses urgency, otherwise leave unset (None).
 - **Sub-issues**: when a feature has distinct parts, create sub-issues with `parentId`. Discover naturally — don't force upfront decomposition.
-- **Longer specs**: use Linear Documents for product-level thinking (UX, user flows). Keep `docs/plans/` for implementation specs that reference specific files/code.
+- **Specs & plans**: use **Linear Documents** attached to the parent ticket (`create_document` with `issue` param) for implementation plans, PRDs, and technical specs. **Never save plans as local files** — `docs/plans/` is legacy. When using `writing-plans` skill, save output as Linear Document instead of local file. Each sub-ticket must be **self-contained** — all info needed to implement it should be in its description (code snippets, file paths, props, styles). Never reference external files from ticket descriptions.
 - **Mid-conversation**: if something worth tracking comes up, create the issue immediately.
 - **External feedback**: when user relays feedback from others (e.g. Jarek), capture each distinct point as a separate Idea issue. Tag description with who gave the feedback ("Feedback od Jarka:").
 
@@ -287,7 +287,7 @@ When user says "work on BLI-X" or similar:
 1. **Fetch & understand** — get issue description + comments + sub-issues.
 2. **Status → In Progress** — do this immediately, don't ask.
 3. **Create branch** — use Linear's `gitBranchName` from the issue (format: `kwypchlo/bli-X-slug`).
-4. **Plan if needed** — for non-trivial work, brainstorm/plan first. Save to `docs/plans/` for complex features.
+4. **Plan if needed** — for non-trivial work, brainstorm/plan first. Save as Linear Document attached to the ticket.
 5. **Implement** — normal skills flow (brainstorm → plan → code → test).
 6. **Commit** — issue ID at end of message: `Fix map default state (BLI-6)`. Keep existing style (imperative, verb-first).
 7. **Finish** — merge branch to main, set status → **Done**. No PR needed (solo dev). If CI is added later, create PR and use **In Review** status before merge.

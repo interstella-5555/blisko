@@ -4,6 +4,15 @@ set -euo pipefail
 # Ralph — autonomous worker loop for Blisko
 # Runs Claude in a loop, one task per iteration, using progress.txt for state.
 
+# Kill all child processes (including Claude) on exit/interrupt
+cleanup() {
+  echo ""
+  echo "==> Ralph interrupted. Killing child processes..."
+  kill -- -$$ 2>/dev/null || true
+  exit 1
+}
+trap cleanup SIGINT SIGTERM
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROMPT_FILE="$SCRIPT_DIR/ralph-prompt.md"
