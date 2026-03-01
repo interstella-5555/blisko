@@ -566,6 +566,18 @@ export const groupsRouter = router({
             SELECT count(*) FROM conversation_participants
             WHERE conversation_id = ${conversations.id}
           )`.as('member_count'),
+          nearbyMemberCount: sql<number>`(
+            SELECT count(*) FROM conversation_participants cp
+            INNER JOIN profiles p ON cp.user_id = p.user_id
+            WHERE cp.conversation_id = ${conversations.id}
+              AND cp.location_visible = true
+              AND p.latitude IS NOT NULL
+              AND 6371000 * acos(
+                cos(radians(${latitude})) * cos(radians(p.latitude)) *
+                cos(radians(p.longitude) - radians(${longitude})) +
+                sin(radians(${latitude})) * sin(radians(p.latitude))
+              ) <= ${radiusMeters}
+          )`.as('nearby_member_count'),
         })
         .from(conversations)
         .where(
@@ -583,6 +595,7 @@ export const groupsRouter = router({
         ...g.conversation,
         distance: Math.round(g.distance),
         memberCount: Number(g.memberCount),
+        nearbyMemberCount: Number(g.nearbyMemberCount),
       }));
     }),
 
