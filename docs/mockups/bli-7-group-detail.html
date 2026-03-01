@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLI-7: Ekran grupy — sekcja "W pobliżu"</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    background: #e8e4dc;
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    padding: 40px 20px;
+    flex-wrap: wrap;
+  }
+
+  .label {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 375px;
+    height: 780px;
+    background: #FAF7F2;
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    position: relative;
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 160px; height: 34px;
+    background: #1a1a1a;
+    border-radius: 0 0 20px 20px;
+    z-index: 10;
+  }
+
+  .phone-scroll {
+    height: 100%;
+    overflow-y: auto;
+    padding-top: 54px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .phone-scroll::-webkit-scrollbar { display: none; }
+
+  /* Nav bar */
+  .nav-bar {
+    padding: 10px 24px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-back {
+    font-size: 22px;
+    color: #1A1A1A;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  /* Header */
+  .group-header {
+    text-align: center;
+    padding: 0 24px 20px;
+  }
+  .group-avatar {
+    width: 80px; height: 80px;
+    border-radius: 40px;
+    background: #8b5cf6;
+    margin: 0 auto 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 32px;
+    border: 1px solid #D5D0C4;
+  }
+  .group-name {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 22px;
+    color: #1A1A1A;
+  }
+  .group-desc {
+    font-size: 14px;
+    color: #8B8680;
+    margin-top: 4px;
+  }
+  .group-count {
+    font-size: 12px;
+    color: #8B8680;
+    margin-top: 4px;
+  }
+
+  /* Section */
+  .section {
+    padding: 0 24px;
+    margin-bottom: 24px;
+  }
+  .section-title {
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #8B8680;
+    margin-bottom: 12px;
+  }
+
+  /* Nearby section */
+  .nearby-section {
+    padding: 0 24px;
+    margin-bottom: 24px;
+  }
+  .nearby-section .section-title {
+    color: #5B7A5E;
+  }
+  .nearby-card {
+    background: #EEF2EE;
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .nearby-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+  }
+  .nearby-row + .nearby-row {
+    border-top: 1px solid rgba(91, 122, 94, 0.1);
+  }
+  .nearby-avatar {
+    width: 36px; height: 36px;
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 15px;
+    border: 1px solid #D5D0C4;
+    flex-shrink: 0;
+  }
+  .nearby-info { flex: 1; }
+  .nearby-name {
+    font-size: 15px;
+    color: #1A1A1A;
+  }
+  .nearby-distance {
+    font-size: 13px;
+    color: #5B7A5E;
+    font-weight: 500;
+  }
+
+  /* Members */
+  .member-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+  }
+  .member-avatar {
+    width: 36px; height: 36px;
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 15px;
+    border: 1px solid #D5D0C4;
+    flex-shrink: 0;
+  }
+  .member-name {
+    flex: 1;
+    font-size: 15px;
+    color: #1A1A1A;
+  }
+  .role-badge {
+    background: #D5D0C4;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 10px;
+    color: #8B8680;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .show-all {
+    padding: 10px 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: #C0392B;
+    cursor: pointer;
+  }
+
+  /* Actions */
+  .action-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid #D5D0C4;
+  }
+  .action-text {
+    font-size: 15px;
+    color: #1A1A1A;
+  }
+  .action-hint {
+    font-size: 13px;
+    color: #8B8680;
+  }
+
+  /* Toggle row */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid #D5D0C4;
+  }
+  .toggle-label-block {}
+  .toggle-label {
+    font-size: 15px;
+    color: #1A1A1A;
+  }
+  .toggle-desc {
+    font-size: 12px;
+    color: #8B8680;
+    margin-top: 2px;
+  }
+  .toggle {
+    width: 51px; height: 31px;
+    border-radius: 16px;
+    background: #4cd964;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .toggle.off { background: #D5D0C4; }
+  .toggle .knob {
+    width: 27px; height: 27px;
+    border-radius: 14px;
+    background: white;
+    position: absolute;
+    top: 2px;
+    left: 22px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: left 0.2s;
+  }
+  .toggle.off .knob { left: 2px; }
+
+  .danger-row {
+    padding: 14px 0;
+  }
+  .danger-text {
+    font-size: 15px;
+    color: #C0392B;
+  }
+
+  /* Annotation */
+  .annotation {
+    position: absolute;
+    font-size: 12px;
+    font-weight: 600;
+    color: #C0392B;
+    pointer-events: none;
+  }
+  .annotation-arrow {
+    position: absolute;
+    border-left: 2px solid #C0392B;
+    pointer-events: none;
+  }
+
+  .new-badge {
+    display: inline-block;
+    background: #C0392B;
+    color: white;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- BEFORE (current) -->
+<div>
+  <div class="label">TERAZ (bez zmian)</div>
+  <div class="phone">
+    <div class="phone-scroll">
+      <div class="nav-bar">
+        <span class="nav-back">‹</span>
+      </div>
+
+      <div class="group-header">
+        <div class="group-avatar">B</div>
+        <div class="group-name">Biegacze Mokotów</div>
+        <div class="group-desc">Codzienne biegi w okolicy Mokotowa</div>
+        <div class="group-count">12 członków</div>
+      </div>
+
+      <!-- Topics -->
+      <div class="section">
+        <div class="section-title">Wątki</div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;">
+          <span style="font-size:20px;width:28px;text-align:center;">🏃</span>
+          <div style="flex:1;">
+            <div style="font-size:15px;color:#1A1A1A;">Poranne biegi</div>
+            <div style="font-size:12px;color:#8B8680;">23 wiadomości</div>
+          </div>
+          <span style="color:#8B8680;">›</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;">
+          <span style="font-size:20px;width:28px;text-align:center;">📅</span>
+          <div style="flex:1;">
+            <div style="font-size:15px;color:#1A1A1A;">Organizacja</div>
+            <div style="font-size:12px;color:#8B8680;">8 wiadomości</div>
+          </div>
+          <span style="color:#8B8680;">›</span>
+        </div>
+      </div>
+
+      <!-- Members -->
+      <div class="section">
+        <div class="section-title">Członkowie (12)</div>
+        <div class="member-row">
+          <div class="member-avatar" style="background:#1A1A1A;">K</div>
+          <div class="member-name">Karol (Ty)</div>
+          <div class="role-badge">Właściciel</div>
+        </div>
+        <div class="member-row">
+          <div class="member-avatar" style="background:#4a9eed;">A</div>
+          <div class="member-name">Ania</div>
+          <div class="role-badge">Admin</div>
+        </div>
+        <div class="member-row">
+          <div class="member-avatar" style="background:#8b5cf6;">M</div>
+          <div class="member-name">Marek</div>
+        </div>
+        <div class="member-row">
+          <div class="member-avatar" style="background:#f59e0b;">K</div>
+          <div class="member-name">Kasia</div>
+        </div>
+        <div class="member-row">
+          <div class="member-avatar" style="background:#22c55e;">T</div>
+          <div class="member-name">Tomek</div>
+        </div>
+        <div class="show-all">Pokaż wszystkich (12)</div>
+      </div>
+
+      <!-- Actions -->
+      <div class="section">
+        <div class="action-row">
+          <span class="action-text">Link zaproszenia</span>
+          <span class="action-hint">Udostępnij</span>
+        </div>
+        <div class="danger-row">
+          <span class="danger-text">Opuść grupę</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AFTER (with nearby + toggle) -->
+<div>
+  <div class="label">PO ZMIANACH <span class="new-badge">NEW</span></div>
+  <div class="phone" style="position:relative;">
+    <div class="phone-scroll">
+      <div class="nav-bar">
+        <span class="nav-back">‹</span>
+      </div>
+
+      <div class="group-header">
+        <div class="group-avatar">B</div>
+        <div class="group-name">Biegacze Mokotów</div>
+        <div class="group-desc">Codzienne biegi w okolicy Mokotowa</div>
+        <div class="group-count">12 członków</div>
+      </div>
+
+      <!-- Topics -->
+      <div class="section">
+        <div class="section-title">Wątki</div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;">
+          <span style="font-size:20px;width:28px;text-align:center;">🏃</span>
+          <div style="flex:1;">
+            <div style="font-size:15px;color:#1A1A1A;">Poranne biegi</div>
+            <div style="font-size:12px;color:#8B8680;">23 wiadomości</div>
+          </div>
+          <span style="color:#8B8680;">›</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;">
+          <span style="font-size:20px;width:28px;text-align:center;">📅</span>
+          <div style="flex:1;">
+            <div style="font-size:15px;color:#1A1A1A;">Organizacja</div>
+            <div style="font-size:12px;color:#8B8680;">8 wiadomości</div>
+          </div>
+          <span style="color:#8B8680;">›</span>
+        </div>
+      </div>
+
+      <!-- NEW: Nearby section -->
+      <div class="nearby-section">
+        <div class="section-title">W pobliżu (3) <span class="new-badge">NEW</span></div>
+        <div class="nearby-card">
+          <div class="nearby-row">
+            <div class="nearby-avatar" style="background:#4a9eed;">A</div>
+            <div class="nearby-info">
+              <div class="nearby-name">Ania</div>
+            </div>
+            <div class="nearby-distance">~500 m</div>
+          </div>
+          <div class="nearby-row">
+            <div class="nearby-avatar" style="background:#f59e0b;">K</div>
+            <div class="nearby-info">
+              <div class="nearby-name">Kasia</div>
+            </div>
+            <div class="nearby-distance">~800 m</div>
+          </div>
+          <div class="nearby-row">
+            <div class="nearby-avatar" style="background:#8b5cf6;">M</div>
+            <div class="nearby-info">
+              <div class="nearby-name">Marek</div>
+            </div>
+            <div class="nearby-distance">~1.2 km</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Members -->
+      <div class="section">
+        <div class="section-title">Członkowie (12)</div>
+        <div class="member-row">
+          <div class="member-avatar" style="background:#1A1A1A;">K</div>
+          <div class="member-name">Karol (Ty)</div>
+          <div class="role-badge">Właściciel</div>
+        </div>
+        <div class="member-row">
+          <div class="member-avatar" style="background:#4a9eed;">A</div>
+          <div class="member-name">Ania</div>
+          <div class="role-badge">Admin</div>
+        </div>
+        <div class="member-row">
+          <div class="member-avatar" style="background:#8b5cf6;">M</div>
+          <div class="member-name">Marek</div>
+        </div>
+        <div class="member-row">
+          <div class="member-avatar" style="background:#f59e0b;">K</div>
+          <div class="member-name">Kasia</div>
+        </div>
+        <div class="member-row">
+          <div class="member-avatar" style="background:#22c55e;">T</div>
+          <div class="member-name">Tomek</div>
+        </div>
+        <div class="show-all">Pokaż wszystkich (12)</div>
+      </div>
+
+      <!-- Actions — with NEW toggle -->
+      <div class="section">
+        <div class="action-row">
+          <span class="action-text">Link zaproszenia</span>
+          <span class="action-hint">Udostępnij</span>
+        </div>
+
+        <!-- NEW: Location visibility toggle -->
+        <div class="toggle-row">
+          <div class="toggle-label-block">
+            <div class="toggle-label">Pokaż moją lokalizację <span class="new-badge">NEW</span></div>
+            <div class="toggle-desc">Inni członkowie zobaczą, że jesteś w pobliżu</div>
+          </div>
+          <div class="toggle" onclick="this.classList.toggle('off')">
+            <div class="knob"></div>
+          </div>
+        </div>
+
+        <div class="danger-row">
+          <span class="danger-text">Opuść grupę</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

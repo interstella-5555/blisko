@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLI-7: Scenariusze ekranu grupy</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    background: #e8e4dc;
+    padding: 32px 20px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+  }
+  .page-sub {
+    text-align: center;
+    font-size: 13px;
+    color: #8B8680;
+    margin-bottom: 32px;
+  }
+
+  .scenario-group {
+    margin-bottom: 48px;
+  }
+  .scenario-group-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 8px;
+    display: inline-block;
+  }
+  .scenario-group-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .phones-row {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .phone-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .phone-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 8px;
+    text-align: center;
+    letter-spacing: 0.5px;
+    max-width: 320px;
+  }
+
+  /* Phone */
+  .phone {
+    width: 320px;
+    height: 640px;
+    background: #FAF7F2;
+    border-radius: 36px;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    position: relative;
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 130px; height: 28px;
+    background: #1a1a1a;
+    border-radius: 0 0 16px 16px;
+    z-index: 10;
+  }
+  .phone-scroll {
+    height: 100%;
+    overflow-y: auto;
+    padding-top: 44px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .phone-scroll::-webkit-scrollbar { display: none; }
+
+  /* Nav */
+  .nav { padding: 8px 20px 10px; }
+  .nav-back { font-size: 20px; color: #1A1A1A; text-decoration: none; }
+
+  /* Header */
+  .g-header { text-align: center; padding: 0 20px 16px; }
+  .g-avatar {
+    width: 64px; height: 64px; border-radius: 32px;
+    background: #8b5cf6; margin: 0 auto 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-family: 'Instrument Serif', Georgia, serif; font-size: 26px;
+    border: 1px solid #D5D0C4;
+  }
+  .g-name { font-family: 'Instrument Serif', Georgia, serif; font-size: 20px; color: #1A1A1A; }
+  .g-desc { font-size: 13px; color: #8B8680; margin-top: 3px; }
+  .g-count { font-size: 11px; color: #8B8680; margin-top: 3px; }
+
+  /* Sections */
+  .sec { padding: 0 20px; margin-bottom: 20px; }
+  .sec-title {
+    font-weight: 600; font-size: 9px; letter-spacing: 1.4px;
+    text-transform: uppercase; color: #8B8680; margin-bottom: 10px;
+  }
+  .sec-title.green { color: #5B7A5E; }
+
+  /* Nearby card */
+  .nearby-card {
+    background: #EEF2EE;
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  .n-row {
+    display: flex; align-items: center; gap: 8px; padding: 7px 0;
+  }
+  .n-row + .n-row { border-top: 1px solid rgba(91,122,94,0.1); }
+  .n-av {
+    width: 32px; height: 32px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-family: 'Instrument Serif', serif; font-size: 14px;
+    border: 1px solid #D5D0C4; flex-shrink: 0;
+  }
+  .n-name { flex: 1; font-size: 14px; color: #1A1A1A; }
+  .n-dist { font-size: 12px; color: #5B7A5E; font-weight: 500; }
+
+  .show-more-nearby {
+    padding: 8px 0 4px;
+    font-size: 12px; font-weight: 500; color: #5B7A5E;
+    cursor: pointer; text-align: center;
+    border-top: 1px solid rgba(91,122,94,0.1);
+  }
+
+  /* Member row */
+  .m-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+  }
+  .m-av {
+    width: 32px; height: 32px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-family: 'Instrument Serif', serif; font-size: 14px;
+    border: 1px solid #D5D0C4; flex-shrink: 0;
+  }
+  .m-name { flex: 1; font-size: 14px; color: #1A1A1A; }
+  .m-role {
+    background: #D5D0C4; padding: 2px 6px; border-radius: 4px;
+    font-weight: 500; font-size: 9px; color: #8B8680;
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .m-nearby-badge {
+    font-size: 11px; color: #5B7A5E; font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .show-all {
+    padding: 8px 0; font-size: 12px; font-weight: 500; color: #C0392B; cursor: pointer;
+  }
+
+  /* Join button */
+  .join-btn-wrap { padding: 0 20px; margin-top: 16px; }
+  .join-btn {
+    width: 100%; padding: 14px; border: none; border-radius: 10px;
+    background: #C0392B; color: white; font-family: 'DM Sans', sans-serif;
+    font-weight: 600; font-size: 10px; letter-spacing: 1.5px;
+    text-transform: uppercase; cursor: pointer;
+  }
+
+  /* Actions */
+  .act-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0; border-bottom: 1px solid #D5D0C4;
+  }
+  .act-text { font-size: 14px; color: #1A1A1A; }
+  .act-hint { font-size: 12px; color: #8B8680; }
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0; border-bottom: 1px solid #D5D0C4; gap: 12px;
+  }
+  .toggle-label { font-size: 14px; color: #1A1A1A; }
+  .toggle-desc { font-size: 11px; color: #8B8680; margin-top: 1px; }
+  .toggle {
+    width: 44px; height: 26px; border-radius: 13px;
+    background: #4cd964; position: relative; cursor: pointer;
+    flex-shrink: 0; transition: background 0.2s;
+  }
+  .toggle.off { background: #D5D0C4; }
+  .toggle .knob {
+    width: 22px; height: 22px; border-radius: 11px;
+    background: white; position: absolute; top: 2px; left: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: left 0.2s;
+  }
+  .toggle.off .knob { left: 2px; }
+  .danger-row { padding: 12px 0; }
+  .danger-text { font-size: 14px; color: #C0392B; }
+
+  /* NEW badge */
+  .new { display: inline-block; background: #C0392B; color: white; font-size: 8px; font-weight: 600; letter-spacing: 0.8px; padding: 2px 5px; border-radius: 3px; vertical-align: middle; margin-left: 4px; }
+
+  /* Topic row */
+  .topic-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+  .topic-emoji { font-size: 18px; width: 24px; text-align: center; }
+  .topic-name { font-size: 14px; color: #1A1A1A; }
+  .topic-meta { font-size: 11px; color: #8B8680; }
+  .topic-chev { color: #8B8680; font-size: 14px; }
+
+  /* Separator */
+  hr.sep { border: none; border-top: 2px dashed #D5D0C4; margin: 40px 0; }
+</style>
+</head>
+<body>
+
+<h1>BLI-7: Scenariusze ekranu grupy</h1>
+<p class="page-sub">Wszystkie edge case'y — scroll w dół żeby zobaczyć każdy</p>
+
+<!-- ==================== NON-MEMBER SCENARIOS ==================== -->
+
+<div class="scenario-group">
+  <div class="scenario-group-header">
+    <div class="scenario-group-title">Nie-członek (discovery preview)</div>
+  </div>
+  <div class="phones-row">
+
+    <!-- Non-member: 0 nearby -->
+    <div class="phone-wrapper">
+      <div class="phone-label">0 osób w pobliżu — brak sekcji nearby</div>
+      <div class="phone">
+        <div class="phone-scroll">
+          <div class="nav"><span class="nav-back">‹</span></div>
+          <div class="g-header">
+            <div class="g-avatar">B</div>
+            <div class="g-name">Biegacze Mokotów</div>
+            <div class="g-desc">Codzienne biegi w okolicy Mokotowa</div>
+            <div class="g-count">12 członków</div>
+          </div>
+          <div class="join-btn-wrap"><button class="join-btn">Dołącz</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Non-member: 3 nearby -->
+    <div class="phone-wrapper">
+      <div class="phone-label">3 osoby w pobliżu — sekcja nearby, brak listy członków</div>
+      <div class="phone">
+        <div class="phone-scroll">
+          <div class="nav"><span class="nav-back">‹</span></div>
+          <div class="g-header">
+            <div class="g-avatar">B</div>
+            <div class="g-name">Biegacze Mokotów</div>
+            <div class="g-desc">Codzienne biegi w okolicy Mokotowa</div>
+            <div class="g-count">12 członków</div>
+          </div>
+          <div class="sec">
+            <div class="sec-title green">W pobliżu (3) <span class="new">NEW</span></div>
+            <div class="nearby-card">
+              <div class="n-row">
+                <div class="n-av" style="background:#4a9eed;">A</div>
+                <div class="n-name">Ania</div>
+                <div class="n-dist">~500 m</div>
+              </div>
+              <div class="n-row">
+                <div class="n-av" style="background:#f59e0b;">K</div>
+                <div class="n-name">Kasia</div>
+                <div class="n-dist">~800 m</div>
+              </div>
+              <div class="n-row">
+                <div class="n-av" style="background:#8b5cf6;">M</div>
+                <div class="n-name">Marek</div>
+                <div class="n-dist">~1.2 km</div>
+              </div>
+            </div>
+          </div>
+          <div class="join-btn-wrap"><button class="join-btn">Dołącz</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Non-member: 1 nearby -->
+    <div class="phone-wrapper">
+      <div class="phone-label">1 osoba w pobliżu — wystarczy do pokazania</div>
+      <div class="phone">
+        <div class="phone-scroll">
+          <div class="nav"><span class="nav-back">‹</span></div>
+          <div class="g-header">
+            <div class="g-avatar">Y</div>
+            <div class="g-name">Yoga w parku</div>
+            <div class="g-desc">Poranne sesje jogi</div>
+            <div class="g-count">8 członków</div>
+          </div>
+          <div class="sec">
+            <div class="sec-title green">W pobliżu (1)</div>
+            <div class="nearby-card">
+              <div class="n-row">
+                <div class="n-av" style="background:#22c55e;">T</div>
+                <div class="n-name">Tomek</div>
+                <div class="n-dist">~300 m</div>
+              </div>
+            </div>
+          </div>
+          <div class="join-btn-wrap"><button class="join-btn">Dołącz</button></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ==================== MEMBER: SMALL GROUP ==================== -->
+
+<div class="scenario-group">
+  <div class="scenario-group-header">
+    <div class="scenario-group-title">Członek — mała grupa (≤5 członków)</div>
+  </div>
+  <div class="phones-row">
+
+    <!-- Small group: 2 nearby of 4 -->
+    <div class="phone-wrapper">
+      <div class="phone-label">4 członków, 2 w pobliżu — jedna lista z badge odległości</div>
+      <div class="phone">
+        <div class="phone-scroll">
+          <div class="nav"><span class="nav-back">‹</span></div>
+          <div class="g-header">
+            <div class="g-avatar" style="background:#22c55e;">R</div>
+            <div class="g-name">Rowerowy team</div>
+            <div class="g-desc">Weekendowe wycieczki</div>
+            <div class="g-count">4 członków</div>
+          </div>
+          <div class="sec">
+            <div class="sec-title">Wątki</div>
+            <div class="topic-row">
+              <span class="topic-emoji">🚴</span>
+              <div style="flex:1"><div class="topic-name">Trasy</div><div class="topic-meta">5 wiadomości</div></div>
+              <span class="topic-chev">›</span>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="sec-title">Członkowie (4)</div>
+            <div class="m-row">
+              <div class="m-av" style="background:#1A1A1A;">K</div>
+              <div class="m-name">Karol (Ty)</div>
+              <div class="m-role">Właściciel</div>
+            </div>
+            <div class="m-row">
+              <div class="m-av" style="background:#4a9eed;">A</div>
+              <div class="m-name">Ania</div>
+              <div class="m-nearby-badge">~500 m</div>
+            </div>
+            <div class="m-row">
+              <div class="m-av" style="background:#8b5cf6;">M</div>
+              <div class="m-name">Marek</div>
+              <div class="m-nearby-badge">~1.2 km</div>
+            </div>
+            <div class="m-row">
+              <div class="m-av" style="background:#f59e0b;">K</div>
+              <div class="m-name">Kasia</div>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="act-row"><span class="act-text">Link zaproszenia</span><span class="act-hint">Udostępnij</span></div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Pokaż moją lokalizację</div><div class="toggle-desc">Inni zobaczą, że jesteś w pobliżu</div></div>
+              <div class="toggle" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+            </div>
+            <div class="danger-row"><span class="danger-text">Opuść grupę</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Small group: 0 nearby -->
+    <div class="phone-wrapper">
+      <div class="phone-label">3 członków, 0 w pobliżu — czysta lista</div>
+      <div class="phone">
+        <div class="phone-scroll">
+          <div class="nav"><span class="nav-back">‹</span></div>
+          <div class="g-header">
+            <div class="g-avatar" style="background:#f59e0b;">P</div>
+            <div class="g-name">Padel trio</div>
+            <div class="g-desc">Gramy w środy</div>
+            <div class="g-count">3 członków</div>
+          </div>
+          <div class="sec">
+            <div class="sec-title">Członkowie (3)</div>
+            <div class="m-row">
+              <div class="m-av" style="background:#1A1A1A;">K</div>
+              <div class="m-name">Karol (Ty)</div>
+              <div class="m-role">Właściciel</div>
+            </div>
+            <div class="m-row">
+              <div class="m-av" style="background:#4a9eed;">J</div>
+              <div class="m-name">Jarek</div>
+            </div>
+            <div class="m-row">
+              <div class="m-av" style="background:#ec4899;">O</div>
+              <div class="m-name">Ola</div>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="act-row"><span class="act-text">Link zaproszenia</span><span class="act-hint">Udostępnij</span></div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Pokaż moją lokalizację</div><div class="toggle-desc">Inni zobaczą, że jesteś w pobliżu</div></div>
+              <div class="toggle" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+            </div>
+            <div class="danger-row"><span class="danger-text">Opuść grupę</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ==================== MEMBER: NORMAL GROUP ==================== -->
+
+<div class="scenario-group">
+  <div class="scenario-group-header">
+    <div class="scenario-group-title">Członek — normalna grupa (>5 członków)</div>
+  </div>
+  <div class="phones-row">
+
+    <!-- Normal: 0 nearby -->
+    <div class="phone-wrapper">
+      <div class="phone-label">12 członków, 0 w pobliżu</div>
+      <div class="phone">
+        <div class="phone-scroll">
+          <div class="nav"><span class="nav-back">‹</span></div>
+          <div class="g-header">
+            <div class="g-avatar">B</div>
+            <div class="g-name">Biegacze Mokotów</div>
+            <div class="g-desc">Codzienne biegi w okolicy</div>
+            <div class="g-count">12 członków</div>
+          </div>
+          <div class="sec">
+            <div class="sec-title">Wątki</div>
+            <div class="topic-row">
+              <span class="topic-emoji">🏃</span>
+              <div style="flex:1"><div class="topic-name">Poranne biegi</div><div class="topic-meta">23 wiadomości</div></div>
+              <span class="topic-chev">›</span>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="sec-title">Członkowie (12)</div>
+            <div class="m-row"><div class="m-av" style="background:#1A1A1A;">K</div><div class="m-name">Karol (Ty)</div><div class="m-role">Właściciel</div></div>
+            <div class="m-row"><div class="m-av" style="background:#4a9eed;">A</div><div class="m-name">Ania</div><div class="m-role">Admin</div></div>
+            <div class="m-row"><div class="m-av" style="background:#8b5cf6;">M</div><div class="m-name">Marek</div></div>
+            <div class="m-row"><div class="m-av" style="background:#f59e0b;">K</div><div class="m-name">Kasia</div></div>
+            <div class="m-row"><div class="m-av" style="background:#22c55e;">T</div><div class="m-name">Tomek</div></div>
+            <div class="show-all">Pokaż wszystkich (12)</div>
+          </div>
+          <div class="sec">
+            <div class="act-row"><span class="act-text">Link zaproszenia</span><span class="act-hint">Udostępnij</span></div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Pokaż moją lokalizację</div><div class="toggle-desc">Inni zobaczą, że jesteś w pobliżu</div></div>
+              <div class="toggle" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+            </div>
+            <div class="danger-row"><span class="danger-text">Opuść grupę</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Normal: 3 nearby -->
+    <div class="phone-wrapper">
+      <div class="phone-label">12 członków, 3 w pobliżu — osobna sekcja nearby</div>
+      <div class="phone">
+        <div class="phone-scroll">
+          <div class="nav"><span class="nav-back">‹</span></div>
+          <div class="g-header">
+            <div class="g-avatar">B</div>
+            <div class="g-name">Biegacze Mokotów</div>
+            <div class="g-desc">Codzienne biegi w okolicy</div>
+            <div class="g-count">12 członków</div>
+          </div>
+          <div class="sec">
+            <div class="sec-title">Wątki</div>
+            <div class="topic-row">
+              <span class="topic-emoji">🏃</span>
+              <div style="flex:1"><div class="topic-name">Poranne biegi</div><div class="topic-meta">23 wiadomości</div></div>
+              <span class="topic-chev">›</span>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="sec-title green">W pobliżu (3) <span class="new">NEW</span></div>
+            <div class="nearby-card">
+              <div class="n-row"><div class="n-av" style="background:#4a9eed;">A</div><div class="n-name">Ania</div><div class="n-dist">~500 m</div></div>
+              <div class="n-row"><div class="n-av" style="background:#f59e0b;">K</div><div class="n-name">Kasia</div><div class="n-dist">~800 m</div></div>
+              <div class="n-row"><div class="n-av" style="background:#8b5cf6;">M</div><div class="n-name">Marek</div><div class="n-dist">~1.2 km</div></div>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="sec-title">Członkowie (12)</div>
+            <div class="m-row"><div class="m-av" style="background:#1A1A1A;">K</div><div class="m-name">Karol (Ty)</div><div class="m-role">Właściciel</div></div>
+            <div class="m-row"><div class="m-av" style="background:#4a9eed;">A</div><div class="m-name">Ania</div><div class="m-role">Admin</div></div>
+            <div class="m-row"><div class="m-av" style="background:#8b5cf6;">M</div><div class="m-name">Marek</div></div>
+            <div class="m-row"><div class="m-av" style="background:#f59e0b;">K</div><div class="m-name">Kasia</div></div>
+            <div class="m-row"><div class="m-av" style="background:#22c55e;">T</div><div class="m-name">Tomek</div></div>
+            <div class="show-all">Pokaż wszystkich (12)</div>
+          </div>
+          <div class="sec">
+            <div class="act-row"><span class="act-text">Link zaproszenia</span><span class="act-hint">Udostępnij</span></div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Pokaż moją lokalizację</div><div class="toggle-desc">Inni zobaczą, że jesteś w pobliżu</div></div>
+              <div class="toggle" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+            </div>
+            <div class="danger-row"><span class="danger-text">Opuść grupę</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Normal: 1 nearby -->
+    <div class="phone-wrapper">
+      <div class="phone-label">12 członków, 1 w pobliżu — wciąż pokazujemy</div>
+      <div class="phone">
+        <div class="phone-scroll">
+          <div class="nav"><span class="nav-back">‹</span></div>
+          <div class="g-header">
+            <div class="g-avatar">B</div>
+            <div class="g-name">Biegacze Mokotów</div>
+            <div class="g-desc">Codzienne biegi w okolicy</div>
+            <div class="g-count">12 członków</div>
+          </div>
+          <div class="sec">
+            <div class="sec-title">Wątki</div>
+            <div class="topic-row">
+              <span class="topic-emoji">🏃</span>
+              <div style="flex:1"><div class="topic-name">Poranne biegi</div><div class="topic-meta">23 wiadomości</div></div>
+              <span class="topic-chev">›</span>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="sec-title green">W pobliżu (1)</div>
+            <div class="nearby-card">
+              <div class="n-row"><div class="n-av" style="background:#4a9eed;">A</div><div class="n-name">Ania</div><div class="n-dist">~500 m</div></div>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="sec-title">Członkowie (12)</div>
+            <div class="m-row"><div class="m-av" style="background:#1A1A1A;">K</div><div class="m-name">Karol (Ty)</div><div class="m-role">Właściciel</div></div>
+            <div class="m-row"><div class="m-av" style="background:#4a9eed;">A</div><div class="m-name">Ania</div><div class="m-role">Admin</div></div>
+            <div class="m-row"><div class="m-av" style="background:#8b5cf6;">M</div><div class="m-name">Marek</div></div>
+            <div class="m-row"><div class="m-av" style="background:#f59e0b;">K</div><div class="m-name">Kasia</div></div>
+            <div class="m-row"><div class="m-av" style="background:#22c55e;">T</div><div class="m-name">Tomek</div></div>
+            <div class="show-all">Pokaż wszystkich (12)</div>
+          </div>
+          <div class="sec">
+            <div class="act-row"><span class="act-text">Link zaproszenia</span><span class="act-hint">Udostępnij</span></div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Pokaż moją lokalizację</div><div class="toggle-desc">Inni zobaczą, że jesteś w pobliżu</div></div>
+              <div class="toggle" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+            </div>
+            <div class="danger-row"><span class="danger-text">Opuść grupę</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ==================== MEMBER: LARGE GROUP ==================== -->
+
+<div class="scenario-group">
+  <div class="scenario-group-header">
+    <div class="scenario-group-title">Członek — duża grupa (30 nearby / 500 członków)</div>
+  </div>
+  <div class="phones-row">
+
+    <!-- Large: 30 nearby, show first 5 -->
+    <div class="phone-wrapper">
+      <div class="phone-label">500 członków, 30 w pobliżu — max 5 + "pokaż wszystkich"</div>
+      <div class="phone">
+        <div class="phone-scroll">
+          <div class="nav"><span class="nav-back">‹</span></div>
+          <div class="g-header">
+            <div class="g-avatar" style="background:#4a9eed;">W</div>
+            <div class="g-name">Warszawa Runners</div>
+            <div class="g-desc">Największa grupa biegowa w Warszawie</div>
+            <div class="g-count">500 członków</div>
+          </div>
+          <div class="sec">
+            <div class="sec-title">Wątki</div>
+            <div class="topic-row">
+              <span class="topic-emoji">🏃</span>
+              <div style="flex:1"><div class="topic-name">Ogólny</div><div class="topic-meta">1,203 wiadomości</div></div>
+              <span class="topic-chev">›</span>
+            </div>
+            <div class="topic-row">
+              <span class="topic-emoji">📅</span>
+              <div style="flex:1"><div class="topic-name">Eventy</div><div class="topic-meta">89 wiadomości</div></div>
+              <span class="topic-chev">›</span>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="sec-title green">W pobliżu (30)</div>
+            <div class="nearby-card">
+              <div class="n-row"><div class="n-av" style="background:#4a9eed;">A</div><div class="n-name">Ania</div><div class="n-dist">~200 m</div></div>
+              <div class="n-row"><div class="n-av" style="background:#f59e0b;">K</div><div class="n-name">Kasia</div><div class="n-dist">~400 m</div></div>
+              <div class="n-row"><div class="n-av" style="background:#8b5cf6;">M</div><div class="n-name">Marek</div><div class="n-dist">~600 m</div></div>
+              <div class="n-row"><div class="n-av" style="background:#22c55e;">T</div><div class="n-name">Tomek</div><div class="n-dist">~800 m</div></div>
+              <div class="n-row"><div class="n-av" style="background:#ec4899;">O</div><div class="n-name">Ola</div><div class="n-dist">~900 m</div></div>
+              <div class="show-more-nearby">Pokaż wszystkich w pobliżu (30)</div>
+            </div>
+          </div>
+          <div class="sec">
+            <div class="sec-title">Członkowie (500)</div>
+            <div class="m-row"><div class="m-av" style="background:#1A1A1A;">P</div><div class="m-name">Piotr</div><div class="m-role">Właściciel</div></div>
+            <div class="m-row"><div class="m-av" style="background:#4a9eed;">A</div><div class="m-name">Ania</div><div class="m-role">Admin</div></div>
+            <div class="m-row"><div class="m-av" style="background:#8b5cf6;">M</div><div class="m-name">Marek</div><div class="m-role">Admin</div></div>
+            <div class="m-row"><div class="m-av" style="background:#f59e0b;">K</div><div class="m-name">Kasia</div></div>
+            <div class="m-row"><div class="m-av" style="background:#22c55e;">T</div><div class="m-name">Tomek</div></div>
+            <div class="show-all">Pokaż wszystkich (500)</div>
+          </div>
+          <div class="sec">
+            <div class="act-row"><span class="act-text">Link zaproszenia</span><span class="act-hint">Udostępnij</span></div>
+            <div class="toggle-row">
+              <div><div class="toggle-label">Pokaż moją lokalizację</div><div class="toggle-desc">Inni zobaczą, że jesteś w pobliżu</div></div>
+              <div class="toggle" onclick="this.classList.toggle('off')"><div class="knob"></div></div>
+            </div>
+            <div class="danger-row"><span class="danger-text">Opuść grupę</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ==================== RULES SUMMARY ==================== -->
+
+<div style="max-width:700px;margin:0 auto;background:white;border-radius:16px;padding:28px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+  <h2 style="font-size:17px;margin-bottom:16px;">Podsumowanie reguł</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <tr style="border-bottom:1px solid #eee;">
+      <th style="text-align:left;padding:8px 4px;color:#8B8680;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Sytuacja</th>
+      <th style="text-align:left;padding:8px 4px;color:#8B8680;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Zachowanie</th>
+    </tr>
+    <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:8px 4px;">Nie-członek, 0 nearby</td><td style="padding:8px 4px;">Brak sekcji nearby. Avatar + opis + "Dołącz"</td></tr>
+    <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:8px 4px;">Nie-członek, ≥1 nearby</td><td style="padding:8px 4px;">Sekcja nearby (max 5 + "pokaż"). Brak listy członków.</td></tr>
+    <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:8px 4px;">Członek, ≤5 członków</td><td style="padding:8px 4px;">Jedna lista z badge odległości przy nearby. Bez osobnej sekcji.</td></tr>
+    <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:8px 4px;">Członek, >5 członków, 0 nearby</td><td style="padding:8px 4px;">Brak sekcji nearby. Członkowie (5) + "pokaż".</td></tr>
+    <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:8px 4px;">Członek, >5 członków, 1-5 nearby</td><td style="padding:8px 4px;">Sekcja nearby + Członkowie (5) + "pokaż".</td></tr>
+    <tr style="border-bottom:1px solid #f5f5f5;"><td style="padding:8px 4px;">Członek, >5 członków, >5 nearby</td><td style="padding:8px 4px;">Nearby (5 najbliższych + "pokaż w pobliżu X"). Członkowie (5) + "pokaż".</td></tr>
+    <tr><td style="padding:8px 4px;">Członek, 500 członków</td><td style="padding:8px 4px;">Członkowie: 5 + "pokaż (500)" → paginowany load po 30.</td></tr>
+  </table>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLI-7: Warianty markera grupy na mapie</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    padding: 40px 20px;
+  }
+  h1 { font-size: 24px; text-align: center; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 40px; }
+
+  .variants {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 60px;
+  }
+
+  .variant-card {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    width: 280px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    text-align: center;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .variant-card:hover { border-color: #007AFF; }
+  .variant-card.recommended { border-color: #22c55e; }
+  .variant-card.recommended::after {
+    content: 'Rekomendacja';
+    display: block;
+    margin-top: 16px;
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 100px;
+    display: inline-block;
+  }
+
+  .variant-label {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+
+  .map-area {
+    background: #F0ECE3;
+    border-radius: 12px;
+    height: 200px;
+    position: relative;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  /* Fake map grid lines */
+  .map-area::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .variant-desc {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.5;
+  }
+
+  /* === Person marker (reference) === */
+  .person-marker {
+    width: 44px; height: 44px;
+    border-radius: 22px;
+    background: #fff;
+    padding: 2px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .person-marker .avatar {
+    width: 40px; height: 40px;
+    border-radius: 20px;
+    background: #007AFF;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 18px;
+    font-family: Georgia, serif;
+  }
+
+  /* === Count badge (4+ people) === */
+  .count-badge {
+    min-width: 40px; height: 40px;
+    border-radius: 20px;
+    background: #007AFF;
+    padding: 0 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 16px;
+  }
+
+  /* === Green nearby badge === */
+  .nearby-badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    min-width: 22px; height: 22px;
+    border-radius: 11px;
+    background: #22c55e;
+    border: 2px solid white;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 11px;
+    padding: 0 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+
+  /* === Variant A: Circle marker (same as person) === */
+  .group-marker-a {
+    width: 44px; height: 44px;
+    border-radius: 22px;
+    background: #fff;
+    padding: 2px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .group-marker-a .avatar {
+    width: 40px; height: 40px;
+    border-radius: 20px;
+    background: #8b5cf6;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 16px;
+    font-family: Georgia, serif;
+  }
+
+  /* === Variant B: Circle + label === */
+  .group-marker-b {
+    position: absolute;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .group-marker-b .marker-circle {
+    width: 52px; height: 52px;
+    border-radius: 26px;
+    background: #fff;
+    padding: 2px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .group-marker-b .avatar {
+    width: 48px; height: 48px;
+    border-radius: 24px;
+    background: #8b5cf6;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 18px;
+    font-family: Georgia, serif;
+  }
+  .group-marker-b .marker-label {
+    background: rgba(255,255,255,0.9);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #333;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    white-space: nowrap;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* === Variant C: Rounded square === */
+  .group-marker-c {
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    background: #fff;
+    padding: 2px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .group-marker-c .avatar {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    background: #8b5cf6;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 17px;
+    font-family: Georgia, serif;
+  }
+
+  /* === Comparison section === */
+  .comparison {
+    max-width: 700px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .comparison h2 { font-size: 18px; margin-bottom: 24px; }
+
+  .comparison-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .comparison-row:last-child { border-bottom: none; }
+  .comparison-marker { width: 80px; display: flex; justify-content: center; position: relative; }
+  .comparison-label { font-size: 14px; color: #555; }
+  .comparison-label strong { color: #1a1a1a; }
+
+  /* Static positioning helpers for comparison */
+  .comparison-marker .person-marker,
+  .comparison-marker .group-marker-a,
+  .comparison-marker .group-marker-b,
+  .comparison-marker .group-marker-c,
+  .comparison-marker .count-badge {
+    position: relative;
+  }
+  .comparison-marker .group-marker-b {
+    position: relative;
+  }
+
+  /* GroupRow mockup */
+  .group-row-section {
+    max-width: 700px;
+    margin: 40px auto 0;
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .group-row-section h2 { font-size: 18px; margin-bottom: 24px; }
+
+  .group-row {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    background: #faf7f2;
+    align-items: flex-start;
+  }
+  .group-row + .group-row { margin-top: 8px; }
+  .group-row-avatar {
+    width: 44px; height: 44px;
+    border-radius: 22px;
+    background: #8b5cf6;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 17px;
+    font-family: Georgia, serif;
+    flex-shrink: 0;
+  }
+  .group-row-info { flex: 1; min-width: 0; }
+  .group-row-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .group-row-name { font-weight: 600; font-size: 15px; }
+  .group-row-distance { font-size: 13px; color: #8b8680; }
+  .group-row-meta { font-size: 12px; color: #8b8680; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .group-row-desc { font-size: 13px; color: #555; margin-top: 4px; }
+  .group-row-nearby {
+    font-size: 13px;
+    color: #15803d;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .nearby-dot {
+    width: 8px; height: 8px;
+    border-radius: 4px;
+    background: #22c55e;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>BLI-7: Warianty markera grupy na mapie</h1>
+<p class="subtitle">Porownanie 3 wariantow obok istniejacych markerow osob</p>
+
+<div class="variants">
+
+  <!-- Variant A -->
+  <div class="variant-card">
+    <div class="variant-label">A: Kolo (jak osoby)</div>
+    <div class="map-area">
+      <!-- Person markers for reference -->
+      <div class="person-marker" style="top: 40px; left: 30px;">
+        <div class="avatar">A</div>
+      </div>
+      <div class="person-marker" style="top: 100px; left: 140px;">
+        <div class="avatar">M</div>
+      </div>
+      <div class="count-badge" style="top: 30px; left: 170px;">5</div>
+
+      <!-- Group marker A -->
+      <div class="group-marker-a" style="top: 90px; left: 60px;">
+        <div class="avatar">B</div>
+        <div class="nearby-badge">3</div>
+      </div>
+    </div>
+    <p class="variant-desc">Ten sam ksztalt i rozmiar co osoby. Fioletowy kolor + zielona kropka odrozniaja. Prosty, ale subtelny.</p>
+  </div>
+
+  <!-- Variant B -->
+  <div class="variant-card">
+    <div class="variant-label">B: Kolo + nazwa</div>
+    <div class="map-area">
+      <div class="person-marker" style="top: 40px; left: 30px;">
+        <div class="avatar">A</div>
+      </div>
+      <div class="person-marker" style="top: 100px; left: 150px;">
+        <div class="avatar">M</div>
+      </div>
+      <div class="count-badge" style="top: 30px; left: 180px;">5</div>
+
+      <!-- Group marker B -->
+      <div class="group-marker-b" style="top: 75px; left: 60px;">
+        <div class="marker-circle">
+          <div class="avatar">B</div>
+          <div class="nearby-badge">3</div>
+        </div>
+        <div class="marker-label">Biegacze Mok.</div>
+      </div>
+    </div>
+    <p class="variant-desc">Wiekszy avatar + nazwa pod spodem. Bardziej widoczne, ale zajmuje wiecej miejsca na mapie.</p>
+  </div>
+
+  <!-- Variant C -->
+  <div class="variant-card recommended">
+    <div class="variant-label">C: Zaokraglony kwadrat</div>
+    <div class="map-area">
+      <div class="person-marker" style="top: 40px; left: 30px;">
+        <div class="avatar">A</div>
+      </div>
+      <div class="person-marker" style="top: 100px; left: 140px;">
+        <div class="avatar">M</div>
+      </div>
+      <div class="count-badge" style="top: 30px; left: 170px;">5</div>
+
+      <!-- Group marker C -->
+      <div class="group-marker-c" style="top: 85px; left: 60px;">
+        <div class="avatar">B</div>
+        <div class="nearby-badge">3</div>
+      </div>
+    </div>
+    <p class="variant-desc">Kwadrat z zaokragleniami — natychmiast odrozniasz od kol osob. Zielona kropka = nearby members.</p>
+  </div>
+
+</div>
+
+<!-- Side by side comparison -->
+<div class="comparison">
+  <h2>Porownanie markerow obok siebie</h2>
+
+  <div class="comparison-row">
+    <div class="comparison-marker">
+      <div class="person-marker"><div class="avatar">A</div></div>
+    </div>
+    <div class="comparison-label"><strong>Osoba</strong> — kolo, niebieski (#007AFF), 44px</div>
+  </div>
+
+  <div class="comparison-row">
+    <div class="comparison-marker">
+      <div class="count-badge">5</div>
+    </div>
+    <div class="comparison-label"><strong>Klaster osob (4+)</strong> — kolo niebieskie z liczba</div>
+  </div>
+
+  <div class="comparison-row">
+    <div class="comparison-marker">
+      <div class="group-marker-a" style="position: relative;">
+        <div class="avatar">B</div>
+        <div class="nearby-badge">3</div>
+      </div>
+    </div>
+    <div class="comparison-label"><strong>Wariant A:</strong> Kolo fioletowe — podobne do osoby, zielona kropka odroznia</div>
+  </div>
+
+  <div class="comparison-row">
+    <div class="comparison-marker">
+      <div class="group-marker-b" style="position: relative;">
+        <div class="marker-circle">
+          <div class="avatar">B</div>
+          <div class="nearby-badge">3</div>
+        </div>
+        <div class="marker-label">Biegacze</div>
+      </div>
+    </div>
+    <div class="comparison-label"><strong>Wariant B:</strong> Wieksze kolo + nazwa — duzo miejsca, ale czytelne</div>
+  </div>
+
+  <div class="comparison-row">
+    <div class="comparison-marker">
+      <div class="group-marker-c" style="position: relative;">
+        <div class="avatar">B</div>
+        <div class="nearby-badge">3</div>
+      </div>
+    </div>
+    <div class="comparison-label"><strong>Wariant C:</strong> Zaokraglony kwadrat — wyraznie inny ksztalt niz osoby</div>
+  </div>
+</div>
+
+<!-- GroupRow mockup -->
+<div class="group-row-section">
+  <h2>Lista grup — badge "w poblizu"</h2>
+
+  <div class="group-row">
+    <div class="group-row-avatar">B</div>
+    <div class="group-row-info">
+      <div class="group-row-top">
+        <span class="group-row-name">Biegacze Mokotow</span>
+        <span class="group-row-distance">~1.2 km</span>
+      </div>
+      <div class="group-row-meta">Grupa · 12 czlonkow</div>
+      <div class="group-row-desc">Codzienne biegi w okolicy Mokotowa</div>
+      <div class="group-row-nearby"><span class="nearby-dot"></span> 3 czlonkow w poblizu</div>
+    </div>
+  </div>
+
+  <div class="group-row">
+    <div class="group-row-avatar" style="background: #f59e0b;">Y</div>
+    <div class="group-row-info">
+      <div class="group-row-top">
+        <span class="group-row-name">Yoga w parku</span>
+        <span class="group-row-distance">~800 m</span>
+      </div>
+      <div class="group-row-meta">Grupa · 8 czlonkow</div>
+      <div class="group-row-desc">Poranne sesje jogi w Parku Lazienkowskim</div>
+    </div>
+  </div>
+
+  <div class="group-row">
+    <div class="group-row-avatar" style="background: #4a9eed;">S</div>
+    <div class="group-row-info">
+      <div class="group-row-top">
+        <span class="group-row-name">Siatkowka plazowa</span>
+        <span class="group-row-distance">~2.5 km</span>
+      </div>
+      <div class="group-row-meta">Grupa · 24 czlonkow</div>
+      <div class="group-row-desc">Gramy co weekend na Saskiej Kepie</div>
+      <div class="group-row-nearby"><span class="nearby-dot"></span> 1 czlonek w poblizu</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
