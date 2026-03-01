@@ -295,29 +295,29 @@ When user says "work on BLI-X" or similar:
 
 Technical notes: add as comments on the Linear issue when making non-obvious decisions.
 
-### Overnight protocol
+### Ralph protocol
 
-Autonomous overnight workflow — Claude works through queued tickets while Karol sleeps.
+Autonomous worker protocol — Ralph works through queued tickets.
 
 #### Ticket selection
 
-Query: team=Blisko, status=Todo, label=Overnight. Sort by priority DESC (Urgent first), then identifier ASC (BLI-10 before BLI-20).
+Query: team=Blisko, status=Todo, label=Ralph. Sort by priority DESC (Urgent first), then identifier ASC (BLI-10 before BLI-20).
 
 #### Per-ticket workflow
 
-1. **ASSESS** — fetch ticket, read description + comments, evaluate size.
-   - Too large? → splitting protocol (see below).
+1. **ASSESS** — fetch ticket, read description + comments. Always check for sub-issues.
+   - **Has sub-issues?** → work through sub-issues sequentially (they are the unit of work, not the parent).
+   - **No sub-issues, too large?** → splitting protocol (see below).
 
 2. **SETUP**
    - `git checkout main && git pull origin main`
-   - `git checkout -b <gitBranchName from Linear>`
-   - Status → In Progress
-   - Comment: "Starting overnight work. Branch: `<branch>`"
+   - `git checkout -b <gitBranchName from Linear>` (use parent's branch for sub-issues)
+   - Status → In Progress (parent + current sub-issue)
+   - Comment: "Starting Ralph work. Branch: `<branch>`"
 
 3. **IMPLEMENT**
-   - Follow the plan from the ticket description.
-   - Commit format: `Verb description (BLI-X)` (GPG signed, never `--no-gpg-sign`).
-   - If sub-issues: work sequentially, each In Progress → Done.
+   - If sub-issues: work sequentially in identifier order. Each sub-issue: In Progress → implement → Done. Commit references sub-issue ID: `Verb description (BLI-X)`.
+   - If no sub-issues: follow the plan from ticket description. Commit format: `Verb description (BLI-X)` (GPG signed, never `--no-gpg-sign`).
 
 4. **VERIFY**
    - `pnpm --filter @repo/api typecheck`
@@ -330,19 +330,18 @@ Query: team=Blisko, status=Todo, label=Overnight. Sort by priority DESC (Urgent 
    - `git checkout main && git merge <branch> && git push origin main`
    - Delete branch: `git branch -d <branch>`
    - Status → Done
-   - Remove label "Overnight"
+   - Remove label "Ralph"
    - Comment: "Merged to main. Changes: ..."
+   - Output: `RALPH_MERGED`
 
 6. **FINISH (tests fail / blocked)**
    - Do NOT merge to main.
    - `git push -u origin <branch>` (leave branch for review)
    - Keep status In Progress.
    - Comment: "BLOCKED: <what's failing, what's needed>. Branch: `<branch>`"
-   - Move to next ticket.
+   - Output: `RALPH_BLOCKED`
 
-7. **NEXT** — repeat from step 1 for the next ticket.
-
-Each merge to main means the next ticket starts with a fresh main containing all previous changes. Tickets don't need to be independent.
+When run via `ralph.sh`, each iteration is a fresh Claude session — one ticket per session. The script handles returning to main between iterations.
 
 #### Splitting large tickets
 
@@ -368,16 +367,16 @@ Splitting process:
 | End of budget/session | Commit+push current work, comment on remaining tickets |
 | DB migration needed | Generate migration file, but NEVER run `drizzle-kit migrate` on production |
 
-#### Morning review (for Karol)
+#### Review (for Karol)
 
 1. Check Linear: tickets marked Done = complete, In Progress with "BLOCKED" = needs help
-2. `git log --oneline -20` — see what was merged overnight
-3. Blocked tickets: read the comment, fix the issue (add API key, clarify requirement), put back to Todo + Overnight
-4. Queue new tickets for the next night: set Todo + Overnight label
+2. `git log --oneline -20` — see what was merged by Ralph
+3. Blocked tickets: read the comment, fix the issue (add API key, clarify requirement), put back to Todo + Ralph
+4. Queue new tickets for the next run: set Todo + Ralph label
 
-### Overnight prep
+### Ralph prep
 
-Batch preparation of Backlog tickets for overnight work. Triggered by "przygotuj tickety na noc" or similar.
+Batch preparation of Backlog tickets for Ralph. Triggered by "przygotuj tickety na noc" or similar.
 
 #### Workflow
 
@@ -392,24 +391,24 @@ Batch preparation of Backlog tickets for overnight work. Triggered by "przygotuj
       - Kryteria akceptacji (testable checkboxes)
    d. Update ticket description in Linear (structured content above original)
    e. Move status to Todo
-   f. Add label Overnight, keep label Idea
-   g. Comment: "Prepared for overnight. Implementation plan: ..."
+   f. Add label Ralph, keep label Idea
+   g. Comment: "Prepared for Ralph. Implementation plan: ..."
 3. After all tickets: report summary to user — what was prepared, any tickets skipped (too vague, needs user input)
 
 #### Skip conditions
 - Ticket too vague to plan (no clear outcome) → comment asking for clarification, leave in Backlog
 - Ticket requires external info (API keys, design decisions) → comment "Needs: ...", leave in Backlog
-- Ticket already has structured description → skip, just add Overnight label
+- Ticket already has structured description → skip, just add Ralph label
 
 #### User review
 After prep, Karol reviews in Linear:
-- Remove Overnight label from tickets not ready
+- Remove Ralph label from tickets not ready
 - Adjust priorities if needed
 - Add missing context to skipped tickets
 
-### Morning report
+### Ralph report
 
-Generates a summary of overnight work. Triggered by "morning report" or "co się stało w nocy".
+Generates a summary of Ralph's work. Triggered by "ralph report", "morning report", or "co się stało w nocy".
 
 #### What to check
 
@@ -425,7 +424,7 @@ Generates a summary of overnight work. Triggered by "morning report" or "co się
 #### Output format
 
 ```
-## Overnight report — [date]
+## Ralph report — [date]
 
 ### Done (merged to main)
 - BLI-X: [title] — [1-line summary of changes]

@@ -49,5 +49,8 @@ coverage/
 # Seed cache
 apps/api/scripts/.seed-cache.json
 
+# Ralph logs
+scripts/ralph-logs/
+
 # Worktrees
 .worktrees/

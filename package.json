@@ -21,6 +21,8 @@
     "website:dev": "pnpm --filter @repo/website dev",
     "website:start": "pnpm --filter @repo/website start",
     "mobile:testflight": "pnpm --filter @repo/mobile testflight",
+    "ralph": "bash scripts/ralph.sh",
+    "ralph:dry": "bash scripts/ralph.sh --dry-run",
     "prepare": "husky"
   },
   "devDependencies": {
