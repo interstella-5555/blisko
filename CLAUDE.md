@@ -294,3 +294,82 @@ When user says "work on BLI-X" or similar:
 8. **Sub-tasks** — work through sub-issues in order. Set each to In Progress/Done individually. Parent → Done when all children done.
 
 Technical notes: add as comments on the Linear issue when making non-obvious decisions.
+
+### Overnight protocol
+
+Autonomous overnight workflow — Claude works through queued tickets while Karol sleeps.
+
+#### Ticket selection
+
+Query: team=Blisko, status=Todo, label=Overnight. Sort by priority DESC (Urgent first), then identifier ASC (BLI-10 before BLI-20).
+
+#### Per-ticket workflow
+
+1. **ASSESS** — fetch ticket, read description + comments, evaluate size.
+   - Too large? → splitting protocol (see below).
+
+2. **SETUP**
+   - `git checkout main && git pull origin main`
+   - `git checkout -b <gitBranchName from Linear>`
+   - Status → In Progress
+   - Comment: "Starting overnight work. Branch: `<branch>`"
+
+3. **IMPLEMENT**
+   - Follow the plan from the ticket description.
+   - Commit format: `Verb description (BLI-X)` (GPG signed, never `--no-gpg-sign`).
+   - If sub-issues: work sequentially, each In Progress → Done.
+
+4. **VERIFY**
+   - `pnpm --filter @repo/api typecheck`
+   - `pnpm --filter @repo/shared typecheck`
+   - `pnpm --filter @repo/api test` (if tests exist)
+   - If tests fail: 2 attempts to fix, then treat as blocked.
+
+5. **FINISH (tests pass)**
+   - `git checkout main && git merge <branch> && git push origin main`
+   - Delete branch: `git branch -d <branch>`
+   - Status → Done
+   - Remove label "Overnight"
+   - Comment: "Merged to main. Changes: ..."
+
+6. **FINISH (tests fail / blocked)**
+   - Do NOT merge to main.
+   - `git push -u origin <branch>` (leave branch for review)
+   - Keep status In Progress.
+   - Comment: "BLOCKED: <what's failing, what's needed>. Branch: `<branch>`"
+   - Move to next ticket.
+
+7. **NEXT** — repeat from step 1 for the next ticket.
+
+Each merge to main means the next ticket starts with a fresh main containing all previous changes. Tickets don't need to be independent.
+
+#### Splitting large tickets
+
+A ticket is "too large" when:
+- It touches 3+ separate areas (e.g. schema + API + mobile + shared)
+- It has 4+ independent acceptance criteria
+- The description explicitly lists phases/stages
+
+Splitting process:
+1. Create sub-issues in Linear as children of the parent ticket.
+2. All sub-issues work on **the same branch** (parent's `gitBranchName`).
+3. Work sequentially: each sub-issue In Progress → Done.
+4. Merge to main only when ALL sub-issues are done.
+5. Parent ticket → Done after merge.
+
+#### Error handling
+
+| Situation | Action |
+|-----------|--------|
+| Blocked (missing info/API key) | Comment "BLOCKED: ...", keep In Progress, move to next |
+| Tests fail after 2 attempts | Push branch without merge, comment with details, keep In Progress |
+| Git merge conflict | Attempt to resolve; if complex → push branch, comment |
+| End of budget/session | Commit+push current work, comment on remaining tickets |
+| DB migration needed | Generate migration file, but NEVER run `drizzle-kit migrate` on production |
+
+#### Morning review (for Karol)
+
+1. Check Linear: tickets marked Done = complete, In Progress with "BLOCKED" = needs help
+2. `git log --oneline -20` — see what was merged overnight
+3. Blocked tickets: read the comment, fix the issue (add API key, clarify requirement), put back to Todo + Overnight
+4. Queue new tickets for the next night: set Todo + Overnight label
