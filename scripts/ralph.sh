@@ -151,6 +151,12 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
     GIT_CHANGED=false
   fi
 
+  # Extract ticket identifier from output (e.g. BLI-16)
+  TICKET_ID=$(echo "$OUTPUT" | grep -oE 'BLI-[0-9]+' | head -1)
+  if [[ -n "$TICKET_ID" ]]; then
+    echo "    Ticket: $TICKET_ID"
+  fi
+
   # Parse signal from output
   MADE_PROGRESS=false
   if echo "$OUTPUT" | grep -q "RALPH_DONE"; then
@@ -159,13 +165,13 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
   elif echo "$OUTPUT" | grep -q "RALPH_MERGED"; then
     DONE_COUNT=$((DONE_COUNT + 1))
     MADE_PROGRESS=true
-    echo "==> Task completed and merged. ($DONE_COUNT done so far)"
+    echo "==> [$TICKET_ID] Completed and merged. ($DONE_COUNT done so far)"
   elif echo "$OUTPUT" | grep -q "RALPH_BLOCKED"; then
     BLOCKED_COUNT=$((BLOCKED_COUNT + 1))
     MADE_PROGRESS=true  # blocked is still a valid outcome
-    echo "==> Task blocked. ($BLOCKED_COUNT blocked so far)"
+    echo "==> [$TICKET_ID] Blocked. ($BLOCKED_COUNT blocked so far)"
   elif echo "$OUTPUT" | grep -q "error_max_turns"; then
-    echo "==> Hit max turns ($MAX_TURNS). Task left in progress for next iteration."
+    echo "==> [$TICKET_ID] Hit max turns ($MAX_TURNS). Left in progress for next iteration."
     $GIT_CHANGED && MADE_PROGRESS=true
   else
     echo "==> No clear signal detected. Check log: $LOG_FILE"
