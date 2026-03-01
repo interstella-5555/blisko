@@ -11,6 +11,7 @@ interface GroupRowProps {
   description: string | null;
   distance: number;
   memberCount: number;
+  nearbyMemberCount?: number;
 }
 
 export function GroupRow({
@@ -20,6 +21,7 @@ export function GroupRow({
   description,
   distance,
   memberCount,
+  nearbyMemberCount,
 }: GroupRowProps) {
   return (
     <Pressable
@@ -40,6 +42,11 @@ export function GroupRow({
         {description ? (
           <Text style={styles.snippet} numberOfLines={2}>
             {description}
+          </Text>
+        ) : null}
+        {nearbyMemberCount != null && nearbyMemberCount > 0 ? (
+          <Text style={styles.nearbyBadge}>
+            {nearbyMemberCount} {nearbyMemberCount === 1 ? 'osoba' : 'osób'} w pobliżu
           </Text>
         ) : null}
       </View>
@@ -89,5 +96,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.muted,
     marginTop: 2,
+  },
+  nearbyBadge: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
+    color: '#5B7A5E',
+    marginTop: 3,
   },
 });

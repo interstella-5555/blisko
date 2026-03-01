@@ -22,6 +22,7 @@ import { trpc } from '../../src/lib/trpc';
 import {
   NearbyMapView,
   type MapUser,
+  type MapGroup,
   type GridCluster,
   type NearbyMapRef,
 } from '../../src/components/nearby';
@@ -178,6 +179,27 @@ export default function NearbyScreen() {
     }
     return allListUsers as MapUser[];
   }, [selectedCluster, allListUsers]);
+
+  // Groups for map markers
+  const mapGroups = useMemo((): MapGroup[] => {
+    if (!nearbyGroups) return [];
+    return nearbyGroups
+      .filter((g): g is typeof g & { latitude: number; longitude: number } =>
+        g.latitude != null && g.longitude != null
+      )
+      .map((g) => ({
+        id: g.id,
+        name: g.name,
+        avatarUrl: g.avatarUrl,
+        latitude: g.latitude,
+        longitude: g.longitude,
+        nearbyMemberCount: g.nearbyMemberCount,
+      }));
+  }, [nearbyGroups]);
+
+  const handleGroupPress = useCallback((group: MapGroup) => {
+    router.push(`/(modals)/group/${group.id}`);
+  }, []);
 
   // Build combined list data for FlatList
   type NearbyGroup = NonNullable<typeof nearbyGroups>[number];
@@ -414,6 +436,7 @@ export default function NearbyScreen() {
             description={g.description}
             distance={g.distance}
             memberCount={g.memberCount}
+            nearbyMemberCount={g.nearbyMemberCount}
           />
         );
       }
@@ -458,6 +481,8 @@ export default function NearbyScreen() {
             userLongitude={longitude!}
             onClusterPress={handleClusterPress}
             highlightedGridId={selectedCluster?.gridId}
+            groups={nearbyFilter !== 'people' ? mapGroups : undefined}
+            onGroupPress={handleGroupPress}
           />
         </View>
       </Animated.View>
