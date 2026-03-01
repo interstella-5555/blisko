@@ -117,7 +117,8 @@ export default function LoginScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>BLISKO</Text>
         <Text style={styles.subtitle}>
-          Poznawaj ludzi o podobnych zainteresowaniach
+          Świat jest pełen ludzi, którzy siebie potrzebują.{'\n'}My skracamy
+          dystans.
         </Text>
 
         <View style={styles.form}>
