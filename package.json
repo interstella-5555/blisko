@@ -19,7 +19,8 @@
     "dev-cli:chatbot-monitor": "pnpm --filter @repo/dev-cli chatbot-monitor",
     "api:scatter": "pnpm --filter @repo/api scatter",
     "website:dev": "pnpm --filter @repo/website dev",
-    "website:start": "pnpm --filter @repo/website start"
+    "website:start": "pnpm --filter @repo/website start",
+    "mobile:testflight": "pnpm --filter @repo/mobile testflight"
   },
   "devDependencies": {
     "typescript": "^5.3.0"

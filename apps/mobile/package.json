@@ -15,7 +15,8 @@
     "test:e2e:waves": "maestro test .maestro/waves/",
     "test:e2e:waves:empty": "maestro test .maestro/waves/empty-waves.yaml",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx",
+    "testflight": "bash scripts/testflight.sh"
   },
   "dependencies": {
     "@better-auth/expo": "^1.4.17",

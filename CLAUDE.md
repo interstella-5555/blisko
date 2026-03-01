@@ -219,6 +219,78 @@ When creating new CLI tools, scripts, or monitors — always add both entries.
 
 Use Bun's built-in `RedisClient` (`import { RedisClient } from 'bun'`) for all direct Redis operations (pub/sub, get/set, etc.). Never add `ioredis` as a direct dependency — BullMQ uses it internally and that's fine, but our code should use Bun's native client.
 
+## EAS policy
+
+Do NOT suggest using EAS Build or EAS Submit. We use local Xcode builds + manual upload via Xcode Organizer. If EAS is ever needed, the user will say so explicitly.
+
+## Deploying to TestFlight (without EAS)
+
+Local build + upload to TestFlight via Xcode. No EAS subscription needed — uses Xcode's native archive and distribute flow.
+
+**Prerequisites:**
+- Active Apple Developer account (Individual / Sole Proprietor)
+- App created in [App Store Connect](https://appstoreconnect.apple.com) with bundle ID `com.blisko.app`
+- Xcode signed in with Apple ID (Xcode → Settings → Accounts)
+- Signing team selected in Xcode project (automatic signing recommended)
+
+**Run from root:**
+```bash
+pnpm mobile:testflight
+```
+
+**What it does:**
+1. Installs CocoaPods if needed
+2. Builds a Release archive via `xcodebuild`
+3. Opens the archive in Xcode Organizer
+
+**After the script finishes (manual step):**
+1. Xcode Organizer opens with the archive
+2. Click **Distribute App**
+3. Select **App Store Connect** → **Upload**
+4. Build appears in TestFlight within ~5-15 minutes
+
+**Important:**
+- Make sure `apps/mobile/.env.local` points to production API (`https://api.blisko.app`) before building
+- First upload requires creating the app in App Store Connect (Apps → + New App → bundle ID `com.blisko.app`)
+- TestFlight internal testers get builds instantly; external testers need one Beta App Review first
+
+**Script location:** `apps/mobile/scripts/testflight.sh`
+
 ## After restarting the app / seeding
 
 After any restart that involves re-seeding the database, display a random test user email for quick login. Seeded users have emails `user0@example.com` through `user249@example.com`.
+
+## Linear integration
+
+Team: **Blisko**, key: **BLI**
+
+### Capturing ideas
+
+When user shares an idea, feedback, or feature concept:
+
+- **Vague idea** (no clear scope) → issue with label **Idea**, status **Backlog**. Short title, raw description. Don't force structure.
+- **Refined idea** (clear what to build) → use the appropriate label:
+  - **Feature** = new capability
+  - **Improvement** = enhancing existing thing
+  - **Bug** = broken thing
+  - **Idea** = vague, needs refinement
+- **Priority**: set when user expresses urgency, otherwise leave unset (None).
+- **Sub-issues**: when a feature has distinct parts, create sub-issues with `parentId`. Discover naturally — don't force upfront decomposition.
+- **Longer specs**: use Linear Documents for product-level thinking (UX, user flows). Keep `docs/plans/` for implementation specs that reference specific files/code.
+- **Mid-conversation**: if something worth tracking comes up, create the issue immediately.
+- **External feedback**: when user relays feedback from others (e.g. Jarek), capture each distinct point as a separate Idea issue. Tag description with who gave the feedback ("Feedback od Jarka:").
+
+### Working on a ticket
+
+When user says "work on BLI-X" or similar:
+
+1. **Fetch & understand** — get issue description + comments + sub-issues.
+2. **Status → In Progress** — do this immediately, don't ask.
+3. **Create branch** — use Linear's `gitBranchName` from the issue (format: `kwypchlo/bli-X-slug`).
+4. **Plan if needed** — for non-trivial work, brainstorm/plan first. Save to `docs/plans/` for complex features.
+5. **Implement** — normal skills flow (brainstorm → plan → code → test).
+6. **Commit** — issue ID at end of message: `Fix map default state (BLI-6)`. Keep existing style (imperative, verb-first).
+7. **Finish** — merge branch to main, set status → **Done**. No PR needed (solo dev). If CI is added later, create PR and use **In Review** status before merge.
+8. **Sub-tasks** — work through sub-issues in order. Set each to In Progress/Done individually. Parent → Done when all children done.
+
+Technical notes: add as comments on the Linear issue when making non-obvious decisions.
