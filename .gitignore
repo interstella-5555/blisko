@@ -52,6 +52,7 @@ apps/api/scripts/.seed-cache.json
 # Ralph
 scripts/ralph-logs/
 scripts/ralph-progress.txt
+scripts/ralph-session.txt
 
 # Worktrees
 .worktrees/

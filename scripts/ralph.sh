@@ -5,9 +5,13 @@ set -euo pipefail
 # Runs Claude in a loop, one task per iteration, using progress.txt for state.
 
 # Kill all child processes (including Claude) on exit/interrupt
+# Session file is preserved so next run can --resume
 cleanup() {
   echo ""
   echo "==> Ralph interrupted. Killing child processes..."
+  if [[ -f "$SCRIPT_DIR/ralph-session.txt" ]]; then
+    echo "==> Session saved. Next 'pnpm ralph' will resume where it left off."
+  fi
   kill -- -$$ 2>/dev/null || true
   exit 1
 }
@@ -17,6 +21,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROMPT_FILE="$SCRIPT_DIR/ralph-prompt.md"
 PROGRESS_FILE="$SCRIPT_DIR/ralph-progress.txt"
+SESSION_FILE="$SCRIPT_DIR/ralph-session.txt"
 LOG_DIR="$SCRIPT_DIR/ralph-logs"
 
 # Defaults
@@ -47,7 +52,7 @@ while [[ $# -gt 0 ]]; do
     --stagnation-limit) STAGNATION_LIMIT="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     --verbose) VERBOSE=true; shift ;;
-    --reset) echo "==> Clearing progress file"; rm -f "$PROGRESS_FILE"; shift ;;
+    --reset) echo "==> Clearing progress and session files"; rm -f "$PROGRESS_FILE" "$SCRIPT_DIR/ralph-session.txt"; shift ;;
     -h|--help)
       echo "Usage: ralph.sh [OPTIONS]"
       echo ""
@@ -59,7 +64,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --model MODEL          Claude model (default: opus)"
       echo "  --dry-run              Preview ticket queue only"
       echo "  --verbose              Show full Claude output"
-      echo "  --reset                Clear progress file before starting"
+      echo "  --reset                Clear progress and session files before starting"
       echo "  -h, --help             Show this help"
       exit 0
       ;;
@@ -140,16 +145,42 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
   # Snapshot git HEAD before iteration (for progress detection)
   HEAD_BEFORE=$(git rev-parse HEAD)
 
+  # Check for saved session to resume (from previous Ctrl+C)
+  RESUME_SESSION=""
+  if [[ -f "$SESSION_FILE" ]] && [[ $ITERATION -eq 1 ]]; then
+    RESUME_SESSION=$(cat "$SESSION_FILE")
+    echo "    Resuming interrupted session: $RESUME_SESSION"
+  fi
+
+  # Generate session ID for this iteration
+  CURRENT_SESSION=$(uuidgen | tr '[:upper:]' '[:lower:]')
+  echo "$CURRENT_SESSION" > "$SESSION_FILE"
+
   # Build claude command
-  CLAUDE_CMD=(claude -p --model "$MODEL" --output-format json --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
+  if [[ -n "$RESUME_SESSION" ]]; then
+    # Resume interrupted session — no prompt needed, context is preserved
+    CLAUDE_CMD=(claude -p --resume "$RESUME_SESSION" --model "$MODEL" --output-format json --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
+  else
+    CLAUDE_CMD=(claude -p --session-id "$CURRENT_SESSION" --model "$MODEL" --output-format json --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
+  fi
 
   # Run Claude with progress file as context (concatenated into prompt)
   # Wall-clock timeout prevents infinite hangs
-  if [[ -n "$TIMEOUT_CMD" ]]; then
-    OUTPUT=$({ cat "$PROMPT_FILE"; echo -e "\n\n---\n\n## Current progress file contents\n"; cat "$PROGRESS_FILE"; } | $TIMEOUT_CMD "${TIMEOUT_MINUTES}m" "${CLAUDE_CMD[@]}" 2>&1) || true
+  # When resuming, send minimal prompt (session already has context)
+  if [[ -n "$RESUME_SESSION" ]]; then
+    PROMPT_INPUT="Continue where you left off. Check Linear and progress file for current state."
   else
-    OUTPUT=$({ cat "$PROMPT_FILE"; echo -e "\n\n---\n\n## Current progress file contents\n"; cat "$PROGRESS_FILE"; } | "${CLAUDE_CMD[@]}" 2>&1) || true
+    PROMPT_INPUT=$({ cat "$PROMPT_FILE"; echo -e "\n\n---\n\n## Current progress file contents\n"; cat "$PROGRESS_FILE"; })
   fi
+
+  if [[ -n "$TIMEOUT_CMD" ]]; then
+    OUTPUT=$(echo "$PROMPT_INPUT" | $TIMEOUT_CMD "${TIMEOUT_MINUTES}m" "${CLAUDE_CMD[@]}" 2>&1) || true
+  else
+    OUTPUT=$(echo "$PROMPT_INPUT" | "${CLAUDE_CMD[@]}" 2>&1) || true
+  fi
+
+  # Session completed normally — clear session file
+  rm -f "$SESSION_FILE"
 
   # Save log
   echo "$OUTPUT" > "$LOG_FILE"
