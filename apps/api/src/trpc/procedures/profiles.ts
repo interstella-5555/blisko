@@ -335,6 +335,10 @@ export const profilesRouter = router({
         myStatusMatchRows.map((m) => [m.matchedUserId, { reason: m.reason, matchedVia: m.matchedVia }])
       );
 
+      const now = new Date();
+      const myStatusActive = currentProfile?.currentStatus &&
+        (!currentProfile.statusExpiresAt || currentProfile.statusExpiresAt > now);
+
       // Fetch extra rows to account for blocked users being filtered out
       const nearbyUsers = await db
         .select({
@@ -406,7 +410,10 @@ export const profilesRouter = router({
           commonInterests,
           shortSnippet: analysis?.shortSnippet ?? null,
           analysisReady: !!analysis,
-          statusMatch: statusMatchMap.get(u.profile.userId) ?? null,
+          statusMatch: (myStatusActive && u.profile.currentStatus &&
+            (!u.profile.statusExpiresAt || u.profile.statusExpiresAt > now))
+            ? (statusMatchMap.get(u.profile.userId) ?? null)
+            : null,
         });
       }
 
@@ -424,11 +431,7 @@ export const profilesRouter = router({
 
       const nextCursor = offset + limit < totalCount ? offset + limit : null;
 
-      const now = new Date();
-      const hasActiveStatus = currentProfile?.currentStatus &&
-        (!currentProfile.statusExpiresAt || currentProfile.statusExpiresAt > now);
-
-      const myStatus = hasActiveStatus
+      const myStatus = myStatusActive
         ? {
             text: currentProfile!.currentStatus!,
             expiresAt: currentProfile!.statusExpiresAt?.toISOString() ?? null,
