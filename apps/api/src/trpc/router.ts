@@ -6,6 +6,7 @@ import { profilingRouter } from './procedures/profiling';
 import { groupsRouter } from './procedures/groups';
 import { topicsRouter } from './procedures/topics';
 import { accountsRouter } from './procedures/accounts';
+import { pushTokensRouter } from './procedures/pushTokens';
 
 export const appRouter = router({
   profiles: profilesRouter,
@@ -15,6 +16,7 @@ export const appRouter = router({
   groups: groupsRouter,
   topics: topicsRouter,
   accounts: accountsRouter,
+  pushTokens: pushTokensRouter,
 });
 
 export type AppRouter = typeof appRouter;
