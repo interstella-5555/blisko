@@ -26,6 +26,9 @@ export default function EditProfileScreen() {
   const [bio, setBio] = useState(profile?.bio || '');
   const [lookingFor, setLookingFor] = useState(profile?.lookingFor || '');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || null);
+  const [instagram, setInstagram] = useState(profile?.socialLinks?.instagram ?? '');
+  const [linkedin, setLinkedin] = useState(profile?.socialLinks?.linkedin ?? '');
+  const [website, setWebsite] = useState(profile?.socialLinks?.website ?? '');
   const [uploading, setUploading] = useState(false);
 
   const utils = trpc.useUtils();
@@ -93,11 +96,18 @@ export default function EditProfileScreen() {
       return;
     }
 
+    const socialLinks = {
+      ...(instagram ? { instagram: instagram.replace(/^@/, '') } : {}),
+      ...(linkedin ? { linkedin } : {}),
+      ...(website ? { website } : {}),
+    };
+
     updateProfile.mutate({
       displayName: displayName.trim(),
       bio: bio.trim(),
       lookingFor: lookingFor.trim(),
       ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl || undefined } : {}),
+      socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : {},
     });
   };
 
@@ -184,6 +194,57 @@ export default function EditProfileScreen() {
           <Text style={styles.charCount}>{lookingFor.length} / 500</Text>
         </View>
 
+        <View style={styles.divider} />
+
+        <Text style={styles.socialLabel}>SOCIAL MEDIA</Text>
+
+        <View style={styles.socialField}>
+          <Text style={styles.socialIcon}>📷</Text>
+          <Text style={styles.socialPrefix}>@</Text>
+          <TextInput
+            style={styles.socialInput}
+            value={instagram}
+            onChangeText={setInstagram}
+            placeholder="handle"
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            maxLength={30}
+          />
+        </View>
+
+        <View style={styles.socialField}>
+          <Text style={styles.socialIcon}>💼</Text>
+          <TextInput
+            style={styles.socialInput}
+            value={linkedin}
+            onChangeText={setLinkedin}
+            placeholder="handle lub URL"
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            maxLength={100}
+          />
+        </View>
+
+        <View style={styles.socialField}>
+          <Text style={styles.socialIcon}>🌐</Text>
+          <TextInput
+            style={styles.socialInput}
+            value={website}
+            onChangeText={setWebsite}
+            placeholder="https://twoja-strona.pl"
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            keyboardType="url"
+            maxLength={200}
+          />
+        </View>
+
         <View style={styles.saveContainer}>
           <Button
             testID="save-profile-btn"
@@ -249,6 +310,39 @@ const styles = StyleSheet.create({
     ...typ.caption,
     textAlign: 'right',
     marginTop: spacing.hairline,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.rule,
+    marginVertical: spacing.section,
+  },
+  socialLabel: {
+    ...typ.label,
+    marginBottom: spacing.gutter,
+  },
+  socialField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.gutter,
+    marginBottom: spacing.gutter,
+  },
+  socialIcon: {
+    fontSize: 18,
+    width: 24,
+    textAlign: 'center',
+  },
+  socialPrefix: {
+    ...typ.body,
+    color: colors.muted,
+  },
+  socialInput: {
+    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: 16,
+    color: colors.ink,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+    paddingVertical: spacing.compact,
   },
   saveContainer: {
     marginTop: spacing.column,
