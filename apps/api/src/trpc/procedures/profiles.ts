@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eq, and, ne, sql } from 'drizzle-orm';
+import { eq, and, ne, sql, isNotNull } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc';
 import { db } from '../../db';
@@ -57,7 +57,7 @@ export const profilesRouter = router({
         })
         .returning();
 
-      // Enqueue AI generation (socialProfile, embedding, interests)
+      // Enqueue AI generation (portrait, embedding, interests)
       // WS event 'profileReady' will fire when done
       enqueueProfileAI(ctx.userId, input.bio, input.lookingFor).catch((err) => {
         console.error('[profiles] Failed to enqueue profile AI job:', err);
@@ -219,7 +219,8 @@ export const profilesRouter = router({
             sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
             sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
             // Exact distance filter
-            sql`${distanceFormula} <= ${radiusMeters}`
+            sql`${distanceFormula} <= ${radiusMeters}`,
+            ...(input.photoOnly ? [isNotNull(profiles.avatarUrl)] : []),
           )
         )
         .orderBy(distanceFormula)
@@ -283,7 +284,8 @@ export const profilesRouter = router({
         eq(profiles.visibilityMode, 'visible'),
         sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
         sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
-        sql`${distanceFormula} <= ${radiusMeters}`
+        sql`${distanceFormula} <= ${radiusMeters}`,
+        ...(input.photoOnly ? [isNotNull(profiles.avatarUrl)] : []),
       );
 
       // Get blocked users + current profile + analyses + totalCount in parallel
