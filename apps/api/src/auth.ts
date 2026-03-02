@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth';
-import { emailOTP } from 'better-auth/plugins';
+import { emailOTP, genericOAuth } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { Resend } from 'resend';
 import { db } from './db';
@@ -21,6 +21,12 @@ export const auth = betterAuth({
     'http://localhost:19000',
     'http://localhost:19006',
   ],
+  socialProviders: {
+    linkedin: {
+      clientId: process.env.LINKEDIN_CLIENT_ID as string,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET as string,
+    },
+  },
   advanced: {
     crossSubDomainCookies: {
       enabled: false,
@@ -77,6 +83,18 @@ export const auth = betterAuth({
       },
       otpLength: 6,
       expiresIn: 300, // 5 minutes
+    }),
+    genericOAuth({
+      config: [
+        {
+          providerId: 'instagram',
+          clientId: process.env.INSTAGRAM_CLIENT_ID as string,
+          clientSecret: process.env.INSTAGRAM_CLIENT_SECRET as string,
+          authorizationUrl: 'https://api.instagram.com/oauth/authorize',
+          tokenUrl: 'https://api.instagram.com/oauth/access_token',
+          scopes: ['user_profile'],
+        },
+      ],
     }),
   ],
   user: {
