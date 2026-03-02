@@ -355,6 +355,16 @@ export default function UserProfileScreen() {
         </View>
       </View>
 
+      {/* Status "Na teraz" */}
+      {profile?.currentStatus && (
+        <View style={styles.otherStatus}>
+          <Text style={styles.otherStatusLabel}>NA TERAZ</Text>
+          <Text style={styles.otherStatusText} numberOfLines={1}>
+            {profile.currentStatus}
+          </Text>
+        </View>
+      )}
+
       {/* AI connection analysis */}
       {analysis?.longDescription ? (
         <View style={styles.snippetBlock}>
@@ -560,6 +570,28 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
     color: colors.bg,
+  },
+  otherStatus: {
+    marginTop: 10,
+    marginHorizontal: spacing.section,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: '#FDF5EC',
+    borderColor: '#E8C9A0',
+  },
+  otherStatusLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: '#D4851C',
+    marginBottom: 4,
+  },
+  otherStatusText: {
+    fontSize: 13,
+    color: colors.ink,
   },
   snippetBlock: {
     padding: spacing.section,
