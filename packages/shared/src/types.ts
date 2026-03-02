@@ -12,7 +12,7 @@ export interface Profile {
   avatarUrl: string | null;
   bio: string;
   lookingFor: string;
-  socialLinks: { instagram?: string; linkedin?: string; website?: string } | null;
+  socialLinks: { instagram?: string; linkedin?: string } | null;
   visibilityMode: 'visible' | 'matches_only' | 'hidden';
   interests: string[] | null;
   embedding: number[] | null;

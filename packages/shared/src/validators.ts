@@ -10,7 +10,6 @@ export const createProfileSchema = z.object({
 export const socialLinksSchema = z.object({
   instagram: z.string().max(30).regex(/^[a-zA-Z0-9._]+$/, 'Nieprawidłowy handle Instagram').optional().or(z.literal('')),
   linkedin: z.string().max(100).optional().or(z.literal('')),
-  website: z.string().url('Nieprawidłowy URL').max(200).optional().or(z.literal('')),
 }).optional();
 
 export const updateProfileSchema = z.object({

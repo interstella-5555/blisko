@@ -79,7 +79,7 @@ export const profiles = pgTable(
     avatarUrl: text('avatar_url'),
     bio: text('bio').notNull(),
     lookingFor: text('looking_for').notNull(),
-    socialLinks: jsonb('social_links').$type<{ instagram?: string; linkedin?: string; website?: string }>(),
+    socialLinks: jsonb('social_links').$type<{ instagram?: string; linkedin?: string }>(),
     visibilityMode: text('visibility_mode').$type<'visible' | 'matches_only' | 'hidden'>().default('visible').notNull(),
     interests: text('interests').array(),
     embedding: real('embedding').array(),
