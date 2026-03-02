@@ -79,12 +79,18 @@ interface GenerateProfileFromQAJob {
   previousSessionQA?: { question: string; answer: string }[];
 }
 
+interface StatusMatchingJob {
+  type: 'status-matching';
+  userId: string;
+}
+
 type AIJob =
   | AnalyzePairJob
   | AnalyzeUserPairsJob
   | GenerateProfileAIJob
   | GenerateProfilingQuestionJob
-  | GenerateProfileFromQAJob;
+  | GenerateProfileFromQAJob
+  | StatusMatchingJob;
 
 // --- Queue (lazy init) ---
 
@@ -667,5 +673,16 @@ export async function enqueueProfileFromQA(
       previousSessionQA,
     },
     { jobId: `profile-from-qa-${sessionId}` }
+  );
+}
+
+export async function enqueueStatusMatching(userId: string) {
+  if (!process.env.REDIS_URL) return;
+
+  const queue = getQueue();
+  await queue.add(
+    'status-matching',
+    { type: 'status-matching', userId },
+    { jobId: `status-matching-${userId}`, removeOnComplete: true }
   );
 }

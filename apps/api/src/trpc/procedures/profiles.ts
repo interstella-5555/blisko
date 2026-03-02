@@ -3,13 +3,14 @@ import { eq, and, ne, sql, isNotNull } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc';
 import { db } from '../../db';
-import { profiles, blocks, connectionAnalyses } from '../../db/schema';
+import { profiles, blocks, connectionAnalyses, statusMatches } from '../../db/schema';
 import {
   createProfileSchema,
   updateProfileSchema,
   updateLocationSchema,
   getNearbyUsersSchema,
   getNearbyUsersForMapSchema,
+  setStatusSchema,
   cosineSimilarity,
 } from '@repo/shared';
 import { toGridCenter, roundDistance } from '../../lib/grid';
@@ -17,6 +18,7 @@ import {
   enqueueUserPairAnalysis,
   enqueuePairAnalysis,
   enqueueProfileAI,
+  enqueueStatusMatching,
 } from '../../services/queue';
 import { moderateContent } from '../../services/moderation';
 import { ee } from '../../ws/events';
@@ -493,5 +495,59 @@ export const profilesRouter = router({
     await enqueueUserPairAnalysis(ctx.userId, profile.latitude, profile.longitude);
     return { ok: true };
   }),
+
+  // Set status "na teraz"
+  setStatus: protectedProcedure
+    .input(setStatusSchema)
+    .mutation(async ({ ctx, input }) => {
+      await moderateContent(input.text);
+
+      const expiresAt = input.expiresIn === 'never'
+        ? null
+        : new Date(Date.now() + { '1h': 3600000, '6h': 21600000, '24h': 86400000 }[input.expiresIn]);
+
+      const [profile] = await db
+        .update(profiles)
+        .set({
+          currentStatus: input.text,
+          statusExpiresAt: expiresAt,
+          statusSetAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(profiles.userId, ctx.userId))
+        .returning();
+
+      enqueueStatusMatching(ctx.userId).catch((err) => {
+        console.error('[profiles] Failed to enqueue status matching:', err);
+      });
+
+      return profile;
+    }),
+
+  // Clear status "na teraz"
+  clearStatus: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const [profile] = await db
+        .update(profiles)
+        .set({
+          currentStatus: null,
+          statusExpiresAt: null,
+          statusEmbedding: null,
+          statusSetAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(profiles.userId, ctx.userId))
+        .returning();
+
+      await db.delete(statusMatches).where(eq(statusMatches.userId, ctx.userId));
+
+      return profile;
+    }),
+
+  // Get my status matches
+  getMyStatusMatches: protectedProcedure
+    .query(async ({ ctx }) => {
+      return db.select().from(statusMatches).where(eq(statusMatches.userId, ctx.userId));
+    }),
 });
 
