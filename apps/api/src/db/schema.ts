@@ -87,6 +87,10 @@ export const profiles = pgTable(
     portraitSharedForMatching: boolean('portrait_shared_for_matching')
       .default(false)
       .notNull(),
+    currentStatus: text('current_status'),
+    statusExpiresAt: timestamp('status_expires_at'),
+    statusEmbedding: real('status_embedding').array(),
+    statusSetAt: timestamp('status_set_at'),
     latitude: real('latitude'),
     longitude: real('longitude'),
     lastLocationUpdate: timestamp('last_location_update'),
@@ -300,6 +304,16 @@ export const pushTokens = pgTable(
   })
 );
 
+// Status matches (AI-evaluated "na teraz" status matches between users)
+export const statusMatches = pgTable('status_matches', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id').notNull().references(() => user.id),
+  matchedUserId: text('matched_user_id').notNull().references(() => user.id),
+  reason: text('reason').notNull(),
+  matchedVia: text('matched_via').notNull(), // 'status' | 'profile'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Connection analyses (AI-generated per-viewer descriptions of what connects two users)
 export const connectionAnalyses = pgTable(
   'connection_analyses',
@@ -506,6 +520,19 @@ export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, {
     fields: [account.userId],
     references: [user.id],
+  }),
+}));
+
+export const statusMatchesRelations = relations(statusMatches, ({ one }) => ({
+  user: one(user, {
+    fields: [statusMatches.userId],
+    references: [user.id],
+    relationName: 'statusMatchesFrom',
+  }),
+  matchedUser: one(user, {
+    fields: [statusMatches.matchedUserId],
+    references: [user.id],
+    relationName: 'statusMatchesTo',
   }),
 }));
 

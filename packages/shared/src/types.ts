@@ -16,6 +16,9 @@ export interface Profile {
   visibilityMode: 'visible' | 'matches_only' | 'hidden';
   interests: string[] | null;
   embedding: number[] | null;
+  currentStatus: string | null;
+  statusExpiresAt: Date | null;
+  statusSetAt: Date | null;
   latitude: number | null;
   longitude: number | null;
   lastLocationUpdate: Date | null;
@@ -81,6 +84,17 @@ export interface PushToken {
   token: string;
   platform: 'ios' | 'android';
   createdAt: Date;
+}
+
+export interface StatusMatch {
+  matchedUserId: string;
+  reason: string;
+  matchedVia: 'status' | 'profile';
+}
+
+export interface NearbyUserStatusMatch {
+  reason: string;
+  matchedVia: 'status' | 'profile';
 }
 
 // API Response types

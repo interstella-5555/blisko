@@ -82,6 +82,12 @@ export const getNearbyUsersForMapSchema = z.object({
   photoOnly: z.boolean().optional(),
 });
 
+// Status "na teraz" validators
+export const setStatusSchema = z.object({
+  text: z.string().min(1).max(150),
+  expiresIn: z.enum(['1h', '6h', '24h', 'never']),
+});
+
 // Block validator
 export const blockUserSchema = z.object({
   userId: z.string().min(1),
@@ -205,6 +211,7 @@ export type ReactToMessageInput = z.infer<typeof reactToMessageSchema>;
 export type SearchMessagesInput = z.infer<typeof searchMessagesSchema>;
 export type GetNearbyUsersInput = z.infer<typeof getNearbyUsersSchema>;
 export type GetNearbyUsersForMapInput = z.infer<typeof getNearbyUsersForMapSchema>;
+export type SetStatusInput = z.infer<typeof setStatusSchema>;
 export type BlockUserInput = z.infer<typeof blockUserSchema>;
 export type StartProfilingInput = z.infer<typeof startProfilingSchema>;
 export type AnswerQuestionInput = z.infer<typeof answerQuestionSchema>;

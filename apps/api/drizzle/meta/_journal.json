@@ -29,6 +29,13 @@
       "when": 1772435858388,
       "tag": "0003_social-links-visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772439011056,
+      "tag": "0004_status-na-teraz",
+      "breakpoints": true
     }
   ]
 }
