@@ -13,7 +13,8 @@ import { useConversationsStore } from '../../src/stores/conversationsStore';
 import { useMessagesStore } from '../../src/stores/messagesStore';
 import { useWavesStore } from '../../src/stores/wavesStore';
 import { authClient } from '../../src/lib/auth';
-import { trpc } from '../../src/lib/trpc';
+import { trpc, trpcClient } from '../../src/lib/trpc';
+import * as SecureStore from 'expo-secure-store';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { Button } from '../../src/components/ui/Button';
@@ -60,6 +61,15 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
+    // Unregister push token before clearing auth
+    try {
+      const pushToken = await SecureStore.getItemAsync('lastRegisteredPushToken');
+      if (pushToken) {
+        await trpcClient.pushTokens.unregister.mutate({ token: pushToken });
+        await SecureStore.deleteItemAsync('lastRegisteredPushToken');
+      }
+    } catch {}
+
     await authClient.signOut();
     reset();
     useProfilesStore.getState().reset();

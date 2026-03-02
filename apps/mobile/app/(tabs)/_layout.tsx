@@ -7,6 +7,7 @@ import { useWebSocket, sendWsMessage } from '../../src/lib/ws';
 import { colors, type as typ, fonts, spacing } from '../../src/theme';
 import { IconPin, IconWave, IconChat, IconPerson, IconSettings, IconPlus } from '../../src/components/ui/icons';
 import { useInAppNotifications } from '../../src/hooks/useInAppNotifications';
+import { usePushNotifications } from '../../src/hooks/usePushNotifications';
 import { useConversationsStore } from '../../src/stores/conversationsStore';
 import { useMessagesStore } from '../../src/stores/messagesStore';
 import { useProfilesStore } from '../../src/stores/profilesStore';
@@ -161,6 +162,7 @@ export default function TabsLayout() {
   );
   useWebSocket(wsHandler);
   useInAppNotifications();
+  usePushNotifications();
   useBackgroundSync();
 
   const { data: profileData, isLoading: isLoadingProfile, isError, refetch } =

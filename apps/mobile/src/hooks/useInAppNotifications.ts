@@ -44,6 +44,20 @@ export function useInAppNotifications() {
         return;
       }
 
+      if (msg.type === 'groupInvited') {
+        showNotification({
+          id: `group-invited-${msg.conversationId}`,
+          title: msg.groupName ?? 'Grupa',
+          subtitle: 'Nowe zaproszenie do grupy',
+          avatarUrl: null,
+          avatarName: msg.groupName ?? 'G',
+          onPress: () => {
+            router.push(`/(modals)/chat/${msg.conversationId}`);
+          },
+        });
+        return;
+      }
+
       if (msg.type === 'newMessage') {
         // Skip own messages
         if (msg.message.senderId === userId) return;
