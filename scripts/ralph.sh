@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Ralph — autonomous worker loop for Blisko
-# Runs Claude in a loop, one task per iteration, using progress.txt for state.
+# Ralph — autonomous worker loop
+# Reads tasks from scripts/ralph-queue/*.md, passes to Claude for implementation.
 
-# Kill all child processes (including Claude) on exit/interrupt
-# Session file is preserved so next run can --resume
 cleanup() {
   echo ""
-  echo "==> Ralph interrupted. Killing child processes..."
-  if [[ -f "$SCRIPT_DIR/ralph-session.txt" ]]; then
-    echo "==> Session saved. Next 'pnpm ralph' will resume where it left off."
-  fi
+  echo "==> Ralph interrupted."
   kill -- -$$ 2>/dev/null || true
   exit 1
 }
@@ -20,8 +15,8 @@ trap cleanup SIGINT SIGTERM
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROMPT_FILE="$SCRIPT_DIR/ralph-prompt.md"
-PROGRESS_FILE="$SCRIPT_DIR/ralph-progress.txt"
-SESSION_FILE="$SCRIPT_DIR/ralph-session.txt"
+QUEUE_DIR="$SCRIPT_DIR/ralph-queue"
+DONE_DIR="$QUEUE_DIR/.done"
 LOG_DIR="$SCRIPT_DIR/ralph-logs"
 
 # Defaults
@@ -33,7 +28,7 @@ MODEL="opus"
 DRY_RUN=false
 VERBOSE=false
 
-# Detect timeout command (gtimeout on macOS, timeout on Linux)
+# Detect timeout command
 if command -v gtimeout &>/dev/null; then
   TIMEOUT_CMD="gtimeout"
 elif command -v timeout &>/dev/null; then
@@ -52,8 +47,6 @@ while [[ $# -gt 0 ]]; do
     --stagnation-limit) STAGNATION_LIMIT="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
     --verbose) VERBOSE=true; shift ;;
-    --no-resume) echo "==> Skipping session resume"; rm -f "$SCRIPT_DIR/ralph-session.txt"; shift ;;
-    --reset) echo "==> Clearing progress and session files"; rm -f "$PROGRESS_FILE" "$SCRIPT_DIR/ralph-session.txt"; shift ;;
     -h|--help)
       echo "Usage: ralph.sh [OPTIONS]"
       echo ""
@@ -63,10 +56,8 @@ while [[ $# -gt 0 ]]; do
       echo "  --timeout N            Max minutes per iteration (default: 30)"
       echo "  --stagnation-limit N   Stop after N iterations with no progress (default: 3)"
       echo "  --model MODEL          Claude model (default: opus)"
-      echo "  --dry-run              Preview ticket queue only"
+      echo "  --dry-run              Preview task queue only"
       echo "  --verbose              Show full Claude output"
-      echo "  --no-resume            Skip session resume, start fresh (keeps progress file)"
-      echo "  --reset                Clear progress and session files before starting"
       echo "  -h, --help             Show this help"
       exit 0
       ;;
@@ -74,45 +65,51 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Ensure we're in the project directory
 cd "$PROJECT_DIR"
 
-# Kill any leftover Ralph processes from previous runs
+# Ensure queue directory exists
+mkdir -p "$QUEUE_DIR" "$DONE_DIR" "$LOG_DIR"
+
+# Kill leftover Ralph processes
 EXISTING_RALPHS=$(pgrep -f "ralph.sh" | grep -v $$ | grep -v $PPID || true)
 if [[ -n "$EXISTING_RALPHS" ]]; then
   echo "==> Killing leftover Ralph processes..."
   echo "$EXISTING_RALPHS" | xargs kill 2>/dev/null || true
   sleep 1
-  # Force kill any stragglers
   echo "$EXISTING_RALPHS" | xargs kill -9 2>/dev/null || true
 fi
 
-# Ensure on main and up to date
+# Ensure on main
 echo "==> Ensuring on main branch..."
 git checkout main
 git pull origin main
 
-# Dry run mode — just show the queue
+# Dry run — just list the queue
 if $DRY_RUN; then
   echo ""
-  echo "==> DRY RUN: Querying Linear for Ralph tickets..."
+  echo "==> Task queue:"
+  TASKS=$(ls "$QUEUE_DIR"/[0-9]*.md 2>/dev/null | sort || true)
+  if [[ -z "$TASKS" ]]; then
+    echo "    (empty)"
+  else
+    while IFS= read -r f; do
+      BASENAME=$(basename "$f")
+      TICKET=$(echo "$BASENAME" | grep -oE 'BLI-[0-9]+' || echo "???")
+      TITLE=$(head -1 "$f" | sed 's/^# //')
+      echo "    $BASENAME  →  $TICKET  →  $TITLE"
+    done <<< "$TASKS"
+  fi
   echo ""
-  { cat "$PROMPT_FILE"; echo -e "\n\nQuery Linear: team=Blisko, status=Todo, label=Ralph. List all matching tickets sorted by priority DESC then identifier ASC. Output each as: [identifier] [title] [priority]. If none found, say 'No Ralph tickets in queue.'. Do NOT work on any ticket — just list them."; } | claude -p \
-    --model "$MODEL" \
-    --output-format text \
-    --max-turns 3 \
-    --dangerously-skip-permissions
+  echo "==> Done:"
+  DONE_TASKS=$(ls "$DONE_DIR"/[0-9]*.md 2>/dev/null | sort || true)
+  if [[ -z "$DONE_TASKS" ]]; then
+    echo "    (empty)"
+  else
+    while IFS= read -r f; do
+      echo "    $(basename "$f")"
+    done <<< "$DONE_TASKS"
+  fi
   exit 0
-fi
-
-# Create log directory
-mkdir -p "$LOG_DIR"
-
-# Initialize progress file if it doesn't exist
-if [[ ! -f "$PROGRESS_FILE" ]]; then
-  echo "# Ralph Progress" > "$PROGRESS_FILE"
-  echo "" >> "$PROGRESS_FILE"
-  echo "No work started yet." >> "$PROGRESS_FILE"
 fi
 
 # Stats
@@ -130,7 +127,7 @@ echo "  Max turns/iter:    $MAX_TURNS"
 echo "  Timeout/iter:      ${TIMEOUT_MINUTES}m"
 echo "  Stagnation limit:  $STAGNATION_LIMIT"
 echo "  Model:             $MODEL"
-echo "  Progress file:     $PROGRESS_FILE"
+echo "  Queue:             $QUEUE_DIR"
 echo "======================================"
 echo ""
 
@@ -140,59 +137,66 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
   TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
   LOG_FILE="$LOG_DIR/ralph_${TIMESTAMP}_iter${ITERATION}.json"
 
-  echo "==> Iteration $ITERATION/$MAX_ITERATIONS"
+  # Pick first task file
+  TASK_FILE=$(ls "$QUEUE_DIR"/[0-9]*.md 2>/dev/null | sort | head -1 || true)
+  if [[ -z "$TASK_FILE" ]]; then
+    echo "==> No more tasks in queue. Ralph is done."
+    break
+  fi
 
-  # Ensure on main between iterations and clean up merged branches
-  CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "main")
-  git checkout main 2>/dev/null
-  git pull origin main 2>/dev/null
-  if [[ "$CURRENT_BRANCH" != "main" ]]; then
-    # Delete branch only if fully merged to main (-d fails if not merged)
-    if git branch -d "$CURRENT_BRANCH" 2>/dev/null; then
-      echo "    Cleaned up merged branch: $CURRENT_BRANCH"
-      git push origin --delete "$CURRENT_BRANCH" 2>/dev/null || true
+  TASK_BASENAME=$(basename "$TASK_FILE")
+  TICKET_ID=$(echo "$TASK_BASENAME" | grep -oE 'BLI-[0-9]+' || echo "")
+
+  echo "==> Iteration $ITERATION/$MAX_ITERATIONS: $TASK_BASENAME"
+
+  # Determine if first/last sub-task for this ticket
+  IS_FIRST="false"
+  IS_LAST="false"
+  if [[ -n "$TICKET_ID" ]]; then
+    DONE_FOR_TICKET=$(ls "$DONE_DIR"/*-${TICKET_ID}-*.md 2>/dev/null | wc -l | tr -d ' ' || echo "0")
+    REMAINING_FOR_TICKET=$(ls "$QUEUE_DIR"/[0-9]*-${TICKET_ID}-*.md 2>/dev/null | wc -l | tr -d ' ' || echo "0")
+    if [[ "$DONE_FOR_TICKET" -eq 0 ]]; then
+      IS_FIRST="true"
     fi
+    if [[ "$REMAINING_FOR_TICKET" -eq 1 ]]; then
+      IS_LAST="true"
+    fi
+    echo "    Ticket: $TICKET_ID (first=$IS_FIRST, last=$IS_LAST)"
   fi
 
-  # Snapshot git HEAD before iteration (for progress detection)
-  HEAD_BEFORE=$(git rev-parse HEAD)
-
-  # Check for saved session to resume (from previous Ctrl+C)
-  RESUME_SESSION=""
-  if [[ -f "$SESSION_FILE" ]] && [[ $ITERATION -eq 1 ]]; then
-    RESUME_SESSION=$(cat "$SESSION_FILE")
-    echo "    Resuming interrupted session: $RESUME_SESSION"
+  # First sub-task: start from main. Otherwise: stay on branch.
+  if [[ "$IS_FIRST" == "true" ]]; then
+    git checkout main 2>/dev/null
+    git pull origin main 2>/dev/null
   fi
 
-  # Generate session ID for this iteration
-  CURRENT_SESSION=$(uuidgen | tr '[:upper:]' '[:lower:]')
-  echo "$CURRENT_SESSION" > "$SESSION_FILE"
+  # Snapshot git HEAD for progress detection
+  HEAD_BEFORE=$(git rev-parse HEAD 2>/dev/null)
 
-  # Build claude command
-  if [[ -n "$RESUME_SESSION" ]]; then
-    # Resume interrupted session — no prompt needed, context is preserved
-    CLAUDE_CMD=(claude -p --resume "$RESUME_SESSION" --model "$MODEL" --output-format json --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
-  else
-    CLAUDE_CMD=(claude -p --session-id "$CURRENT_SESSION" --model "$MODEL" --output-format json --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
-  fi
+  # Build prompt: system prompt + task file + metadata
+  TASK_CONTENT=$(cat "$TASK_FILE")
+  PROMPT_INPUT=$(cat <<PROMPT_EOF
+$(cat "$PROMPT_FILE")
 
-  # Run Claude with progress file as context (concatenated into prompt)
-  # Wall-clock timeout prevents infinite hangs
-  # When resuming, send minimal prompt (session already has context)
-  if [[ -n "$RESUME_SESSION" ]]; then
-    PROMPT_INPUT="Continue where you left off. Check Linear and progress file for current state."
-  else
-    PROMPT_INPUT=$({ cat "$PROMPT_FILE"; echo -e "\n\n---\n\n## Current progress file contents\n"; cat "$PROGRESS_FILE"; })
-  fi
+---
+
+## Task file: $TASK_BASENAME
+
+FIRST_SUBTASK=$IS_FIRST
+LAST_SUBTASK=$IS_LAST
+
+$TASK_CONTENT
+PROMPT_EOF
+)
+
+  # Run Claude
+  CLAUDE_CMD=(claude -p --model "$MODEL" --output-format json --max-turns "$MAX_TURNS" --dangerously-skip-permissions)
 
   if [[ -n "$TIMEOUT_CMD" ]]; then
     OUTPUT=$(echo "$PROMPT_INPUT" | $TIMEOUT_CMD "${TIMEOUT_MINUTES}m" "${CLAUDE_CMD[@]}" 2>&1) || true
   else
     OUTPUT=$(echo "$PROMPT_INPUT" | "${CLAUDE_CMD[@]}" 2>&1) || true
   fi
-
-  # Session completed normally — clear session file
-  rm -f "$SESSION_FILE"
 
   # Save log
   echo "$OUTPUT" > "$LOG_FILE"
@@ -203,49 +207,54 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
     echo "--- End output ---"
   fi
 
-  # Check if git HEAD changed (independent progress verification)
+  # Check git progress
   HEAD_AFTER=$(git rev-parse HEAD 2>/dev/null || echo "$HEAD_BEFORE")
-  if [[ "$HEAD_BEFORE" != "$HEAD_AFTER" ]]; then
-    GIT_CHANGED=true
-  else
-    GIT_CHANGED=false
-  fi
+  GIT_CHANGED=false
+  [[ "$HEAD_BEFORE" != "$HEAD_AFTER" ]] && GIT_CHANGED=true
 
-  # Extract ticket identifier from output (e.g. BLI-16)
-  TICKET_ID=$(echo "$OUTPUT" | grep -oE 'BLI-[0-9]+' | head -1)
-  if [[ -n "$TICKET_ID" ]]; then
-    echo "    Ticket: $TICKET_ID"
-  fi
-
-  # Parse signal from output
+  # Parse signal
   MADE_PROGRESS=false
-  if echo "$OUTPUT" | grep -q "RALPH_DONE"; then
-    echo "==> No more tickets. Ralph is done."
-    break
-  elif echo "$OUTPUT" | grep -q "RALPH_MERGED"; then
+  if echo "$OUTPUT" | grep -q "RALPH_MERGED"; then
     DONE_COUNT=$((DONE_COUNT + 1))
     MADE_PROGRESS=true
-    echo "==> [$TICKET_ID] Completed and merged. ($DONE_COUNT done so far)"
+    # Move task file to .done/
+    mv "$TASK_FILE" "$DONE_DIR/"
+    echo "==> [$TICKET_ID] $TASK_BASENAME completed. ($DONE_COUNT done so far)"
+
+    # If last sub-task was merged, clean up branch
+    if [[ "$IS_LAST" == "true" ]]; then
+      CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "main")
+      if [[ "$CURRENT_BRANCH" != "main" ]]; then
+        git checkout main 2>/dev/null
+        git branch -d "$CURRENT_BRANCH" 2>/dev/null || true
+        git push origin --delete "$CURRENT_BRANCH" 2>/dev/null || true
+        echo "    Cleaned up branch: $CURRENT_BRANCH"
+      fi
+    fi
+
   elif echo "$OUTPUT" | grep -q "RALPH_BLOCKED"; then
     BLOCKED_COUNT=$((BLOCKED_COUNT + 1))
-    MADE_PROGRESS=true  # blocked is still a valid outcome
-    echo "==> [$TICKET_ID] Blocked. ($BLOCKED_COUNT blocked so far)"
+    MADE_PROGRESS=true
+    echo "==> [$TICKET_ID] $TASK_BASENAME blocked. ($BLOCKED_COUNT blocked so far)"
+    # Move blocked file aside so next iteration picks a different one
+    mv "$TASK_FILE" "${TASK_FILE}.blocked"
+
   elif echo "$OUTPUT" | grep -q "error_max_turns"; then
-    echo "==> [$TICKET_ID] Hit max turns ($MAX_TURNS). Left in progress for next iteration."
+    echo "==> [$TICKET_ID] Hit max turns ($MAX_TURNS)."
     $GIT_CHANGED && MADE_PROGRESS=true
   else
-    echo "==> No clear signal detected. Check log: $LOG_FILE"
+    echo "==> No clear signal. Check log: $LOG_FILE"
     $GIT_CHANGED && MADE_PROGRESS=true
   fi
 
-  # Stagnation detection: stop after N consecutive iterations with no progress
+  # Stagnation detection
   if $MADE_PROGRESS || $GIT_CHANGED; then
     STAGNATION_COUNT=0
   else
     STAGNATION_COUNT=$((STAGNATION_COUNT + 1))
-    echo "==> No progress detected. ($STAGNATION_COUNT/$STAGNATION_LIMIT before auto-stop)"
+    echo "==> No progress. ($STAGNATION_COUNT/$STAGNATION_LIMIT before auto-stop)"
     if [[ $STAGNATION_COUNT -ge $STAGNATION_LIMIT ]]; then
-      echo "==> Stagnation limit reached ($STAGNATION_LIMIT iterations with no progress). Stopping."
+      echo "==> Stagnation limit reached. Stopping."
       break
     fi
   fi
@@ -254,7 +263,12 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
 done
 
 # Return to main
-git checkout main 2>/dev/null
+git checkout main 2>/dev/null || true
+
+# Restore any .blocked files back to normal
+for f in "$QUEUE_DIR"/*.blocked; do
+  [[ -f "$f" ]] && mv "$f" "${f%.blocked}"
+done
 
 # Summary
 echo ""
@@ -265,6 +279,7 @@ echo "  Iterations:  $ITERATION"
 echo "  Merged:      $DONE_COUNT"
 echo "  Blocked:     $BLOCKED_COUNT"
 echo "  Stagnated:   $STAGNATION_COUNT"
-echo "  Logs:       $LOG_DIR/"
-echo "  Progress:   $PROGRESS_FILE"
+echo "  Logs:        $LOG_DIR/"
+echo "  Queue:       $(ls "$QUEUE_DIR"/[0-9]*.md 2>/dev/null | wc -l | tr -d ' ') remaining"
+echo "  Done:        $(ls "$DONE_DIR"/[0-9]*.md 2>/dev/null | wc -l | tr -d ' ') completed"
 echo "======================================"

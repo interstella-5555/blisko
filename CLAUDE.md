@@ -337,254 +337,141 @@ Technical notes: add as comments on the Linear issue when making non-obvious dec
 
 ### Ralph protocol
 
-Autonomous worker protocol — Ralph works through queued tickets.
-State is tracked in Linear (primary source of truth) and `scripts/ralph-progress.txt` (agent memory between sessions).
-Runner script: `scripts/ralph.sh` (`pnpm ralph` / `pnpm ralph:dry`).
+Autonomous worker — reads task files from `scripts/ralph-queue/`, implements them one by one.
 
-#### Key principle: one task per iteration
+Runner: `pnpm ralph` / `pnpm ralph:dry`
 
-Each iteration is a fresh Claude session that does ONE thing:
-- One sub-issue of a larger ticket, OR
-- One small standalone ticket
+#### How it works
 
-Linear decides what to work on. The memory file (`scripts/ralph-progress.txt`) carries technical context between sessions (branch state, decisions, known issues) but does NOT determine the task queue.
+1. Shell picks first `.md` file from `scripts/ralph-queue/` (sorted by 5-digit prefix)
+2. Shell determines if first/last sub-task for the ticket (by checking `.done/`)
+3. Claude gets: system prompt + task file contents + FIRST_SUBTASK/LAST_SUBTASK flags
+4. Claude implements, verifies, commits
+5. Shell moves file to `.done/` on success
+
+**Zero Linear API calls.** Linear automation detects branch names and sets In Progress / Done automatically.
+
+#### Task file format
+
+```
+# BLI-42: Short description
+
+Ticket: BLI-42
+Branch: kwypchlo/bli-42-feature-name
+
+## Task
+What to implement.
+
+## Files to modify
+- exact/paths/here.ts
+
+## Implementation
+Detailed instructions, code snippets, approach.
+
+## Acceptance criteria
+- [ ] Criteria 1
+- [ ] Criteria 2
+```
+
+#### Queue structure
+
+```
+scripts/ralph-queue/          ← gitignored
+├── .done/                    ← completed files
+├── 00001-BLI-42-add-schema.md
+├── 00002-BLI-42-add-api.md
+├── 00003-BLI-42-add-mobile.md
+└── 00004-BLI-55-fix-button.md
+```
+
+- 5-digit prefix = execution order
+- One branch per ticket (all sub-tasks share it)
+- First sub-task: checkout from main. Subsequent: continue on branch.
+- Last sub-task: merge to main.
 
 #### Scope discipline
 
-Your commit must match the ticket's acceptance criteria — nothing more, nothing less.
+Commit must match the task file's acceptance criteria — nothing more, nothing less. If you spot an unrelated issue, note it in the RALPH_BLOCKED output or ignore it.
 
-**IN scope:**
-- Code explicitly described in acceptance criteria
-- Trivial fixes in files you're already editing (typos, unused imports, obvious 1-line bugs)
-- Minimal changes needed to make YOUR ticket's code compile and work
-
-**OUT of scope (even if you see the problem):**
-- Fixing type errors in packages/files not mentioned in your ticket
-- Adding features not listed in acceptance criteria — even if the parent ticket mentions them
-- Refactoring code that works but looks messy
-- "Improving" code you're reading for context
-
-**When you spot something out of scope:**
-1. Do NOT fix it in your commit
-2. Create a new Linear ticket (status **Backlog**, label **Needs Triage**). Include:
-   - What you noticed (the problem or opportunity)
-   - Which files/code are affected
-   - Why it matters (impact, risk)
-   - Link to the ticket you were working on when you noticed it (`relatedTo`)
-   This gives enough context for triage without Ralph deciding priority or scope.
-3. If it blocks your work (e.g. type error you didn't introduce prevents compilation), comment as blocker — don't silently fix the upstream issue
-
-**If the ticket says "X will fail, that's expected"** — leave it failing. The ticket author planned for another ticket to fix it. Fixing it yourself may conflict with that plan.
-
-#### Ticket selection (Linear-first)
-
-Every iteration queries Linear. The memory file is never authoritative for "what to do next".
-
-1. **Check In Progress first** — query team=Blisko, status="In Progress". If there's a parent ticket In Progress with sub-issues, find the next Todo sub-issue (lowest identifier) and continue.
-2. **Todo queue** — query team=Blisko, status=Todo, label=Ralph.
-3. **Ordering** — pick ticket based on: small before large (fewer acceptance criteria / fewer files to touch) > priority > identifier.
-4. **Check blockers** — fetch the selected ticket with `includeRelations: true`. If it has `blockedBy` relations that aren't Done, skip it and pick the next one.
-5. **If selected ticket has a parentId** — it's a sub-issue. Before starting:
-   a. Fetch all siblings (sub-issues of the same parent).
-   b. Check if any earlier sibling (lower identifier number) is still not Done — if so, work on that one first instead.
-   c. Use the **sub-issue's own `gitBranchName`** for the branch (each sub-issue = own branch, merged to main independently).
-   d. After the last sibling is done, verify the parent's acceptance criteria. If all pass → parent → Done. If something is missing → create a new sub-issue.
-
-#### Per-task workflow
-
-1. **QUERY LINEAR** — find the next task (see ticket selection above).
-
-2. **CHECK COMMENTS** — read recent comments on the ticket (and parent if sub-issue). Look for feedback, scope changes, blocker resolutions from Karol. This is 1 MCP call — skip only for brand-new tickets.
-
-3. **LOAD CONTEXT** — if the ticket has a `parentId` (it's a sub-issue), read the parent ticket's description + any attached Linear Documents (implementation plans, specs). This gives you the broader picture — architecture, naming conventions, how sub-issues relate. But focus implementation strictly on YOUR sub-ticket's acceptance criteria. The parent context informs decisions, it doesn't expand scope.
-
-4. **READ MEMORY** — check the memory file for technical context: branch name, decisions, known issues. If it's stale (refers to a different ticket), ignore it.
-
-5. **SETUP**
-   - `git checkout main && git pull origin main`
-   - Create or checkout branch (`gitBranchName` from Linear; each sub-issue uses its own branch)
-   - Set status → In Progress in Linear (only if not already)
-
-6. **PRE-FLIGHT CHECK**
-   - Scan the ticket description for file paths and function/component names it references.
-   - Verify they exist in the codebase (Glob/Grep). If a ticket says "modify `GroupMarker.tsx`" but the file doesn't exist and this ticket doesn't create it → it depends on another ticket. Skip, treat as blocked.
-   - This is a quick check (few Glob calls), not a deep analysis.
-
-7. **IMPLEMENT**
-   - One task, one commit. Format: `Verb description (BLI-X)` (GPG signed).
-   - **Scope check before committing:** review your diff — every changed file and line must trace back to an acceptance criterion. If you changed files not mentioned in the ticket, ask yourself: "Would this commit make sense without those extra changes?" If yes, revert them.
-   - **Stuck detection:** if you hit the same error 3 times or spend more than ~15 turns without progress, stop and treat as blocked. Don't burn iterations on a dead end.
-
-8. **VERIFY**
-   - `pnpm --filter @repo/api typecheck`
-   - `pnpm --filter @repo/shared typecheck`
-   - `pnpm --filter @repo/mobile typecheck`
-   - `pnpm --filter @repo/api test` (if tests exist)
-   - **Only fix errors you introduced.** If a typecheck fails on code you didn't touch, that's a pre-existing issue — do NOT fix it. Note it in your Linear comment and proceed. If it blocks compilation of your code specifically, treat as blocked.
-   - If tests fail: 2 attempts to fix, then treat as blocked.
-   - **Check off acceptance criteria** in the Linear ticket description as you verify each one (`- [x]`). If you have notes about a criterion (e.g. partial pass, edge case found, implementation choice), add a short inline note next to it. Example: `- [x] Typecheck passes — shared and API pass, mobile has 1 pre-existing error (not ours)`
-
-9. **UPDATE MEMORY FILE** — always, before finishing. Write technical context for the next session (branch, decisions, known issues). Do NOT track task queue here — that's Linear's job.
-
-10. **FINISH**
-   - **Standalone ticket done** → merge to main, delete branch, Linear status → Done, remove Ralph label, output `RALPH_MERGED`
-   - **Sub-task done** → merge sub-task branch to main, delete branch, sub-task → Done. If last sub-task: verify parent acceptance criteria, parent → Done, remove Ralph label. Output `RALPH_MERGED`
-   - **Blocked** → push branch, comment blocker on Linear ticket, output `RALPH_BLOCKED`
-
-#### Linear usage
-
-Linear is queried every iteration (2-3 calls: list issues + get issue + optional list comments). This is the cost of having a single source of truth.
-
-**Per iteration:**
-- **Ticket selection** — list issues (In Progress, then Todo+Ralph)
-- **Ticket details** — get issue with relations
-- **Comments check** — list comments (for feedback/context)
-- **Status changes** — Todo → In Progress, → Done
-- **Completion/blocker comments** — short summary when finishing or blocked
-
-**Avoid:** mid-task status updates, redundant queries for tickets you already fetched this session.
-
-#### Memory file format
-
-The memory file (`scripts/ralph-progress.txt`) stores technical context, not task state:
+#### Verify steps
 
 ```
-# Ralph Memory
-
-## Last session
-Ticket: BLI-X — Title
-Branch: kwypchlo/bli-x-slug
-Commit: abc1234
-
-## Technical notes
-- Implementation details the next session needs
-- Known issues not related to our work
-
-## Decisions
-- Why approach X was chosen over Y
+pnpm --filter @repo/api typecheck
+pnpm --filter @repo/shared typecheck
+pnpm --filter @repo/mobile typecheck
+pnpm --filter @repo/api test
 ```
 
-#### Tickets with sub-issues
+Only fix errors you introduced. Pre-existing failures are not your problem.
 
-When picking a ticket that has sub-issues, **always work through sub-issues** — never the parent directly.
+#### Signals
 
-1. Query sub-issues of the parent ticket. Work through them in order (by identifier).
-2. Each sub-issue uses **its own branch** (`gitBranchName` from the sub-issue). Merged to main independently after completion.
-3. Each sub-issue = one iteration. One at a time. Start from fresh main (`git checkout main && git pull`).
-4. After the last sub-issue is done, **verify the parent ticket**: check all acceptance criteria from the parent description. If something is missing or broken, create a new sub-issue and continue. If everything passes → parent → Done, remove Ralph label.
-
-#### Acceptance criteria: sub-issues vs parent
-
-**Sub-issues** get lightweight, implementation-level criteria (1-3 items). The ticket description already contains the implementation details — criteria don't need to duplicate them. Focus on: "does the code exist and compile."
-
-**Parent ticket** keeps the behavioral/integration criteria — "does the feature work end-to-end." These are verified once after the last sub-issue, not after each one.
-
-Example — instead of 6 detailed checkboxes in a sub-issue:
-```
-- [ ] Schema, migration, shared types and validators implemented per description
-- [ ] pnpm --filter @repo/shared typecheck passes
-```
-
-The parent then has the deeper checks:
-```
-- [ ] Grupy widoczne na mapie z nearby badge
-- [ ] Toggle lokalizacji działa per grupa
-- [ ] UI nie wysypuje się przy 400 nearby
-```
-
-#### Splitting large tickets
-
-A ticket is "too large" when it has 4+ acceptance criteria or touches 3+ areas.
-
-1. Create sub-issues in Linear as children of the parent ticket.
-2. Follow the "Tickets with sub-issues" flow above.
-
-#### Error handling
-
-| Situation | Action |
-|-----------|--------|
-| Blocked (missing info/API key) | Update memory file, comment on Linear, output `RALPH_BLOCKED` |
-| Tests fail after 2 attempts | Push branch, update memory file with details, output `RALPH_BLOCKED` |
-| Git merge conflict | Attempt to resolve; if complex → push branch, output `RALPH_BLOCKED` |
-| Session ends (max turns) | Commit+push current work, update memory file |
-| DB migration needed | Generate migration file, but NEVER run `drizzle-kit migrate` on production |
+- `RALPH_MERGED` — task done, file moved to `.done/`
+- `RALPH_BLOCKED` — stuck, file stays in queue (renamed `.blocked`)
+- `RALPH_DONE` — queue empty, nothing to do
 
 #### Review (for Karol)
 
-1. Check Linear for current state — Done = complete, In Progress + "BLOCKED" comment = needs help
+1. `pnpm ralph:dry` — see queue state
 2. `git log --oneline -20` — see what was merged
-3. `scripts/ralph-progress.txt` — technical context from last session (secondary)
-4. Blocked tickets: fix the issue, put back to Todo + Ralph
-5. `pnpm ralph --reset` to clear memory file for a fresh start
+3. Blocked files: `ls scripts/ralph-queue/*.blocked` — check logs for why
+4. Unblock: fix the issue, rename `.blocked` back to `.md`
 
 ### Ralph prep
 
-Batch preparation of Backlog tickets for Ralph. Triggered by "przygotuj tickety na noc" or similar.
+Prepares task files for Ralph from Linear tickets. Triggered by "przygotuj tickety na noc" or similar.
 
 #### Workflow
 
-1. Query: team=Blisko, status=Backlog, label=Idea
+1. Query Linear: team=Blisko, status=Backlog (or tickets user specifies)
 2. For each ticket:
    a. Read description + comments
-   b. Explore relevant codebase areas (schema, API routes, mobile screens, shared types)
-   c. Write structured description using the Backlog→Todo template:
-      - Problem / Kontekst
-      - Rozwiązanie
-      - Plan implementacji (specific files, components, approach)
-      - Kryteria akceptacji (testable checkboxes)
-   d. Update ticket description in Linear (structured content above original)
-   e. Move status to Todo
-   f. Add label Ralph, keep label Idea
-   g. Comment: "Prepared for Ralph. Implementation plan: ..."
-3. After all tickets: report summary to user — what was prepared, any tickets skipped (too vague, needs user input)
+   b. Explore relevant codebase (schema, API, mobile, shared)
+   c. Brainstorm approach with user
+   d. Split into atomic sub-tasks (1 commit each)
+   e. Generate numbered `.md` files in `scripts/ralph-queue/`:
+      - 5-digit prefix for ordering (00001, 00002, ...)
+      - Ticket ID in filename: `00001-BLI-42-add-schema.md`
+      - Self-contained: task, files, implementation, acceptance criteria
+      - All sub-tasks for same ticket share the same Branch value
+   f. Update Linear ticket description with structured plan
+   g. Move ticket status to Todo
+3. Report summary — files created, tickets prepared, any skipped
+
+#### File numbering
+
+Continue from the highest existing number in the queue. If queue has `00003-*`, next file is `00004-*`.
 
 #### Skip conditions
-- Ticket too vague to plan (no clear outcome) → comment asking for clarification, leave in Backlog
-- Ticket requires external info (API keys, design decisions) → comment "Needs: ...", leave in Backlog
-- Ticket already has structured description → skip, just add Ralph label
-
-#### User review
-After prep, Karol reviews in Linear:
-- Remove Ralph label from tickets not ready
-- Adjust priorities if needed
-- Add missing context to skipped tickets
+- Ticket too vague (no clear outcome) → comment asking for clarification, leave in Backlog
+- Ticket requires external info → comment "Needs: ...", leave in Backlog
 
 ### Ralph report
 
-Generates a summary of Ralph's work. Triggered by "ralph report", "morning report", or "co się stało w nocy".
+Summary of Ralph's work. Triggered by "ralph report" or "co się stało w nocy".
 
 #### What to check
 
-1. **Linear tickets** — query team=Blisko, updatedAt last 12h. Group by status:
-   - **Done** — list with summary of changes from merge comment
-   - **In Progress + has "BLOCKED" comment** — list with block reason
-   - **In Progress (no block)** — still being worked on or session ended mid-work
-
-2. **Git log** — `git log --oneline --since="12 hours ago"` on main branch. Count commits, summarize changes.
-
-3. **CI status** — check if latest GitHub Actions runs passed (if CI workflow exists)
+1. **Done files** — `ls scripts/ralph-queue/.done/` — completed tasks with ticket IDs
+2. **Blocked files** — `ls scripts/ralph-queue/*.blocked` — check logs for block reason
+3. **Remaining** — `ls scripts/ralph-queue/[0-9]*.md` — tasks still in queue
+4. **Git log** — `git log --oneline --since="12 hours ago"` — commits on main
 
 #### Output format
 
 ```
 ## Ralph report — [date]
 
-### Done (merged to main)
-- BLI-X: [title] — [1-line summary of changes]
-- BLI-Y: [title] — [1-line summary of changes]
+### Done
+- 00001-BLI-42-add-schema.md → [commit hash] [commit message]
+- 00002-BLI-42-add-api.md → [commit hash] [commit message]
 
-### Blocked (needs attention)
-- BLI-Z: [title] — BLOCKED: [reason]. Branch: `branch-name`
-  → Recommended: [action to unblock]
+### Blocked
+- 00003-BLI-42-add-mobile.md → BLOCKED: [reason from log]
+
+### Remaining in queue
+- 00004-BLI-55-fix-button.md
 
 ### Git activity
-[N] commits, [+added/-removed] lines
-Key changes: [summary]
-
-### CI status
-[pass/fail] — [link if failed]
-
-### Recommended actions
-1. [action for blocked ticket]
-2. [action for next steps]
+[N] commits, [summary]
 ```
