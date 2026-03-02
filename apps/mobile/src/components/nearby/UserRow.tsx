@@ -21,6 +21,7 @@ interface UserRowProps {
   commonInterests?: string[];
   shortSnippet?: string | null;
   analysisReady?: boolean;
+  statusMatch?: { reason: string; matchedVia: string } | null;
   // Waves-only (optional)
   timestamp?: string;
 }
@@ -112,6 +113,7 @@ export function UserRow({
   commonInterests,
   shortSnippet,
   analysisReady,
+  statusMatch,
   status,
   onPress,
   timestamp,
@@ -145,6 +147,12 @@ export function UserRow({
           {!distance && timestamp && (
             <Text style={styles.distance}>{formatRelativeTime(timestamp)}</Text>
           )}
+          {statusMatch && (
+            <View style={styles.naTerazBadge}>
+              <View style={styles.naTerazDot} />
+              <Text style={styles.naTerazText}>Na teraz</Text>
+            </View>
+          )}
           <View style={{ flex: 1 }} />
           {showAnalyzing && status === 'none' && (
             <View style={styles.analyzingBadge}>
@@ -164,6 +172,11 @@ export function UserRow({
             numberOfLines={4}
           >
             {snippet}
+          </Text>
+        )}
+        {statusMatch && (
+          <Text style={styles.naTerazReason} numberOfLines={1}>
+            {statusMatch.reason}
           </Text>
         )}
       </View>
@@ -221,6 +234,34 @@ const styles = StyleSheet.create({
   snippetHighlight: {
     color: colors.ink,
     fontFamily: fonts.sansMedium,
+  },
+  naTerazBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FDF5EC',
+    borderWidth: 1,
+    borderColor: '#E8C9A0',
+    borderRadius: 8,
+    paddingVertical: 1,
+    paddingHorizontal: 7,
+  },
+  naTerazDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D4851C',
+  },
+  naTerazText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#D4851C',
+  },
+  naTerazReason: {
+    fontSize: 10,
+    color: '#D4851C',
+    fontWeight: '500',
+    marginTop: 3,
   },
   analyzingBadge: {
     flexDirection: 'row',

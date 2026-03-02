@@ -22,6 +22,7 @@ export interface MapUser {
   commonInterests: string[];
   shortSnippet: string | null;
   analysisReady: boolean;
+  statusMatch: { reason: string; matchedVia: string } | null;
 }
 
 export interface GridCluster {

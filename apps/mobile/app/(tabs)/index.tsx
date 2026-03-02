@@ -39,6 +39,16 @@ import { Button } from '../../src/components/ui/Button';
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.4;
 
+function formatTimeLeft(expiresAt: string | null): string {
+  if (!expiresAt) return '∞';
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return 'wygasł';
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  if (hours > 0) return `${hours}h`;
+  return `${minutes}m`;
+}
+
 type NearbyFilter = 'all' | 'people' | 'groups';
 
 const FILTER_CHIPS: { key: NearbyFilter; label: string }[] = [
@@ -67,7 +77,7 @@ export default function NearbyScreen() {
   const utils = trpc.useUtils();
 
   const wsHandler = useCallback((msg: any) => {
-    if (msg.type === 'analysisReady' || msg.type === 'nearbyChanged') {
+    if (msg.type === 'analysisReady' || msg.type === 'nearbyChanged' || msg.type === 'statusMatchesReady') {
       utils.profiles.getNearbyUsersForMap.invalidate();
     }
   }, []);
@@ -136,6 +146,7 @@ export default function NearbyScreen() {
 
   const mapUsers = mapData?.users;
   const totalCount = listData?.pages[0]?.totalCount ?? 0;
+  const myStatus = listData?.pages[0]?.myStatus ?? null;
 
   // Wave status from store (populated by _layout.tsx hydration + WS)
   const waveStatusByUserId = useWavesStore((s) => s.waveStatusByUserId);
@@ -427,6 +438,7 @@ export default function NearbyScreen() {
             commonInterests={u.commonInterests}
             shortSnippet={u.shortSnippet}
             analysisReady={u.analysisReady}
+            statusMatch={u.statusMatch}
             status={status}
             onPress={() =>
               router.push({
@@ -521,6 +533,14 @@ export default function NearbyScreen() {
           {mapExpanded ? 'UKRYJ MAPĘ' : 'POKAŻ MAPĘ'}
         </Text>
       </Pressable>
+
+      {/* Status bar — sticky above list when user has active status */}
+      {myStatus && (
+        <View style={styles.statusBar}>
+          <Text style={styles.statusBarText} numberOfLines={1}>{myStatus.text}</Text>
+          <Text style={styles.statusBarTime}>{formatTimeLeft(myStatus.expiresAt)}</Text>
+        </View>
+      )}
 
       {/* Filter chips + funnel */}
       <View style={styles.filterRow}>
@@ -676,6 +696,27 @@ const styles = StyleSheet.create({
     ...typ.body,
     color: colors.muted,
     textAlign: 'center',
+  },
+  statusBar: {
+    backgroundColor: '#FDF5EC',
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#E8C9A0',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusBarText: {
+    fontSize: 12,
+    fontFamily: fonts.sansMedium,
+    color: colors.ink,
+    flex: 1,
+  },
+  statusBarTime: {
+    fontSize: 10,
+    fontFamily: fonts.sansSemiBold,
+    color: '#D4851C',
   },
   mapToggle: {
     backgroundColor: colors.mapBg,
