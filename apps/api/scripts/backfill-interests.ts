@@ -25,7 +25,7 @@ const sql = postgres(dbUrlMatch[1].trim());
 const { extractInterests } = await import('../src/services/ai');
 
 const profiles = await sql`
-  SELECT id, bio, looking_for, social_profile
+  SELECT id, bio, looking_for, social_links
   FROM profiles
   WHERE interests IS NULL
 `;
@@ -40,7 +40,7 @@ for (let i = 0; i < profiles.length; i += BATCH_SIZE) {
 
   await Promise.all(
     batch.map(async (profile) => {
-      const text = profile.social_profile || `${profile.bio}\n\n${profile.looking_for}`;
+      const text = `${profile.bio}\n\n${profile.looking_for}`;
       const interests = await extractInterests(text);
 
       if (interests.length > 0) {

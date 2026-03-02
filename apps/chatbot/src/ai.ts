@@ -2,11 +2,17 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { GPT_MODEL } from '@repo/shared';
 
+interface SocialLinks {
+  instagram?: string;
+  linkedin?: string;
+  website?: string;
+}
+
 interface BotProfile {
   displayName: string;
   bio: string;
   lookingFor: string;
-  socialProfile: string | null;
+  socialLinks: SocialLinks | null;
   interests: string[] | null;
   portrait: string | null;
 }
@@ -15,7 +21,7 @@ interface OtherProfile {
   displayName: string;
   bio: string;
   lookingFor: string;
-  socialProfile: string | null;
+  socialLinks: SocialLinks | null;
 }
 
 interface MessageEntry {
@@ -36,10 +42,10 @@ export async function generateBotMessage(
     return isOpening ? FALLBACK_OPENING : FALLBACK_REPLY;
   }
 
-  const botDesc = botProfile.socialProfile || botProfile.bio;
+  const botDesc = botProfile.bio;
   const botInterests = botProfile.interests?.join(', ') || 'brak danych';
   const botPortrait = botProfile.portrait || 'brak';
-  const otherDesc = otherProfile.socialProfile || otherProfile.bio;
+  const otherDesc = otherProfile.bio;
 
   const scenario = isOpening
     ? 'Pierwsza wiadomosc po zaakceptowaniu wave. Przywitaj sie nawiazujac do tego co was laczy.'

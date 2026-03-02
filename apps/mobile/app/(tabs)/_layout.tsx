@@ -132,7 +132,7 @@ export default function TabsLayout() {
         utilsRef.current.messages.getConversations.refetch();
       }
       if (msg.type === 'profileReady') {
-        // AI pipeline completed — refresh profile with socialProfile/embedding/interests
+        // AI pipeline completed — refresh profile with embedding/interests
         utilsRef.current.profiles.me.refetch();
       }
       if (msg.type === 'groupMember') {
