@@ -140,7 +140,7 @@ export const profilesRouter = router({
         .where(
           and(
             ne(profiles.userId, ctx.userId),
-            eq(profiles.isHidden, false),
+            eq(profiles.visibilityMode, 'visible'),
             sql`${profiles.latitude} BETWEEN ${input.latitude - latDelta} AND ${input.latitude + latDelta}`,
             sql`${profiles.longitude} BETWEEN ${input.longitude - lonDelta} AND ${input.longitude + lonDelta}`
           )
@@ -214,7 +214,7 @@ export const profilesRouter = router({
         .where(
           and(
             ne(profiles.userId, ctx.userId),
-            eq(profiles.isHidden, false),
+            eq(profiles.visibilityMode, 'visible'),
             // Bounding box filter (uses index)
             sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
             sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
@@ -280,7 +280,7 @@ export const profilesRouter = router({
       // Base WHERE conditions (reused for count + paginated query)
       const baseWhere = and(
         ne(profiles.userId, ctx.userId),
-        eq(profiles.isHidden, false),
+        eq(profiles.visibilityMode, 'visible'),
         sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
         sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
         sql`${distanceFormula} <= ${radiusMeters}`

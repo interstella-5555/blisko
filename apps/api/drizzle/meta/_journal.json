@@ -22,6 +22,13 @@
       "when": 1772396646440,
       "tag": "0002_add-location-visible",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772435858388,
+      "tag": "0003_social-links-visibility",
+      "breakpoints": true
     }
   ]
 }

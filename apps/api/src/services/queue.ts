@@ -132,7 +132,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
   const nameA = job.data.nameA ?? profileA?.displayName ?? userAId.slice(0, 8);
   const nameB = job.data.nameB ?? profileB?.displayName ?? userBId.slice(0, 8);
 
-  if (!profileA?.socialProfile || !profileB?.socialProfile) {
+  if (!profileA?.portrait || !profileB?.portrait) {
     console.log(`[queue] analyze-pair skip (no profile) | db-fetch: ${(performance.now() - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB}`);
     return;
   }
@@ -165,12 +165,12 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
   const tAi0 = performance.now();
   const result = await analyzeConnection(
     {
-      socialProfile: profileA.socialProfile,
+      portrait: profileA.portrait,
       displayName: profileA.displayName,
       lookingFor: profileA.lookingFor,
     },
     {
-      socialProfile: profileB.socialProfile,
+      portrait: profileB.portrait,
       displayName: profileB.displayName,
       lookingFor: profileB.lookingFor,
     }
@@ -339,7 +339,7 @@ async function processAnalyzeUserPairs(
     .where(
       and(
         ne(profiles.userId, userId),
-        eq(profiles.isHidden, false),
+        eq(profiles.visibilityMode, 'visible'),
         sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
         sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
         sql`${distanceFormula} <= ${radiusMeters}`
@@ -389,16 +389,16 @@ async function processAnalyzeUserPairs(
 // --- Profile AI processor (refactored from sync) ---
 
 async function processGenerateProfileAI(userId: string, bio: string, lookingFor: string) {
-  const socialProfile = await generateSocialProfile(bio, lookingFor);
+  const portrait = await generateSocialProfile(bio, lookingFor);
   const [embedding, interests] = await Promise.all([
-    generateEmbedding(socialProfile),
-    extractInterests(socialProfile),
+    generateEmbedding(portrait),
+    extractInterests(portrait),
   ]);
 
   await db
     .update(profiles)
     .set({
-      socialProfile,
+      portrait,
       embedding,
       interests,
       updatedAt: new Date(),

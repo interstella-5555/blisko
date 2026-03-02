@@ -21,7 +21,7 @@ interface Profile {
   bio: string;
   lookingFor: string;
   avatarUrl?: string | null;
-  isHidden?: boolean;
+  visibilityMode?: 'visible' | 'matches_only' | 'hidden';
 }
 
 interface AuthState {

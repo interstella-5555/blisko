@@ -99,8 +99,8 @@ export type ConnectionAnalysisResult = z.infer<
 >;
 
 export async function analyzeConnection(
-  profileA: { socialProfile: string; displayName: string; lookingFor: string },
-  profileB: { socialProfile: string; displayName: string; lookingFor: string }
+  profileA: { portrait: string; displayName: string; lookingFor: string },
+  profileB: { portrait: string; displayName: string; lookingFor: string }
 ): Promise<ConnectionAnalysisResult> {
   try {
     const { object } = await generateObject({
@@ -197,14 +197,14 @@ descriptionForA: "Gra w padla od pół roku, szuka kogoś na regularne granie i 
 descriptionForB: "Gra w padla 3 razy w tygodniu — szuka kogoś na regularne mecze na podobnym poziomie. Programista, pracuje zdalnie. Gra też w squasha i ping-ponga. Ogląda F1."`,
       prompt: `<user_profile name="A">
 ${profileA.displayName}:
-${profileA.socialProfile}
+${profileA.portrait}
 
 Szuka: ${profileA.lookingFor}
 </user_profile>
 
 <user_profile name="B">
 ${profileB.displayName}:
-${profileB.socialProfile}
+${profileB.portrait}
 
 Szuka: ${profileB.lookingFor}
 </user_profile>`,

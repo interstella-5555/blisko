@@ -26,7 +26,7 @@ export default function ProfileScreen() {
   const setProfile = useAuthStore((state) => state.setProfile);
   const reset = useAuthStore((state) => state.reset);
 
-  const [isHidden, setIsHidden] = useState(profile?.isHidden ?? false);
+  const [isHidden, setIsHidden] = useState(profile?.visibilityMode === 'hidden');
 
   const utils = trpc.useUtils();
   const updateProfile = trpc.profiles.update.useMutation({
@@ -38,7 +38,7 @@ export default function ProfileScreen() {
 
   const handleToggleHidden = (value: boolean) => {
     setIsHidden(value);
-    updateProfile.mutate({ isHidden: value });
+    updateProfile.mutate({ visibilityMode: value ? 'hidden' : 'visible' });
   };
 
   const handleLogout = async () => {

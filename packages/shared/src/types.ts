@@ -12,7 +12,8 @@ export interface Profile {
   avatarUrl: string | null;
   bio: string;
   lookingFor: string;
-  socialProfile: string | null;
+  socialLinks: { instagram?: string; linkedin?: string; website?: string } | null;
+  visibilityMode: 'visible' | 'matches_only' | 'hidden';
   interests: string[] | null;
   embedding: number[] | null;
   latitude: number | null;

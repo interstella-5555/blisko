@@ -7,12 +7,19 @@ export const createProfileSchema = z.object({
   lookingFor: z.string().min(10).max(500),
 });
 
+export const socialLinksSchema = z.object({
+  instagram: z.string().max(30).regex(/^[a-zA-Z0-9._]+$/, 'Nieprawidłowy handle Instagram').optional().or(z.literal('')),
+  linkedin: z.string().max(100).optional().or(z.literal('')),
+  website: z.string().url('Nieprawidłowy URL').max(200).optional().or(z.literal('')),
+}).optional();
+
 export const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(50).optional(),
   bio: z.string().min(10).max(500).optional(),
   lookingFor: z.string().min(10).max(500).optional(),
   avatarUrl: z.string().url().optional(),
-  isHidden: z.boolean().optional(),
+  socialLinks: socialLinksSchema,
+  visibilityMode: z.enum(['visible', 'matches_only', 'hidden']).optional(),
 });
 
 export const updateLocationSchema = z.object({
@@ -62,6 +69,7 @@ export const getNearbyUsersSchema = z.object({
   longitude: z.number().min(-180).max(180),
   radiusMeters: z.number().min(100).max(50000).default(5000),
   limit: z.number().min(1).max(50).default(20),
+  photoOnly: z.boolean().optional(),
 });
 
 // Nearby users for map (with grid-based privacy)
@@ -71,6 +79,7 @@ export const getNearbyUsersForMapSchema = z.object({
   radiusMeters: z.number().min(100).max(50000).default(5000),
   limit: z.number().min(1).max(100).default(50),
   cursor: z.number().int().min(0).optional(),
+  photoOnly: z.boolean().optional(),
 });
 
 // Block validator
@@ -186,6 +195,7 @@ export const updateTopicSchema = z.object({
 // Type exports from schemas
 export type CreateProfileInput = z.infer<typeof createProfileSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type SocialLinksInput = z.infer<typeof socialLinksSchema>;
 export type UpdateLocationInput = z.infer<typeof updateLocationSchema>;
 export type SendWaveInput = z.infer<typeof sendWaveSchema>;
 export type RespondToWaveInput = z.infer<typeof respondToWaveSchema>;

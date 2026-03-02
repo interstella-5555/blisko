@@ -575,7 +575,7 @@ export const profilingRouter = router({
           displayName: input.displayName,
           bio: '',
           lookingFor: '',
-          isHidden: true,
+          visibilityMode: 'hidden',
         })
         .returning();
 
