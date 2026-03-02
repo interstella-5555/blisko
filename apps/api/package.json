@@ -27,6 +27,7 @@
     "bullmq": "^5.69.2",
     "drizzle-kit": "^0.31.9",
     "drizzle-orm": "^0.45.1",
+    "expo-server-sdk": "^6.0.0",
     "hono": "^4.5.0",
     "pg": "^8.17.2",
     "postgres": "^3.4.0",
