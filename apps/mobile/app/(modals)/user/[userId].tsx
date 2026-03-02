@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Animated,
   Alert,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -401,6 +402,46 @@ export default function UserProfileScreen() {
           </Text>
         )}
       </View>
+
+      {/* Social links */}
+      {profile?.socialLinks && Object.values(profile.socialLinks).some(Boolean) && (
+        <View style={styles.socialLinksRow}>
+          {profile.socialLinks.instagram && (
+            <Pressable
+              style={styles.socialPill}
+              onPress={() => Linking.openURL(`https://instagram.com/${profile.socialLinks!.instagram}`)}
+            >
+              <Text style={styles.socialPillIcon}>📷</Text>
+              <Text style={styles.socialPillLabel}>@{profile.socialLinks.instagram}</Text>
+            </Pressable>
+          )}
+          {profile.socialLinks.linkedin && (
+            <Pressable
+              style={styles.socialPill}
+              onPress={() => {
+                const url = profile.socialLinks!.linkedin!.startsWith('http')
+                  ? profile.socialLinks!.linkedin!
+                  : `https://linkedin.com/in/${profile.socialLinks!.linkedin}`;
+                Linking.openURL(url);
+              }}
+            >
+              <Text style={styles.socialPillIcon}>💼</Text>
+              <Text style={styles.socialPillLabel}>{profile.socialLinks.linkedin}</Text>
+            </Pressable>
+          )}
+          {profile.socialLinks.website && (
+            <Pressable
+              style={styles.socialPill}
+              onPress={() => Linking.openURL(profile.socialLinks!.website!)}
+            >
+              <Text style={styles.socialPillIcon}>🌐</Text>
+              <Text style={styles.socialPillLabel}>
+                {profile.socialLinks.website.replace(/^https?:\/\//, '')}
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -562,6 +603,33 @@ const styles = StyleSheet.create({
   pillText: {
     fontFamily: fonts.sansMedium,
     fontSize: 13,
+    color: colors.ink,
+  },
+  socialLinksRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.tight,
+    paddingVertical: spacing.column,
+    paddingHorizontal: spacing.section,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+  },
+  socialPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tick,
+    paddingVertical: spacing.tick,
+    paddingHorizontal: spacing.gutter,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderRadius: 20,
+  },
+  socialPillIcon: {
+    fontSize: 12,
+  },
+  socialPillLabel: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 12,
     color: colors.ink,
   },
 });
