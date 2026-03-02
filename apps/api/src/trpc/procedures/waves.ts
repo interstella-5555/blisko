@@ -13,6 +13,7 @@ import { sendWaveSchema, respondToWaveSchema, blockUserSchema } from '@repo/shar
 import { TRPCError } from '@trpc/server';
 import { ee } from '../../ws/events';
 import { promotePairAnalysis } from '../../services/queue';
+import { sendPushToUser } from '../../services/push';
 
 export const wavesRouter = router({
   // Send a wave to someone
@@ -88,8 +89,6 @@ export const wavesRouter = router({
         })
         .returning();
 
-      // TODO: Send push notification
-
       await promotePairAnalysis(ctx.userId, input.toUserId);
 
       // Query sender profile for notification display
@@ -97,6 +96,12 @@ export const wavesRouter = router({
         .select({ displayName: profiles.displayName, avatarUrl: profiles.avatarUrl })
         .from(profiles)
         .where(eq(profiles.userId, ctx.userId));
+
+      void sendPushToUser(input.toUserId, {
+        title: 'Blisko',
+        body: `${senderProfile?.displayName ?? 'Ktoś'} — nowa zaczepka!`,
+        data: { type: 'wave', userId: ctx.userId },
+      });
 
       ee.emit('newWave', {
         toUserId: input.toUserId,
@@ -222,13 +227,17 @@ export const wavesRouter = router({
           { conversationId: conversation.id, userId: ctx.userId },
         ]);
 
-        // TODO: Send push notification about accepted wave
-
         // Query responder profile for notification display
         const [responderProfile] = await db
           .select({ displayName: profiles.displayName, avatarUrl: profiles.avatarUrl })
           .from(profiles)
           .where(eq(profiles.userId, ctx.userId));
+
+        void sendPushToUser(wave.fromUserId, {
+          title: 'Blisko',
+          body: `${responderProfile?.displayName ?? 'Ktoś'} — zaczepka przyjęta!`,
+          data: { type: 'chat', conversationId: conversation.id },
+        });
 
         ee.emit('waveResponded', {
           fromUserId: wave.fromUserId,

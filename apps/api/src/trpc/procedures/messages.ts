@@ -19,6 +19,7 @@ import {
 import { TRPCError } from '@trpc/server';
 import { ee } from '../../ws/events';
 import { ensureTypingListener } from '../../ws/handler';
+import { sendPushToUser } from '../../services/push';
 
 export const messagesRouter = router({
   // Get all conversations for current user
@@ -433,6 +434,25 @@ export const messagesRouter = router({
         })
         .from(profiles)
         .where(eq(profiles.userId, ctx.userId));
+
+      // Push notifications to other participants
+      const participants = await db
+        .select({ userId: conversationParticipants.userId })
+        .from(conversationParticipants)
+        .where(eq(conversationParticipants.conversationId, input.conversationId));
+
+      const messagePreview = message.content.length > 100
+        ? message.content.slice(0, 97) + '...'
+        : message.content;
+
+      for (const p of participants) {
+        if (p.userId === ctx.userId) continue;
+        void sendPushToUser(p.userId, {
+          title: senderProfile?.displayName ?? 'Ktoś',
+          body: messagePreview,
+          data: { type: 'chat', conversationId: input.conversationId },
+        });
+      }
 
       // Emit real-time event
       ee.emit('newMessage', {

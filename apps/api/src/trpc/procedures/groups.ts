@@ -18,6 +18,7 @@ import {
 } from '@repo/shared';
 import { TRPCError } from '@trpc/server';
 import { ee } from '../../ws/events';
+import { sendPushToUser } from '../../services/push';
 
 function generateInviteCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -135,6 +136,12 @@ export const groupsRouter = router({
             userId,
             conversationId: conversation.id,
             groupName: input.name,
+          });
+
+          void sendPushToUser(userId, {
+            title: input.name ?? 'Grupa',
+            body: 'Nowe zaproszenie do grupy',
+            data: { type: 'group', conversationId: conversation.id },
           });
         }
       }
@@ -453,6 +460,12 @@ export const groupsRouter = router({
         userId: input.userId,
         conversationId: input.conversationId,
         groupName: conv.name,
+      });
+
+      void sendPushToUser(input.userId, {
+        title: conv.name ?? 'Grupa',
+        body: 'Nowe zaproszenie do grupy',
+        data: { type: 'group', conversationId: input.conversationId },
       });
 
       return { success: true };
