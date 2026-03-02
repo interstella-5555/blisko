@@ -39,6 +39,10 @@ export default function ModalsLayout() {
           options={{ title: 'Ustawienia' }}
         />
         <Stack.Screen
+          name="set-status"
+          options={{ title: 'Status na teraz' }}
+        />
+        <Stack.Screen
           name="create-group"
           options={{ title: 'Nowa grupa' }}
         />

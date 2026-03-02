@@ -23,6 +23,9 @@ interface Profile {
   avatarUrl?: string | null;
   socialLinks?: { instagram?: string; linkedin?: string; website?: string } | null;
   visibilityMode?: 'visible' | 'matches_only' | 'hidden';
+  currentStatus?: string | null;
+  statusExpiresAt?: string | null;
+  statusSetAt?: string | null;
 }
 
 interface AuthState {

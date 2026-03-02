@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -12,15 +13,51 @@ import { useConversationsStore } from '../../src/stores/conversationsStore';
 import { useMessagesStore } from '../../src/stores/messagesStore';
 import { useWavesStore } from '../../src/stores/wavesStore';
 import { authClient } from '../../src/lib/auth';
+import { trpc } from '../../src/lib/trpc';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { Button } from '../../src/components/ui/Button';
 import { IconSparkles } from '../../src/components/ui/icons';
 
+function formatTimeLeft(expiresAt: string | null | undefined): string {
+  if (!expiresAt) return '∞';
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return 'wygasł';
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  if (hours > 0) return `${hours}h`;
+  return `${minutes}m`;
+}
+
+function hasActiveStatus(profile: { currentStatus?: string | null; statusExpiresAt?: string | null } | null): boolean {
+  if (!profile?.currentStatus) return false;
+  if (!profile.statusExpiresAt) return true;
+  return new Date(profile.statusExpiresAt).getTime() > Date.now();
+}
+
 export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
+  const setProfile = useAuthStore((state) => state.setProfile);
   const reset = useAuthStore((state) => state.reset);
+
+  const utils = trpc.useUtils();
+  const clearStatus = trpc.profiles.clearStatus.useMutation({
+    onSuccess: (data) => {
+      if (data) setProfile(data);
+      utils.profiles.me.invalidate();
+    },
+    onError: () => {
+      Alert.alert('Błąd', 'Nie udało się usunąć statusu');
+    },
+  });
+
+  const handleClearStatus = () => {
+    Alert.alert('Usuń status', 'Na pewno chcesz usunąć status?', [
+      { text: 'Anuluj', style: 'cancel' },
+      { text: 'Usuń', style: 'destructive', onPress: () => clearStatus.mutate() },
+    ]);
+  };
 
   const handleLogout = async () => {
     await authClient.signOut();
@@ -30,6 +67,8 @@ export default function ProfileScreen() {
     useMessagesStore.getState().reset();
     useWavesStore.getState().reset();
   };
+
+  const activeStatus = hasActiveStatus(profile);
 
   return (
     <ScrollView style={styles.container}>
@@ -43,6 +82,41 @@ export default function ProfileScreen() {
           {profile?.displayName || 'Brak nazwy'}
         </Text>
         <Text style={styles.email}>{user?.email}</Text>
+
+        {activeStatus ? (
+          <View style={styles.statusPill}>
+            <Text style={styles.statusText} numberOfLines={2}>
+              {profile!.currentStatus}
+            </Text>
+            <Text style={styles.statusExpiry}>
+              wygasa za {formatTimeLeft(profile!.statusExpiresAt)}
+            </Text>
+            <View style={styles.statusActions}>
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: '/(modals)/set-status',
+                    params: { prefill: profile!.currentStatus! },
+                  })
+                }
+              >
+                <Text style={styles.statusActionText}>Edytuj</Text>
+              </Pressable>
+              <Pressable onPress={handleClearStatus}>
+                <Text style={[styles.statusActionText, styles.statusActionDelete]}>
+                  Usuń
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <Pressable
+            style={styles.setStatusButton}
+            onPress={() => router.push('/(modals)/set-status')}
+          >
+            <Text style={styles.setStatusText}>+ Ustaw status na teraz</Text>
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -109,6 +183,57 @@ const styles = StyleSheet.create({
   email: {
     ...typ.caption,
     marginTop: spacing.hairline,
+  },
+  setStatusButton: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.rule,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 14,
+  },
+  setStatusText: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    color: colors.muted,
+  },
+  statusPill: {
+    backgroundColor: '#FDF5EC',
+    borderWidth: 1.5,
+    borderColor: '#E8C9A0',
+    borderRadius: 14,
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    maxWidth: 260,
+    alignSelf: 'center',
+    alignItems: 'center',
+  },
+  statusText: {
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+  statusExpiry: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    color: '#D4851C',
+    marginTop: 4,
+  },
+  statusActions: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 8,
+  },
+  statusActionText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 11,
+    color: '#D4851C',
+  },
+  statusActionDelete: {
+    color: colors.muted,
   },
   section: {
     padding: spacing.section,
