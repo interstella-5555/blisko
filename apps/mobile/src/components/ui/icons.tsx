@@ -180,3 +180,23 @@ export function IconTrash({ size = defaultSize, color = defaultColor }: IconProp
     </Svg>
   );
 }
+
+export function IconPlus({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Line x1={12} y1={5} x2={12} y2={19} />
+      <Line x1={5} y1={12} x2={19} y2={12} />
+    </Svg>
+  );
+}
+
+export function IconGroup({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Circle cx={9} cy={7} r={4} />
+      <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <Path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </Svg>
+  );
+}

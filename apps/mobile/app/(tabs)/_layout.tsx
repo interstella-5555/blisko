@@ -5,7 +5,7 @@ import { View, ActivityIndicator, Text, Pressable } from 'react-native';
 import { trpc } from '../../src/lib/trpc';
 import { useWebSocket, sendWsMessage } from '../../src/lib/ws';
 import { colors, type as typ, fonts, spacing } from '../../src/theme';
-import { IconPin, IconWave, IconChat, IconPerson, IconSettings } from '../../src/components/ui/icons';
+import { IconPin, IconWave, IconChat, IconPerson, IconSettings, IconPlus } from '../../src/components/ui/icons';
 import { useInAppNotifications } from '../../src/hooks/useInAppNotifications';
 import { useConversationsStore } from '../../src/stores/conversationsStore';
 import { useMessagesStore } from '../../src/stores/messagesStore';
@@ -390,6 +390,14 @@ export default function TabsLayout() {
             height: 18,
             lineHeight: 18,
           },
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push('/(modals)/create-group')}
+              style={{ marginRight: spacing.section }}
+            >
+              <IconPlus size={20} color={colors.muted} />
+            </Pressable>
+          ),
         }}
       />
       <Tabs.Screen

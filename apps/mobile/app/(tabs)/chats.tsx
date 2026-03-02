@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { trpc } from '../../src/lib/trpc';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { IconChat } from '../../src/components/ui/icons';
+import { IconChat, IconGroup } from '../../src/components/ui/icons';
 import { ConversationRow } from '../../src/components/chat/ConversationRow';
 import { useConversationsStore, type ConversationEntry } from '../../src/stores/conversationsStore';
 import { usePrefetchMessages } from '../../src/hooks/usePrefetchMessages';
@@ -108,7 +108,21 @@ export default function ChatsScreen() {
           />
         )}
         ListEmptyComponent={
-          isLoading && !hydrated ? null : (
+          isLoading && !hydrated ? null : filter === 'group' ? (
+            <View style={styles.empty} testID="chats-empty-groups">
+              <IconGroup size={48} color={colors.muted} />
+              <Text style={styles.emptyTitle}>Brak grup</Text>
+              <Text style={styles.emptyText}>
+                Grupy pozwalają rozmawiać z wieloma osobami naraz
+              </Text>
+              <Pressable
+                style={styles.emptyButton}
+                onPress={() => router.push('/(modals)/create-group')}
+              >
+                <Text style={styles.emptyButtonText}>Załóż grupę</Text>
+              </Pressable>
+            </View>
+          ) : (
             <View style={styles.empty} testID="chats-empty">
               <IconChat size={48} color={colors.muted} />
               <Text style={styles.emptyTitle}>Brak czatów</Text>
@@ -128,13 +142,6 @@ export default function ChatsScreen() {
           />
         }
       />
-      <Pressable
-        style={styles.fab}
-        onPress={() => router.push('/(modals)/create-group')}
-        testID="create-group-fab"
-      >
-        <Text style={styles.fabText}>+</Text>
-      </Pressable>
     </View>
   );
 }
@@ -175,28 +182,6 @@ const styles = StyleSheet.create({
   filterChipTextInactive: {
     color: colors.ink,
   },
-  fab: {
-    position: 'absolute',
-    bottom: spacing.section,
-    right: spacing.section,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.ink,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  fabText: {
-    fontFamily: fonts.sans,
-    fontSize: 24,
-    color: colors.bg,
-    marginTop: -2,
-  },
   empty: {
     flex: 1,
     justifyContent: 'center',
@@ -213,5 +198,17 @@ const styles = StyleSheet.create({
     ...typ.body,
     color: colors.muted,
     textAlign: 'center',
+  },
+  emptyButton: {
+    marginTop: spacing.column,
+    paddingHorizontal: spacing.section,
+    paddingVertical: spacing.gutter,
+    backgroundColor: colors.ink,
+    borderRadius: 8,
+  },
+  emptyButtonText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 14,
+    color: colors.bg,
   },
 });
