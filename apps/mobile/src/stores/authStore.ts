@@ -21,6 +21,7 @@ interface Profile {
   bio: string;
   lookingFor: string;
   avatarUrl?: string | null;
+  socialLinks?: { instagram?: string; linkedin?: string; website?: string } | null;
   visibilityMode?: 'visible' | 'matches_only' | 'hidden';
 }
 

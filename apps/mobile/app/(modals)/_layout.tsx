@@ -35,6 +35,10 @@ export default function ModalsLayout() {
           options={{ title: 'Czat', headerBackTitle: 'Wróć' }}
         />
         <Stack.Screen
+          name="settings"
+          options={{ title: 'Ustawienia' }}
+        />
+        <Stack.Screen
           name="create-group"
           options={{ title: 'Nowa grupa' }}
         />

@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Switch,
   Pressable,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -14,7 +12,6 @@ import { useConversationsStore } from '../../src/stores/conversationsStore';
 import { useMessagesStore } from '../../src/stores/messagesStore';
 import { useWavesStore } from '../../src/stores/wavesStore';
 import { authClient } from '../../src/lib/auth';
-import { trpc } from '../../src/lib/trpc';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { Button } from '../../src/components/ui/Button';
@@ -23,23 +20,7 @@ import { IconSparkles } from '../../src/components/ui/icons';
 export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
-  const setProfile = useAuthStore((state) => state.setProfile);
   const reset = useAuthStore((state) => state.reset);
-
-  const [isHidden, setIsHidden] = useState(profile?.visibilityMode === 'hidden');
-
-  const utils = trpc.useUtils();
-  const updateProfile = trpc.profiles.update.useMutation({
-    onSuccess: (data) => {
-      if (data) setProfile(data);
-      utils.profiles.me.invalidate();
-    },
-  });
-
-  const handleToggleHidden = (value: boolean) => {
-    setIsHidden(value);
-    updateProfile.mutate({ visibilityMode: value ? 'hidden' : 'visible' });
-  };
 
   const handleLogout = async () => {
     await authClient.signOut();
@@ -91,22 +72,13 @@ export default function ProfileScreen() {
         </Text>
       </Pressable>
 
-      <View style={styles.privacySection}>
-        <View style={styles.privacyRow}>
-          <Text style={styles.privacyLabel}>Ukryj moj profil</Text>
-          <Switch
-            testID="privacy-toggle"
-            value={isHidden}
-            onValueChange={handleToggleHidden}
-            trackColor={{ false: '#C0BAA8', true: colors.accent }}
-            thumbColor="#FFFFFF"
-            ios_backgroundColor="#C0BAA8"
-          />
-        </View>
-        <Text style={styles.privacyDescription}>
-          Twoj profil nie bedzie widoczny na mapie ani w wynikach wyszukiwania
-        </Text>
-      </View>
+      <Pressable
+        style={styles.settingsLink}
+        onPress={() => router.push('/(modals)/settings')}
+      >
+        <Text style={styles.settingsLabel}>Ustawienia</Text>
+        <Text style={styles.settingsArrow}>&rsaquo;</Text>
+      </Pressable>
 
       <View style={styles.logoutContainer}>
         <Button
@@ -171,25 +143,21 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: spacing.hairline,
   },
-  privacySection: {
+  settingsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: spacing.section,
     borderBottomWidth: 1,
     borderBottomColor: colors.rule,
   },
-  privacyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  privacyLabel: {
+  settingsLabel: {
     ...typ.body,
     fontFamily: fonts.sansSemiBold,
-    flex: 1,
-    marginRight: spacing.column,
   },
-  privacyDescription: {
-    ...typ.caption,
-    marginTop: spacing.hairline,
+  settingsArrow: {
+    fontSize: 20,
+    color: colors.muted,
   },
   logoutContainer: {
     alignItems: 'center',
