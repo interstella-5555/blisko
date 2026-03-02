@@ -349,6 +349,33 @@ Each iteration is a fresh Claude session that does ONE thing:
 
 Linear decides what to work on. The memory file (`scripts/ralph-progress.txt`) carries technical context between sessions (branch state, decisions, known issues) but does NOT determine the task queue.
 
+#### Scope discipline
+
+Your commit must match the ticket's acceptance criteria — nothing more, nothing less.
+
+**IN scope:**
+- Code explicitly described in acceptance criteria
+- Trivial fixes in files you're already editing (typos, unused imports, obvious 1-line bugs)
+- Minimal changes needed to make YOUR ticket's code compile and work
+
+**OUT of scope (even if you see the problem):**
+- Fixing type errors in packages/files not mentioned in your ticket
+- Adding features not listed in acceptance criteria — even if the parent ticket mentions them
+- Refactoring code that works but looks messy
+- "Improving" code you're reading for context
+
+**When you spot something out of scope:**
+1. Do NOT fix it in your commit
+2. Create a new Linear ticket (status **Backlog**, label **Needs Triage**). Include:
+   - What you noticed (the problem or opportunity)
+   - Which files/code are affected
+   - Why it matters (impact, risk)
+   - Link to the ticket you were working on when you noticed it (`relatedTo`)
+   This gives enough context for triage without Ralph deciding priority or scope.
+3. If it blocks your work (e.g. type error you didn't introduce prevents compilation), comment as blocker — don't silently fix the upstream issue
+
+**If the ticket says "X will fail, that's expected"** — leave it failing. The ticket author planned for another ticket to fix it. Fixing it yourself may conflict with that plan.
+
 #### Ticket selection (Linear-first)
 
 Every iteration queries Linear. The memory file is never authoritative for "what to do next".
@@ -385,6 +412,7 @@ Every iteration queries Linear. The memory file is never authoritative for "what
 
 7. **IMPLEMENT**
    - One task, one commit. Format: `Verb description (BLI-X)` (GPG signed).
+   - **Scope check before committing:** review your diff — every changed file and line must trace back to an acceptance criterion. If you changed files not mentioned in the ticket, ask yourself: "Would this commit make sense without those extra changes?" If yes, revert them.
    - **Stuck detection:** if you hit the same error 3 times or spend more than ~15 turns without progress, stop and treat as blocked. Don't burn iterations on a dead end.
 
 8. **VERIFY**
@@ -392,7 +420,9 @@ Every iteration queries Linear. The memory file is never authoritative for "what
    - `pnpm --filter @repo/shared typecheck`
    - `pnpm --filter @repo/mobile typecheck`
    - `pnpm --filter @repo/api test` (if tests exist)
+   - **Only fix errors you introduced.** If a typecheck fails on code you didn't touch, that's a pre-existing issue — do NOT fix it. Note it in your Linear comment and proceed. If it blocks compilation of your code specifically, treat as blocked.
    - If tests fail: 2 attempts to fix, then treat as blocked.
+   - **Check off acceptance criteria** in the Linear ticket description as you verify each one (`- [x]`). If you have notes about a criterion (e.g. partial pass, edge case found, implementation choice), add a short inline note next to it. Example: `- [x] Typecheck passes — shared and API pass, mobile has 1 pre-existing error (not ours)`
 
 9. **UPDATE MEMORY FILE** — always, before finishing. Write technical context for the next session (branch, decisions, known issues). Do NOT track task queue here — that's Linear's job.
 
@@ -442,6 +472,25 @@ When picking a ticket that has sub-issues, **always work through sub-issues** �
 2. Each sub-issue uses **its own branch** (`gitBranchName` from the sub-issue). Merged to main independently after completion.
 3. Each sub-issue = one iteration. One at a time. Start from fresh main (`git checkout main && git pull`).
 4. After the last sub-issue is done, **verify the parent ticket**: check all acceptance criteria from the parent description. If something is missing or broken, create a new sub-issue and continue. If everything passes → parent → Done, remove Ralph label.
+
+#### Acceptance criteria: sub-issues vs parent
+
+**Sub-issues** get lightweight, implementation-level criteria (1-3 items). The ticket description already contains the implementation details — criteria don't need to duplicate them. Focus on: "does the code exist and compile."
+
+**Parent ticket** keeps the behavioral/integration criteria — "does the feature work end-to-end." These are verified once after the last sub-issue, not after each one.
+
+Example — instead of 6 detailed checkboxes in a sub-issue:
+```
+- [ ] Schema, migration, shared types and validators implemented per description
+- [ ] pnpm --filter @repo/shared typecheck passes
+```
+
+The parent then has the deeper checks:
+```
+- [ ] Grupy widoczne na mapie z nearby badge
+- [ ] Toggle lokalizacji działa per grupa
+- [ ] UI nie wysypuje się przy 400 nearby
+```
 
 #### Splitting large tickets
 

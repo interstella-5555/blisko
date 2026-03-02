@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLI-9 — Status "Na Teraz" Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1A1A1A;
+    --bg: #FAF7F2;
+    --accent: #C0392B;
+    --rule: #D5D0C4;
+    --muted: #8B8680;
+    --map-bg: #F0ECE3;
+    --success: #5B7A5E;
+    --warning: #B8863E;
+    --error: #9B3B3B;
+
+    /* Status "na teraz" accent — warm amber that complements the palette */
+    --status-now: #D4851C;
+    --status-now-bg: #FDF5EC;
+    --status-now-border: #E8C9A0;
+    --status-now-glow: rgba(212, 133, 28, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #E8E4DC;
+    font-family: 'DM Sans', sans-serif;
+    padding: 40px 24px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+
+  .subtitle {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 48px;
+    letter-spacing: 0.5px;
+  }
+
+  .screens {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+
+  .screen-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .screen-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 320px;
+    height: 694px;
+    background: var(--bg);
+    border-radius: 40px;
+    border: 8px solid var(--ink);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 20px 60px rgba(0,0,0,0.15),
+      0 4px 16px rgba(0,0,0,0.08),
+      inset 0 0 0 1px rgba(255,255,255,0.3);
+  }
+
+  .phone-inner {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .phone-inner::-webkit-scrollbar { display: none; }
+
+  /* Dynamic island */
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 28px;
+    background: var(--ink);
+    border-radius: 20px;
+    z-index: 10;
+  }
+
+  /* Status bar area */
+  .status-bar {
+    height: 52px;
+    flex-shrink: 0;
+  }
+
+  /* ── Profile header ── */
+  .profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 24px 20px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #D5D0C4 0%, #C0BAA8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .profile-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    color: var(--ink);
+    margin-top: 12px;
+  }
+
+  .profile-email {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── Status "na teraz" ── */
+
+  /* Empty state — set status button */
+  .status-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+    padding: 8px 16px;
+    border: 1.5px dashed var(--rule);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .status-empty:hover {
+    border-color: var(--status-now);
+    background: var(--status-now-glow);
+  }
+
+  .status-empty-icon {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .status-empty-text {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* Active status */
+  .status-active {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: var(--status-now-bg);
+    border: 1.5px solid var(--status-now-border);
+    border-radius: 14px;
+    max-width: 260px;
+    position: relative;
+    animation: statusPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes statusPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212, 133, 28, 0.08); }
+    50% { box-shadow: 0 0 0 6px rgba(212, 133, 28, 0.04); }
+  }
+
+  .status-active-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .status-emoji {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .status-text-block {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .status-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.35;
+  }
+
+  .status-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .status-expires {
+    font-size: 10px;
+    color: var(--status-now);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .status-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  .status-action-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .status-action-btn:hover {
+    background: var(--rule);
+  }
+
+  /* ── Profile sections ── */
+  .section {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .section-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .section-content {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  /* ── Bottom sheet overlay ── */
+  .sheet-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(26, 26, 26, 0.4);
+    z-index: 20;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .sheet {
+    width: 100%;
+    background: var(--bg);
+    border-radius: 20px 20px 0 0;
+    padding: 12px 20px 28px;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
+  }
+
+  .sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--rule);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .sheet-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 20px;
+    color: var(--ink);
+    margin-bottom: 18px;
+  }
+
+  .sheet-input-wrapper {
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .sheet-input {
+    width: 100%;
+    padding: 14px 16px 14px 42px;
+    border: 1.5px solid var(--rule);
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: white;
+    outline: none;
+  }
+
+  .sheet-input::placeholder {
+    color: var(--muted);
+  }
+
+  .sheet-input-emoji {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    cursor: pointer;
+  }
+
+  .sheet-char-count {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .sheet-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .emoji-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .emoji-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1.5px solid var(--rule);
+    background: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .emoji-option.selected {
+    border-color: var(--status-now);
+    background: var(--status-now-bg);
+  }
+
+  .duration-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .duration-chip {
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--rule);
+    background: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .duration-chip.selected {
+    border-color: var(--status-now);
+    background: var(--status-now);
+    color: white;
+  }
+
+  .sheet-submit {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: var(--accent);
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .sheet-submit:hover { opacity: 0.9; }
+
+  /* ── Nearby list ── */
+  .nearby-header {
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .filter-chip {
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border: 1px solid var(--rule);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .filter-chip.active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  .user-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 16px;
+    gap: 10px;
+    border-bottom: 0.5px solid var(--rule);
+  }
+
+  .user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #D5D0C4 0%, #C0BAA8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Instrument Serif', serif;
+    font-size: 18px;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .user-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .user-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .user-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 15px;
+    color: var(--ink);
+  }
+
+  .user-match {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .match-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .match-dot.high { background: var(--success); }
+  .match-dot.mid { background: var(--warning); }
+  .match-dot.low { background: var(--muted); }
+
+  .match-pct {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .match-pct.high { color: var(--success); }
+  .match-pct.mid { color: var(--warning); }
+  .match-pct.low { color: var(--muted); }
+
+  .user-distance {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* "Na teraz" badge on nearby list */
+  .na-teraz-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    background: var(--status-now-bg);
+    border: 1px solid var(--status-now-border);
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--status-now);
+    white-space: nowrap;
+    animation: badgePulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes badgePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.75; }
+  }
+
+  .na-teraz-badge .badge-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--status-now);
+  }
+
+  .user-snippet {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 3px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .user-snippet.highlight {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* Na teraz match reason shown below snippet */
+  .na-teraz-reason {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--status-now);
+    font-weight: 500;
+  }
+
+  .na-teraz-reason-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--status-now);
+    flex-shrink: 0;
+  }
+
+  .user-status-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+
+  .user-status-label.waved { color: var(--muted); }
+  .user-status-label.incoming { color: var(--warning); }
+
+  /* ── Other user profile — status visible ── */
+  .other-profile-status {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: var(--status-now-bg);
+    border: 1px solid var(--status-now-border);
+    border-radius: 12px;
+    max-width: 240px;
+  }
+
+  .other-status-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .other-status-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--status-now);
+  }
+
+  .other-status-text {
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+
+  .other-status-time {
+    font-size: 10px;
+    color: var(--status-now);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  /* ── Annotation arrows ── */
+  .annotation {
+    position: absolute;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 500;
+    font-style: italic;
+    pointer-events: none;
+    z-index: 30;
+  }
+</style>
+</head>
+<body>
+
+<h1>Status "Na Teraz"</h1>
+<p class="subtitle">BLI-9 &mdash; Feature mockup &mdash; Blisko</p>
+
+<div class="screens">
+
+  <!-- ═══════ Screen 1: Own Profile — no status ═══════ -->
+  <div class="screen-col">
+    <span class="screen-label">Profil &mdash; brak statusu</span>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="status-bar"></div>
+        <div class="profile-header">
+          <div class="avatar">K</div>
+          <div class="profile-name">Karol Wypchło</div>
+          <div class="profile-email">karol@example.com</div>
+          <div class="status-empty">
+            <span class="status-empty-icon">+</span>
+            <span class="status-empty-text">Ustaw status na teraz</span>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">O mnie</div>
+          <div class="section-content">Programista i biegacz z Mokotowa. Fascynuje mnie tworzenie produktów, które łączą ludzi w realnym świecie.</div>
+        </div>
+        <div class="section">
+          <div class="section-title">Kogo szukam</div>
+          <div class="section-content">Ludzi do wspólnego biegania, rozmów o technologii i startupach. Chętnie poznam kogoś kto gra na gitarze.</div>
+        </div>
+        <div class="section" style="border-bottom: none;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="color: var(--muted); font-size: 14px;">✨</span>
+            <span style="font-size: 12px; color: var(--muted); font-weight: 600;">Wyprobuj automatyczne profilowanie</span>
+          </div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.4;">Odpowiedz na kilka pytan — wygenerujemy nowy opis i sekcje "kogo szukam".</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ Screen 2: Own Profile — active status ═══════ -->
+  <div class="screen-col">
+    <span class="screen-label">Profil &mdash; aktywny status</span>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="status-bar"></div>
+        <div class="profile-header">
+          <div class="avatar">K</div>
+          <div class="profile-name">Karol Wypchło</div>
+          <div class="profile-email">karol@example.com</div>
+          <div class="status-active">
+            <div class="status-active-top">
+              <span class="status-emoji">🏃</span>
+              <div class="status-text-block">
+                <div class="status-text">Szukam kogoś do biegania w weekend</div>
+                <div class="status-meta">
+                  <span class="status-expires">wygasa za 5h</span>
+                  <div class="status-actions">
+                    <button class="status-action-btn" title="Edytuj">✏️</button>
+                    <button class="status-action-btn" title="Usuń">✕</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">O mnie</div>
+          <div class="section-content">Programista i biegacz z Mokotowa. Fascynuje mnie tworzenie produktów, które łączą ludzi w realnym świecie.</div>
+        </div>
+        <div class="section">
+          <div class="section-title">Kogo szukam</div>
+          <div class="section-content">Ludzi do wspólnego biegania, rozmów o technologii i startupach. Chętnie poznam kogoś kto gra na gitarze.</div>
+        </div>
+        <div class="section" style="border-bottom: none;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="color: var(--muted); font-size: 14px;">✨</span>
+            <span style="font-size: 12px; color: var(--muted); font-weight: 600;">Wyprobuj automatyczne profilowanie</span>
+          </div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.4;">Odpowiedz na kilka pytan — wygenerujemy nowy opis i sekcje "kogo szukam".</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ Screen 3: Bottom sheet — set status ═══════ -->
+  <div class="screen-col">
+    <span class="screen-label">Ustawianie statusu</span>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="status-bar"></div>
+        <div class="profile-header" style="opacity: 0.3;">
+          <div class="avatar">K</div>
+          <div class="profile-name">Karol Wypchło</div>
+          <div class="profile-email">karol@example.com</div>
+        </div>
+        <div class="section" style="opacity: 0.3;">
+          <div class="section-title">O mnie</div>
+          <div class="section-content">Programista i biegacz z Mokotowa...</div>
+        </div>
+      </div>
+      <!-- Bottom sheet overlay -->
+      <div class="sheet-overlay">
+        <div class="sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title">Co teraz?</div>
+
+          <div class="sheet-input-wrapper">
+            <input class="sheet-input" type="text" value="🏃 Szukam kogoś do biegania" placeholder="Czego szukasz lub co możesz dać?" style="padding-left: 16px;">
+            <span class="sheet-char-count">27/150</span>
+          </div>
+
+          <div class="sheet-section-label">Czas trwania</div>
+          <div class="duration-row">
+            <button class="duration-chip">1h</button>
+            <button class="duration-chip selected">6h</button>
+            <button class="duration-chip">24h</button>
+            <button class="duration-chip">Do odwołania</button>
+          </div>
+
+          <button class="sheet-submit">Ustaw status</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ Screen 4: Nearby list with badge ═══════ -->
+  <div class="screen-col">
+    <span class="screen-label">Nearby &mdash; badge "Na teraz"</span>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="status-bar"></div>
+
+        <!-- My active status mini-bar -->
+        <div style="padding: 8px 16px; background: var(--status-now-bg); border-bottom: 1px solid var(--status-now-border); display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 14px;">🏃</span>
+          <span style="font-size: 12px; color: var(--ink); font-weight: 500; flex: 1;">Szukam kogoś do biegania</span>
+          <span style="font-size: 10px; color: var(--status-now); font-weight: 600;">5h</span>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="nearby-header">
+          <button class="filter-chip active">Wszystko</button>
+          <button class="filter-chip">Osoby</button>
+          <button class="filter-chip">Grupy</button>
+        </div>
+
+        <!-- User 1: Has "na teraz" match -->
+        <div class="user-row">
+          <div class="user-avatar" style="background: linear-gradient(135deg, #7BA893 0%, #5B8A6F 100%); color: white;">A</div>
+          <div class="user-info">
+            <div class="user-name-row">
+              <span class="user-name">Ania Kowalska</span>
+              <span class="user-match">
+                <span class="match-dot high"></span>
+                <span class="match-pct high">82%</span>
+              </span>
+              <span class="user-distance">· 340m</span>
+              <span class="na-teraz-badge">
+                <span class="badge-dot"></span>
+                Na teraz
+              </span>
+            </div>
+            <div class="user-snippet highlight">Pasjonuje się bieganiem i triathlonem, szuka partnerów treningowych</div>
+            <div class="na-teraz-reason">
+              <span class="na-teraz-reason-dot"></span>
+              Jej status: "Chętnie pobiegam z kimś po pracy"
+            </div>
+          </div>
+        </div>
+
+        <!-- User 2: Regular user, no badge -->
+        <div class="user-row">
+          <div class="user-avatar" style="background: linear-gradient(135deg, #C4A882 0%, #A89070 100%); color: white;">M</div>
+          <div class="user-info">
+            <div class="user-name-row">
+              <span class="user-name">Marek Nowak</span>
+              <span class="user-match">
+                <span class="match-dot high"></span>
+                <span class="match-pct high">71%</span>
+              </span>
+              <span class="user-distance">· 1.2km</span>
+            </div>
+            <div class="user-snippet highlight">Też pracuje w tech, wspólne zainteresowanie startupami i product designem</div>
+          </div>
+        </div>
+
+        <!-- User 3: Has status match via profile (no status set, but profile matches) -->
+        <div class="user-row">
+          <div class="user-avatar" style="background: linear-gradient(135deg, #8B7EAA 0%, #6D6190 100%); color: white;">J</div>
+          <div class="user-info">
+            <div class="user-name-row">
+              <span class="user-name">Jakub Wiśniewski</span>
+              <span class="user-match">
+                <span class="match-dot mid"></span>
+                <span class="match-pct mid">54%</span>
+              </span>
+              <span class="user-distance">· 890m</span>
+              <span class="na-teraz-badge">
+                <span class="badge-dot"></span>
+                Na teraz
+              </span>
+            </div>
+            <div class="user-snippet">Trener personalny, prowadzi grupowe treningi w parkach</div>
+            <div class="na-teraz-reason">
+              <span class="na-teraz-reason-dot"></span>
+              Profil pasuje do Twojego statusu
+            </div>
+          </div>
+        </div>
+
+        <!-- User 4: Waved status -->
+        <div class="user-row">
+          <div class="user-avatar" style="background: linear-gradient(135deg, #D5D0C4 0%, #B8B0A0 100%);">O</div>
+          <div class="user-info">
+            <div class="user-name-row">
+              <span class="user-name">Ola Mazur</span>
+              <span class="user-match">
+                <span class="match-dot mid"></span>
+                <span class="match-pct mid">48%</span>
+              </span>
+              <span class="user-distance">· 2.1km</span>
+              <span style="flex: 1;"></span>
+              <span class="user-status-label waved">ZACZEPIONO</span>
+            </div>
+            <div class="user-snippet">Fotografka, szuka ludzi do wspólnych projektów artystycznych</div>
+          </div>
+        </div>
+
+        <!-- User 5: Regular -->
+        <div class="user-row">
+          <div class="user-avatar" style="background: linear-gradient(135deg, #A8C0D4 0%, #7EA0B8 100%); color: white;">P</div>
+          <div class="user-info">
+            <div class="user-name-row">
+              <span class="user-name">Piotr Zieliński</span>
+              <span class="user-match">
+                <span class="match-dot low"></span>
+                <span class="match-pct low">31%</span>
+              </span>
+              <span class="user-distance">· 1.8km</span>
+            </div>
+            <div class="user-snippet">Student informatyki, gra na gitarze akustycznej w wolnym czasie</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

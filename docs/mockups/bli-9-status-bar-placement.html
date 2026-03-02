@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLI-9 — Status Bar Placement Options</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1A1A1A;
+    --bg: #FAF7F2;
+    --accent: #C0392B;
+    --rule: #D5D0C4;
+    --muted: #8B8680;
+    --map-bg: #F0ECE3;
+    --success: #5B7A5E;
+    --warning: #B8863E;
+    --status-now: #D4851C;
+    --status-now-bg: #FDF5EC;
+    --status-now-border: #E8C9A0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #E8E4DC;
+    font-family: 'DM Sans', sans-serif;
+    padding: 40px 24px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 48px;
+    letter-spacing: 0.5px;
+  }
+
+  .screens {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .screen-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .screen-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .screen-desc {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    max-width: 280px;
+    line-height: 1.4;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 320px;
+    height: 694px;
+    background: var(--bg);
+    border-radius: 40px;
+    border: 8px solid var(--ink);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 20px 60px rgba(0,0,0,0.15),
+      0 4px 16px rgba(0,0,0,0.08),
+      inset 0 0 0 1px rgba(255,255,255,0.3);
+  }
+
+  .phone-inner {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Dynamic island */
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 28px;
+    background: var(--ink);
+    border-radius: 20px;
+    z-index: 10;
+  }
+
+  .status-bar { height: 52px; flex-shrink: 0; }
+
+  /* ── Map placeholder ── */
+  .map-area {
+    height: 220px;
+    background:
+      radial-gradient(circle at 30% 40%, #d1e0d1 0%, transparent 50%),
+      radial-gradient(circle at 70% 60%, #c8d5c8 0%, transparent 40%),
+      var(--map-bg);
+    position: relative;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  /* Fake map roads */
+  .map-area::before {
+    content: '';
+    position: absolute;
+    top: 30%;
+    left: -10%;
+    width: 120%;
+    height: 2px;
+    background: rgba(180, 175, 165, 0.5);
+    transform: rotate(-8deg);
+  }
+  .map-area::after {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 40%;
+    width: 2px;
+    height: 120%;
+    background: rgba(180, 175, 165, 0.4);
+    transform: rotate(12deg);
+  }
+
+  /* Fake map markers */
+  .map-marker {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Instrument Serif', serif;
+    font-size: 13px;
+    color: white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    z-index: 2;
+  }
+
+  .map-user-dot {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    z-index: 3;
+  }
+
+  /* Map toggle */
+  .map-toggle {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--rule);
+    flex-shrink: 0;
+  }
+
+  .map-toggle-text {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* Filter chips */
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--rule);
+    flex-shrink: 0;
+  }
+
+  .filter-chip {
+    padding: 5px 12px;
+    border-radius: 14px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .filter-chip.active {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .filter-chip.inactive {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--rule);
+  }
+
+  /* ── Status bar (the element we're comparing) ── */
+  .status-bar-element {
+    padding: 10px 16px;
+    background: var(--status-now-bg);
+    border-bottom: 1.5px solid var(--status-now-border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .status-bar-emoji {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .status-bar-text {
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 500;
+    flex: 1;
+    line-height: 1.3;
+  }
+
+  .status-bar-time {
+    font-size: 10px;
+    color: var(--status-now);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* Floating version (overlay on map) */
+  .status-bar-floating {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    padding: 9px 14px;
+    background: rgba(253, 245, 236, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid var(--status-now-border);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 5;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+
+  /* ── List header ── */
+  .list-header {
+    padding: 10px 16px;
+    flex-shrink: 0;
+  }
+
+  .list-header-text {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── User rows ── */
+  .user-rows {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .user-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 11px 16px;
+    gap: 10px;
+    border-bottom: 0.5px solid var(--rule);
+  }
+
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Instrument Serif', serif;
+    font-size: 16px;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .user-info { flex: 1; min-width: 0; }
+
+  .user-name-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .user-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 15px;
+    color: var(--ink);
+  }
+
+  .match-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+  .match-dot.high { background: var(--success); }
+  .match-dot.mid { background: var(--warning); }
+
+  .match-pct {
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .match-pct.high { color: var(--success); }
+  .match-pct.mid { color: var(--warning); }
+
+  .user-distance {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .na-teraz-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 7px;
+    background: var(--status-now-bg);
+    border: 1px solid var(--status-now-border);
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--status-now);
+    white-space: nowrap;
+  }
+
+  .badge-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--status-now);
+  }
+
+  .user-snippet {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user-snippet.highlight {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .na-teraz-reason {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 3px;
+    font-size: 10px;
+    color: var(--status-now);
+    font-weight: 500;
+  }
+
+  .na-teraz-reason-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--status-now);
+    flex-shrink: 0;
+  }
+
+  /* ── Annotation callout ── */
+  .callout {
+    position: absolute;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  .callout-line {
+    position: absolute;
+    border-left: 2px solid var(--accent);
+  }
+
+  .callout-text {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    background: rgba(250, 247, 242, 0.85);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Status Bar — Placement</h1>
+<p class="subtitle">BLI-9 &mdash; Gdzie umieścić mini-bar z aktywnym statusem na ekranie Nearby?</p>
+
+<div class="screens">
+
+  <!-- ═══════ Option A: Above map (sticky top) ═══════ -->
+  <div class="screen-col">
+    <span class="screen-label">A &mdash; Nad mapą</span>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="status-bar"></div>
+
+        <!-- Status bar above map -->
+        <div class="status-bar-element">
+          <span class="status-bar-emoji">🏃</span>
+          <span class="status-bar-text">Szukam kogoś do biegania w weekend</span>
+          <span class="status-bar-time">5h</span>
+        </div>
+
+        <!-- Map -->
+        <div class="map-area" style="height: 200px;">
+          <div class="map-marker" style="top: 40%; left: 35%; background: linear-gradient(135deg, #7BA893, #5B8A6F);">A</div>
+          <div class="map-marker" style="top: 55%; left: 60%; background: linear-gradient(135deg, #C4A882, #A89070);">M</div>
+          <div class="map-user-dot" style="top: 48%; left: 48%;"></div>
+        </div>
+
+        <div class="map-toggle">
+          <div class="map-toggle-text">Ukryj mapę</div>
+        </div>
+
+        <div class="filter-row">
+          <span class="filter-chip active">Wszystko</span>
+          <span class="filter-chip inactive">Osoby</span>
+          <span class="filter-chip inactive">Grupy</span>
+        </div>
+
+        <div class="list-header">
+          <span class="list-header-text">12 osób w pobliżu</span>
+        </div>
+
+        <div class="user-rows">
+          <div class="user-row">
+            <div class="user-avatar" style="background: linear-gradient(135deg, #7BA893, #5B8A6F);">A</div>
+            <div class="user-info">
+              <div class="user-name-row">
+                <span class="user-name">Ania Kowalska</span>
+                <span class="match-dot high"></span>
+                <span class="match-pct high">82%</span>
+                <span class="user-distance">· 340m</span>
+                <span class="na-teraz-badge"><span class="badge-dot"></span> Na teraz</span>
+              </div>
+              <div class="user-snippet highlight">Triatlonistka, szuka partnerów do biegania</div>
+              <div class="na-teraz-reason">
+                <span class="na-teraz-reason-dot"></span>
+                "Chętnie pobiegam z kimś po pracy"
+              </div>
+            </div>
+          </div>
+          <div class="user-row">
+            <div class="user-avatar" style="background: linear-gradient(135deg, #C4A882, #A89070);">M</div>
+            <div class="user-info">
+              <div class="user-name-row">
+                <span class="user-name">Marek Nowak</span>
+                <span class="match-dot high"></span>
+                <span class="match-pct high">71%</span>
+                <span class="user-distance">· 1.2km</span>
+              </div>
+              <div class="user-snippet highlight">Wspólne zainteresowanie startupami i tech</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="screen-desc">Zawsze widoczny na górze. Mapa przesuwa się w dół. Zabiera ~42px.</p>
+  </div>
+
+  <!-- ═══════ Option B: Between map and list ═══════ -->
+  <div class="screen-col">
+    <span class="screen-label">B &mdash; Pod mapą, nad listą</span>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="status-bar"></div>
+
+        <!-- Map (full height) -->
+        <div class="map-area">
+          <div class="map-marker" style="top: 40%; left: 35%; background: linear-gradient(135deg, #7BA893, #5B8A6F);">A</div>
+          <div class="map-marker" style="top: 55%; left: 60%; background: linear-gradient(135deg, #C4A882, #A89070);">M</div>
+          <div class="map-user-dot" style="top: 48%; left: 48%;"></div>
+        </div>
+
+        <div class="map-toggle">
+          <div class="map-toggle-text">Ukryj mapę</div>
+        </div>
+
+        <!-- Status bar between map toggle and filters -->
+        <div class="status-bar-element">
+          <span class="status-bar-emoji">🏃</span>
+          <span class="status-bar-text">Szukam kogoś do biegania w weekend</span>
+          <span class="status-bar-time">5h</span>
+        </div>
+
+        <div class="filter-row">
+          <span class="filter-chip active">Wszystko</span>
+          <span class="filter-chip inactive">Osoby</span>
+          <span class="filter-chip inactive">Grupy</span>
+        </div>
+
+        <div class="list-header">
+          <span class="list-header-text">12 osób w pobliżu</span>
+        </div>
+
+        <div class="user-rows">
+          <div class="user-row">
+            <div class="user-avatar" style="background: linear-gradient(135deg, #7BA893, #5B8A6F);">A</div>
+            <div class="user-info">
+              <div class="user-name-row">
+                <span class="user-name">Ania Kowalska</span>
+                <span class="match-dot high"></span>
+                <span class="match-pct high">82%</span>
+                <span class="user-distance">· 340m</span>
+                <span class="na-teraz-badge"><span class="badge-dot"></span> Na teraz</span>
+              </div>
+              <div class="user-snippet highlight">Triatlonistka, szuka partnerów do biegania</div>
+              <div class="na-teraz-reason">
+                <span class="na-teraz-reason-dot"></span>
+                "Chętnie pobiegam z kimś po pracy"
+              </div>
+            </div>
+          </div>
+          <div class="user-row">
+            <div class="user-avatar" style="background: linear-gradient(135deg, #C4A882, #A89070);">M</div>
+            <div class="user-info">
+              <div class="user-name-row">
+                <span class="user-name">Marek Nowak</span>
+                <span class="match-dot high"></span>
+                <span class="match-pct high">71%</span>
+                <span class="user-distance">· 1.2km</span>
+              </div>
+              <div class="user-snippet highlight">Wspólne zainteresowanie startupami i tech</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="screen-desc">Między "ukryj mapę" a filtrami. Scrolluje się z listą. Mapa ma pełną wysokość.</p>
+  </div>
+
+  <!-- ═══════ Option C: Floating overlay on map ═══════ -->
+  <div class="screen-col">
+    <span class="screen-label">C &mdash; Overlay na mapie</span>
+    <div class="phone">
+      <div class="phone-inner">
+        <div class="status-bar"></div>
+
+        <!-- Map with floating status bar -->
+        <div class="map-area">
+          <div class="map-marker" style="top: 35%; left: 35%; background: linear-gradient(135deg, #7BA893, #5B8A6F);">A</div>
+          <div class="map-marker" style="top: 50%; left: 60%; background: linear-gradient(135deg, #C4A882, #A89070);">M</div>
+          <div class="map-user-dot" style="top: 42%; left: 48%;"></div>
+
+          <!-- Floating bar -->
+          <div class="status-bar-floating">
+            <span class="status-bar-emoji">🏃</span>
+            <span class="status-bar-text">Szukam kogoś do biegania w weekend</span>
+            <span class="status-bar-time">5h</span>
+          </div>
+        </div>
+
+        <div class="map-toggle">
+          <div class="map-toggle-text">Ukryj mapę</div>
+        </div>
+
+        <div class="filter-row">
+          <span class="filter-chip active">Wszystko</span>
+          <span class="filter-chip inactive">Osoby</span>
+          <span class="filter-chip inactive">Grupy</span>
+        </div>
+
+        <div class="list-header">
+          <span class="list-header-text">12 osób w pobliżu</span>
+        </div>
+
+        <div class="user-rows">
+          <div class="user-row">
+            <div class="user-avatar" style="background: linear-gradient(135deg, #7BA893, #5B8A6F);">A</div>
+            <div class="user-info">
+              <div class="user-name-row">
+                <span class="user-name">Ania Kowalska</span>
+                <span class="match-dot high"></span>
+                <span class="match-pct high">82%</span>
+                <span class="user-distance">· 340m</span>
+                <span class="na-teraz-badge"><span class="badge-dot"></span> Na teraz</span>
+              </div>
+              <div class="user-snippet highlight">Triatlonistka, szuka partnerów do biegania</div>
+              <div class="na-teraz-reason">
+                <span class="na-teraz-reason-dot"></span>
+                "Chętnie pobiegam z kimś po pracy"
+              </div>
+            </div>
+          </div>
+          <div class="user-row">
+            <div class="user-avatar" style="background: linear-gradient(135deg, #C4A882, #A89070);">M</div>
+            <div class="user-info">
+              <div class="user-name-row">
+                <span class="user-name">Marek Nowak</span>
+                <span class="match-dot high"></span>
+                <span class="match-pct high">71%</span>
+                <span class="user-distance">· 1.2km</span>
+              </div>
+              <div class="user-snippet highlight">Wspólne zainteresowanie startupami i tech</div>
+            </div>
+          </div>
+          <div class="user-row">
+            <div class="user-avatar" style="background: linear-gradient(135deg, #8B7EAA, #6D6190);">J</div>
+            <div class="user-info">
+              <div class="user-name-row">
+                <span class="user-name">Jakub Wiśniewski</span>
+                <span class="match-dot mid"></span>
+                <span class="match-pct mid">54%</span>
+                <span class="user-distance">· 890m</span>
+                <span class="na-teraz-badge"><span class="badge-dot"></span> Na teraz</span>
+              </div>
+              <div class="user-snippet">Trener personalny, prowadzi treningi w parkach</div>
+              <div class="na-teraz-reason">
+                <span class="na-teraz-reason-dot"></span>
+                Profil pasuje do Twojego statusu
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="screen-desc">Floating bar na dole mapy z blur. Nie zabiera dodatkowego miejsca. Znika gdy mapa schowana.</p>
+  </div>
+
+</div>
+
+</body>
+</html>

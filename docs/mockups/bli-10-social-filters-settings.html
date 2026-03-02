@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLI-10 — Social Media, Filtry, Ustawienia</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1A1A1A;
+    --bg: #FAF7F2;
+    --accent: #C0392B;
+    --rule: #D5D0C8;
+    --muted: #8B8680;
+    --map-bg: #F0ECE3;
+    --white: #FFFFFF;
+    --success-text: #5B7A5E;
+    --success-bg: #EEF2EE;
+    --font-serif: 'Instrument Serif', Georgia, serif;
+    --font-sans: 'DM Sans', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #E8E4DD;
+    font-family: var(--font-sans);
+    color: var(--ink);
+    padding: 40px 20px;
+    min-height: 100vh;
+  }
+
+  h1.page-title {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 32px;
+    text-align: center;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  .page-subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 48px;
+    letter-spacing: 0.5px;
+  }
+
+  .screens-row {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .screen-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .screen-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .phone {
+    width: 320px;
+    height: 694px;
+    background: var(--bg);
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow:
+      0 1px 2px rgba(26,26,26,0.06),
+      0 4px 12px rgba(26,26,26,0.08),
+      0 16px 40px rgba(26,26,26,0.12);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 120px; height: 28px;
+    background: var(--ink);
+    border-radius: 0 0 18px 18px;
+    z-index: 10;
+  }
+
+  .status-bar {
+    height: 52px;
+    flex-shrink: 0;
+  }
+
+  .screen-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px 20px;
+  }
+
+  .screen-content::-webkit-scrollbar { display: none; }
+
+  /* --- Shared components --- */
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--rule);
+    margin: 16px 0;
+  }
+
+  .divider-thick {
+    height: 1px;
+    background: var(--rule);
+    margin: 24px 0;
+  }
+
+  /* --- Screen 1: Edit Profile --- */
+
+  .edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0 20px;
+  }
+
+  .edit-header-btn {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .edit-header-btn.save {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .edit-title {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 400;
+  }
+
+  .avatar-edit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .avatar-circle {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .avatar-circle img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+
+  .avatar-change {
+    font-size: 12px;
+    color: var(--accent);
+    margin-top: 8px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+
+  .form-field {
+    margin-bottom: 16px;
+  }
+
+  .form-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .form-input {
+    width: 100%;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--ink);
+    padding: 10px 0;
+    outline: none;
+  }
+
+  .form-input::placeholder {
+    color: var(--rule);
+  }
+
+  .form-input.filled {
+    color: var(--ink);
+  }
+
+  .form-textarea {
+    width: 100%;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--ink);
+    padding: 10px 0;
+    outline: none;
+    resize: none;
+    line-height: 1.5;
+  }
+
+  /* Social media section */
+  .social-section {
+    margin-top: 8px;
+  }
+
+  .social-field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .social-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .social-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: var(--ink);
+  }
+
+  .social-input {
+    flex: 1;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--rule);
+    padding: 10px 0;
+    outline: none;
+  }
+
+  .social-input::placeholder {
+    color: var(--rule);
+  }
+
+  .social-input.has-value {
+    border-bottom-color: var(--ink);
+  }
+
+  .social-prefix {
+    color: var(--muted);
+    font-size: 15px;
+    margin-right: -4px;
+  }
+
+  /* --- Screen 2: Profile View --- */
+
+  .profile-view-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0 16px;
+  }
+
+  .back-arrow {
+    font-size: 20px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .profile-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .profile-avatar {
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    margin-bottom: 12px;
+  }
+
+  .profile-avatar img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+
+  .profile-name {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 4px;
+  }
+
+  .profile-distance {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+  }
+
+  .match-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--success-bg);
+    color: var(--success-text);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    margin-top: 8px;
+  }
+
+  .profile-section {
+    margin-bottom: 20px;
+  }
+
+  .profile-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .profile-section-text {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+
+  /* Social links row on profile view */
+  .social-links-row {
+    display: flex;
+    gap: 12px;
+    padding: 16px 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 20px;
+  }
+
+  .social-link-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 20px;
+    font-size: 13px;
+    color: var(--ink);
+    text-decoration: none;
+    transition: background 0.15s;
+    cursor: pointer;
+  }
+
+  .social-link-pill:hover {
+    background: var(--map-bg);
+  }
+
+  .social-link-pill svg {
+    width: 14px;
+    height: 14px;
+    fill: var(--ink);
+    flex-shrink: 0;
+  }
+
+  .social-link-pill .pill-label {
+    font-weight: 500;
+    font-size: 12px;
+  }
+
+  .wave-button {
+    width: 100%;
+    background: var(--ink);
+    color: var(--bg);
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border: none;
+    padding: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  /* --- Screen 3: Map Filters --- */
+
+  .map-screen {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .map-area {
+    flex: 1;
+    background: var(--map-bg);
+    position: relative;
+    min-height: 260px;
+  }
+
+  /* Simplified map dots */
+  .map-dot {
+    position: absolute;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink);
+    box-shadow: 0 2px 6px rgba(26,26,26,0.15);
+  }
+
+  .map-dot.has-photo {
+    overflow: hidden;
+    border-color: var(--accent);
+  }
+
+  .map-dot.has-photo img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+
+  .map-dot.faded {
+    opacity: 0.25;
+  }
+
+  .location-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 36px; height: 36px;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(26,26,26,0.1);
+  }
+
+  .location-btn svg {
+    width: 16px; height: 16px;
+    fill: var(--ink);
+  }
+
+  .map-bottom {
+    background: var(--bg);
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--rule);
+  }
+
+  /* Filter row with funnel */
+  .filter-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    gap: 8px;
+  }
+
+  .filter-chips {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .filter-chip {
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+  }
+
+  .filter-chip.active {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .filter-chip.inactive {
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--rule);
+  }
+
+  .filter-funnel {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 1px solid var(--rule);
+    background: transparent;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .filter-funnel.has-active {
+    border-color: var(--accent);
+    background: rgba(192, 57, 43, 0.06);
+  }
+
+  .filter-funnel svg {
+    width: 16px; height: 16px;
+    fill: var(--muted);
+  }
+
+  .filter-funnel.has-active svg {
+    fill: var(--accent);
+  }
+
+  .filter-dot {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+  }
+
+  /* Filter bottom sheet */
+  .filter-sheet-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    top: 0;
+    background: rgba(26,26,26,0.3);
+    z-index: 20;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .filter-sheet {
+    width: 100%;
+    background: var(--bg);
+    border-radius: 16px 16px 0 0;
+    padding: 12px 20px 28px;
+  }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--rule);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .sheet-title {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 400;
+    margin-bottom: 20px;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+  }
+
+  .toggle-row + .toggle-row {
+    border-top: 1px solid var(--rule);
+  }
+
+  .toggle-info {
+    flex: 1;
+  }
+
+  .toggle-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+
+  .toggle-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .toggle-switch {
+    width: 44px; height: 24px;
+    border-radius: 12px;
+    background: var(--rule);
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: 12px;
+    transition: background 0.2s;
+  }
+
+  .toggle-switch.on {
+    background: var(--ink);
+  }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--white);
+    top: 2px; left: 2px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+
+  .toggle-switch.on::after {
+    transform: translateX(20px);
+  }
+
+  /* User list below map */
+  .user-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+  }
+
+  .user-row + .user-row {
+    border-top: 1px solid var(--rule);
+  }
+
+  .user-row-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    flex-shrink: 0;
+  }
+
+  .user-row-avatar img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+
+  .user-row-avatar.no-photo {
+    background: var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .user-row-info {
+    flex: 1;
+  }
+
+  .user-row-name {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 15px;
+  }
+
+  .user-row-detail {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .list-header-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 16px 0 4px;
+  }
+
+  /* --- Screen 4: Settings --- */
+
+  .settings-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0 24px;
+  }
+
+  .settings-title {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 400;
+  }
+
+  .visibility-option {
+    padding: 14px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: opacity 0.15s;
+  }
+
+  .visibility-option + .visibility-option {
+    border-top: 1px solid var(--rule);
+  }
+
+  .radio-circle {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--rule);
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s;
+  }
+
+  .radio-circle.selected {
+    border-color: var(--ink);
+  }
+
+  .radio-circle.selected::after {
+    content: '';
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--ink);
+  }
+
+  .visibility-info {
+    flex: 1;
+  }
+
+  .visibility-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+
+  .visibility-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .visibility-option.dimmed {
+    opacity: 0.5;
+  }
+
+  .settings-note {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    padding: 12px 0;
+    margin-top: 4px;
+  }
+
+  /* Future settings sections */
+  .settings-future {
+    padding: 12px 0;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+
+  .settings-future-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .settings-future-arrow {
+    color: var(--rule);
+    font-size: 16px;
+  }
+
+  /* Tab bar (for screens that need it) */
+  .tab-bar {
+    height: 56px;
+    border-top: 2px solid var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 16px;
+    flex-shrink: 0;
+    background: var(--bg);
+  }
+
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .tab-item svg {
+    width: 20px; height: 20px;
+    fill: var(--muted);
+  }
+
+  .tab-item.active svg {
+    fill: var(--accent);
+  }
+
+  .tab-label {
+    font-size: 8px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .tab-item.active .tab-label {
+    color: var(--accent);
+  }
+
+  /* Annotations */
+  .annotation {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(26,26,26,0.05);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 4px 4px 0;
+    max-width: 320px;
+  }
+
+  .annotation p {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .annotation strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* Version label */
+  .version-row {
+    display: flex;
+    gap: 48px;
+    justify-content: center;
+    margin-top: 64px;
+    margin-bottom: 16px;
+  }
+
+  .version-item {
+    text-align: center;
+  }
+
+  .version-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .version-desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">BLI-10</h1>
+<p class="page-subtitle">Social media, strona WWW i filtry w ustawieniach profilu</p>
+
+<div class="screens-row">
+
+  <!-- ==================== SCREEN 1: Edit Profile ==================== -->
+  <div class="screen-col">
+    <span class="screen-label">Edycja profilu</span>
+    <div class="phone">
+      <div class="status-bar"></div>
+      <div class="screen-content">
+        <div class="edit-header">
+          <button class="edit-header-btn">Anuluj</button>
+          <span class="edit-title">Edytuj profil</span>
+          <button class="edit-header-btn save">Zapisz</button>
+        </div>
+
+        <div class="avatar-edit">
+          <div class="avatar-circle">
+            <img src="https://i.pravatar.cc/160?img=12" alt="">
+          </div>
+          <span class="avatar-change">Zmień zdjęcie</span>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">Imię</label>
+          <input type="text" class="form-input filled" value="Karol" readonly>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">O mnie</label>
+          <textarea class="form-textarea" rows="2" readonly>Programista, miłośnik kawy i górskich wędrówek</textarea>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label">Kogo szukam</label>
+          <textarea class="form-textarea" rows="2" readonly>Ludzi do wspólnych projektów i rozmów o technologii</textarea>
+        </div>
+
+        <div class="divider-thick"></div>
+
+        <!-- Social media section -->
+        <div class="social-section">
+          <label class="section-label">Social media</label>
+
+          <div class="social-field">
+            <div class="social-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+            </div>
+            <span class="social-prefix">@</span>
+            <input type="text" class="social-input has-value" value="karol.wyp" readonly>
+          </div>
+
+          <div class="social-field">
+            <div class="social-icon">
+              <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            </div>
+            <input type="text" class="social-input" placeholder="handle lub URL" readonly>
+          </div>
+
+          <div class="social-field">
+            <div class="social-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            </div>
+            <input type="text" class="social-input has-value" value="karol.dev" readonly>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      <p><strong>Nowa sekcja "Social media"</strong> pod istniejącymi polami. Ikonka + pole tekstowe. @ prefix dla Instagrama. Każde pole opcjonalne.</p>
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN 2: Profile View ==================== -->
+  <div class="screen-col">
+    <span class="screen-label">Profil — widok innego usera</span>
+    <div class="phone">
+      <div class="status-bar"></div>
+      <div class="screen-content">
+        <div class="profile-view-header">
+          <span class="back-arrow">‹</span>
+        </div>
+
+        <div class="profile-hero">
+          <div class="profile-avatar">
+            <img src="https://i.pravatar.cc/192?img=32" alt="">
+          </div>
+          <div class="profile-name">Marta Kowalska</div>
+          <div class="profile-distance">1.2 km od Ciebie</div>
+          <div class="match-badge">
+            <span>★</span> 87% dopasowanie
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-section-title">O mnie</div>
+          <div class="profile-section-text">Graficzka i ilustratorka. Uwielbiam rysować w kawiarniach i chodzić na wystawy sztuki współczesnej.</div>
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-section-title">Kogo szukam</div>
+          <div class="profile-section-text">Osoby do wspólnych wyjść na wystawy, kawę i rozmów o designie i sztuce.</div>
+        </div>
+
+        <!-- Social links -->
+        <div class="social-links-row">
+          <a class="social-link-pill" href="#">
+            <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+            <span class="pill-label">@marta.kow</span>
+          </a>
+          <a class="social-link-pill" href="#">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            <span class="pill-label">marta.dev</span>
+          </a>
+        </div>
+
+        <button class="wave-button">Wyślij wave 👋</button>
+      </div>
+    </div>
+    <div class="annotation">
+      <p><strong>Social links</strong> jako klikalne pilulki z ikonkami. Widoczne tylko na pełnym profilu, nie na bottom sheet mapy. Tylko wypełnione pola.</p>
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN 3: Map Filters ==================== -->
+  <div class="screen-col">
+    <span class="screen-label">Mapa — filtry (bottom sheet)</span>
+    <div class="phone">
+      <div class="status-bar"></div>
+      <div class="map-screen">
+        <div class="map-area">
+          <!-- Map dots -->
+          <div class="map-dot has-photo" style="top: 60px; left: 80px;">
+            <img src="https://i.pravatar.cc/64?img=5" alt="">
+          </div>
+          <div class="map-dot" style="top: 100px; left: 180px;">AK</div>
+          <div class="map-dot has-photo" style="top: 140px; left: 120px;">
+            <img src="https://i.pravatar.cc/64?img=15" alt="">
+          </div>
+          <div class="map-dot faded" style="top: 85px; left: 240px;">PZ</div>
+          <div class="map-dot has-photo faded" style="top: 170px; left: 220px;">
+            <img src="https://i.pravatar.cc/64?img=25" alt="">
+          </div>
+          <div class="map-dot" style="top: 50px; left: 160px;">MN</div>
+
+          <!-- Filter bottom sheet overlay -->
+          <div class="filter-sheet-overlay">
+            <div class="filter-sheet">
+              <div class="sheet-handle"></div>
+              <div class="sheet-title">Filtry</div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Tylko ze zdjęciem</div>
+                  <div class="toggle-desc">Pokazuj osoby, które mają zdjęcie profilowe</div>
+                </div>
+                <div class="toggle-switch on"></div>
+              </div>
+
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Tylko w widocznym obszarze</div>
+                  <div class="toggle-desc">Ogranicz wyniki do aktualnego widoku mapy</div>
+                </div>
+                <div class="toggle-switch"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      <p><strong>Bottom sheet z filtrami</strong> otwierany ikonką lejka w belce chipów. Dwa togglee. Gdy aktywne — ikonka lejka podświetlona z kropką.</p>
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN 3b: Map with active filter ==================== -->
+  <div class="screen-col">
+    <span class="screen-label">Mapa — filtr aktywny</span>
+    <div class="phone">
+      <div class="status-bar"></div>
+      <div class="map-screen">
+        <div class="map-area">
+          <!-- Only dots with photos visible (filter active) -->
+          <div class="map-dot has-photo" style="top: 60px; left: 80px;">
+            <img src="https://i.pravatar.cc/64?img=5" alt="">
+          </div>
+          <div class="map-dot has-photo" style="top: 140px; left: 120px;">
+            <img src="https://i.pravatar.cc/64?img=15" alt="">
+          </div>
+
+          <div class="location-btn">
+            <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+          </div>
+        </div>
+
+        <div class="map-bottom">
+          <!-- Filter row with active funnel -->
+          <div class="filter-row">
+            <div class="filter-chips">
+              <div class="filter-chip active">Osoby</div>
+              <div class="filter-chip inactive">Grupy</div>
+            </div>
+            <div class="filter-funnel has-active">
+              <svg viewBox="0 0 24 24"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
+              <span class="filter-dot"></span>
+            </div>
+          </div>
+
+          <div class="list-header-label">2 osoby ze zdjęciem w pobliżu</div>
+
+          <div class="user-row">
+            <div class="user-row-avatar">
+              <img src="https://i.pravatar.cc/80?img=5" alt="">
+            </div>
+            <div class="user-row-info">
+              <div class="user-row-name">Anna Nowak</div>
+              <div class="user-row-detail">0.3 km · 92% dopasowanie</div>
+            </div>
+          </div>
+
+          <div class="user-row">
+            <div class="user-row-avatar">
+              <img src="https://i.pravatar.cc/80?img=15" alt="">
+            </div>
+            <div class="user-row-info">
+              <div class="user-row-name">Tomek Wiśniewski</div>
+              <div class="user-row-detail">0.8 km · 78% dopasowanie</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-bar">
+        <div class="tab-item active">
+          <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>
+          <span class="tab-label">W pobliżu</span>
+        </div>
+        <div class="tab-item">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+          <span class="tab-label">Rozmowy</span>
+        </div>
+        <div class="tab-item">
+          <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          <span class="tab-label">Profil</span>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      <p><strong>Filtr "Tylko ze zdjęciem" aktywny</strong> — mapa pokazuje tylko osoby z avatarem. Ikonka lejka podświetlona z czerwoną kropką. Osoby bez zdjęcia zniknęły z mapy i listy.</p>
+    </div>
+  </div>
+
+  <!-- ==================== SCREEN 4: Settings ==================== -->
+  <div class="screen-col">
+    <span class="screen-label">Ustawienia</span>
+    <div class="phone">
+      <div class="status-bar"></div>
+      <div class="screen-content">
+        <div class="settings-header">
+          <span class="back-arrow">‹</span>
+          <span class="settings-title">Ustawienia</span>
+        </div>
+
+        <label class="section-label">Tryb widoczności</label>
+
+        <div class="visibility-option">
+          <div class="radio-circle selected"></div>
+          <div class="visibility-info">
+            <div class="visibility-name">Widoczny</div>
+            <div class="visibility-desc">Twój profil jest widoczny na mapie i w wynikach wyszukiwania dla wszystkich.</div>
+          </div>
+        </div>
+
+        <div class="visibility-option dimmed">
+          <div class="radio-circle"></div>
+          <div class="visibility-info">
+            <div class="visibility-name">Tylko dopasowania</div>
+            <div class="visibility-desc">Nie pojawisz się na mapie. Widzisz innych, ale oni Ciebie tylko po wysłaniu wave.</div>
+          </div>
+        </div>
+
+        <div class="visibility-option dimmed">
+          <div class="radio-circle"></div>
+          <div class="visibility-info">
+            <div class="visibility-name">Ukryty</div>
+            <div class="visibility-desc">Twój profil jest całkowicie niewidoczny. Nikt Cię nie znajdzie ani nie zobaczy.</div>
+          </div>
+        </div>
+
+        <div class="settings-note">
+          Zmiana trybu widoczności nie wpływa na istniejące rozmowy i dopasowania.
+        </div>
+
+        <div class="divider-thick"></div>
+
+        <label class="section-label">Inne</label>
+
+        <div class="settings-future">
+          <span class="settings-future-label">Powiadomienia</span>
+          <span class="settings-future-arrow">›</span>
+        </div>
+
+        <div class="settings-future">
+          <span class="settings-future-label">Połączone konta</span>
+          <span class="settings-future-arrow">›</span>
+        </div>
+
+        <div class="settings-future">
+          <span class="settings-future-label">Usuń konto</span>
+          <span class="settings-future-arrow">›</span>
+        </div>
+      </div>
+    </div>
+    <div class="annotation">
+      <p><strong>Ekran Ustawień</strong> z selektorem widoczności (radio). Zastępuje obecny toggle isHidden. Sekcja "Inne" gotowa na przyszłe opcje (powiadomienia, OAuth, konto).</p>
+      <p style="margin-top: 6px;"><strong>"Połączone konta"</strong> — przyszłe miejsce na OAuth (Instagram, LinkedIn). Teraz placeholder.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="version-row">
+  <div class="version-item">
+    <div class="version-label">BLI-10</div>
+    <div class="version-desc">Social media, strona WWW i filtry</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLI-8 — Gdzie przenieść tworzenie grup?</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1A1A1A;
+    --bg: #FAF7F2;
+    --accent: #C0392B;
+    --rule: #D5D0C4;
+    --muted: #8B8680;
+    --map-bg: #F0ECE3;
+    --success: #5B7A5E;
+    --success-bg: #EEF2EE;
+    --error: #9B3B3B;
+    --error-bg: #F2EEEE;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #F5F2ED;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    padding: 40px 32px 80px;
+  }
+
+  h1 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: 28px;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .page-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 48px;
+    line-height: 1.6;
+  }
+
+  .page-sub a { color: var(--accent); text-decoration: none; }
+
+  /* ── Section ───────────────────────────── */
+
+  .section {
+    margin-bottom: 56px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .section-letter {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    font-weight: 400;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .section-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--ink);
+  }
+
+  .section-rec {
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--success);
+    background: var(--success-bg);
+    padding: 3px 8px;
+    border-radius: 2px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .section-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+    max-width: 700px;
+    padding-left: 48px;
+  }
+
+  .phones-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding-left: 48px;
+  }
+
+  /* ── Phone ─────────────────────────────── */
+
+  .phone-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 240px;
+    flex-shrink: 0;
+  }
+
+  .phone-col-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+  }
+
+  .phone {
+    width: 240px;
+    height: 520px;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Status bar ────────────────────────── */
+
+  .status-bar {
+    height: 40px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 4px;
+    font-family: 'Instrument Serif', serif;
+    font-size: 11px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--rule);
+    flex-shrink: 0;
+  }
+
+  /* ── Header ────────────────────────────── */
+
+  .screen-header {
+    padding: 10px 14px 6px;
+    border-bottom: 1px solid var(--rule);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .screen-header h2 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 17px;
+    font-weight: 400;
+    color: var(--ink);
+  }
+
+  .header-action {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink);
+    cursor: default;
+  }
+
+  /* ── Filter chips ──────────────────────── */
+
+  .filter-chips {
+    display: flex;
+    gap: 6px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--rule);
+    flex-shrink: 0;
+  }
+
+  .chip {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 5px 10px;
+    border-radius: 2px;
+    border: 1px solid var(--rule);
+    color: var(--muted);
+    background: transparent;
+  }
+
+  .chip-active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  /* ── Chat list ─────────────────────────── */
+
+  .chat-list {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .chat-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .chat-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid var(--rule);
+    filter: grayscale(30%);
+  }
+
+  .chat-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .chat-avatar-group {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid var(--rule);
+    background: var(--map-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .chat-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .chat-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  .chat-msg {
+    font-size: 9px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+  }
+
+  .chat-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .chat-time {
+    font-size: 8px;
+    color: var(--muted);
+  }
+
+  .chat-unread {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+  }
+
+  /* ── Tab bar ───────────────────────────── */
+
+  .tab-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--bg);
+    border-top: 2px solid var(--ink);
+    display: flex;
+    padding-top: 6px;
+  }
+
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding-top: 4px;
+    color: var(--muted);
+  }
+
+  .tab-item.active { color: var(--accent); }
+
+  .tab-icon { width: 16px; height: 16px; }
+
+  .tab-label {
+    font-size: 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 500;
+  }
+
+  /* ── FAB ────────────────────────────────── */
+
+  .fab {
+    position: absolute;
+    bottom: 72px;
+    right: 14px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 300;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 10;
+  }
+
+  /* ── Create group row (option B) ───────── */
+
+  .create-group-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rule);
+    cursor: default;
+  }
+
+  .create-group-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px dashed var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 16px;
+    font-weight: 300;
+  }
+
+  .create-group-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Empty state ───────────────────────── */
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px 100px;
+    text-align: center;
+  }
+
+  .empty-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--map-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    color: var(--muted);
+  }
+
+  .empty-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+
+  .empty-text {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 16px;
+    max-width: 180px;
+  }
+
+  .empty-btn {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px 20px;
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+  }
+
+  /* ── Annotations ───────────────────────── */
+
+  .annotation {
+    position: absolute;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .ann-tag {
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 3px 7px;
+    border-radius: 2px;
+    white-space: nowrap;
+    line-height: 1;
+  }
+
+  .ann-new {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+
+  .ann-gone {
+    background: var(--error-bg);
+    color: var(--error);
+  }
+
+  .ann-arrow-right {
+    width: 0; height: 0;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+  }
+
+  .ann-arrow-right-new { border-left: 4px solid var(--success-bg); }
+  .ann-arrow-right-gone { border-left: 4px solid var(--error-bg); }
+
+  .ann-arrow-down {
+    width: 0; height: 0;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+  }
+
+  .ann-arrow-down-new { border-top: 4px solid var(--success-bg); }
+
+  .ann-line {
+    position: absolute;
+    z-index: 19;
+  }
+
+  /* ── Pros / Cons ───────────────────────── */
+
+  .verdict {
+    padding-left: 48px;
+    margin-top: 16px;
+    display: flex;
+    gap: 24px;
+    max-width: 700px;
+  }
+
+  .verdict-col {
+    flex: 1;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .verdict-col dt {
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .verdict-col dd {
+    color: var(--ink);
+  }
+
+  .verdict-col .pro { color: var(--success); }
+  .verdict-col .con { color: var(--error); }
+
+  /* ── Divider ───────────────────────────── */
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 48px 0;
+  }
+
+  /* ── Highlighted phone ─────────────────── */
+  .phone-highlight {
+    outline: 2px solid var(--success);
+    outline-offset: 3px;
+  }
+</style>
+</head>
+<body>
+
+<h1>BLI-8: Gdzie przenieść tworzenie grup?</h1>
+<p class="page-sub">
+  Trzy warianty — <a href="https://linear.app/blisko/issue/BLI-8">BLI-8</a>
+</p>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- OPTION A                                       -->
+<!-- ═══════════════════════════════════════════════ -->
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-letter">A</span>
+    <span class="section-title">Ikona "+" w headerze</span>
+    <span class="section-rec">Rekomendacja</span>
+  </div>
+  <p class="section-desc">
+    Mały przycisk "+" w prawym górnym rogu nagłówka "Czaty". Zawsze dostępny, nie krzyczy.
+    FAB znika. Jak w WhatsApp / Signal / Telegram.
+  </p>
+
+  <div class="phones-row">
+
+    <!-- A: Wszystko -->
+    <div class="phone-col">
+      <div class="phone-col-label">Filtr: Wszystko</div>
+      <div class="phone">
+        <div class="status-bar">09:41</div>
+        <div class="screen-header">
+          <h2>Czaty</h2>
+          <div class="header-action">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <!-- annotation: new icon -->
+        <div class="annotation" style="top: 44px; right: 46px;">
+          <span class="ann-tag ann-new">Nowy</span>
+          <span class="ann-arrow-right ann-arrow-right-new"></span>
+        </div>
+        <div class="filter-chips">
+          <div class="chip chip-active">Wszystko</div>
+          <div class="chip">Wiadomości</div>
+          <div class="chip">Grupy</div>
+        </div>
+        <div class="chat-list">
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=12" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Kasia, 24</div>
+              <div class="chat-msg">Cześć! Też masz psa? 🐕</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">2 min</span>
+              <span class="chat-unread">2</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar-group">🏃</div>
+            <div class="chat-content">
+              <div class="chat-name">Biegacze Mokotów</div>
+              <div class="chat-msg">Ania: Kto jutro na 10km?</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">15 min</span>
+              <span class="chat-unread">5</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=60" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Zuza, 23</div>
+              <div class="chat-msg">Super, to do zobaczenia!</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">1 godz.</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar-group">🎲</div>
+            <div class="chat-content">
+              <div class="chat-name">Planszówki Wola</div>
+              <div class="chat-msg">Maciek: Mam nową grę!</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">3 godz.</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=45" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Piotr, 29</div>
+              <div class="chat-msg">Gramy w kręgle?</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">wczoraj</span>
+            </div>
+          </div>
+        </div>
+        <!-- NO FAB -->
+        <div class="tab-bar">
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="tab-label">Blisko</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M12 4l8 8-8 8"/></svg>
+            <span class="tab-label">Zaczepienia</span>
+          </div>
+          <div class="tab-item active">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span class="tab-label">Czaty</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="tab-label">Profil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A: Wiadomości -->
+    <div class="phone-col">
+      <div class="phone-col-label">Filtr: Wiadomości</div>
+      <div class="phone">
+        <div class="status-bar">09:41</div>
+        <div class="screen-header">
+          <h2>Czaty</h2>
+          <div class="header-action">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <div class="filter-chips">
+          <div class="chip">Wszystko</div>
+          <div class="chip chip-active">Wiadomości</div>
+          <div class="chip">Grupy</div>
+        </div>
+        <div class="chat-list">
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=12" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Kasia, 24</div>
+              <div class="chat-msg">Cześć! Też masz psa? 🐕</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">2 min</span>
+              <span class="chat-unread">2</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=60" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Zuza, 23</div>
+              <div class="chat-msg">Super, to do zobaczenia!</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">1 godz.</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=45" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Piotr, 29</div>
+              <div class="chat-msg">Gramy w kręgle?</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">wczoraj</span>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="tab-label">Blisko</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M12 4l8 8-8 8"/></svg>
+            <span class="tab-label">Zaczepienia</span>
+          </div>
+          <div class="tab-item active">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span class="tab-label">Czaty</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="tab-label">Profil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A: Grupy -->
+    <div class="phone-col">
+      <div class="phone-col-label">Filtr: Grupy</div>
+      <div class="phone">
+        <div class="status-bar">09:41</div>
+        <div class="screen-header">
+          <h2>Czaty</h2>
+          <div class="header-action">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <div class="filter-chips">
+          <div class="chip">Wszystko</div>
+          <div class="chip">Wiadomości</div>
+          <div class="chip chip-active">Grupy</div>
+        </div>
+        <div class="chat-list">
+          <div class="chat-row">
+            <div class="chat-avatar-group">🏃</div>
+            <div class="chat-content">
+              <div class="chat-name">Biegacze Mokotów</div>
+              <div class="chat-msg">Ania: Kto jutro na 10km?</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">15 min</span>
+              <span class="chat-unread">5</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar-group">🎲</div>
+            <div class="chat-content">
+              <div class="chat-name">Planszówki Wola</div>
+              <div class="chat-msg">Maciek: Mam nową grę!</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">3 godz.</span>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="tab-label">Blisko</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M12 4l8 8-8 8"/></svg>
+            <span class="tab-label">Zaczepienia</span>
+          </div>
+          <div class="tab-item active">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span class="tab-label">Czaty</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="tab-label">Profil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="verdict">
+    <div class="verdict-col">
+      <dt class="pro">Za</dt>
+      <dd>Zmiana jednego pliku. FAB znika, header zyskuje ikonkę. Przycisk dostępny na każdym filtrze. Znany wzorzec z WhatsApp / Signal.</dd>
+    </div>
+    <div class="verdict-col">
+      <dt class="con">Przeciw</dt>
+      <dd>Mniej odkrywalny dla nowych userów niż duży FAB. Ale skoro to 1% userów — to zaleta, nie wada.</dd>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- OPTION B                                       -->
+<!-- ═══════════════════════════════════════════════ -->
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-letter">B</span>
+    <span class="section-title">Wiersz "Utwórz grupę" na liście</span>
+  </div>
+  <p class="section-desc">
+    Zamiast FABa — na górze listy grup (filtr "Grupy") specjalny wiersz z przyciskiem.
+    Wygląda jak element listy, ale jest CTA. Widoczny tylko w filtrze "Grupy".
+  </p>
+
+  <div class="phones-row">
+
+    <!-- B: Wszystko — no CTA -->
+    <div class="phone-col">
+      <div class="phone-col-label">Filtr: Wszystko</div>
+      <div class="phone">
+        <div class="status-bar">09:41</div>
+        <div class="screen-header"><h2>Czaty</h2></div>
+        <div class="filter-chips">
+          <div class="chip chip-active">Wszystko</div>
+          <div class="chip">Wiadomości</div>
+          <div class="chip">Grupy</div>
+        </div>
+        <div class="chat-list">
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=12" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Kasia, 24</div>
+              <div class="chat-msg">Cześć! Też masz psa? 🐕</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">2 min</span>
+              <span class="chat-unread">2</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar-group">🏃</div>
+            <div class="chat-content">
+              <div class="chat-name">Biegacze Mokotów</div>
+              <div class="chat-msg">Ania: Kto jutro na 10km?</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">15 min</span>
+              <span class="chat-unread">5</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=60" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Zuza, 23</div>
+              <div class="chat-msg">Super, to do zobaczenia!</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">1 godz.</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar-group">🎲</div>
+            <div class="chat-content">
+              <div class="chat-name">Planszówki Wola</div>
+              <div class="chat-msg">Maciek: Mam nową grę!</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">3 godz.</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=45" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Piotr, 29</div>
+              <div class="chat-msg">Gramy w kręgle?</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">wczoraj</span>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="tab-label">Blisko</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M12 4l8 8-8 8"/></svg>
+            <span class="tab-label">Zaczepienia</span>
+          </div>
+          <div class="tab-item active">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span class="tab-label">Czaty</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="tab-label">Profil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: Grupy — create row on top -->
+    <div class="phone-col">
+      <div class="phone-col-label">Filtr: Grupy</div>
+      <div class="phone">
+        <div class="status-bar">09:41</div>
+        <div class="screen-header"><h2>Czaty</h2></div>
+        <div class="filter-chips">
+          <div class="chip">Wszystko</div>
+          <div class="chip">Wiadomości</div>
+          <div class="chip chip-active">Grupy</div>
+        </div>
+        <div class="chat-list">
+          <!-- Create group row -->
+          <div class="create-group-row">
+            <div class="create-group-icon">+</div>
+            <div class="create-group-text">Utwórz nową grupę</div>
+          </div>
+          <!-- annotation -->
+          <div class="annotation" style="top: 131px; left: 50%; transform: translateX(-50%);">
+            <span class="ann-tag ann-new" style="font-size: 6px;">Nowy element</span>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar-group">🏃</div>
+            <div class="chat-content">
+              <div class="chat-name">Biegacze Mokotów</div>
+              <div class="chat-msg">Ania: Kto jutro na 10km?</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">15 min</span>
+              <span class="chat-unread">5</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar-group">🎲</div>
+            <div class="chat-content">
+              <div class="chat-name">Planszówki Wola</div>
+              <div class="chat-msg">Maciek: Mam nową grę!</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">3 godz.</span>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="tab-label">Blisko</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M12 4l8 8-8 8"/></svg>
+            <span class="tab-label">Zaczepienia</span>
+          </div>
+          <div class="tab-item active">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span class="tab-label">Czaty</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="tab-label">Profil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: Grupy empty — create row only item -->
+    <div class="phone-col">
+      <div class="phone-col-label">Grupy: pusty stan</div>
+      <div class="phone">
+        <div class="status-bar">09:41</div>
+        <div class="screen-header"><h2>Czaty</h2></div>
+        <div class="filter-chips">
+          <div class="chip">Wszystko</div>
+          <div class="chip">Wiadomości</div>
+          <div class="chip chip-active">Grupy</div>
+        </div>
+        <div class="chat-list">
+          <div class="create-group-row">
+            <div class="create-group-icon">+</div>
+            <div class="create-group-text">Utwórz nową grupę</div>
+          </div>
+        </div>
+        <div class="empty-state" style="padding-top: 20px;">
+          <div class="empty-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <div class="empty-title">Brak grup</div>
+          <div class="empty-text">Utwórz grupę albo dołącz do istniejącej w okolicy.</div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="tab-label">Blisko</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M12 4l8 8-8 8"/></svg>
+            <span class="tab-label">Zaczepienia</span>
+          </div>
+          <div class="tab-item active">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span class="tab-label">Czaty</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="tab-label">Profil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="verdict">
+    <div class="verdict-col">
+      <dt class="pro">Za</dt>
+      <dd>Kontekstowe — widać tylko w sekcji grup. Działa też jako jedyny element w pustym stanie. Czysta lista w "Wszystko" i "Wiadomości".</dd>
+    </div>
+    <div class="verdict-col">
+      <dt class="con">Przeciw</dt>
+      <dd>User musi wiedzieć, żeby przełączyć na filtr "Grupy". Mniej intuicyjny dla kogoś kto nie ma jeszcze żadnych grup (bo domyślny filtr to "Wszystko").</dd>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- OPTION C                                       -->
+<!-- ═══════════════════════════════════════════════ -->
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-letter">C</span>
+    <span class="section-title">Header + empty state z CTA</span>
+  </div>
+  <p class="section-desc">
+    Połączenie: mały "+" w headerze (jak A) + gdy filtr "Grupy" jest pusty, duży empty state
+    z przyciskiem "Załóż pierwszą grupę". Power user ma ikonkę, nowy user ma wyraźne zaproszenie.
+  </p>
+
+  <div class="phones-row">
+
+    <!-- C: Grupy with items — header icon -->
+    <div class="phone-col">
+      <div class="phone-col-label">Grupy: z konwersacjami</div>
+      <div class="phone">
+        <div class="status-bar">09:41</div>
+        <div class="screen-header">
+          <h2>Czaty</h2>
+          <div class="header-action">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <div class="filter-chips">
+          <div class="chip">Wszystko</div>
+          <div class="chip">Wiadomości</div>
+          <div class="chip chip-active">Grupy</div>
+        </div>
+        <div class="chat-list">
+          <div class="chat-row">
+            <div class="chat-avatar-group">🏃</div>
+            <div class="chat-content">
+              <div class="chat-name">Biegacze Mokotów</div>
+              <div class="chat-msg">Ania: Kto jutro na 10km?</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">15 min</span>
+              <span class="chat-unread">5</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar-group">🎲</div>
+            <div class="chat-content">
+              <div class="chat-name">Planszówki Wola</div>
+              <div class="chat-msg">Maciek: Mam nową grę!</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">3 godz.</span>
+            </div>
+          </div>
+        </div>
+        <div class="annotation" style="top: 44px; right: 46px;">
+          <span class="ann-tag ann-new">Ikona +</span>
+          <span class="ann-arrow-right ann-arrow-right-new"></span>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="tab-label">Blisko</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M12 4l8 8-8 8"/></svg>
+            <span class="tab-label">Zaczepienia</span>
+          </div>
+          <div class="tab-item active">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span class="tab-label">Czaty</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="tab-label">Profil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C: Grupy empty — full empty state CTA -->
+    <div class="phone-col">
+      <div class="phone-col-label">Grupy: pusty stan</div>
+      <div class="phone phone-highlight">
+        <div class="status-bar">09:41</div>
+        <div class="screen-header">
+          <h2>Czaty</h2>
+          <div class="header-action">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <div class="filter-chips">
+          <div class="chip">Wszystko</div>
+          <div class="chip">Wiadomości</div>
+          <div class="chip chip-active">Grupy</div>
+        </div>
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <div class="empty-title">Brak grup</div>
+          <div class="empty-text">Załóż grupę ze znajomymi z okolicy lub dołącz do istniejącej.</div>
+          <button class="empty-btn">Załóż grupę</button>
+        </div>
+        <div class="annotation" style="bottom: 210px; left: 50%; transform: translateX(-50%);">
+          <span class="ann-tag ann-new" style="font-size: 6px;">Duże CTA dla nowych</span>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="tab-label">Blisko</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M12 4l8 8-8 8"/></svg>
+            <span class="tab-label">Zaczepienia</span>
+          </div>
+          <div class="tab-item active">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span class="tab-label">Czaty</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="tab-label">Profil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C: Wiadomości — header icon, no special CTA -->
+    <div class="phone-col">
+      <div class="phone-col-label">Filtr: Wiadomości</div>
+      <div class="phone">
+        <div class="status-bar">09:41</div>
+        <div class="screen-header">
+          <h2>Czaty</h2>
+          <div class="header-action">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <div class="filter-chips">
+          <div class="chip">Wszystko</div>
+          <div class="chip chip-active">Wiadomości</div>
+          <div class="chip">Grupy</div>
+        </div>
+        <div class="chat-list">
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=12" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Kasia, 24</div>
+              <div class="chat-msg">Cześć! Też masz psa? 🐕</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">2 min</span>
+              <span class="chat-unread">2</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=60" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Zuza, 23</div>
+              <div class="chat-msg">Super, to do zobaczenia!</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">1 godz.</span>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar"><img src="https://i.pravatar.cc/80?img=45" alt=""></div>
+            <div class="chat-content">
+              <div class="chat-name">Piotr, 29</div>
+              <div class="chat-msg">Gramy w kręgle?</div>
+            </div>
+            <div class="chat-meta">
+              <span class="chat-time">wczoraj</span>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="tab-label">Blisko</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M12 4l8 8-8 8"/></svg>
+            <span class="tab-label">Zaczepienia</span>
+          </div>
+          <div class="tab-item active">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span class="tab-label">Czaty</span>
+          </div>
+          <div class="tab-item">
+            <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="tab-label">Profil</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="verdict">
+    <div class="verdict-col">
+      <dt class="pro">Za</dt>
+      <dd>Najlepsza odkrywalność: power user ma ikonkę w headerze, nowy user widzi duże "Załóż grupę" w pustym stanie. Pokrywa oba scenariusze.</dd>
+    </div>
+    <div class="verdict-col">
+      <dt class="con">Przeciw</dt>
+      <dd>Dwa entry pointy do tego samego — więcej kodu do utrzymania. Ale nowy user trafia na pusty stan naturalnie, więc to nie jest sztuczne.</dd>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
