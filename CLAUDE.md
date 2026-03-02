@@ -369,32 +369,34 @@ Every iteration queries Linear. The memory file is never authoritative for "what
 
 2. **CHECK COMMENTS** — read recent comments on the ticket (and parent if sub-issue). Look for feedback, scope changes, blocker resolutions from Karol. This is 1 MCP call — skip only for brand-new tickets.
 
-3. **READ MEMORY** — check the memory file for technical context: branch name, decisions, known issues. If it's stale (refers to a different ticket), ignore it.
+3. **LOAD CONTEXT** — if the ticket has a `parentId` (it's a sub-issue), read the parent ticket's description + any attached Linear Documents (implementation plans, specs). This gives you the broader picture — architecture, naming conventions, how sub-issues relate. But focus implementation strictly on YOUR sub-ticket's acceptance criteria. The parent context informs decisions, it doesn't expand scope.
 
-4. **SETUP**
+4. **READ MEMORY** — check the memory file for technical context: branch name, decisions, known issues. If it's stale (refers to a different ticket), ignore it.
+
+5. **SETUP**
    - `git checkout main && git pull origin main`
    - Create or checkout branch (`gitBranchName` from Linear; each sub-issue uses its own branch)
    - Set status → In Progress in Linear (only if not already)
 
-5. **PRE-FLIGHT CHECK**
+6. **PRE-FLIGHT CHECK**
    - Scan the ticket description for file paths and function/component names it references.
    - Verify they exist in the codebase (Glob/Grep). If a ticket says "modify `GroupMarker.tsx`" but the file doesn't exist and this ticket doesn't create it → it depends on another ticket. Skip, treat as blocked.
    - This is a quick check (few Glob calls), not a deep analysis.
 
-6. **IMPLEMENT**
+7. **IMPLEMENT**
    - One task, one commit. Format: `Verb description (BLI-X)` (GPG signed).
    - **Stuck detection:** if you hit the same error 3 times or spend more than ~15 turns without progress, stop and treat as blocked. Don't burn iterations on a dead end.
 
-7. **VERIFY**
+8. **VERIFY**
    - `pnpm --filter @repo/api typecheck`
    - `pnpm --filter @repo/shared typecheck`
    - `pnpm --filter @repo/mobile typecheck`
    - `pnpm --filter @repo/api test` (if tests exist)
    - If tests fail: 2 attempts to fix, then treat as blocked.
 
-8. **UPDATE MEMORY FILE** — always, before finishing. Write technical context for the next session (branch, decisions, known issues). Do NOT track task queue here — that's Linear's job.
+9. **UPDATE MEMORY FILE** — always, before finishing. Write technical context for the next session (branch, decisions, known issues). Do NOT track task queue here — that's Linear's job.
 
-9. **FINISH**
+10. **FINISH**
    - **Standalone ticket done** → merge to main, delete branch, Linear status → Done, remove Ralph label, output `RALPH_MERGED`
    - **Sub-task done** → merge sub-task branch to main, delete branch, sub-task → Done. If last sub-task: verify parent acceptance criteria, parent → Done, remove Ralph label. Output `RALPH_MERGED`
    - **Blocked** → push branch, comment blocker on Linear ticket, output `RALPH_BLOCKED`
