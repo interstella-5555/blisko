@@ -83,6 +83,10 @@ export interface ProfilingCompleteEvent {
   sessionId: string;
 }
 
+export interface StatusMatchesReadyEvent {
+  userId: string;
+}
+
 export interface GroupMemberEvent {
   conversationId: string;
   userId: string;

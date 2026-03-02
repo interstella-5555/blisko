@@ -98,6 +98,41 @@ export type ConnectionAnalysisResult = z.infer<
   typeof connectionAnalysisSchema
 >;
 
+export async function evaluateStatusMatch(
+  statusText: string,
+  otherContext: string,
+  matchType: 'status' | 'profile'
+): Promise<{ isMatch: boolean; reason: string }> {
+  if (!isConfigured()) return { isMatch: false, reason: '' };
+
+  const prompt = matchType === 'status'
+    ? `Osoba A szuka: "${statusText}"
+Osoba B szuka: "${otherContext}"
+
+Czy te dwie potrzeby/oferty się uzupełniają? Jedna osoba może pomóc drugiej lub mogą coś zrobić razem?
+Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po polsku, max 60 znaków"}`
+    : `Osoba A szuka teraz: "${statusText}"
+Profil osoby B: "${otherContext}"
+
+Czy profil osoby B pasuje do tego czego szuka osoba A?
+Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po polsku, max 60 znaków"}`;
+
+  try {
+    const { text } = await generateText({
+      model: openai(GPT_MODEL),
+      prompt,
+      maxOutputTokens: 100,
+    });
+    const parsed = JSON.parse(text);
+    return {
+      isMatch: Boolean(parsed.isMatch),
+      reason: String(parsed.reason || '').slice(0, 80),
+    };
+  } catch {
+    return { isMatch: false, reason: '' };
+  }
+}
+
 export async function analyzeConnection(
   profileA: { portrait: string; displayName: string; lookingFor: string },
   profileB: { portrait: string; displayName: string; lookingFor: string }

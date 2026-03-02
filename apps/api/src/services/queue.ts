@@ -1,15 +1,16 @@
 import { Queue, Worker, type Job } from 'bullmq';
 import { createHash } from 'crypto';
-import { eq, and, ne, sql } from 'drizzle-orm';
+import { eq, and, ne, gte, lte, isNotNull, sql } from 'drizzle-orm';
 import { RedisClient } from 'bun';
 import { cosineSimilarity } from '@repo/shared';
 import { db } from '../db';
-import { profiles, connectionAnalyses, blocks, profilingSessions, profilingQA } from '../db/schema';
+import { profiles, connectionAnalyses, blocks, profilingSessions, profilingQA, statusMatches } from '../db/schema';
 import {
   analyzeConnection,
   generatePortrait,
   generateEmbedding,
   extractInterests,
+  evaluateStatusMatch,
 } from './ai';
 import { generateNextQuestion, generateProfileFromQA } from './profiling-ai';
 import { ee } from '../ws/events';
@@ -466,6 +467,119 @@ async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
   });
 }
 
+// --- Status matching processor ---
+
+async function processStatusMatching(userId: string) {
+  const [user] = await db
+    .select()
+    .from(profiles)
+    .where(eq(profiles.userId, userId));
+
+  if (!user?.currentStatus) return;
+
+  // Check if status expired — clean up and return
+  if (user.statusExpiresAt && user.statusExpiresAt < new Date()) {
+    await db.update(profiles).set({
+      currentStatus: null,
+      statusExpiresAt: null,
+      statusEmbedding: null,
+      statusSetAt: null,
+    }).where(eq(profiles.userId, userId));
+    await db.delete(statusMatches).where(eq(statusMatches.userId, userId));
+    return;
+  }
+
+  // Generate embedding for status text
+  const statusEmb = await generateEmbedding(user.currentStatus);
+  await db.update(profiles).set({ statusEmbedding: statusEmb }).where(eq(profiles.userId, userId));
+
+  if (!statusEmb.length || !user.latitude || !user.longitude) return;
+
+  // Get nearby visible users (~5km bounding box)
+  const nearbyRadius = 0.05;
+  const nearbyUsers = await db
+    .select()
+    .from(profiles)
+    .where(
+      and(
+        ne(profiles.userId, userId),
+        eq(profiles.visibilityMode, 'visible'),
+        isNotNull(profiles.latitude),
+        isNotNull(profiles.longitude),
+        gte(profiles.latitude, user.latitude - nearbyRadius),
+        lte(profiles.latitude, user.latitude + nearbyRadius),
+        gte(profiles.longitude, user.longitude - nearbyRadius),
+        lte(profiles.longitude, user.longitude + nearbyRadius),
+      )
+    );
+
+  // Pre-filter by cosine similarity — top 20
+  const scored = nearbyUsers
+    .map((u) => {
+      const hasActiveStatus = u.currentStatus &&
+        (!u.statusExpiresAt || u.statusExpiresAt > new Date());
+
+      let similarity = 0;
+      if (hasActiveStatus && u.statusEmbedding?.length) {
+        similarity = cosineSimilarity(statusEmb, u.statusEmbedding);
+      } else if (u.embedding?.length) {
+        similarity = cosineSimilarity(statusEmb, u.embedding);
+      }
+
+      return {
+        user: u,
+        similarity,
+        hasActiveStatus: Boolean(hasActiveStatus),
+      };
+    })
+    .filter((s) => s.similarity > 0.3)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 20);
+
+  // LLM evaluation for top candidates
+  const matches: { matchedUserId: string; reason: string; matchedVia: 'status' | 'profile' }[] = [];
+
+  await Promise.all(
+    scored.map(async ({ user: otherUser, hasActiveStatus }) => {
+      const matchType = hasActiveStatus ? 'status' : 'profile';
+      const otherContext = hasActiveStatus
+        ? otherUser.currentStatus!
+        : `${otherUser.bio}. Szuka: ${otherUser.lookingFor}`;
+
+      const result = await evaluateStatusMatch(
+        user.currentStatus!,
+        otherContext,
+        matchType,
+      );
+
+      if (result.isMatch) {
+        matches.push({
+          matchedUserId: otherUser.userId,
+          reason: result.reason,
+          matchedVia: matchType,
+        });
+      }
+    })
+  );
+
+  // Replace old matches with new ones
+  await db.delete(statusMatches).where(eq(statusMatches.userId, userId));
+
+  if (matches.length > 0) {
+    await db.insert(statusMatches).values(
+      matches.map((m) => ({
+        userId,
+        matchedUserId: m.matchedUserId,
+        reason: m.reason,
+        matchedVia: m.matchedVia,
+      }))
+    );
+  }
+
+  // Emit WS event
+  ee.emit('statusMatchesReady', { userId });
+}
+
 // --- Main job processor ---
 
 async function processJob(job: Job<AIJob>) {
@@ -493,6 +607,9 @@ async function processJob(job: Job<AIJob>) {
       break;
     case 'generate-profile-from-qa':
       await processGenerateProfileFromQA(data);
+      break;
+    case 'status-matching':
+      await processStatusMatching(data.userId);
       break;
   }
 }

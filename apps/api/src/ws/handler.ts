@@ -3,7 +3,7 @@ import { eq, and, gt } from 'drizzle-orm';
 import { db } from '../db';
 import { session as sessionTable, conversationParticipants } from '../db/schema';
 import { ee } from './events';
-import type { NewMessageEvent, TypingEvent, ReactionEvent, NewWaveEvent, WaveRespondedEvent, AnalysisReadyEvent, NearbyChangedEvent, ProfileReadyEvent, QuestionReadyEvent, ProfilingCompleteEvent, GroupMemberEvent, GroupUpdatedEvent, TopicEvent, GroupInvitedEvent } from './events';
+import type { NewMessageEvent, TypingEvent, ReactionEvent, NewWaveEvent, WaveRespondedEvent, AnalysisReadyEvent, NearbyChangedEvent, ProfileReadyEvent, QuestionReadyEvent, ProfilingCompleteEvent, StatusMatchesReadyEvent, GroupMemberEvent, GroupUpdatedEvent, TopicEvent, GroupInvitedEvent } from './events';
 
 export interface WSData {
   userId: string | null;
@@ -165,6 +165,10 @@ ee.on('nearbyChanged', (event: NearbyChangedEvent) => {
 
 ee.on('profileReady', (event: ProfileReadyEvent) => {
   broadcastToUser(event.userId, { type: 'profileReady' });
+});
+
+ee.on('statusMatchesReady', (event: StatusMatchesReadyEvent) => {
+  broadcastToUser(event.userId, { type: 'statusMatchesReady' });
 });
 
 ee.on('questionReady', (event: QuestionReadyEvent) => {
