@@ -1,8 +1,10 @@
 import { betterAuth } from 'better-auth';
 import { emailOTP, genericOAuth } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
 import { db } from './db';
+import { profiles } from './db/schema';
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -21,6 +23,54 @@ export const auth = betterAuth({
     'http://localhost:19000',
     'http://localhost:19006',
   ],
+  databaseHooks: {
+    account: {
+      create: {
+        after: async (account) => {
+          const { providerId, accessToken, userId } = account;
+          if (!accessToken || (providerId !== 'instagram' && providerId !== 'linkedin')) return;
+
+          let username: string | null = null;
+
+          try {
+            if (providerId === 'instagram') {
+              const res = await fetch(
+                `https://graph.instagram.com/me?fields=username&access_token=${accessToken}`
+              );
+              if (res.ok) {
+                const data = await res.json();
+                username = data.username ?? null;
+              }
+            } else if (providerId === 'linkedin') {
+              const res = await fetch('https://api.linkedin.com/v2/userinfo', {
+                headers: { Authorization: `Bearer ${accessToken}` },
+              });
+              if (res.ok) {
+                const data = await res.json();
+                username = data.name ?? null;
+              }
+            }
+          } catch (err) {
+            console.error(`[auth] Failed to fetch ${providerId} username:`, err);
+          }
+
+          if (username) {
+            const [profile] = await db
+              .select({ socialLinks: profiles.socialLinks })
+              .from(profiles)
+              .where(eq(profiles.userId, userId));
+            if (profile) {
+              const links = { ...(profile.socialLinks ?? {}), [providerId]: username };
+              await db
+                .update(profiles)
+                .set({ socialLinks: links, updatedAt: new Date() })
+                .where(eq(profiles.userId, userId));
+            }
+          }
+        },
+      },
+    },
+  },
   socialProviders: {
     linkedin: {
       clientId: process.env.LINKEDIN_CLIENT_ID as string,
