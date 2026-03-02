@@ -79,10 +79,9 @@ if [[ -n "$EXISTING_RALPHS" ]]; then
   echo "$EXISTING_RALPHS" | xargs kill -9 2>/dev/null || true
 fi
 
-# Ensure on main
-echo "==> Ensuring on main branch..."
-git checkout main
-git pull origin main
+# Fetch latest main (without switching)
+echo "==> Fetching latest main..."
+git fetch origin main
 
 # Dry run — just list the queue
 if $DRY_RUN; then
@@ -117,6 +116,8 @@ DONE_COUNT=0
 BLOCKED_COUNT=0
 STAGNATION_COUNT=0
 ITERATION=0
+ALL_TOOL_CALLS=""
+START_TIME=$(date +%s)
 
 echo ""
 echo "======================================"
@@ -153,8 +154,8 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
   IS_FIRST="false"
   IS_LAST="false"
   if [[ -n "$TICKET_ID" ]]; then
-    DONE_FOR_TICKET=$(ls "$DONE_DIR"/*-${TICKET_ID}-*.md 2>/dev/null | wc -l | tr -d ' ' || echo "0")
-    REMAINING_FOR_TICKET=$(ls "$QUEUE_DIR"/[0-9]*-${TICKET_ID}-*.md 2>/dev/null | wc -l | tr -d ' ' || echo "0")
+    DONE_FOR_TICKET=$(set +o pipefail; ls -1 "$DONE_DIR"/*-${TICKET_ID}-*.md 2>/dev/null | wc -l | tr -d ' ')
+    REMAINING_FOR_TICKET=$(set +o pipefail; ls -1 "$QUEUE_DIR"/[0-9]*-${TICKET_ID}-*.md 2>/dev/null | wc -l | tr -d ' ')
     if [[ "$DONE_FOR_TICKET" -eq 0 ]]; then
       IS_FIRST="true"
     fi
@@ -164,10 +165,43 @@ while [[ $ITERATION -lt $MAX_ITERATIONS ]]; do
     echo "    Ticket: $TICKET_ID (first=$IS_FIRST, last=$IS_LAST)"
   fi
 
-  # First sub-task: start from main. Otherwise: stay on branch.
-  if [[ "$IS_FIRST" == "true" ]]; then
-    git checkout main 2>/dev/null
-    git pull origin main 2>/dev/null
+  # Extract target branch from task file
+  TARGET_BRANCH=$(grep -m1 '^Branch:' "$TASK_FILE" | sed 's/^Branch: *//' || true)
+  CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+
+  if [[ -n "$TARGET_BRANCH" ]]; then
+    BRANCH_OK=true
+    if [[ "$CURRENT_BRANCH" == "$TARGET_BRANCH" ]]; then
+      # Already on correct branch — rebase on latest main
+      echo "    Branch: $TARGET_BRANCH (continuing, rebasing on main)"
+      git rebase origin/main 2>/dev/null || true
+    elif git show-ref --verify --quiet "refs/heads/$TARGET_BRANCH" 2>/dev/null; then
+      # Branch exists locally — switch to it and rebase
+      echo "    Branch: $TARGET_BRANCH (switching, rebasing on main)"
+      if ! git checkout "$TARGET_BRANCH" 2>&1; then
+        echo "    ERROR: Failed to checkout $TARGET_BRANCH (dirty working tree?)"
+        BRANCH_OK=false
+      else
+        git rebase origin/main 2>/dev/null || true
+      fi
+    else
+      # New branch — create from latest main
+      echo "    Branch: $TARGET_BRANCH (creating from main)"
+      if ! git checkout -b "$TARGET_BRANCH" origin/main 2>&1; then
+        echo "    ERROR: Failed to create $TARGET_BRANCH (dirty working tree?)"
+        BRANCH_OK=false
+      fi
+    fi
+    if [[ "$BRANCH_OK" == "false" ]]; then
+      echo "==> Skipping iteration — could not switch to branch."
+      echo ""
+      STAGNATION_COUNT=$((STAGNATION_COUNT + 1))
+      if [[ $STAGNATION_COUNT -ge $STAGNATION_LIMIT ]]; then
+        echo "==> Stagnation limit reached. Stopping."
+        break
+      fi
+      continue
+    fi
   fi
 
   # Snapshot git HEAD for progress detection
@@ -207,6 +241,22 @@ PROMPT_EOF
     echo "--- End output ---"
   fi
 
+  # Tool usage summary
+  if command -v jq &>/dev/null; then
+    ITER_TOOLS=$(echo "$OUTPUT" | jq -r '
+      [.[] | select(.role == "assistant") | .content[]? | select(.type == "tool_use") | .name] | .[]
+    ' 2>/dev/null || true)
+    if [[ -n "$ITER_TOOLS" ]]; then
+      TOOL_TOTAL=$(echo "$ITER_TOOLS" | wc -l | tr -d ' ')
+      echo "    Tools ($TOOL_TOTAL calls):"
+      echo "$ITER_TOOLS" | sort | uniq -c | sort -rn | while read -r count name; do
+        echo "      $name: $count"
+      done
+      # Accumulate for final summary
+      ALL_TOOL_CALLS="${ALL_TOOL_CALLS}${ITER_TOOLS}"$'\n'
+    fi
+  fi
+
   # Check git progress
   HEAD_AFTER=$(git rev-parse HEAD 2>/dev/null || echo "$HEAD_BEFORE")
   GIT_CHANGED=false
@@ -222,14 +272,11 @@ PROMPT_EOF
     echo "==> [$TICKET_ID] $TASK_BASENAME completed. ($DONE_COUNT done so far)"
 
     # If last sub-task was merged, clean up branch
-    if [[ "$IS_LAST" == "true" ]]; then
-      CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "main")
-      if [[ "$CURRENT_BRANCH" != "main" ]]; then
-        git checkout main 2>/dev/null
-        git branch -d "$CURRENT_BRANCH" 2>/dev/null || true
-        git push origin --delete "$CURRENT_BRANCH" 2>/dev/null || true
-        echo "    Cleaned up branch: $CURRENT_BRANCH"
-      fi
+    if [[ "$IS_LAST" == "true" && -n "$TARGET_BRANCH" && "$TARGET_BRANCH" != "main" ]]; then
+      git checkout main 2>/dev/null
+      git branch -d "$TARGET_BRANCH" 2>/dev/null || true
+      git push origin --delete "$TARGET_BRANCH" 2>/dev/null || true
+      echo "    Cleaned up branch: $TARGET_BRANCH"
     fi
 
   elif echo "$OUTPUT" | grep -q "RALPH_BLOCKED"; then
@@ -262,24 +309,67 @@ PROMPT_EOF
   echo ""
 done
 
-# Return to main
-git checkout main 2>/dev/null || true
-
 # Restore any .blocked files back to normal
 for f in "$QUEUE_DIR"/*.blocked; do
   [[ -f "$f" ]] && mv "$f" "${f%.blocked}"
 done
 
 # Summary
+END_TIME=$(date +%s)
+ELAPSED=$(( END_TIME - START_TIME ))
+ELAPSED_MIN=$(( ELAPSED / 60 ))
+ELAPSED_SEC=$(( ELAPSED % 60 ))
+
 echo ""
 echo "======================================"
 echo "  Ralph — summary"
 echo "======================================"
+echo ""
+echo "  Tasks"
+echo "  ─────────────────────────────"
 echo "  Iterations:  $ITERATION"
 echo "  Merged:      $DONE_COUNT"
 echo "  Blocked:     $BLOCKED_COUNT"
 echo "  Stagnated:   $STAGNATION_COUNT"
-echo "  Logs:        $LOG_DIR/"
 echo "  Queue:       $(ls "$QUEUE_DIR"/[0-9]*.md 2>/dev/null | wc -l | tr -d ' ') remaining"
 echo "  Done:        $(ls "$DONE_DIR"/[0-9]*.md 2>/dev/null | wc -l | tr -d ' ') completed"
+echo ""
+echo "  Time"
+echo "  ─────────────────────────────"
+printf "  Total:       %dm %ds\n" "$ELAPSED_MIN" "$ELAPSED_SEC"
+if [[ $ITERATION -gt 0 ]]; then
+  AVG_SEC=$(( ELAPSED / ITERATION ))
+  printf "  Per task:    %dm %ds avg\n" "$(( AVG_SEC / 60 ))" "$(( AVG_SEC % 60 ))"
+fi
+
+# Tool usage aggregate
+if [[ -n "$ALL_TOOL_CALLS" ]]; then
+  TOTAL_CALLS=$(echo -n "$ALL_TOOL_CALLS" | grep -c . || echo "0")
+  echo ""
+  echo "  Tool calls ($TOTAL_CALLS total)"
+  echo "  ─────────────────────────────"
+  echo -n "$ALL_TOOL_CALLS" | grep . | sort | uniq -c | sort -rn | while read -r count name; do
+    PCT=$(( count * 100 / TOTAL_CALLS ))
+    BAR=""
+    BAR_LEN=$(( PCT / 5 ))
+    for ((i=0; i<BAR_LEN; i++)); do BAR="${BAR}█"; done
+    printf "  %-14s %3d  %3d%% %s\n" "$name" "$count" "$PCT" "$BAR"
+  done
+fi
+
+# Git stats
+COMMITS_MADE=$(git log --oneline --since="@$START_TIME" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$COMMITS_MADE" -gt 0 ]]; then
+  DIFFSTAT=$(git diff --shortstat "HEAD~${COMMITS_MADE}" HEAD 2>/dev/null || true)
+  echo ""
+  echo "  Git"
+  echo "  ─────────────────────────────"
+  echo "  Commits:     $COMMITS_MADE"
+  if [[ -n "$DIFFSTAT" ]]; then
+    echo "  Changes:    $DIFFSTAT"
+  fi
+fi
+
+echo ""
+echo "  Logs:        $LOG_DIR/"
 echo "======================================"
