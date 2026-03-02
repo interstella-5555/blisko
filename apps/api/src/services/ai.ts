@@ -26,7 +26,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   }
 }
 
-export async function generateSocialProfile(
+export async function generatePortrait(
   bio: string,
   lookingFor: string
 ): Promise<string> {
@@ -56,7 +56,7 @@ Nie oceniaj, nie wartościuj — opisuj. Pisz w 3. osobie, naturalnym językiem 
 }
 
 export async function extractInterests(
-  socialProfile: string
+  portrait: string
 ): Promise<string[]> {
   if (!isConfigured()) {
     console.warn('OPENAI_API_KEY not set, returning empty interests');
@@ -75,7 +75,7 @@ export async function extractInterests(
             'Lista 8-12 krótkich tagów zainteresowań, po polsku, małymi literami'
           ),
       }),
-      prompt: `Wyciągnij 8-12 krótkich tagów zainteresowań z podanego profilu społecznego. Tagi powinny być krótkie (1-3 słowa), po polsku, małymi literami.\n\nProfil:\n${socialProfile}`,
+      prompt: `Wyciągnij 8-12 krótkich tagów zainteresowań z podanego profilu społecznego. Tagi powinny być krótkie (1-3 słowa), po polsku, małymi literami.\n\nProfil:\n${portrait}`,
     });
 
     return object.interests;

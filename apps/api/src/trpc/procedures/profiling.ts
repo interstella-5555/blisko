@@ -397,7 +397,7 @@ export const profilingRouter = router({
           .returning();
       }
 
-      // Enqueue AI pipeline (socialProfile + embedding + interests)
+      // Enqueue AI pipeline (portrait + embedding + interests)
       enqueueProfileAI(ctx.userId, profile.bio, profile.lookingFor).catch((err) => {
         console.error('[profiling] Failed to enqueue profile AI job:', err);
       });

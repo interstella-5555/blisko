@@ -7,7 +7,7 @@ import { db } from '../db';
 import { profiles, connectionAnalyses, blocks, profilingSessions, profilingQA } from '../db/schema';
 import {
   analyzeConnection,
-  generateSocialProfile,
+  generatePortrait,
   generateEmbedding,
   extractInterests,
 } from './ai';
@@ -389,7 +389,7 @@ async function processAnalyzeUserPairs(
 // --- Profile AI processor (refactored from sync) ---
 
 async function processGenerateProfileAI(userId: string, bio: string, lookingFor: string) {
-  const portrait = await generateSocialProfile(bio, lookingFor);
+  const portrait = await generatePortrait(bio, lookingFor);
   const [embedding, interests] = await Promise.all([
     generateEmbedding(portrait),
     extractInterests(portrait),
