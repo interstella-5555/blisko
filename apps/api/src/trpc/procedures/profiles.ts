@@ -290,8 +290,8 @@ export const profilesRouter = router({
         ...(input.photoOnly ? [isNotNull(profiles.avatarUrl)] : []),
       );
 
-      // Get blocked users + current profile + analyses + totalCount in parallel
-      const [blockedUsers, blockedByUsers, currentProfileResult, analyses, countResult] =
+      // Get blocked users + current profile + analyses + status matches + totalCount in parallel
+      const [blockedUsers, blockedByUsers, currentProfileResult, analyses, myStatusMatchRows, countResult] =
         await Promise.all([
           db
             .select({ blockedId: blocks.blockedId })
@@ -306,6 +306,10 @@ export const profilesRouter = router({
             .select()
             .from(connectionAnalyses)
             .where(eq(connectionAnalyses.fromUserId, ctx.userId)),
+          db
+            .select()
+            .from(statusMatches)
+            .where(eq(statusMatches.userId, ctx.userId)),
           db
             .select({ count: sql<number>`count(*)` })
             .from(profiles)
@@ -325,6 +329,10 @@ export const profilesRouter = router({
 
       const analysisMap = new Map(
         analyses.map((a) => [a.toUserId, a])
+      );
+
+      const statusMatchMap = new Map(
+        myStatusMatchRows.map((m) => [m.matchedUserId, { reason: m.reason, matchedVia: m.matchedVia }])
       );
 
       // Fetch extra rows to account for blocked users being filtered out
@@ -398,6 +406,7 @@ export const profilesRouter = router({
           commonInterests,
           shortSnippet: analysis?.shortSnippet ?? null,
           analysisReady: !!analysis,
+          statusMatch: statusMatchMap.get(u.profile.userId) ?? null,
         });
       }
 
@@ -415,7 +424,19 @@ export const profilesRouter = router({
 
       const nextCursor = offset + limit < totalCount ? offset + limit : null;
 
-      return { users: results, totalCount, nextCursor };
+      const now = new Date();
+      const hasActiveStatus = currentProfile?.currentStatus &&
+        (!currentProfile.statusExpiresAt || currentProfile.statusExpiresAt > now);
+
+      const myStatus = hasActiveStatus
+        ? {
+            text: currentProfile!.currentStatus!,
+            expiresAt: currentProfile!.statusExpiresAt?.toISOString() ?? null,
+            setAt: currentProfile!.statusSetAt?.toISOString() ?? null,
+          }
+        : null;
+
+      return { users: results, totalCount, nextCursor, myStatus };
     }),
 
   // Ensure analysis exists — lightweight "poke" to re-enqueue if stuck/failed
@@ -469,7 +490,19 @@ export const profilesRouter = router({
         .from(profiles)
         .where(eq(profiles.userId, input.userId));
 
-      return profile || null;
+      if (!profile) return null;
+
+      // Lazy expiry check — treat expired status as null
+      const now = new Date();
+      const hasActiveStatus = profile.currentStatus &&
+        (!profile.statusExpiresAt || profile.statusExpiresAt > now);
+
+      return {
+        ...profile,
+        currentStatus: hasActiveStatus ? profile.currentStatus : null,
+        statusExpiresAt: hasActiveStatus ? profile.statusExpiresAt : null,
+        statusSetAt: hasActiveStatus ? profile.statusSetAt : null,
+      };
     }),
 
   // Dev: clear all connection analyses
