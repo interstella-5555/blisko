@@ -9,14 +9,77 @@ import {
   Platform,
   Pressable,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import Svg, { Path, Rect } from 'react-native-svg';
 import { useAuthStore } from '../../src/stores/authStore';
+import { authClient } from '../../src/lib/auth';
 import { trpc } from '../../src/lib/trpc';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { Button } from '../../src/components/ui/Button';
+
+function InstagramIcon() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Rect x={2} y={2} width={20} height={20} rx={5} stroke={colors.ink} strokeWidth={1.8} />
+      <Path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" stroke={colors.ink} strokeWidth={1.8} />
+      <Path d="M17.5 6.5h.01" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function LinkedInIcon() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+      <Path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6Z" stroke={colors.ink} strokeWidth={1.8} />
+      <Path d="M2 9h4v12H2z" stroke={colors.ink} strokeWidth={1.8} />
+      <Path d="M4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke={colors.ink} strokeWidth={1.8} />
+    </Svg>
+  );
+}
+
+const providerConfig = {
+  instagram: { label: 'Instagram', Icon: InstagramIcon },
+  linkedin: { label: 'LinkedIn', Icon: LinkedInIcon },
+} as const;
+
+function ConnectedAccountRow({
+  provider,
+  username,
+  onConnect,
+  onDisconnect,
+  disconnecting,
+}: {
+  provider: 'instagram' | 'linkedin';
+  username: string | null | undefined;
+  onConnect: () => void;
+  onDisconnect: () => void;
+  disconnecting: boolean;
+}) {
+  const { label, Icon } = providerConfig[provider];
+  const connected = !!username;
+
+  return (
+    <View style={styles.accountRow}>
+      <Icon />
+      {connected ? (
+        <>
+          <Text style={styles.accountHandle}>@{username}</Text>
+          <Pressable onPress={onDisconnect} disabled={disconnecting}>
+            <Text style={styles.disconnectText}>Odłącz</Text>
+          </Pressable>
+        </>
+      ) : (
+        <Pressable style={styles.connectButton} onPress={onConnect}>
+          <Text style={styles.connectText}>Połącz {label}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
 
 export default function EditProfileScreen() {
   const profile = useAuthStore((state) => state.profile);
@@ -26,12 +89,15 @@ export default function EditProfileScreen() {
   const [bio, setBio] = useState(profile?.bio || '');
   const [lookingFor, setLookingFor] = useState(profile?.lookingFor || '');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || null);
-  const [instagram, setInstagram] = useState(profile?.socialLinks?.instagram ?? '');
-  const [linkedin, setLinkedin] = useState(profile?.socialLinks?.linkedin ?? '');
-  const [website, setWebsite] = useState(profile?.socialLinks?.website ?? '');
   const [uploading, setUploading] = useState(false);
 
   const utils = trpc.useUtils();
+  const connectedAccounts = trpc.accounts.listConnected.useQuery();
+  const disconnectAccount = trpc.accounts.disconnect.useMutation({
+    onSuccess: () => {
+      connectedAccounts.refetch();
+    },
+  });
   const updateProfile = trpc.profiles.update.useMutation({
     onSuccess: (data) => {
       if (data) setProfile(data);
@@ -96,18 +162,11 @@ export default function EditProfileScreen() {
       return;
     }
 
-    const socialLinks = {
-      ...(instagram ? { instagram: instagram.replace(/^@/, '') } : {}),
-      ...(linkedin ? { linkedin } : {}),
-      ...(website ? { website } : {}),
-    };
-
     updateProfile.mutate({
       displayName: displayName.trim(),
       bio: bio.trim(),
       lookingFor: lookingFor.trim(),
       ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl || undefined } : {}),
-      socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : {},
     });
   };
 
@@ -196,54 +255,28 @@ export default function EditProfileScreen() {
 
         <View style={styles.divider} />
 
-        <Text style={styles.socialLabel}>SOCIAL MEDIA</Text>
+        <Text style={styles.sectionLabel}>POŁĄCZONE KONTA</Text>
 
-        <View style={styles.socialField}>
-          <Text style={styles.socialIcon}>📷</Text>
-          <Text style={styles.socialPrefix}>@</Text>
-          <TextInput
-            style={styles.socialInput}
-            value={instagram}
-            onChangeText={setInstagram}
-            placeholder="handle"
-            placeholderTextColor={colors.muted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            maxLength={30}
-          />
-        </View>
-
-        <View style={styles.socialField}>
-          <Text style={styles.socialIcon}>💼</Text>
-          <TextInput
-            style={styles.socialInput}
-            value={linkedin}
-            onChangeText={setLinkedin}
-            placeholder="handle lub URL"
-            placeholderTextColor={colors.muted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            maxLength={100}
-          />
-        </View>
-
-        <View style={styles.socialField}>
-          <Text style={styles.socialIcon}>🌐</Text>
-          <TextInput
-            style={styles.socialInput}
-            value={website}
-            onChangeText={setWebsite}
-            placeholder="https://twoja-strona.pl"
-            placeholderTextColor={colors.muted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            spellCheck={false}
-            keyboardType="url"
-            maxLength={200}
-          />
-        </View>
+        {connectedAccounts.isLoading ? (
+          <ActivityIndicator color={colors.muted} style={{ marginVertical: spacing.gutter }} />
+        ) : (
+          <>
+            <ConnectedAccountRow
+              provider="instagram"
+              username={connectedAccounts.data?.find((a) => a.providerId === 'instagram')?.username}
+              onConnect={() => authClient.signIn.oauth2({ providerId: 'instagram' })}
+              onDisconnect={() => disconnectAccount.mutate({ providerId: 'instagram' })}
+              disconnecting={disconnectAccount.isPending}
+            />
+            <ConnectedAccountRow
+              provider="linkedin"
+              username={connectedAccounts.data?.find((a) => a.providerId === 'linkedin')?.username}
+              onConnect={() => authClient.signIn.social({ provider: 'linkedin' })}
+              onDisconnect={() => disconnectAccount.mutate({ providerId: 'linkedin' })}
+              disconnecting={disconnectAccount.isPending}
+            />
+          </>
+        )}
 
         <View style={styles.saveContainer}>
           <Button
@@ -316,33 +349,38 @@ const styles = StyleSheet.create({
     backgroundColor: colors.rule,
     marginVertical: spacing.section,
   },
-  socialLabel: {
+  sectionLabel: {
     ...typ.label,
     marginBottom: spacing.gutter,
   },
-  socialField: {
+  accountRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.gutter,
     marginBottom: spacing.gutter,
   },
-  socialIcon: {
-    fontSize: 18,
-    width: 24,
-    textAlign: 'center',
-  },
-  socialPrefix: {
-    ...typ.body,
-    color: colors.muted,
-  },
-  socialInput: {
+  accountHandle: {
     flex: 1,
     fontFamily: fonts.sans,
     fontSize: 16,
     color: colors.ink,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.rule,
-    paddingVertical: spacing.compact,
+  },
+  connectButton: {
+    flex: 1,
+  },
+  connectText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: colors.ink,
+  },
+  disconnectText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: colors.muted,
   },
   saveContainer: {
     marginTop: spacing.column,
