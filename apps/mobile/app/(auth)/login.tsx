@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import Svg, { Path, Rect } from 'react-native-svg';
 import { authClient } from '../../src/lib/auth';
 import { useAuthStore } from '../../src/stores/authStore';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
@@ -147,6 +148,38 @@ export default function LoginScreen() {
             />
           </View>
 
+          <View style={styles.separator}>
+            <View style={styles.separatorLine} />
+            <Text style={styles.separatorText}>lub</Text>
+            <View style={styles.separatorLine} />
+          </View>
+
+          <Pressable
+            style={styles.oauthButton}
+            onPress={() => authClient.signIn.oauth2({ providerId: 'instagram' })}
+            disabled={isLoading}
+          >
+            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+              <Rect x={2} y={2} width={20} height={20} rx={5} stroke={colors.ink} strokeWidth={1.8} />
+              <Path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" stroke={colors.ink} strokeWidth={1.8} />
+              <Path d="M17.5 6.5h.01" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" />
+            </Svg>
+            <Text style={styles.oauthButtonText}>Kontynuuj z Instagram</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.oauthButton}
+            onPress={() => authClient.signIn.social({ provider: 'linkedin' })}
+            disabled={isLoading}
+          >
+            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+              <Path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6Z" stroke={colors.ink} strokeWidth={1.8} />
+              <Path d="M2 9h4v12H2z" stroke={colors.ink} strokeWidth={1.8} />
+              <Path d="M4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke={colors.ink} strokeWidth={1.8} />
+            </Svg>
+            <Text style={styles.oauthButtonText}>Kontynuuj z LinkedIn</Text>
+          </Pressable>
+
           {__DEV__ && (
             <Pressable
               onPress={() => handleSendMagicLink(`user${seedUserNumber}@example.com`)}
@@ -193,6 +226,38 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     color: colors.status.error.text,
     fontSize: 14,
+  },
+  separator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.tight,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.rule,
+  },
+  separatorText: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    color: colors.muted,
+    marginHorizontal: spacing.gutter,
+  },
+  oauthButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.compact,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: colors.rule,
+  },
+  oauthButtonText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: colors.ink,
   },
   devLogin: {
     alignSelf: 'center',

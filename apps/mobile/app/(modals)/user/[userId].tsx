@@ -439,17 +439,6 @@ export default function UserProfileScreen() {
               <Text style={styles.socialPillLabel}>{profile.socialLinks.linkedin}</Text>
             </Pressable>
           )}
-          {profile.socialLinks.website && (
-            <Pressable
-              style={styles.socialPill}
-              onPress={() => Linking.openURL(profile.socialLinks!.website!)}
-            >
-              <Text style={styles.socialPillIcon}>🌐</Text>
-              <Text style={styles.socialPillLabel}>
-                {profile.socialLinks.website.replace(/^https?:\/\//, '')}
-              </Text>
-            </Pressable>
-          )}
         </View>
       )}
     </ScrollView>
