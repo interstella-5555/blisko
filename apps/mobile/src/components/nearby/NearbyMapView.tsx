@@ -1,6 +1,6 @@
 import { useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { View, StyleSheet } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, type Region } from 'react-native-maps';
 import { GridClusterMarker, type ClusterUser } from './GridClusterMarker';
 import { GroupMarker } from './GroupMarker';
 
@@ -52,11 +52,12 @@ interface NearbyMapViewProps {
   highlightedGridId?: string | null;
   groups?: MapGroup[];
   onGroupPress?: (group: MapGroup) => void;
+  onRegionChangeComplete?: (region: Region) => void;
 }
 
 export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
   (
-    { users, userLatitude, userLongitude, onClusterPress, highlightedGridId, groups, onGroupPress },
+    { users, userLatitude, userLongitude, onClusterPress, highlightedGridId, groups, onGroupPress, onRegionChangeComplete },
     ref
   ) => {
     const mapRef = useRef<MapView>(null);
@@ -117,6 +118,7 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
           }}
           showsUserLocation
           showsMyLocationButton
+          onRegionChangeComplete={onRegionChangeComplete}
         >
           {clusters.map((cluster) => (
             <Marker

@@ -8,12 +8,15 @@ import {
   Animated,
   Easing,
   Pressable,
+  Modal,
+  Switch,
 } from 'react-native';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useWebSocket } from '../../src/lib/ws';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { keepPreviousData } from '@tanstack/react-query';
+import type { Region } from 'react-native-maps';
 import { useLocationStore } from '../../src/stores/locationStore';
 import { usePreferencesStore } from '../../src/stores/preferencesStore';
 import { useProfilesStore } from '../../src/stores/profilesStore';
@@ -55,6 +58,12 @@ export default function NearbyScreen() {
   const mapHeight = useRef(new Animated.Value(MAP_EXPANDED_HEIGHT)).current;
   const mapRef = useRef<NearbyMapRef>(null);
 
+  const [photoOnly, setPhotoOnly] = useState(false);
+  const [nearbyOnly, setNearbyOnly] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [mapRegion, setMapRegion] = useState<Region | null>(null);
+  const hasActiveFilters = photoOnly || nearbyOnly;
+
   const utils = trpc.useUtils();
 
   const wsHandler = useCallback((msg: any) => {
@@ -83,6 +92,7 @@ export default function NearbyScreen() {
       longitude: longitude!,
       radiusMeters: nearbyRadiusMeters,
       limit: 20,
+      photoOnly: photoOnly || undefined,
     },
     {
       enabled: !!latitude && !!longitude,
@@ -102,6 +112,7 @@ export default function NearbyScreen() {
       longitude: longitude!,
       radiusMeters: nearbyRadiusMeters,
       limit: 100,
+      photoOnly: photoOnly || undefined,
     },
     {
       enabled: !!latitude && !!longitude,
@@ -172,13 +183,29 @@ export default function NearbyScreen() {
     return () => clearTimeout(timer);
   }, [allListUsers]);
 
-  // Users to display in list: filtered by cluster or all
+  // Users to display in list: filtered by cluster, nearby viewport, or all
   const displayUsers = useMemo(() => {
+    let users: MapUser[];
     if (selectedCluster) {
-      return selectedCluster.users;
+      users = selectedCluster.users;
+    } else {
+      users = allListUsers as MapUser[];
     }
-    return allListUsers as MapUser[];
-  }, [selectedCluster, allListUsers]);
+    if (nearbyOnly && mapRegion) {
+      const latMin = mapRegion.latitude - mapRegion.latitudeDelta / 2;
+      const latMax = mapRegion.latitude + mapRegion.latitudeDelta / 2;
+      const lngMin = mapRegion.longitude - mapRegion.longitudeDelta / 2;
+      const lngMax = mapRegion.longitude + mapRegion.longitudeDelta / 2;
+      users = users.filter(
+        (u) =>
+          u.gridLat >= latMin &&
+          u.gridLat <= latMax &&
+          u.gridLng >= lngMin &&
+          u.gridLng <= lngMax
+      );
+    }
+    return users;
+  }, [selectedCluster, allListUsers, nearbyOnly, mapRegion]);
 
   // Groups for map markers
   const mapGroups = useMemo((): MapGroup[] => {
@@ -483,6 +510,7 @@ export default function NearbyScreen() {
             highlightedGridId={selectedCluster?.gridId}
             groups={nearbyFilter !== 'people' ? mapGroups : undefined}
             onGroupPress={handleGroupPress}
+            onRegionChangeComplete={setMapRegion}
           />
         </View>
       </Animated.View>
@@ -494,31 +522,42 @@ export default function NearbyScreen() {
         </Text>
       </Pressable>
 
-      {/* Filter chips */}
+      {/* Filter chips + funnel */}
       <View style={styles.filterRow}>
-        {FILTER_CHIPS.map((chip) => (
-          <Pressable
-            key={chip.key}
-            style={[
-              styles.filterChip,
-              nearbyFilter === chip.key
-                ? styles.filterChipActive
-                : styles.filterChipInactive,
-            ]}
-            onPress={() => setNearbyFilter(chip.key)}
-          >
-            <Text
+        <View style={styles.filterChips}>
+          {FILTER_CHIPS.map((chip) => (
+            <Pressable
+              key={chip.key}
               style={[
-                styles.filterChipText,
+                styles.filterChip,
                 nearbyFilter === chip.key
-                  ? styles.filterChipTextActive
-                  : styles.filterChipTextInactive,
+                  ? styles.filterChipActive
+                  : styles.filterChipInactive,
               ]}
+              onPress={() => setNearbyFilter(chip.key)}
             >
-              {chip.label}
-            </Text>
-          </Pressable>
-        ))}
+              <Text
+                style={[
+                  styles.filterChipText,
+                  nearbyFilter === chip.key
+                    ? styles.filterChipTextActive
+                    : styles.filterChipTextInactive,
+                ]}
+              >
+                {chip.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Pressable
+          style={[styles.filterFunnel, hasActiveFilters && styles.filterFunnelActive]}
+          onPress={() => setShowFilterSheet(true)}
+        >
+          <Text style={[styles.filterFunnelIcon, hasActiveFilters && styles.filterFunnelIconActive]}>
+            {'\u2699'}
+          </Text>
+          {hasActiveFilters && <View style={styles.filterDot} />}
+        </Pressable>
       </View>
 
       {/* People-only header (when filter = people) */}
@@ -567,6 +606,45 @@ export default function NearbyScreen() {
           ) : null
         }
       />
+
+      {/* Filter bottom sheet */}
+      <Modal
+        visible={showFilterSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFilterSheet(false)}
+      >
+        <Pressable style={styles.sheetOverlay} onPress={() => setShowFilterSheet(false)}>
+          <View style={styles.sheetContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Filtry</Text>
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleInfo}>
+                <Text style={styles.toggleLabel}>Tylko ze zdjęciem</Text>
+                <Text style={styles.toggleDesc}>Pokazuj osoby, które mają zdjęcie profilowe</Text>
+              </View>
+              <Switch
+                value={photoOnly}
+                onValueChange={setPhotoOnly}
+                trackColor={{ false: '#C0BAA8', true: colors.ink }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+            <View style={[styles.toggleRow, styles.toggleRowBorder]}>
+              <View style={styles.toggleInfo}>
+                <Text style={styles.toggleLabel}>Tylko w widocznym obszarze</Text>
+                <Text style={styles.toggleDesc}>Ogranicz wyniki do aktualnego widoku mapy</Text>
+              </View>
+              <Switch
+                value={nearbyOnly}
+                onValueChange={setNearbyOnly}
+                trackColor={{ false: '#C0BAA8', true: colors.ink }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -614,9 +692,15 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
-    gap: spacing.tight,
+    alignItems: 'center',
     paddingHorizontal: spacing.section,
     marginVertical: spacing.gutter,
+    gap: spacing.tight,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    gap: spacing.tight,
+    flex: 1,
   },
   filterChip: {
     paddingHorizontal: spacing.gutter,
@@ -675,5 +759,85 @@ const styles = StyleSheet.create({
   loadingFooter: {
     paddingVertical: spacing.column,
     alignItems: 'center',
+  },
+  filterFunnel: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterFunnelActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.status.error.bg,
+  },
+  filterFunnelIcon: {
+    fontSize: 16,
+    color: colors.muted,
+  },
+  filterFunnelIconActive: {
+    color: colors.accent,
+  },
+  filterDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
+  },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheetContent: {
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: spacing.section,
+    paddingBottom: 40,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.rule,
+    alignSelf: 'center',
+    marginTop: spacing.gutter,
+    marginBottom: spacing.column,
+  },
+  sheetTitle: {
+    fontFamily: fonts.serif,
+    fontSize: 22,
+    color: colors.ink,
+    marginBottom: spacing.column,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.column,
+  },
+  toggleRowBorder: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.rule,
+  },
+  toggleInfo: {
+    flex: 1,
+    marginRight: spacing.column,
+  },
+  toggleLabel: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    color: colors.ink,
+  },
+  toggleDesc: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
   },
 });
