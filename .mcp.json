@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "linear-blisko": {
+      "type": "http",
+      "url": "https://mcp.linear.app/mcp"
+    }
+  }
+}

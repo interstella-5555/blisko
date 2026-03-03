@@ -223,6 +223,8 @@ Use Bun's built-in `RedisClient` (`import { RedisClient } from 'bun'`) for all d
 
 Do NOT suggest using EAS Build or EAS Submit. We use local Xcode builds + manual upload via Xcode Organizer. If EAS is ever needed, the user will say so explicitly.
 
+When using EAS CLI (e.g. for credentials), always use `npx -y eas-cli@latest <command>` — never bare `eas` or `npx eas-cli`.
+
 ## Deploying to TestFlight (without EAS)
 
 Local build + upload to TestFlight via Xcode. No EAS subscription needed — uses Xcode's native archive and distribute flow.
@@ -348,6 +350,10 @@ Runner: `pnpm ralph` / `pnpm ralph:dry`
 3. Claude gets: system prompt + task file contents + FIRST_SUBTASK/LAST_SUBTASK flags
 4. Claude implements, verifies, commits
 5. Shell moves file to `.done/` on success
+
+**Timeout & auto-retry:** Each attempt has a 10m timeout (default). On timeout, the shell assesses git state (new commits, uncommitted changes, nothing) and retries with a `## Continuation context` section describing what was already done. Max 2 retries per task — after that, auto-blocked.
+
+**Rebase:** Only rebases on `origin/main` if the branch is actually behind. Skips if already up to date.
 
 **Zero Linear API calls.** Linear automation detects branch names and sets In Progress / Done automatically.
 

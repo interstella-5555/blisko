@@ -22,7 +22,8 @@
       },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Blisko potrzebuje dostępu do lokalizacji, aby pokazać osoby w Twojej okolicy.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Blisko potrzebuje dostępu do lokalizacji, aby powiadamiać Cię o osobach w okolicy."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Blisko potrzebuje dostępu do lokalizacji, aby powiadamiać Cię o osobach w okolicy.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -51,6 +52,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "34d895cd-60a0-4c82-affe-7c6fa2b963ee"
+      }
+    },
+    "owner": "random-solutions"
   }
 }
