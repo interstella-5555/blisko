@@ -18,6 +18,7 @@ The task file below contains everything you need:
 
 - Create or checkout branch (from `Branch:` in task file)
 - If branch already exists, checkout and continue. If not, create from main.
+- If you just created the branch, push it immediately: `git push -u origin <branch>` (triggers Linear automation)
 
 ### 3. Implement
 
@@ -47,7 +48,7 @@ pnpm --filter @repo/api test
 - Output: `RALPH_MERGED`
 
 **Success (not last sub-task):**
-- Stay on branch, commit is there for next sub-task
+- Push branch: `git push -u origin <branch>`
 - Output: `RALPH_MERGED`
 
 **Blocked:**
