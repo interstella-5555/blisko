@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { emailOTP } from 'better-auth/plugins';
+import { expo } from '@better-auth/expo';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
@@ -10,7 +11,7 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-export const auth = betterAuth({
+export const auth: ReturnType<typeof betterAuth> = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),
@@ -89,6 +90,7 @@ export const auth = betterAuth({
     disableCSRFCheck: true,
   },
   plugins: [
+    expo(),
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
         // Only handle sign-in OTPs
