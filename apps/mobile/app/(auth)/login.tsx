@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { authClient } from '../../src/lib/auth';
 import { useAuthStore } from '../../src/stores/authStore';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
@@ -156,20 +156,18 @@ export default function LoginScreen() {
 
           <Pressable
             style={styles.oauthButton}
-            onPress={() => authClient.signIn.oauth2({ providerId: 'instagram' })}
+            onPress={() => authClient.signIn.social({ provider: 'facebook', callbackURL: '/(tabs)' })}
             disabled={isLoading}
           >
             <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-              <Rect x={2} y={2} width={20} height={20} rx={5} stroke={colors.ink} strokeWidth={1.8} />
-              <Path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" stroke={colors.ink} strokeWidth={1.8} />
-              <Path d="M17.5 6.5h.01" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" />
+              <Path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3V2Z" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
             </Svg>
-            <Text style={styles.oauthButtonText}>Kontynuuj z Instagram</Text>
+            <Text style={styles.oauthButtonText}>Kontynuuj z Facebook</Text>
           </Pressable>
 
           <Pressable
             style={styles.oauthButton}
-            onPress={() => authClient.signIn.social({ provider: 'linkedin' })}
+            onPress={() => authClient.signIn.social({ provider: 'linkedin', callbackURL: '/(tabs)' })}
             disabled={isLoading}
           >
             <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">

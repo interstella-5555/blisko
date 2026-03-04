@@ -14,7 +14,7 @@ export const accountsRouter = router({
       .where(eq(account.userId, ctx.userId));
 
     const oauthAccounts = accounts.filter(
-      (a) => a.providerId === 'instagram' || a.providerId === 'linkedin'
+      (a) => a.providerId === 'facebook' || a.providerId === 'linkedin'
     );
 
     const [profile] = await db
@@ -33,7 +33,7 @@ export const accountsRouter = router({
   disconnect: protectedProcedure
     .input(
       z.object({
-        providerId: z.enum(['instagram', 'linkedin']),
+        providerId: z.enum(['facebook', 'linkedin']),
       })
     )
     .mutation(async ({ ctx, input }) => {

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { useAuthStore } from '../../src/stores/authStore';
 import { authClient } from '../../src/lib/auth';
 import { trpc } from '../../src/lib/trpc';
@@ -21,12 +21,10 @@ import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { Button } from '../../src/components/ui/Button';
 
-function InstagramIcon() {
+function FacebookIcon() {
   return (
     <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-      <Rect x={2} y={2} width={20} height={20} rx={5} stroke={colors.ink} strokeWidth={1.8} />
-      <Path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" stroke={colors.ink} strokeWidth={1.8} />
-      <Path d="M17.5 6.5h.01" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3V2Z" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -42,7 +40,7 @@ function LinkedInIcon() {
 }
 
 const providerConfig = {
-  instagram: { label: 'Instagram', Icon: InstagramIcon },
+  facebook: { label: 'Facebook', Icon: FacebookIcon },
   linkedin: { label: 'LinkedIn', Icon: LinkedInIcon },
 } as const;
 
@@ -53,7 +51,7 @@ function ConnectedAccountRow({
   onDisconnect,
   disconnecting,
 }: {
-  provider: 'instagram' | 'linkedin';
+  provider: 'facebook' | 'linkedin';
   username: string | null | undefined;
   onConnect: () => void;
   onDisconnect: () => void;
@@ -262,16 +260,16 @@ export default function EditProfileScreen() {
         ) : (
           <>
             <ConnectedAccountRow
-              provider="instagram"
-              username={connectedAccounts.data?.find((a) => a.providerId === 'instagram')?.username}
-              onConnect={() => authClient.signIn.oauth2({ providerId: 'instagram' })}
-              onDisconnect={() => disconnectAccount.mutate({ providerId: 'instagram' })}
+              provider="facebook"
+              username={connectedAccounts.data?.find((a) => a.providerId === 'facebook')?.username}
+              onConnect={() => authClient.signIn.social({ provider: 'facebook', callbackURL: '/(modals)/edit-profile' })}
+              onDisconnect={() => disconnectAccount.mutate({ providerId: 'facebook' })}
               disconnecting={disconnectAccount.isPending}
             />
             <ConnectedAccountRow
               provider="linkedin"
               username={connectedAccounts.data?.find((a) => a.providerId === 'linkedin')?.username}
-              onConnect={() => authClient.signIn.social({ provider: 'linkedin' })}
+              onConnect={() => authClient.signIn.social({ provider: 'linkedin', callbackURL: '/(modals)/edit-profile' })}
               onDisconnect={() => disconnectAccount.mutate({ providerId: 'linkedin' })}
               disconnecting={disconnectAccount.isPending}
             />

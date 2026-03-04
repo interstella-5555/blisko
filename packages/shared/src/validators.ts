@@ -8,7 +8,7 @@ export const createProfileSchema = z.object({
 });
 
 export const socialLinksSchema = z.object({
-  instagram: z.string().max(30).regex(/^[a-zA-Z0-9._]+$/, 'Nieprawidłowy handle Instagram').optional().or(z.literal('')),
+  facebook: z.string().max(100).optional().or(z.literal('')),
   linkedin: z.string().max(100).optional().or(z.literal('')),
 }).optional();
 

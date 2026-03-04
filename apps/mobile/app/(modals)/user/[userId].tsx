@@ -416,13 +416,13 @@ export default function UserProfileScreen() {
       {/* Social links */}
       {profile?.socialLinks && Object.values(profile.socialLinks).some(Boolean) && (
         <View style={styles.socialLinksRow}>
-          {profile.socialLinks.instagram && (
+          {profile.socialLinks.facebook && (
             <Pressable
               style={styles.socialPill}
-              onPress={() => Linking.openURL(`https://instagram.com/${profile.socialLinks!.instagram}`)}
+              onPress={() => Linking.openURL(`https://facebook.com/${profile.socialLinks!.facebook}`)}
             >
-              <Text style={styles.socialPillIcon}>📷</Text>
-              <Text style={styles.socialPillLabel}>@{profile.socialLinks.instagram}</Text>
+              <Text style={styles.socialPillIcon}>👤</Text>
+              <Text style={styles.socialPillLabel}>{profile.socialLinks.facebook}</Text>
             </Pressable>
           )}
           {profile.socialLinks.linkedin && (

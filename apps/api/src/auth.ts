@@ -1,5 +1,5 @@
 import { betterAuth } from 'better-auth';
-import { emailOTP, genericOAuth } from 'better-auth/plugins';
+import { emailOTP } from 'better-auth/plugins';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { eq } from 'drizzle-orm';
 import { Resend } from 'resend';
@@ -28,18 +28,18 @@ export const auth = betterAuth({
       create: {
         after: async (account) => {
           const { providerId, accessToken, userId } = account;
-          if (!accessToken || (providerId !== 'instagram' && providerId !== 'linkedin')) return;
+          if (!accessToken || (providerId !== 'facebook' && providerId !== 'linkedin')) return;
 
           let username: string | null = null;
 
           try {
-            if (providerId === 'instagram') {
+            if (providerId === 'facebook') {
               const res = await fetch(
-                `https://graph.instagram.com/me?fields=username&access_token=${accessToken}`
+                `https://graph.facebook.com/me?fields=name&access_token=${accessToken}`
               );
               if (res.ok) {
                 const data = await res.json();
-                username = data.username ?? null;
+                username = data.name ?? null;
               }
             } else if (providerId === 'linkedin') {
               const res = await fetch('https://api.linkedin.com/v2/userinfo', {
@@ -75,6 +75,10 @@ export const auth = betterAuth({
     linkedin: {
       clientId: process.env.LINKEDIN_CLIENT_ID as string,
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET as string,
+    },
+    facebook: {
+      clientId: process.env.FACEBOOK_CLIENT_ID as string,
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET as string,
     },
   },
   advanced: {
@@ -133,18 +137,6 @@ export const auth = betterAuth({
       },
       otpLength: 6,
       expiresIn: 300, // 5 minutes
-    }),
-    genericOAuth({
-      config: [
-        {
-          providerId: 'instagram',
-          clientId: process.env.INSTAGRAM_CLIENT_ID as string,
-          clientSecret: process.env.INSTAGRAM_CLIENT_SECRET as string,
-          authorizationUrl: 'https://api.instagram.com/oauth/authorize',
-          tokenUrl: 'https://api.instagram.com/oauth/access_token',
-          scopes: ['user_profile'],
-        },
-      ],
     }),
   ],
   user: {

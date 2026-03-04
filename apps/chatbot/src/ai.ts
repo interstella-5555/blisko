@@ -3,7 +3,7 @@ import { openai } from '@ai-sdk/openai';
 import { GPT_MODEL } from '@repo/shared';
 
 interface SocialLinks {
-  instagram?: string;
+  facebook?: string;
   linkedin?: string;
   website?: string;
 }
