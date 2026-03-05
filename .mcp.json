@@ -3,6 +3,15 @@
     "linear-blisko": {
       "type": "http",
       "url": "https://mcp.linear.app/mcp"
+    },
+    "railway": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@railway/mcp-server"
+      ],
+      "env": {}
     }
   }
 }

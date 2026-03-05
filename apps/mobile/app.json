@@ -48,7 +48,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Blisko potrzebuje dostępu do lokalizacji, aby powiadamiać Cię o osobach w okolicy."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

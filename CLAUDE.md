@@ -1,5 +1,22 @@
 # Blisko — Project Notes
 
+## Railway
+
+Project **blisko** on Railway (ID: `62599e90-30e8-47dd-af34-4e3f73c2261a`). Use the `mcp__railway__*` tools for managing deployments, logs, variables, etc. Workspace path: `/Users/karol/code/blisko`.
+
+**Services → local paths:**
+- api → `apps/api`
+- chatbot → `apps/chatbot`
+- design → `apps/design`
+- metro → `apps/mobile`
+- website → `apps/website`
+- database → managed Postgres
+- queue → managed Redis (BullMQ)
+
+**Environment:** production
+
+**Env vars:** After changing env vars on a service, immediately restart that service (redeploy) — don't ask, just do it.
+
 ## Regenerating README screenshot
 
 The README includes a screenshot of 4 design book screens (Login, OTP, Profile, Waves).

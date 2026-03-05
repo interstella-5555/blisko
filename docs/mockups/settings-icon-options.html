@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings Icon — Warianty</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: #0c0c0e;
+    color: #e8e6e3;
+    min-height: 100vh;
+    padding: 48px 32px;
+  }
+
+  h1 {
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 40px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 1200px;
+  }
+
+  .card {
+    background: #161618;
+    border: 1px solid #222;
+    border-radius: 16px;
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: #444; }
+
+  .card-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #999;
+    text-transform: uppercase;
+  }
+
+  .icon-row {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .icon-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .icon-cell span {
+    font-size: 10px;
+    color: #555;
+    font-weight: 500;
+  }
+
+  .icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #1c1c1f;
+  }
+
+  .icon-wrap svg {
+    display: block;
+  }
+
+  /* phone header preview */
+  .header-preview {
+    width: 100%;
+    background: #111113;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: #e8e6e3;
+  }
+
+  .header-icon {
+    color: #888;
+    display: flex;
+    align-items: center;
+  }
+
+  .note {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.5;
+    text-align: center;
+    max-width: 220px;
+  }
+
+  .current-tag {
+    font-size: 10px;
+    font-weight: 600;
+    color: #e85d4a;
+    background: rgba(232, 93, 74, 0.12);
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .rec-tag {
+    font-size: 10px;
+    font-weight: 600;
+    color: #4ae88a;
+    background: rgba(74, 232, 138, 0.12);
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<h1>Settings icon — warianty do porownania</h1>
+
+<div class="grid">
+
+  <!-- CURRENT (complex gear) -->
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="card-label">Obecna ikona</span>
+      <span class="current-tag">Problem</span>
+    </div>
+    <div class="icon-row">
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <span>24px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <span>20px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <span>16px</span>
+      </div>
+    </div>
+    <div class="header-preview">
+      <span class="header-title">Profil</span>
+      <div class="header-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </div>
+    </div>
+    <p class="note">Zbyt skomplikowana sciezka beziera — przy 20px zlepia sie w kleksa</p>
+  </div>
+
+  <!-- OPTION A: Clean 6-tooth gear -->
+  <div class="card">
+    <span class="card-label">A — Clean Gear (6 zebow)</span>
+    <div class="icon-row">
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+          </svg>
+        </div>
+        <span>24px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+          </svg>
+        </div>
+        <span>20px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+          </svg>
+        </div>
+        <span>16px</span>
+      </div>
+    </div>
+    <div class="header-preview">
+      <span class="header-title">Profil</span>
+      <div class="header-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+        </svg>
+      </div>
+    </div>
+    <p class="note">Kolo + 8 kresek promienistych. Czytelna na kazdym rozmiarze. Troche jak slonce, ale semantycznie OK.</p>
+  </div>
+
+  <!-- OPTION B: Sliders -->
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="card-label">B — Suwaki (Sliders)</span>
+      <span class="rec-tag">Rekomendacja</span>
+    </div>
+    <div class="icon-row">
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+            <circle cx="8" cy="6" r="2" fill="#1c1c1f"/>
+            <circle cx="16" cy="12" r="2" fill="#1c1c1f"/>
+            <circle cx="11" cy="18" r="2" fill="#1c1c1f"/>
+          </svg>
+        </div>
+        <span>24px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+            <circle cx="8" cy="6" r="2" fill="#1c1c1f"/>
+            <circle cx="16" cy="12" r="2" fill="#1c1c1f"/>
+            <circle cx="11" cy="18" r="2" fill="#1c1c1f"/>
+          </svg>
+        </div>
+        <span>20px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+            <circle cx="8" cy="6" r="2" fill="#1c1c1f"/>
+            <circle cx="16" cy="12" r="2" fill="#1c1c1f"/>
+            <circle cx="11" cy="18" r="2" fill="#1c1c1f"/>
+          </svg>
+        </div>
+        <span>16px</span>
+      </div>
+    </div>
+    <div class="header-preview">
+      <span class="header-title">Profil</span>
+      <div class="header-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="6" x2="20" y2="6"/>
+          <line x1="4" y1="12" x2="20" y2="12"/>
+          <line x1="4" y1="18" x2="20" y2="18"/>
+          <circle cx="8" cy="6" r="2" fill="#111113"/>
+          <circle cx="16" cy="12" r="2" fill="#111113"/>
+          <circle cx="11" cy="18" r="2" fill="#111113"/>
+        </svg>
+      </div>
+    </div>
+    <p class="note">Trzy suwaki — uniwersalny symbol "ustawien". Geometryczny, czysty nawet przy 16px. Pasuje do stroku reszty ikon.</p>
+  </div>
+
+  <!-- OPTION C: Simple gear polygon -->
+  <div class="card">
+    <span class="card-label">C — Gear (polygon)</span>
+    <div class="icon-row">
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.3 2h3.4l.5 3.1a7 7 0 0 1 2.1 1.2l3-.8 1.7 2.9-2.5 2a7 7 0 0 1 0 2.4l2.5 2-1.7 2.9-3-.8a7 7 0 0 1-2.1 1.2L13.7 22h-3.4l-.5-3.1a7 7 0 0 1-2.1-1.2l-3 .8-1.7-2.9 2.5-2a7 7 0 0 1 0-2.4l-2.5-2 1.7-2.9 3 .8a7 7 0 0 1 2.1-1.2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <span>24px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.3 2h3.4l.5 3.1a7 7 0 0 1 2.1 1.2l3-.8 1.7 2.9-2.5 2a7 7 0 0 1 0 2.4l2.5 2-1.7 2.9-3-.8a7 7 0 0 1-2.1 1.2L13.7 22h-3.4l-.5-3.1a7 7 0 0 1-2.1-1.2l-3 .8-1.7-2.9 2.5-2a7 7 0 0 1 0-2.4l-2.5-2 1.7-2.9 3 .8a7 7 0 0 1 2.1-1.2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <span>20px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.3 2h3.4l.5 3.1a7 7 0 0 1 2.1 1.2l3-.8 1.7 2.9-2.5 2a7 7 0 0 1 0 2.4l2.5 2-1.7 2.9-3-.8a7 7 0 0 1-2.1 1.2L13.7 22h-3.4l-.5-3.1a7 7 0 0 1-2.1-1.2l-3 .8-1.7-2.9 2.5-2a7 7 0 0 1 0-2.4l-2.5-2 1.7-2.9 3 .8a7 7 0 0 1 2.1-1.2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>
+        <span>16px</span>
+      </div>
+    </div>
+    <div class="header-preview">
+      <span class="header-title">Profil</span>
+      <div class="header-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.3 2h3.4l.5 3.1a7 7 0 0 1 2.1 1.2l3-.8 1.7 2.9-2.5 2a7 7 0 0 1 0 2.4l2.5 2-1.7 2.9-3-.8a7 7 0 0 1-2.1 1.2L13.7 22h-3.4l-.5-3.1a7 7 0 0 1-2.1-1.2l-3 .8-1.7-2.9 2.5-2a7 7 0 0 1 0-2.4l-2.5-2 1.7-2.9 3 .8a7 7 0 0 1 2.1-1.2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+    </div>
+    <p class="note">Uproszczony gear z prostymi liniami zamiast krzywych Beziera. Czytelniejszy, ale nadal troche gestwy przy 16px.</p>
+  </div>
+
+  <!-- OPTION D: Ellipsis vertical -->
+  <div class="card">
+    <span class="card-label">D — Trzy kropki (More)</span>
+    <div class="icon-row">
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="5" r="1.5" fill="#e8e6e3" stroke="none"/>
+            <circle cx="12" cy="12" r="1.5" fill="#e8e6e3" stroke="none"/>
+            <circle cx="12" cy="19" r="1.5" fill="#e8e6e3" stroke="none"/>
+          </svg>
+        </div>
+        <span>24px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="5" r="1.5" fill="#e8e6e3" stroke="none"/>
+            <circle cx="12" cy="12" r="1.5" fill="#e8e6e3" stroke="none"/>
+            <circle cx="12" cy="19" r="1.5" fill="#e8e6e3" stroke="none"/>
+          </svg>
+        </div>
+        <span>20px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="5" r="1.5" fill="#e8e6e3" stroke="none"/>
+            <circle cx="12" cy="12" r="1.5" fill="#e8e6e3" stroke="none"/>
+            <circle cx="12" cy="19" r="1.5" fill="#e8e6e3" stroke="none"/>
+          </svg>
+        </div>
+        <span>16px</span>
+      </div>
+    </div>
+    <div class="header-preview">
+      <span class="header-title">Profil</span>
+      <div class="header-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="5" r="1.5" fill="#888"/>
+          <circle cx="12" cy="12" r="1.5" fill="#888"/>
+          <circle cx="12" cy="19" r="1.5" fill="#888"/>
+        </svg>
+      </div>
+    </div>
+    <p class="note">Klasyczny "more" — czysty, ale semantycznie mowi "menu" bardziej niz "ustawienia".</p>
+  </div>
+
+  <!-- OPTION E: Sliders with horizontal dots -->
+  <div class="card">
+    <span class="card-label">E — Suwaki (2 linie)</span>
+    <div class="icon-row">
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="8" x2="20" y2="8"/>
+            <line x1="4" y1="16" x2="20" y2="16"/>
+            <circle cx="9" cy="8" r="2.5" fill="#1c1c1f"/>
+            <circle cx="15" cy="16" r="2.5" fill="#1c1c1f"/>
+          </svg>
+        </div>
+        <span>24px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="8" x2="20" y2="8"/>
+            <line x1="4" y1="16" x2="20" y2="16"/>
+            <circle cx="9" cy="8" r="2.5" fill="#1c1c1f"/>
+            <circle cx="15" cy="16" r="2.5" fill="#1c1c1f"/>
+          </svg>
+        </div>
+        <span>20px</span>
+      </div>
+      <div class="icon-cell">
+        <div class="icon-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8e6e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="8" x2="20" y2="8"/>
+            <line x1="4" y1="16" x2="20" y2="16"/>
+            <circle cx="9" cy="8" r="2.5" fill="#1c1c1f"/>
+            <circle cx="15" cy="16" r="2.5" fill="#1c1c1f"/>
+          </svg>
+        </div>
+        <span>16px</span>
+      </div>
+    </div>
+    <div class="header-preview">
+      <span class="header-title">Profil</span>
+      <div class="header-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="8" x2="20" y2="8"/>
+          <line x1="4" y1="16" x2="20" y2="16"/>
+          <circle cx="9" cy="8" r="2.5" fill="#111113"/>
+          <circle cx="15" cy="16" r="2.5" fill="#111113"/>
+        </svg>
+      </div>
+    </div>
+    <p class="note">Minimalistyczny wariant — dwa suwaki zamiast trzech. Czytelniejszy niz B ale troche mniej "settings".</p>
+  </div>
+
+</div>
+
+</body>
+</html>
