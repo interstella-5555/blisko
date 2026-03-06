@@ -19,10 +19,6 @@ export default function ModalsLayout() {
           options={{ title: 'Profil' }}
         />
         <Stack.Screen
-          name="set-status"
-          options={{ title: 'Status na teraz' }}
-        />
-        <Stack.Screen
           name="create-group"
           options={{ title: 'Nowa grupa' }}
         />
@@ -33,6 +29,10 @@ export default function ModalsLayout() {
         <Stack.Screen
           name="group/members/[id]"
           options={{ title: 'Członkowie', headerBackTitle: 'Wróć' }}
+        />
+        <Stack.Screen
+          name="chat/[id]"
+          options={{ title: 'Czat' }}
         />
       </Stack>
       <NotificationOverlay />

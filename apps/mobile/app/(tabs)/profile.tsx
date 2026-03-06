@@ -8,17 +8,9 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
-import { useProfilesStore } from '../../src/stores/profilesStore';
-import { useConversationsStore } from '../../src/stores/conversationsStore';
-import { useMessagesStore } from '../../src/stores/messagesStore';
-import { useWavesStore } from '../../src/stores/wavesStore';
-import { authClient } from '../../src/lib/auth';
-import { trpc, trpcClient } from '../../src/lib/trpc';
-import * as SecureStore from 'expo-secure-store';
-import { queryClient } from '../_layout';
+import { trpc } from '../../src/lib/trpc';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Avatar } from '../../src/components/ui/Avatar';
-import { Button } from '../../src/components/ui/Button';
 import { IconSparkles } from '../../src/components/ui/icons';
 
 function formatTimeLeft(expiresAt: string | null | undefined): string {
@@ -41,8 +33,6 @@ export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
   const setProfile = useAuthStore((state) => state.setProfile);
-  const reset = useAuthStore((state) => state.reset);
-
   const utils = trpc.useUtils();
   const clearStatus = trpc.profiles.clearStatus.useMutation({
     onSuccess: (data) => {
@@ -59,26 +49,6 @@ export default function ProfileScreen() {
       { text: 'Anuluj', style: 'cancel' },
       { text: 'Usuń', style: 'destructive', onPress: () => clearStatus.mutate() },
     ]);
-  };
-
-  const handleLogout = async () => {
-    // Unregister push token before clearing auth
-    try {
-      const pushToken = await SecureStore.getItemAsync('lastRegisteredPushToken');
-      if (pushToken) {
-        await trpcClient.pushTokens.unregister.mutate({ token: pushToken });
-        await SecureStore.deleteItemAsync('lastRegisteredPushToken');
-      }
-    } catch {}
-
-    await authClient.signOut();
-    await SecureStore.deleteItemAsync('blisko_session_token');
-    queryClient.clear();
-    reset();
-    useProfilesStore.getState().reset();
-    useConversationsStore.getState().reset();
-    useMessagesStore.getState().reset();
-    useWavesStore.getState().reset();
   };
 
   const activeStatus = hasActiveStatus(profile);
@@ -108,7 +78,7 @@ export default function ProfileScreen() {
               <Pressable
                 onPress={() =>
                   router.push({
-                    pathname: '/(modals)/set-status',
+                    pathname: '/settings/set-status' as any,
                     params: { prefill: profile!.currentStatus! },
                   })
                 }
@@ -125,7 +95,7 @@ export default function ProfileScreen() {
         ) : (
           <Pressable
             style={styles.setStatusButton}
-            onPress={() => router.push('/(modals)/set-status')}
+            onPress={() => router.push('/settings/set-status' as any)}
           >
             <Text style={styles.setStatusText}>+ Ustaw status na teraz</Text>
           </Pressable>
@@ -159,21 +129,6 @@ export default function ProfileScreen() {
         </Text>
       </Pressable>
 
-      <Pressable
-        style={styles.settingsLink}
-        onPress={() => router.push('/settings' as any)}
-      >
-        <Text style={styles.settingsLabel}>Ustawienia</Text>
-        <Text style={styles.settingsArrow}>&rsaquo;</Text>
-      </Pressable>
-
-      <View style={styles.logoutContainer}>
-        <Button
-          title="Wyloguj sie"
-          variant="ghost"
-          onPress={handleLogout}
-        />
-      </View>
     </ScrollView>
   );
 }
@@ -280,25 +235,5 @@ const styles = StyleSheet.create({
     ...typ.caption,
     color: colors.muted,
     marginTop: spacing.hairline,
-  },
-  settingsLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.section,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.rule,
-  },
-  settingsLabel: {
-    ...typ.body,
-    fontFamily: fonts.sansSemiBold,
-  },
-  settingsArrow: {
-    fontSize: 20,
-    color: colors.muted,
-  },
-  logoutContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing.block,
   },
 });
