@@ -92,7 +92,7 @@ export default function ProfilingResultModal() {
       router.dismiss();
     } catch (err) {
       console.error('Failed to apply profile:', err);
-      setError('Nie udało się zapisać profilu. Spróbuj ponownie.');
+      setError('Nie udalo sie zapisac profilu. Sprobuj ponownie.');
     } finally {
       setIsSubmitting(false);
     }
@@ -104,9 +104,9 @@ export default function ProfilingResultModal() {
       <View style={[styles.container, styles.centered]}>
         <ThinkingIndicator
           messages={[
-            'Generuję Twój profil…',
-            'Analizuję Twoje odpowiedzi…',
-            'Jeszcze chwilka…',
+            'Generuje Twoj profil...',
+            'Analizuje Twoje odpowiedzi...',
+            'Jeszcze chwilka...',
           ]}
         />
       </View>
@@ -121,7 +121,7 @@ export default function ProfilingResultModal() {
     >
       <Text style={styles.title}>Nowy profil</Text>
       <Text style={styles.subtitle}>
-        Możesz edytować tekst przed zapisaniem
+        Mozesz edytowac tekst przed zapisaniem
       </Text>
 
       <Text style={styles.label}>O MNIE</Text>
@@ -156,9 +156,9 @@ export default function ProfilingResultModal() {
             onPress={() => setPortraitExpanded(!portraitExpanded)}
             style={styles.portraitHeader}
           >
-            <Text style={styles.label}>PORTRET OSOBOWOŚCI</Text>
+            <Text style={styles.label}>PORTRET OSOBOWOSCI</Text>
             <Text style={typ.caption}>
-              {portraitExpanded ? 'Schowaj' : 'Pokaż'}
+              {portraitExpanded ? 'Schowaj' : 'Pokaz'}
             </Text>
           </Pressable>
           {portraitExpanded && (
@@ -167,7 +167,7 @@ export default function ProfilingResultModal() {
 
           <View style={styles.toggleRow}>
             <Text style={styles.toggleLabel}>
-              Udostępnij portret do lepszego dopasowywania
+              Udostepnij portret do lepszego dopasowywania
             </Text>
             <Switch
               value={portraitShared}

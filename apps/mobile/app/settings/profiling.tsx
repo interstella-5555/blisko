@@ -151,7 +151,7 @@ export default function ProfilingModal() {
       }
     } catch (err) {
       console.error('Failed to submit:', err);
-      setError('Nie udało się przesłać odpowiedzi. Spróbuj ponownie.');
+      setError('Nie udalo sie przeslac odpowiedzi. Sprobuj ponownie.');
       setPhase('questions');
     }
   };
@@ -182,7 +182,7 @@ export default function ProfilingModal() {
       }
     } catch (err) {
       console.error('Failed to answer follow-up:', err);
-      setError('Nie udało się zapisać odpowiedzi. Spróbuj ponownie.');
+      setError('Nie udalo sie zapisac odpowiedzi. Sprobuj ponownie.');
     }
   };
 
@@ -190,10 +190,10 @@ export default function ProfilingModal() {
     setPhase('generating');
     try {
       await completeSession.mutateAsync({ sessionId: sid });
-      router.replace('/(modals)/profiling-result');
+      router.replace('/settings/profiling-result');
     } catch (err) {
       console.error('Failed to complete session:', err);
-      setError('Nie udało się wygenerować profilu. Spróbuj ponownie.');
+      setError('Nie udalo sie wygenerowac profilu. Sprobuj ponownie.');
     }
   };
 
@@ -201,7 +201,7 @@ export default function ProfilingModal() {
   if (phase === 'submitting') {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ThinkingIndicator messages={['Analizuję Twoje odpowiedzi…']} />
+        <ThinkingIndicator messages={['Analizuje Twoje odpowiedzi...']} />
       </View>
     );
   }
@@ -215,7 +215,7 @@ export default function ProfilingModal() {
             <Text style={styles.error}>{error}</Text>
             <View style={{ marginTop: spacing.column }}>
               <Button
-                title="Spróbuj ponownie"
+                title="Sprobuj ponownie"
                 variant="accent"
                 onPress={() => {
                   setError('');
@@ -227,9 +227,9 @@ export default function ProfilingModal() {
         ) : (
           <ThinkingIndicator
             messages={[
-              'Generuję Twój profil…',
-              'Analizuję Twoje odpowiedzi…',
-              'Jeszcze chwilka…',
+              'Generuje Twoj profil...',
+              'Analizuje Twoje odpowiedzi...',
+              'Jeszcze chwilka...',
             ]}
           />
         )}
@@ -269,7 +269,7 @@ export default function ProfilingModal() {
             style={styles.input}
             value={followUpText}
             onChangeText={setFollowUpText}
-            placeholder="Twoja odpowiedź"
+            placeholder="Twoja odpowiedz"
             placeholderTextColor={colors.muted}
             spellCheck={false}
             autoCorrect={false}
@@ -327,7 +327,7 @@ export default function ProfilingModal() {
           style={styles.input}
           value={currentText}
           onChangeText={setCurrentText}
-          placeholder="Twoja odpowiedź"
+          placeholder="Twoja odpowiedz"
           placeholderTextColor={colors.muted}
           spellCheck={false}
           autoCorrect={false}
@@ -347,7 +347,7 @@ export default function ProfilingModal() {
           />
           {!currentQuestion.required && (
             <Pressable onPress={handleSkip} hitSlop={8}>
-              <Text style={styles.skipText}>Pomiń</Text>
+              <Text style={styles.skipText}>Pomin</Text>
             </Pressable>
           )}
         </View>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import Svg, { Polyline } from 'react-native-svg';
 import { useAuthStore } from '../../src/stores/authStore';
 import { trpc } from '../../src/lib/trpc';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
@@ -10,21 +11,29 @@ const VISIBILITY_OPTIONS: { key: VisibilityMode; name: string; desc: string }[] 
   {
     key: 'visible',
     name: 'Widoczny',
-    desc: 'Twój profil jest widoczny na mapie i w wynikach wyszukiwania dla wszystkich.',
+    desc: 'Twoj profil jest widoczny na mapie i w wynikach wyszukiwania dla wszystkich.',
   },
   {
     key: 'matches_only',
     name: 'Tylko dopasowania',
-    desc: 'Nie pojawisz się na mapie. Widzisz innych, ale oni Ciebie tylko po wysłaniu wave.',
+    desc: 'Nie pojawisz sie na mapie. Widzisz innych, ale oni Ciebie tylko po wyslaniu wave.',
   },
   {
     key: 'hidden',
     name: 'Ukryty',
-    desc: 'Twój profil jest całkowicie niewidoczny. Nikt Cię nie znajdzie ani nie zobaczy.',
+    desc: 'Twoj profil jest calkowicie niewidoczny. Nikt Cie nie znajdzie ani nie zobaczy.',
   },
 ];
 
-export default function SettingsScreen() {
+function IconChevronRight({ size = 16 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={colors.muted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Polyline points="9,18 15,12 9,6" />
+    </Svg>
+  );
+}
+
+export default function PrivacyScreen() {
   const profile = useAuthStore((state) => state.profile);
   const setProfile = useAuthStore((state) => state.setProfile);
 
@@ -45,8 +54,9 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.container}>
+      {/* Visibility mode section */}
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>TRYB WIDOCZNOŚCI</Text>
+        <Text style={styles.sectionLabel}>TRYB WIDOCZNOSCI</Text>
         {VISIBILITY_OPTIONS.map((opt) => (
           <Pressable
             key={opt.key}
@@ -67,8 +77,19 @@ export default function SettingsScreen() {
           </Pressable>
         ))}
         <Text style={styles.note}>
-          Zmiana trybu widoczności nie wpływa na istniejące rozmowy i dopasowania.
+          Zmiana trybu widocznosci nie wplywa na istniejace rozmowy i dopasowania.
         </Text>
+      </View>
+
+      {/* Blocked users section */}
+      <View style={styles.section}>
+        <Pressable
+          style={styles.blockedRow}
+          onPress={() => Alert.alert('Zablokowani uzytkownicy', 'Brak zablokowanych uzytkownikow')}
+        >
+          <Text style={styles.blockedLabel}>Zablokowani uzytkownicy</Text>
+          <IconChevronRight />
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -135,5 +156,18 @@ const styles = StyleSheet.create({
     color: colors.muted,
     paddingVertical: spacing.gutter,
     lineHeight: 18,
+  },
+  blockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.column,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.rule,
+  },
+  blockedLabel: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    color: colors.ink,
   },
 });

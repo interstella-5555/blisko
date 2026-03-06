@@ -410,7 +410,7 @@ export default function TabsLayout() {
           tabBarAccessibilityLabel: 'tab-profile',
           headerRight: () => (
             <Pressable
-              onPress={() => router.push('/(modals)/edit-profile')}
+              onPress={() => router.push('/settings' as any)}
               style={{ marginRight: spacing.section }}
             >
               <IconSettings size={20} color={colors.muted} />

@@ -15,28 +15,8 @@ export default function ModalsLayout() {
         }}
       >
         <Stack.Screen
-          name="edit-profile"
-          options={{ title: 'Edytuj profil' }}
-        />
-        <Stack.Screen
           name="user/[userId]"
           options={{ title: 'Profil' }}
-        />
-        <Stack.Screen
-          name="profiling"
-          options={{ title: 'Przeprofiluj sie' }}
-        />
-        <Stack.Screen
-          name="profiling-result"
-          options={{ title: 'Nowy profil' }}
-        />
-        <Stack.Screen
-          name="chat/[id]"
-          options={{ title: 'Czat', headerBackTitle: 'Wróć' }}
-        />
-        <Stack.Screen
-          name="settings"
-          options={{ title: 'Ustawienia' }}
         />
         <Stack.Screen
           name="set-status"

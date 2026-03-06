@@ -148,7 +148,7 @@ export default function ProfileScreen() {
 
       <Pressable
         style={styles.reprofileLink}
-        onPress={() => router.push('/(modals)/profiling')}
+        onPress={() => router.push('/settings/profiling' as any)}
       >
         <View style={styles.reprofileRow}>
           <IconSparkles size={16} color={colors.muted} />
@@ -161,7 +161,7 @@ export default function ProfileScreen() {
 
       <Pressable
         style={styles.settingsLink}
-        onPress={() => router.push('/(modals)/settings')}
+        onPress={() => router.push('/settings' as any)}
       >
         <Text style={styles.settingsLabel}>Ustawienia</Text>
         <Text style={styles.settingsArrow}>&rsaquo;</Text>
