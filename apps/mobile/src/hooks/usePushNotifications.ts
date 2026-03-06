@@ -43,9 +43,17 @@ export function usePushNotifications() {
 
       const projectId =
         Constants.expoConfig?.extra?.eas?.projectId ?? undefined;
-      const { data: token } = await Notifications.getExpoPushTokenAsync({
-        projectId,
-      });
+
+      let token: string;
+      try {
+        const result = await Notifications.getExpoPushTokenAsync({
+          projectId,
+        });
+        token = result.data;
+      } catch {
+        // Simulator doesn't support push tokens — silently skip
+        return;
+      }
 
       const lastToken = await SecureStore.getItemAsync(PUSH_TOKEN_KEY);
       if (token === lastToken) {

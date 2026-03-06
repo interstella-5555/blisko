@@ -54,8 +54,18 @@ The screenshot mode is built into the codebase — no temporary changes needed.
 # API (with auto-restart on file changes)
 cd apps/api && pnpm dev
 
-# Mobile (Expo)
-cd apps/mobile && npx expo start
+# Mobile — simulator (dev client, NOT Expo Go)
+cd apps/mobile && npx expo run:ios
+
+# Mobile — physical device
+cd apps/mobile && npx expo run:ios --device
+```
+
+**Important:** Never use `npx expo start` / Expo Go — native modules (expo-notifications etc.) require a dev client build.
+
+**Simulator location:** After launching the simulator, always set its location to ul. Altowa, Warszawa:
+```bash
+xcrun simctl location booted set 52.2010865,20.9618980
 ```
 
 ## Dev CLI

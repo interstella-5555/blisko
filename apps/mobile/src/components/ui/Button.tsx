@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import {
+  View,
   Pressable,
   Text,
   StyleSheet,
@@ -10,7 +11,7 @@ import {
 } from 'react-native';
 import { colors, fonts } from '../../theme';
 
-type ButtonVariant = 'accent' | 'ghost' | 'fullWidth' | 'wave';
+type ButtonVariant = 'accent' | 'ghost' | 'fullWidth' | 'wave' | 'outline';
 
 interface ButtonProps {
   title?: string;
@@ -64,16 +65,16 @@ export function Button({
         onPressOut={handlePressOut}
         disabled={disabled || loading}
       >
-        {loading ? (
+        {loading && (
           <ActivityIndicator
-            size="small"
-            color={variant === 'ghost' ? colors.accent : colors.bg}
+            size={12}
+            color={variant === 'ghost' || variant === 'outline' ? colors.ink : colors.bg}
+            style={StyleSheet.absoluteFill}
           />
-        ) : children ? (
-          children
-        ) : (
-          <Text style={textStyle}>{title}</Text>
         )}
+        <View style={loading ? styles.hidden : undefined}>
+          {children || <Text style={textStyle}>{title}</Text>}
+        </View>
       </Pressable>
     </Animated.View>
   );
@@ -94,6 +95,9 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.4,
+  },
+  hidden: {
+    opacity: 0,
   },
 });
 
@@ -118,6 +122,11 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
     paddingVertical: 0,
     paddingHorizontal: 0,
   },
+  outline: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.rule,
+  },
 };
 
 const textVariantStyles: Record<ButtonVariant, TextStyle> = {
@@ -131,6 +140,9 @@ const textVariantStyles: Record<ButtonVariant, TextStyle> = {
     color: colors.bg,
   },
   wave: {
+    color: colors.ink,
+  },
+  outline: {
     color: colors.ink,
   },
 };

@@ -5,16 +5,44 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from 'react-native';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { useOnboardingStore } from '../../src/stores/onboardingStore';
-import { colors, type as typ, spacing } from '../../src/theme';
+import { useAuthStore } from '../../src/stores/authStore';
+import { useProfilesStore } from '../../src/stores/profilesStore';
+import { useConversationsStore } from '../../src/stores/conversationsStore';
+import { useMessagesStore } from '../../src/stores/messagesStore';
+import { useWavesStore } from '../../src/stores/wavesStore';
+import { authClient } from '../../src/lib/auth';
+import { trpcClient } from '../../src/lib/trpc';
+import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Input } from '../../src/components/ui/Input';
 import { Button } from '../../src/components/ui/Button';
+import { IconX } from '../../src/components/ui/icons';
 
 export default function OnboardingNameScreen() {
   const { displayName, setDisplayName } = useOnboardingStore();
   const [name, setName] = useState(displayName);
+
+  const handleLogout = async () => {
+    try {
+      const pushToken = await SecureStore.getItemAsync('lastRegisteredPushToken');
+      if (pushToken) {
+        await trpcClient.pushTokens.unregister.mutate({ token: pushToken });
+        await SecureStore.deleteItemAsync('lastRegisteredPushToken');
+      }
+    } catch {}
+
+    await authClient.signOut();
+    useAuthStore.getState().reset();
+    useProfilesStore.getState().reset();
+    useConversationsStore.getState().reset();
+    useMessagesStore.getState().reset();
+    useWavesStore.getState().reset();
+    router.replace('/(auth)/login');
+  };
 
   const handleNext = () => {
     if (name.trim().length < 2) return;
@@ -28,7 +56,13 @@ export default function OnboardingNameScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        <Text style={styles.step}>Krok 1</Text>
+        <View style={styles.stepRow}>
+          <Text style={styles.step}>Krok 1</Text>
+          <Pressable onPress={handleLogout} hitSlop={12} style={styles.logoutButton}>
+            <IconX size={12} color={colors.muted} />
+            <Text style={styles.logoutText}>Wyloguj</Text>
+          </Pressable>
+        </View>
         <Text style={styles.title}>Jak masz na imie?</Text>
         <Text style={styles.subtitle}>
           To imie bedzie widoczne dla innych uzytkownikow
@@ -67,9 +101,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.section,
     paddingTop: 100,
   },
+  stepRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.tight,
+  },
   step: {
     ...typ.caption,
-    marginBottom: spacing.tight,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  logoutText: {
+    ...typ.caption,
   },
   title: {
     ...typ.display,

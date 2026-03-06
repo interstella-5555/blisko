@@ -13,6 +13,8 @@ import { authClient } from '../src/lib/auth';
 import { useWebSocket } from '../src/lib/ws';
 import { NotificationProvider } from '../src/providers/NotificationProvider';
 import { NotificationOverlay } from '../src/components/ui/NotificationOverlay';
+import { ToastProvider } from '../src/providers/ToastProvider';
+import { ToastOverlay } from '../src/components/ui/ToastOverlay';
 import { colors } from '../src/theme';
 
 const queryClient = new QueryClient();
@@ -72,16 +74,19 @@ export default function RootLayout() {
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <NotificationProvider>
-          <StatusBar style="dark" />
-          <LinkPreviewContextProvider>
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="(modals)" options={{ presentation: 'modal' }} />
-            </Stack>
-          </LinkPreviewContextProvider>
-          <NotificationOverlay />
+          <ToastProvider>
+            <StatusBar style="dark" />
+            <LinkPreviewContextProvider>
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen name="(modals)" options={{ presentation: 'modal' }} />
+              </Stack>
+            </LinkPreviewContextProvider>
+            <NotificationOverlay />
+            <ToastOverlay />
+          </ToastProvider>
         </NotificationProvider>
       </QueryClientProvider>
     </trpc.Provider>

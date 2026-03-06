@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blisko — Toast Variants</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ink: #1A1A1A;
+    --bg: #FAF7F2;
+    --accent: #C0392B;
+    --rule: #D5D0C4;
+    --muted: #8B8680;
+    --error-text: #9B3B3B;
+    --error-bg: #F2EEEE;
+    --error-border: #D4C4C4;
+    --success-text: #5B7A5E;
+    --success-bg: #EEF2EE;
+    --success-border: #B8C9B9;
+    --info-text: #4A6B8A;
+    --info-bg: #EDF1F5;
+    --info-border: #B8C8D8;
+    --sans: 'DM Sans', sans-serif;
+    --serif: 'Instrument Serif', serif;
+  }
+
+  body {
+    background: #E8E4DC;
+    font-family: var(--sans);
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px 60px;
+    gap: 48px;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    width: 100%;
+    text-align: center;
+    font-family: var(--serif);
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--ink);
+    font-weight: 400;
+  }
+  .section-label {
+    width: 100%;
+    text-align: center;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 16px;
+  }
+
+  .variant-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .variant-label {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .phone {
+    width: 375px;
+    height: 520px;
+    background: var(--bg);
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+  }
+
+  .login-bg {
+    padding: 60px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0.3;
+  }
+  .login-bg .app-title {
+    font-family: var(--serif);
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .login-bg .app-subtitle {
+    font-family: var(--sans);
+    font-size: 15px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 22px;
+    margin-bottom: 32px;
+  }
+  .login-bg .fake-input {
+    width: 100%;
+    height: 48px;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .login-bg .fake-button {
+    width: 100%;
+    height: 44px;
+    background: var(--accent);
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .login-bg .fake-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--rule);
+    margin-bottom: 16px;
+  }
+  .login-bg .fake-oauth {
+    width: 100%;
+    height: 44px;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+
+  .toast {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    z-index: 99999;
+    animation: slideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes slideDown {
+    from { transform: translateY(-30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  /* ======================
+     A: DARK PILL — title + message
+     ====================== */
+  .toast-a { top: 52px; display: flex; justify-content: center; }
+  .toast-a .toast-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--ink);
+    padding: 12px 20px;
+    border-radius: 100px;
+    box-shadow: 0 8px 24px rgba(26,26,26,0.3);
+    max-width: 320px;
+  }
+  .toast-a .toast-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .toast-a .toast-icon.error { background: var(--accent); }
+  .toast-a .toast-icon.success { background: var(--success-text); }
+  .toast-a .toast-icon svg { width: 11px; height: 11px; }
+  .toast-a .toast-body { display: flex; flex-direction: column; gap: 1px; }
+  .toast-a .toast-title {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--bg);
+  }
+  .toast-a .toast-msg {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: #A9A5A0;
+  }
+
+  /* ======================
+     B: CARD — left accent + icon + title/msg
+     ====================== */
+  .toast-b { top: 52px; }
+  .toast-b .toast-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #FFFFFF;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    overflow: hidden;
+  }
+  .toast-b .toast-inner.error { border-left: 3px solid var(--error-text); }
+  .toast-b .toast-inner.success { border-left: 3px solid var(--success-text); }
+  .toast-b .toast-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .toast-b .toast-icon.error { background: var(--error-bg); }
+  .toast-b .toast-icon.success { background: var(--success-bg); }
+  .toast-b .toast-icon svg { width: 14px; height: 14px; }
+  .toast-b .toast-body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .toast-b .toast-title {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .toast-b .toast-msg {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.35;
+  }
+
+  /* ======================
+     C: TINTED — colored bg + dot + title/msg
+     ====================== */
+  .toast-c { top: 52px; }
+  .toast-c .toast-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .toast-c .toast-inner.error {
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+  }
+  .toast-c .toast-inner.success {
+    background: var(--success-bg);
+    border: 1px solid var(--success-border);
+  }
+  .toast-c .toast-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+  .toast-c .toast-dot.error { background: var(--error-text); }
+  .toast-c .toast-dot.success { background: var(--success-text); }
+  .toast-c .toast-body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .toast-c .toast-title {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .toast-c .toast-title.error { color: var(--error-text); }
+  .toast-c .toast-title.success { color: var(--success-text); }
+  .toast-c .toast-msg {
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .toast-c .toast-msg.error { color: #7A4A4A; }
+  .toast-c .toast-msg.success { color: #4A6A4D; }
+
+  /* ======================
+     C2: TINTED + BAR — colored bg + thin bar + title/msg
+     ====================== */
+  .toast-c2 { top: 52px; }
+  .toast-c2 .toast-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .toast-c2 .toast-inner.error {
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+  }
+  .toast-c2 .toast-inner.success {
+    background: var(--success-bg);
+    border: 1px solid var(--success-border);
+  }
+  .toast-c2 .toast-inner.info {
+    background: var(--info-bg);
+    border: 1px solid var(--info-border);
+  }
+  .toast-c2 .toast-bar {
+    width: 2.5px;
+    align-self: stretch;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .toast-c2 .toast-bar.error { background: var(--error-text); }
+  .toast-c2 .toast-bar.success { background: var(--success-text); }
+  .toast-c2 .toast-bar.info { background: var(--info-text); }
+  .toast-c2 .toast-body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .toast-c2 .toast-title {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .toast-c2 .toast-title.error { color: var(--error-text); }
+  .toast-c2 .toast-title.success { color: var(--success-text); }
+  .toast-c2 .toast-title.info { color: var(--info-text); }
+  .toast-c2 .toast-msg {
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .toast-c2 .toast-msg.error { color: #7A4A4A; }
+  .toast-c2 .toast-msg.success { color: #4A6A4D; }
+  .toast-c2 .toast-msg.info { color: #4A5F73; }
+
+  /* C2 message variant — with avatar */
+  .toast-c2 .toast-inner.message {
+    background: #FFFFFF;
+    border: 1px solid var(--rule);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  .toast-c2 .toast-bar.message { background: var(--accent); }
+  .toast-c2 .toast-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+    background: var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .toast-c2 .toast-title.message { color: var(--ink); }
+  .toast-c2 .toast-msg.message { color: var(--muted); }
+
+  /* ======================
+     D: DARK FLOATING — accent bar + title/msg
+     ====================== */
+  .toast-d { top: 52px; left: 20px; right: 20px; }
+  .toast-d .toast-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--ink);
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 12px 32px rgba(26,26,26,0.35);
+  }
+  .toast-d .toast-bar {
+    width: 3px;
+    align-self: stretch;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .toast-d .toast-bar.error { background: var(--accent); }
+  .toast-d .toast-bar.success { background: var(--success-text); }
+  .toast-d .toast-body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .toast-d .toast-title {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--bg);
+  }
+  .toast-d .toast-msg {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: #A9A5A0;
+    line-height: 1.35;
+  }
+
+  /* ======================
+     E: SERIF EDITORIAL — accent line + serif title + sans msg
+     ====================== */
+  .toast-e { top: 52px; }
+  .toast-e .toast-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #FFFFFF;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 14px 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  }
+  .toast-e .toast-line {
+    width: 2px;
+    align-self: stretch;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+  .toast-e .toast-line.error { background: var(--accent); }
+  .toast-e .toast-line.success { background: var(--success-text); }
+  .toast-e .toast-body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .toast-e .toast-title {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--ink);
+  }
+  .toast-e .toast-msg {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.35;
+  }
+
+  /* ======================
+     F: FULL-WIDTH — solid color bar
+     ====================== */
+  .toast-f { top: 48px; left: 0; right: 0; }
+  .toast-f .toast-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 12px 24px;
+  }
+  .toast-f .toast-inner.error { background: var(--error-text); }
+  .toast-f .toast-inner.success { background: var(--success-text); }
+  .toast-f .toast-title {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--bg);
+  }
+  .toast-f .toast-msg {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: rgba(250,247,242,0.75);
+  }
+
+  /* ==================
+     TYPE SHOWCASE (small phones showing error vs success)
+     ================== */
+  .types-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .mini-phone {
+    width: 300px;
+    height: 180px;
+    background: var(--bg);
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  }
+  .mini-phone .toast { left: 12px; right: 12px; }
+  .mini-label {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+  }
+  .mini-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>Toast Variants</h1>
+<p class="section-label">Error state — title + message</p>
+
+<!-- A: Dark Pill -->
+<div class="variant-group">
+  <span class="variant-label">A — Dark pill</span>
+  <div class="phone">
+    <div class="toast toast-a" style="animation-delay: 0.1s">
+      <div class="toast-inner">
+        <div class="toast-icon error">
+          <svg viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3l-6 6" stroke="#FAF7F2" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="toast-body">
+          <span class="toast-title">Błąd logowania</span>
+          <span class="toast-msg">Spróbuj ponownie za chwilę</span>
+        </div>
+      </div>
+    </div>
+    <div class="login-bg">
+      <div class="app-title">BLISKO</div>
+      <div class="app-subtitle">Świat jest pełen ludzi, którzy siebie potrzebują.</div>
+      <div class="fake-input"></div>
+      <div class="fake-button"></div>
+      <div class="fake-divider"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+    </div>
+  </div>
+</div>
+
+<!-- B: Card -->
+<div class="variant-group">
+  <span class="variant-label">B — Card + left accent</span>
+  <div class="phone">
+    <div class="toast toast-b" style="animation-delay: 0.2s">
+      <div class="toast-inner error">
+        <div class="toast-icon error">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M8 4v5M8 11.5v.5" stroke="var(--error-text)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="toast-body">
+          <span class="toast-title">Błąd logowania</span>
+          <span class="toast-msg">Spróbuj ponownie za chwilę</span>
+        </div>
+      </div>
+    </div>
+    <div class="login-bg">
+      <div class="app-title">BLISKO</div>
+      <div class="app-subtitle">Świat jest pełen ludzi, którzy siebie potrzebują.</div>
+      <div class="fake-input"></div>
+      <div class="fake-button"></div>
+      <div class="fake-divider"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+    </div>
+  </div>
+</div>
+
+<!-- C: Tinted -->
+<div class="variant-group">
+  <span class="variant-label">C — Tinted background</span>
+  <div class="phone">
+    <div class="toast toast-c" style="animation-delay: 0.3s">
+      <div class="toast-inner error">
+        <div class="toast-dot error"></div>
+        <div class="toast-body">
+          <span class="toast-title error">Błąd logowania</span>
+          <span class="toast-msg error">Spróbuj ponownie za chwilę</span>
+        </div>
+      </div>
+    </div>
+    <div class="login-bg">
+      <div class="app-title">BLISKO</div>
+      <div class="app-subtitle">Świat jest pełen ludzi, którzy siebie potrzebują.</div>
+      <div class="fake-input"></div>
+      <div class="fake-button"></div>
+      <div class="fake-divider"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+    </div>
+  </div>
+</div>
+
+<!-- C2: Tinted + bar -->
+<div class="variant-group">
+  <span class="variant-label">C2 — Tinted + bar</span>
+  <div class="phone">
+    <div class="toast toast-c2" style="animation-delay: 0.35s">
+      <div class="toast-inner error">
+        <div class="toast-bar error"></div>
+        <div class="toast-body">
+          <span class="toast-title error">Błąd logowania</span>
+          <span class="toast-msg error">Spróbuj ponownie za chwilę</span>
+        </div>
+      </div>
+    </div>
+    <div class="login-bg">
+      <div class="app-title">BLISKO</div>
+      <div class="app-subtitle">Świat jest pełen ludzi, którzy siebie potrzebują.</div>
+      <div class="fake-input"></div>
+      <div class="fake-button"></div>
+      <div class="fake-divider"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+    </div>
+  </div>
+</div>
+
+<!-- D: Dark floating -->
+<div class="variant-group">
+  <span class="variant-label">D — Dark floating</span>
+  <div class="phone">
+    <div class="toast toast-d" style="animation-delay: 0.4s">
+      <div class="toast-inner">
+        <div class="toast-bar error"></div>
+        <div class="toast-body">
+          <span class="toast-title">Błąd logowania</span>
+          <span class="toast-msg">Spróbuj ponownie za chwilę</span>
+        </div>
+      </div>
+    </div>
+    <div class="login-bg">
+      <div class="app-title">BLISKO</div>
+      <div class="app-subtitle">Świat jest pełen ludzi, którzy siebie potrzebują.</div>
+      <div class="fake-input"></div>
+      <div class="fake-button"></div>
+      <div class="fake-divider"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+    </div>
+  </div>
+</div>
+
+<!-- E: Serif editorial -->
+<div class="variant-group">
+  <span class="variant-label">E — Serif editorial</span>
+  <div class="phone">
+    <div class="toast toast-e" style="animation-delay: 0.5s">
+      <div class="toast-inner">
+        <div class="toast-line error"></div>
+        <div class="toast-body">
+          <span class="toast-title">Błąd logowania</span>
+          <span class="toast-msg">Spróbuj ponownie za chwilę</span>
+        </div>
+      </div>
+    </div>
+    <div class="login-bg">
+      <div class="app-title">BLISKO</div>
+      <div class="app-subtitle">Świat jest pełen ludzi, którzy siebie potrzebują.</div>
+      <div class="fake-input"></div>
+      <div class="fake-button"></div>
+      <div class="fake-divider"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+    </div>
+  </div>
+</div>
+
+<!-- F: Full-width -->
+<div class="variant-group">
+  <span class="variant-label">F — Full-width solid</span>
+  <div class="phone">
+    <div class="toast toast-f" style="animation-delay: 0.6s">
+      <div class="toast-inner error">
+        <span class="toast-title">Błąd logowania</span>
+        <span class="toast-msg">Spróbuj ponownie za chwilę</span>
+      </div>
+    </div>
+    <div class="login-bg">
+      <div class="app-title">BLISKO</div>
+      <div class="app-subtitle">Świat jest pełen ludzi, którzy siebie potrzebują.</div>
+      <div class="fake-input"></div>
+      <div class="fake-button"></div>
+      <div class="fake-divider"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+      <div class="fake-oauth"></div>
+    </div>
+  </div>
+</div>
+
+<!-- C2 ALL TYPES -->
+<p class="section-label" style="margin-top: 32px;">C2 — Tinted + bar — all types</p>
+
+<div class="types-row">
+  <!-- C2 error -->
+  <div class="variant-group">
+    <span class="variant-label">Error</span>
+    <div class="phone">
+      <div class="toast toast-c2" style="animation-delay: 0.7s">
+        <div class="toast-inner error">
+          <div class="toast-bar error"></div>
+          <div class="toast-body">
+            <span class="toast-title error">Błąd logowania</span>
+            <span class="toast-msg error">Spróbuj ponownie za chwilę</span>
+          </div>
+        </div>
+      </div>
+      <div class="login-bg">
+        <div class="app-title">BLISKO</div>
+        <div class="app-subtitle">Świat jest pełen ludzi, którzy siebie potrzebują.</div>
+        <div class="fake-input"></div>
+        <div class="fake-button"></div>
+        <div class="fake-divider"></div>
+        <div class="fake-oauth"></div>
+        <div class="fake-oauth"></div>
+        <div class="fake-oauth"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C2 success -->
+  <div class="variant-group">
+    <span class="variant-label">Success</span>
+    <div class="phone">
+      <div class="toast toast-c2" style="animation-delay: 0.8s">
+        <div class="toast-inner success">
+          <div class="toast-bar success"></div>
+          <div class="toast-body">
+            <span class="toast-title success">Profil zaktualizowany</span>
+            <span class="toast-msg success">Zmiany zostały zapisane</span>
+          </div>
+        </div>
+      </div>
+      <div class="login-bg">
+        <div class="app-title">BLISKO</div>
+        <div class="app-subtitle">Świat jest pełen ludzi, którzy siebie potrzebują.</div>
+        <div class="fake-input"></div>
+        <div class="fake-button"></div>
+        <div class="fake-divider"></div>
+        <div class="fake-oauth"></div>
+        <div class="fake-oauth"></div>
+        <div class="fake-oauth"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C2 info -->
+  <div class="variant-group">
+    <span class="variant-label">Info</span>
+    <div class="phone">
+      <div class="toast toast-c2" style="animation-delay: 0.9s">
+        <div class="toast-inner info">
+          <div class="toast-bar info"></div>
+          <div class="toast-body">
+            <span class="toast-title info">Nowa aktualizacja</span>
+            <span class="toast-msg info">Dostępna jest nowa wersja aplikacji</span>
+          </div>
+        </div>
+      </div>
+      <div class="login-bg">
+        <div class="app-title">BLISKO</div>
+        <div class="app-subtitle">Świat jest pełen ludzi, którzy siebie potrzebują.</div>
+        <div class="fake-input"></div>
+        <div class="fake-button"></div>
+        <div class="fake-divider"></div>
+        <div class="fake-oauth"></div>
+        <div class="fake-oauth"></div>
+        <div class="fake-oauth"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- C2 message with avatar -->
+  <div class="variant-group">
+    <span class="variant-label">Message</span>
+    <div class="phone">
+      <div class="toast toast-c2" style="animation-delay: 1.0s">
+        <div class="toast-inner message">
+          <div class="toast-avatar">A</div>
+          <div class="toast-body">
+            <span class="toast-title message">Ania</span>
+            <span class="toast-msg message">Hej, idziesz dzisiaj na spacer?</span>
+          </div>
+        </div>
+      </div>
+      <div class="login-bg">
+        <div class="app-title">BLISKO</div>
+        <div class="app-subtitle">Świat jest pełen ludzi, którzy siebie potrzebują.</div>
+        <div class="fake-input"></div>
+        <div class="fake-button"></div>
+        <div class="fake-divider"></div>
+        <div class="fake-oauth"></div>
+        <div class="fake-oauth"></div>
+        <div class="fake-oauth"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS VARIANTS -->
+<p class="section-label" style="margin-top: 32px;">All variants — success state</p>
+
+<div class="types-row">
+  <!-- A success -->
+  <div class="mini-group">
+    <span class="mini-label">A — Success</span>
+    <div class="mini-phone">
+      <div class="toast toast-a" style="animation-delay: 0.8s; top: 32px;">
+        <div class="toast-inner">
+          <div class="toast-icon success">
+            <svg viewBox="0 0 12 12" fill="none"><path d="M2.5 6.5L5 9l4.5-6" stroke="#FAF7F2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="toast-body">
+            <span class="toast-title">Profil zaktualizowany</span>
+            <span class="toast-msg">Zmiany zostały zapisane</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B success -->
+  <div class="mini-group">
+    <span class="mini-label">B — Success</span>
+    <div class="mini-phone">
+      <div class="toast toast-b" style="animation-delay: 0.9s; top: 32px; left: 12px; right: 12px;">
+        <div class="toast-inner success">
+          <div class="toast-icon success">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5L6.5 11.5l6-8" stroke="var(--success-text)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="toast-body">
+            <span class="toast-title">Profil zaktualizowany</span>
+            <span class="toast-msg">Zmiany zostały zapisane</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C success -->
+  <div class="mini-group">
+    <span class="mini-label">C — Success</span>
+    <div class="mini-phone">
+      <div class="toast toast-c" style="animation-delay: 1.0s; top: 32px; left: 12px; right: 12px;">
+        <div class="toast-inner success">
+          <div class="toast-dot success"></div>
+          <div class="toast-body">
+            <span class="toast-title success">Profil zaktualizowany</span>
+            <span class="toast-msg success">Zmiany zostały zapisane</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C2 success -->
+  <div class="mini-group">
+    <span class="mini-label">C2 — Success</span>
+    <div class="mini-phone">
+      <div class="toast toast-c2" style="animation-delay: 1.05s; top: 32px; left: 12px; right: 12px;">
+        <div class="toast-inner success">
+          <div class="toast-bar success"></div>
+          <div class="toast-body">
+            <span class="toast-title success">Profil zaktualizowany</span>
+            <span class="toast-msg success">Zmiany zostały zapisane</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- D success -->
+  <div class="mini-group">
+    <span class="mini-label">D — Success</span>
+    <div class="mini-phone">
+      <div class="toast toast-d" style="animation-delay: 1.1s; top: 32px; left: 12px; right: 12px;">
+        <div class="toast-inner">
+          <div class="toast-bar success"></div>
+          <div class="toast-body">
+            <span class="toast-title">Profil zaktualizowany</span>
+            <span class="toast-msg">Zmiany zostały zapisane</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- E success -->
+  <div class="mini-group">
+    <span class="mini-label">E — Success</span>
+    <div class="mini-phone">
+      <div class="toast toast-e" style="animation-delay: 1.2s; top: 32px; left: 12px; right: 12px;">
+        <div class="toast-inner">
+          <div class="toast-line success"></div>
+          <div class="toast-body">
+            <span class="toast-title">Profil zaktualizowany</span>
+            <span class="toast-msg">Zmiany zostały zapisane</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- F success -->
+  <div class="mini-group">
+    <span class="mini-label">F — Success</span>
+    <div class="mini-phone">
+      <div class="toast toast-f" style="animation-delay: 1.3s; top: 24px; left: 0; right: 0;">
+        <div class="toast-inner success">
+          <span class="toast-title">Profil zaktualizowany</span>
+          <span class="toast-msg">Zmiany zostały zapisane</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
