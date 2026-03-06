@@ -1,5 +1,7 @@
-import { Stack } from 'expo-router';
-import { colors, type as typ } from '../../src/theme';
+import { Pressable } from 'react-native';
+import { Stack, router } from 'expo-router';
+import { colors, type as typ, spacing } from '../../src/theme';
+import { IconArrowLeft } from '../../src/components/ui/icons';
 
 export default function SettingsLayout() {
   return (
@@ -12,7 +14,17 @@ export default function SettingsLayout() {
         headerBackTitle: 'Wróć',
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Ustawienia' }} />
+      <Stack.Screen
+        name="index"
+        options={{
+          title: 'Ustawienia',
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()} hitSlop={12} style={{ marginRight: spacing.tight }}>
+              <IconArrowLeft size={20} color={colors.ink} />
+            </Pressable>
+          ),
+        }}
+      />
       <Stack.Screen name="profile" options={{ title: 'Profil' }} />
       <Stack.Screen name="edit-profile" options={{ title: 'Edytuj profil' }} />
       <Stack.Screen name="profiling" options={{ title: 'Profilowanie' }} />
