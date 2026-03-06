@@ -80,8 +80,10 @@ export default function RootLayout() {
               <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="settings" options={{ headerShown: false }} />
                 <Stack.Screen name="onboarding" />
                 <Stack.Screen name="(modals)" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
               </Stack>
             </LinkPreviewContextProvider>
             <NotificationOverlay />
