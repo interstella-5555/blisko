@@ -17,7 +17,7 @@ import { ToastProvider } from '../src/providers/ToastProvider';
 import { ToastOverlay } from '../src/components/ui/ToastOverlay';
 import { colors } from '../src/theme';
 
-const queryClient = new QueryClient();
+export const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const setUser = useAuthStore((state) => state.setUser);

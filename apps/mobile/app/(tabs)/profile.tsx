@@ -15,6 +15,7 @@ import { useWavesStore } from '../../src/stores/wavesStore';
 import { authClient } from '../../src/lib/auth';
 import { trpc, trpcClient } from '../../src/lib/trpc';
 import * as SecureStore from 'expo-secure-store';
+import { queryClient } from '../_layout';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { Button } from '../../src/components/ui/Button';
@@ -72,6 +73,7 @@ export default function ProfileScreen() {
 
     await authClient.signOut();
     await SecureStore.deleteItemAsync('blisko_session_token');
+    queryClient.clear();
     reset();
     useProfilesStore.getState().reset();
     useConversationsStore.getState().reset();
