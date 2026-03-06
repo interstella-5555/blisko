@@ -135,25 +135,25 @@ importers:
         version: 4.1.18(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
       '@tanstack/ai':
         specifier: latest
-        version: 0.5.1
+        version: 0.6.1
       '@tanstack/ai-anthropic':
         specifier: latest
-        version: 0.5.0(@tanstack/ai@0.5.1)(zod@4.3.6)
+        version: 0.6.0(@tanstack/ai@0.6.1)(zod@4.3.6)
       '@tanstack/ai-client':
         specifier: latest
-        version: 0.4.5
+        version: 0.5.2
       '@tanstack/ai-gemini':
         specifier: latest
-        version: 0.5.0(@tanstack/ai@0.5.1)
+        version: 0.7.0(@tanstack/ai@0.6.1)
       '@tanstack/ai-ollama':
         specifier: latest
-        version: 0.5.0(@tanstack/ai@0.5.1)
+        version: 0.6.0(@tanstack/ai@0.6.1)
       '@tanstack/ai-openai':
         specifier: latest
-        version: 0.5.0(@tanstack/ai@0.5.1)(ws@8.19.0)(zod@4.3.6)
+        version: 0.6.0(@tanstack/ai@0.6.1)(ws@8.19.0)(zod@4.3.6)
       '@tanstack/ai-react':
         specifier: latest
-        version: 0.5.4(@tanstack/ai@0.5.1)(@types/react@19.2.13)(react@19.2.4)
+        version: 0.6.2(@tanstack/ai@0.6.1)(@types/react@19.2.13)(react@19.2.4)
       '@tanstack/react-devtools':
         specifier: ^0.7.0
         version: 0.7.11(@types/react-dom@19.2.3(@types/react@19.2.13))(@types/react@19.2.13)(csstype@3.2.3)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(solid-js@1.9.11)
@@ -189,7 +189,7 @@ importers:
         version: 15.0.12
       nitro:
         specifier: npm:nitro-nightly@latest
-        version: nitro-nightly@3.0.1-20260219-081345-4df7aab2(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@16.6.1)(drizzle-orm@0.45.1(@electric-sql/pglite@0.3.15)(@opentelemetry/api@1.9.0)(@prisma/client@7.4.2(prisma@7.4.2(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(bun-types@1.3.9)(kysely@0.28.11)(mysql2@3.15.3)(pg@8.17.2)(postgres@3.4.8)(prisma@7.4.2(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(ioredis@5.9.3)(jiti@2.6.1)(lru-cache@11.2.5)(mongodb@7.1.0(gcp-metadata@8.1.2))(mysql2@3.15.3)(rollup@4.56.0)(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(xml2js@0.6.0)
+        version: nitro-nightly@3.0.1-20260227-181935-bfbb207c(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@16.6.1)(drizzle-orm@0.45.1(@electric-sql/pglite@0.3.15)(@opentelemetry/api@1.9.0)(@prisma/client@7.4.2(prisma@7.4.2(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(bun-types@1.3.9)(kysely@0.28.11)(mysql2@3.15.3)(pg@8.17.2)(postgres@3.4.8)(prisma@7.4.2(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(ioredis@5.9.3)(jiti@2.6.1)(lru-cache@11.2.5)(mongodb@7.1.0(gcp-metadata@8.1.2))(mysql2@3.15.3)(rollup@4.56.0)(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(xml2js@0.6.0)
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -311,6 +311,9 @@ importers:
       expo-location:
         specifier: ~19.0.8
         version: 19.0.8(expo@54.0.32(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.22)(graphql@16.8.1)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))
+      expo-network:
+        specifier: ~8.0.8
+        version: 8.0.8(expo@54.0.32(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.22)(graphql@16.8.1)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react@19.1.0)
       expo-notifications:
         specifier: ~0.32.16
         version: 0.32.16(expo@54.0.32(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.22)(graphql@16.8.1)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -1964,8 +1967,8 @@ packages:
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
 
-  '@google/genai@1.40.0':
-    resolution: {integrity: sha512-fhIww8smT0QYRX78qWOiz/nIQhHMF5wXOrlXvj33HBrz3vKDBb+wibLcEmTA+L9dmPD4KmfNr7UF3LDQVTXNjA==}
+  '@google/genai@1.44.0':
+    resolution: {integrity: sha512-kRt9ZtuXmz+tLlcNntN/VV4LRdpl6ZOu5B1KbfNgfR65db15O6sUQcwnwLka8sT/V6qysD93fWrgJHF2L7dA9A==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.25.2
@@ -3111,40 +3114,40 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
-  '@tanstack/ai-anthropic@0.5.0':
-    resolution: {integrity: sha512-PiQx4Kpw+NNjXvVhes29LoO/IvD8M9GGQsNvtLCd+dDhZt3FzdNwHWMZBCpaQWPW142iuhowagh79X//onNjDw==}
+  '@tanstack/ai-anthropic@0.6.0':
+    resolution: {integrity: sha512-xVKq6Co58etETfxrCfLzESyxrmR28D9+sh6FH/mPTeHWnOt3Tyb12OqOD5Gu2Ox4nZKWviHbmLKxavR4iFSYag==}
     peerDependencies:
-      '@tanstack/ai': ^0.5.0
+      '@tanstack/ai': ^0.6.1
       zod: ^4.0.0
 
-  '@tanstack/ai-client@0.4.5':
-    resolution: {integrity: sha512-L5pAuwtBs/iLFgiFB3acq/NNj/xBCMWTCZvOKC2PQsMHBnxjU5l8cZNYVCGk8Tzf/a9fe6s4wHOgckcHxkHStA==}
+  '@tanstack/ai-client@0.5.2':
+    resolution: {integrity: sha512-owyJg/6qrUDZGQ7ginAFhaBT/S8DOOGGEOOSsjOGJgaGSJJGyOkxnMGBLw2kkMYbdPRK+/rKSqiiGO04bRlMcw==}
 
-  '@tanstack/ai-gemini@0.5.0':
-    resolution: {integrity: sha512-gunJgwRG+38fbYSE83/XJMHFy/7hDN4Fb91vAAZLK3nh4DoN0ReVbRB4BK9cY9iVYQqGq2PA8d5ruDgfcKO2hQ==}
+  '@tanstack/ai-gemini@0.7.0':
+    resolution: {integrity: sha512-A2ahYPbQ15bOfn0byE6g6dzCL/pSxhmBBCDjj+Mrwu5xLnhfwkSTkb+GnXCs6QTQOrg3lww1vZjRt251tr6u9A==}
     peerDependencies:
-      '@tanstack/ai': ^0.5.0
+      '@tanstack/ai': ^0.6.1
 
-  '@tanstack/ai-ollama@0.5.0':
-    resolution: {integrity: sha512-CR/f6OS7WzrC1VIK819lDSHeEJWfpaEVyO0bSmE7EGUAfbv+JmDLd8tI2Pk/DhIRVw/rk0Zlcn35jWvvXLjwTg==}
+  '@tanstack/ai-ollama@0.6.0':
+    resolution: {integrity: sha512-fWa2PfPZ4xeYdN8PUEoiFx30RUaLhLISOOMfux3MPYKW6lNu+04TDHWC6mKP5JXTCc1wVxpSpeVjBfwbrsnu9w==}
     peerDependencies:
-      '@tanstack/ai': ^0.5.0
+      '@tanstack/ai': ^0.6.1
 
-  '@tanstack/ai-openai@0.5.0':
-    resolution: {integrity: sha512-0xJg+BkqVgIRbl4LyiPQWCLOapfGpK4lSzqjaWRkz2Hf1C3m4exg76rBuv1mvr4G3XAR5SnMRSj3XxlWMuRImA==}
+  '@tanstack/ai-openai@0.6.0':
+    resolution: {integrity: sha512-CSDgYr63ftw+nGb1IpB+3qIOngLE1pZjasiaeOdDQ6CbSEJDNcR7VNmyTx3RsoTh9fChKbLhJzYpem1Mpag2og==}
     peerDependencies:
-      '@tanstack/ai': ^0.5.0
+      '@tanstack/ai': ^0.6.1
       zod: ^4.0.0
 
-  '@tanstack/ai-react@0.5.4':
-    resolution: {integrity: sha512-vglZLEiTkwGkYhXkXCk9MfskrFyUSVLI8c+kIeGcx7e0AnsI0jda9mLq3Hkm3+WWNSYuqLqDk4KXkKo3XZCezw==}
+  '@tanstack/ai-react@0.6.2':
+    resolution: {integrity: sha512-ifWg3MXRPTQz8qd4HNGCzQO8WGkT4cvEXucJWNih8LWHXe3mAy1eo6p07alMr2SYn/AnKx9YSHzpnNVSQKESxA==}
     peerDependencies:
-      '@tanstack/ai': ^0.5.1
+      '@tanstack/ai': ^0.6.1
       '@types/react': '>=18.0.0'
       react: '>=18.0.0'
 
-  '@tanstack/ai@0.5.1':
-    resolution: {integrity: sha512-kHZb8Q/aI/z20d4CB7U49Pbk8IoypbFA1saDYlPBFPbdSzikeutJ2oRyN4hY2qtrxnfyC1oHOhiWkDH0i+5kwg==}
+  '@tanstack/ai@0.6.1':
+    resolution: {integrity: sha512-k+4JrjBm5O1j5ccxErlUVC2IC2rJIqQCK45loLckeLow0cJ5rWdKtG03UwR+9VjppDdL6oO27jyk5CzU6ym+HQ==}
     engines: {node: '>=18'}
 
   '@tanstack/devtools-client@0.0.3':
@@ -3575,6 +3578,9 @@ packages:
 
   '@types/react@19.2.13':
     resolution: {integrity: sha512-KkiJeU6VbYbUOp5ITMIc7kBfqlYkKA5KhEHVrGMmUUMt7NeaZg65ojdPk+FtNrBAOXNVM5QM72jnADjM+XVRAQ==}
+
+  '@types/retry@0.12.0':
+    resolution: {integrity: sha512-wWKOClTTiizcZhXnPY4wikVAwmdYHp8q6DmC+EJUzAMsycb7HB32Kh9RN4+0gExjmPmZSAQjgURXIGATPegAvA==}
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
@@ -5481,10 +5487,6 @@ packages:
     resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
     engines: {node: 6.* || 8.* || >= 10.*}
 
-  get-east-asian-width@1.4.0:
-    resolution: {integrity: sha512-QZjmEOC+IT1uk6Rx0sX22V6uHWVwbdbxf1faPqJ1QhLdGgsRGCZoyaQBm/piRdJy/D2um6hM1UP7ZEeQ4EkP+Q==}
-    engines: {node: '>=18'}
-
   get-east-asian-width@1.5.0:
     resolution: {integrity: sha512-CQ+bEO+Tva/qlmw24dCejulK5pMzVnUOFOijVogd3KQs07HnRIgp8TGipvCCRT06xeYEbpbgwaCxglFyiuIcmA==}
     engines: {node: '>=18'}
@@ -6888,15 +6890,15 @@ packages:
   nf3@0.3.10:
     resolution: {integrity: sha512-UlqmHkZiHGgSkRj17yrOXEsSu5ECvtlJ3Xm1W5WsWrTKgu9m7OjrMZh9H/ME2LcWrTlMD0/vmmNVpyBG4yRdGg==}
 
-  nitro-nightly@3.0.1-20260219-081345-4df7aab2:
-    resolution: {integrity: sha512-H32F+NLO4/SNrkLcE6Xe1fJElF6UuMynL7Mi6uUynOb2v52ee5KpZ8WEuOqm+DvHzmafFUrrVag+01Ti15j/hA==}
+  nitro-nightly@3.0.1-20260227-181935-bfbb207c:
+    resolution: {integrity: sha512-J9dNAHHuZqzDra4Zr9N6+4hkRPgfrUVw++9I32BHDmwo6MkyRdvmqucWTB5T+J8G3xAMc4+XskExmUEEqxpbZw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
       dotenv: '*'
       giget: '*'
       jiti: ^2.6.1
-      rollup: ^4.57.1
+      rollup: ^4.59.0
       vite: ^7 || ^8 || >=8.0.0-0
       xml2js: ^0.6.2
     peerDependenciesMeta:
@@ -7103,6 +7105,10 @@ packages:
   p-locate@5.0.0:
     resolution: {integrity: sha512-LaNjtRWUBY++zB5nE/NwcaoMylSPk+S+ZHNB1TzdbMJMny6dynpAGt7X/tl/QYq3TIeE6nxHppbo2LGymrG5Pw==}
     engines: {node: '>=10'}
+
+  p-retry@4.6.2:
+    resolution: {integrity: sha512-312Id396EbJdvRONlngUx0NydfrIQ5lsYu0znKVUzVvArzEIt08V1qhtyESbGVd1FGX7UKtiFp5uwKZdM8wIuQ==}
+    engines: {node: '>=8'}
 
   p-try@2.2.0:
     resolution: {integrity: sha512-R4nPAVTAU0B9D35/Gk3uJf/7XYbQcyohSKdvAxIRSNghFl4e71hVoGnBNQz9cWaXxO2I10KTC+3jMdvvoKw6dQ==}
@@ -7715,6 +7721,10 @@ packages:
 
   retry@0.12.0:
     resolution: {integrity: sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow==}
+    engines: {node: '>= 4'}
+
+  retry@0.13.1:
+    resolution: {integrity: sha512-XQBQ3I8W1Cge0Seh+6gjj03LbmRFWuoszgK9ooCpwYIrhhoO80pfq4cUkU5DkknwfOfFteRwlZ56PYOGYyFWdg==}
     engines: {node: '>= 4'}
 
   reusify@1.1.0:
@@ -9800,18 +9810,18 @@ snapshots:
 
   '@better-auth/kysely-adapter@1.5.4(@better-auth/core@1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1))(@better-auth/utils@0.3.1)(kysely@0.28.11)':
     dependencies:
-      '@better-auth/core': 1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@3.25.76))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1)
+      '@better-auth/core': 1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1)
       '@better-auth/utils': 0.3.1
       kysely: 0.28.11
 
   '@better-auth/memory-adapter@1.5.4(@better-auth/core@1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1))(@better-auth/utils@0.3.1)':
     dependencies:
-      '@better-auth/core': 1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@3.25.76))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1)
+      '@better-auth/core': 1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1)
       '@better-auth/utils': 0.3.1
 
   '@better-auth/mongo-adapter@1.5.4(@better-auth/core@1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1))(@better-auth/utils@0.3.1)(mongodb@7.1.0(gcp-metadata@8.1.2))':
     dependencies:
-      '@better-auth/core': 1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@3.25.76))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1)
+      '@better-auth/core': 1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1)
       '@better-auth/utils': 0.3.1
       mongodb: 7.1.0(gcp-metadata@8.1.2)
 
@@ -9831,7 +9841,7 @@ snapshots:
 
   '@better-auth/telemetry@1.5.4(@better-auth/core@1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1))':
     dependencies:
-      '@better-auth/core': 1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@3.25.76))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1)
+      '@better-auth/core': 1.5.4(@better-auth/utils@0.3.1)(@better-fetch/fetch@1.1.21)(better-call@1.3.2(zod@4.3.6))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.1)
       '@better-auth/utils': 0.3.1
       '@better-fetch/fetch': 1.1.21
 
@@ -10956,9 +10966,10 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
-  '@google/genai@1.40.0':
+  '@google/genai@1.44.0':
     dependencies:
       google-auth-library: 10.5.0
+      p-retry: 4.6.2
       protobufjs: 7.5.4
       ws: 8.19.0
     transitivePeerDependencies:
@@ -12446,47 +12457,47 @@ snapshots:
       tailwindcss: 4.1.18
       vite: 7.3.1(@types/node@22.19.9)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
 
-  '@tanstack/ai-anthropic@0.5.0(@tanstack/ai@0.5.1)(zod@4.3.6)':
+  '@tanstack/ai-anthropic@0.6.0(@tanstack/ai@0.6.1)(zod@4.3.6)':
     dependencies:
       '@anthropic-ai/sdk': 0.71.2(zod@4.3.6)
-      '@tanstack/ai': 0.5.1
+      '@tanstack/ai': 0.6.1
       zod: 4.3.6
 
-  '@tanstack/ai-client@0.4.5':
+  '@tanstack/ai-client@0.5.2':
     dependencies:
-      '@tanstack/ai': 0.5.1
+      '@tanstack/ai': 0.6.1
 
-  '@tanstack/ai-gemini@0.5.0(@tanstack/ai@0.5.1)':
+  '@tanstack/ai-gemini@0.7.0(@tanstack/ai@0.6.1)':
     dependencies:
-      '@google/genai': 1.40.0
-      '@tanstack/ai': 0.5.1
+      '@google/genai': 1.44.0
+      '@tanstack/ai': 0.6.1
     transitivePeerDependencies:
       - '@modelcontextprotocol/sdk'
       - bufferutil
       - supports-color
       - utf-8-validate
 
-  '@tanstack/ai-ollama@0.5.0(@tanstack/ai@0.5.1)':
+  '@tanstack/ai-ollama@0.6.0(@tanstack/ai@0.6.1)':
     dependencies:
-      '@tanstack/ai': 0.5.1
+      '@tanstack/ai': 0.6.1
       ollama: 0.6.3
 
-  '@tanstack/ai-openai@0.5.0(@tanstack/ai@0.5.1)(ws@8.19.0)(zod@4.3.6)':
+  '@tanstack/ai-openai@0.6.0(@tanstack/ai@0.6.1)(ws@8.19.0)(zod@4.3.6)':
     dependencies:
-      '@tanstack/ai': 0.5.1
+      '@tanstack/ai': 0.6.1
       openai: 6.18.0(ws@8.19.0)(zod@4.3.6)
       zod: 4.3.6
     transitivePeerDependencies:
       - ws
 
-  '@tanstack/ai-react@0.5.4(@tanstack/ai@0.5.1)(@types/react@19.2.13)(react@19.2.4)':
+  '@tanstack/ai-react@0.6.2(@tanstack/ai@0.6.1)(@types/react@19.2.13)(react@19.2.4)':
     dependencies:
-      '@tanstack/ai': 0.5.1
-      '@tanstack/ai-client': 0.4.5
+      '@tanstack/ai': 0.6.1
+      '@tanstack/ai-client': 0.5.2
       '@types/react': 19.2.13
       react: 19.2.4
 
-  '@tanstack/ai@0.5.1':
+  '@tanstack/ai@0.6.1':
     dependencies:
       '@tanstack/devtools-event-client': 0.4.0
       partial-json: 0.1.7
@@ -13261,6 +13272,8 @@ snapshots:
   '@types/react@19.2.13':
     dependencies:
       csstype: 3.2.3
+
+  '@types/retry@0.12.0': {}
 
   '@types/stack-utils@2.0.3': {}
 
@@ -14621,7 +14634,7 @@ snapshots:
 
   dotenv-expand@11.0.7:
     dependencies:
-      dotenv: 16.4.7
+      dotenv: 16.6.1
 
   dotenv@16.3.1: {}
 
@@ -15203,7 +15216,6 @@ snapshots:
     dependencies:
       expo: 54.0.32(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.22)(graphql@16.8.1)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react: 19.1.0
-    optional: true
 
   expo-network@8.0.8(expo@54.0.32(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.22)(graphql@16.8.1)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.2.13)(react@19.2.4))(react@19.2.4))(react@19.2.4):
     dependencies:
@@ -15606,8 +15618,6 @@ snapshots:
   gensync@1.0.0-beta.2: {}
 
   get-caller-file@2.0.5: {}
-
-  get-east-asian-width@1.4.0: {}
 
   get-east-asian-width@1.5.0: {}
 
@@ -16120,7 +16130,7 @@ snapshots:
 
   is-fullwidth-code-point@5.1.0:
     dependencies:
-      get-east-asian-width: 1.4.0
+      get-east-asian-width: 1.5.0
 
   is-generator-function@1.1.2:
     dependencies:
@@ -17071,7 +17081,7 @@ snapshots:
   micromark-extension-cjk-friendly-gfm-strikethrough@1.2.3(micromark-util-types@2.0.2)(micromark@4.0.2):
     dependencies:
       devlop: 1.1.0
-      get-east-asian-width: 1.4.0
+      get-east-asian-width: 1.5.0
       micromark: 4.0.2
       micromark-extension-cjk-friendly-util: 2.1.1(micromark-util-types@2.0.2)
       micromark-util-character: 2.1.1
@@ -17083,7 +17093,7 @@ snapshots:
 
   micromark-extension-cjk-friendly-util@2.1.1(micromark-util-types@2.0.2):
     dependencies:
-      get-east-asian-width: 1.4.0
+      get-east-asian-width: 1.5.0
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
     optionalDependencies:
@@ -17450,7 +17460,7 @@ snapshots:
 
   nf3@0.3.10: {}
 
-  nitro-nightly@3.0.1-20260219-081345-4df7aab2(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@16.6.1)(drizzle-orm@0.45.1(@electric-sql/pglite@0.3.15)(@opentelemetry/api@1.9.0)(@prisma/client@7.4.2(prisma@7.4.2(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(bun-types@1.3.9)(kysely@0.28.11)(mysql2@3.15.3)(pg@8.17.2)(postgres@3.4.8)(prisma@7.4.2(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(ioredis@5.9.3)(jiti@2.6.1)(lru-cache@11.2.5)(mongodb@7.1.0(gcp-metadata@8.1.2))(mysql2@3.15.3)(rollup@4.56.0)(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(xml2js@0.6.0):
+  nitro-nightly@3.0.1-20260227-181935-bfbb207c(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@16.6.1)(drizzle-orm@0.45.1(@electric-sql/pglite@0.3.15)(@opentelemetry/api@1.9.0)(@prisma/client@7.4.2(prisma@7.4.2(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(bun-types@1.3.9)(kysely@0.28.11)(mysql2@3.15.3)(pg@8.17.2)(postgres@3.4.8)(prisma@7.4.2(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(ioredis@5.9.3)(jiti@2.6.1)(lru-cache@11.2.5)(mongodb@7.1.0(gcp-metadata@8.1.2))(mysql2@3.15.3)(rollup@4.56.0)(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))(xml2js@0.6.0):
     dependencies:
       consola: 3.4.2
       crossws: 0.4.4(srvx@0.11.7)
@@ -17681,6 +17691,11 @@ snapshots:
   p-locate@5.0.0:
     dependencies:
       p-limit: 3.1.0
+
+  p-retry@4.6.2:
+    dependencies:
+      '@types/retry': 0.12.0
+      retry: 0.13.1
 
   p-try@2.2.0: {}
 
@@ -18494,6 +18509,8 @@ snapshots:
 
   retry@0.12.0: {}
 
+  retry@0.13.1: {}
+
   reusify@1.1.0: {}
 
   rfdc@1.4.1: {}
@@ -18869,7 +18886,7 @@ snapshots:
   string-width@7.2.0:
     dependencies:
       emoji-regex: 10.6.0
-      get-east-asian-width: 1.4.0
+      get-east-asian-width: 1.5.0
       strip-ansi: 7.1.2
 
   string-width@8.2.0:
