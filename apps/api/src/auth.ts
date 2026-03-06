@@ -11,7 +11,7 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-export const auth: ReturnType<typeof betterAuth> = betterAuth({
+export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),
@@ -96,6 +96,17 @@ export const auth: ReturnType<typeof betterAuth> = betterAuth({
     },
     // Allow requests without Origin header (React Native doesn't send Origin)
     disableCSRFCheck: true,
+    cookies: {
+      // Apple uses response_mode=form_post (cross-site POST).
+      // SameSite=Lax (default) strips cookies from cross-site POSTs,
+      // causing OAuth state mismatch. Use "none" + secure to fix.
+      state: {
+        attributes: {
+          sameSite: 'none' as const,
+          secure: true,
+        },
+      },
+    },
   },
   plugins: [
     expo(),

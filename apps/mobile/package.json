@@ -19,13 +19,13 @@
     "testflight": "bash scripts/testflight.sh"
   },
   "dependencies": {
-    "@better-auth/expo": "^1.4.17",
+    "@better-auth/expo": "^1.5.4",
     "@repo/api": "workspace:*",
     "@repo/shared": "workspace:*",
     "@tanstack/react-query": "^5.50.0",
     "@trpc/client": "^11.0.0-rc.0",
     "@trpc/react-query": "^11.0.0-rc.0",
-    "better-auth": "^1.4.17",
+    "better-auth": "^1.5.4",
     "expo": "~54.0.32",
     "expo-blur": "~15.0.8",
     "expo-clipboard": "~8.0.8",
