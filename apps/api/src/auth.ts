@@ -15,9 +15,11 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),
-  accountLinking: {
-    enabled: true,
-    trustedProviders: ['apple', 'google', 'facebook', 'linkedin'],
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ['apple', 'google', 'facebook', 'linkedin'],
+    },
   },
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
