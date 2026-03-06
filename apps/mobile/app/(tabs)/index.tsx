@@ -33,7 +33,7 @@ import { UserRow } from '../../src/components/nearby/UserRow';
 import type { UserRowStatus } from '../../src/components/nearby/UserRow';
 import { GroupRow } from '../../src/components/nearby/GroupRow';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { IconPin } from '../../src/components/ui/icons';
+import { IconPin, IconSettings } from '../../src/components/ui/icons';
 import { Button } from '../../src/components/ui/Button';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -573,9 +573,7 @@ export default function NearbyScreen() {
           style={[styles.filterFunnel, hasActiveFilters && styles.filterFunnelActive]}
           onPress={() => setShowFilterSheet(true)}
         >
-          <Text style={[styles.filterFunnelIcon, hasActiveFilters && styles.filterFunnelIconActive]}>
-            {'\u2699'}
-          </Text>
+          <IconSettings size={16} color={hasActiveFilters ? colors.accent : colors.muted} />
           {hasActiveFilters && <View style={styles.filterDot} />}
         </Pressable>
       </View>
@@ -813,13 +811,6 @@ const styles = StyleSheet.create({
   filterFunnelActive: {
     borderColor: colors.accent,
     backgroundColor: colors.status.error.bg,
-  },
-  filterFunnelIcon: {
-    fontSize: 16,
-    color: colors.muted,
-  },
-  filterFunnelIconActive: {
-    color: colors.accent,
   },
   filterDot: {
     position: 'absolute',
