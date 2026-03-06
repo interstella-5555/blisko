@@ -43,6 +43,7 @@ export default function LoginScreen() {
       const result = await authClient.signIn.social({
         provider,
         callbackURL: '/(tabs)',
+        errorCallbackURL: '/(auth)/login',
       });
 
       if (result?.error) {
@@ -59,6 +60,8 @@ export default function LoginScreen() {
         setUser(data.user);
         setSession(data.session);
         router.replace('/(tabs)');
+      } else {
+        showToast({ type: 'error', title: 'Błąd logowania', message: 'Nie udało się zalogować. Spróbuj ponownie.' });
       }
     } catch (err) {
       showToast({ type: 'error', title: 'Błąd logowania', message: 'Spróbuj ponownie' });
