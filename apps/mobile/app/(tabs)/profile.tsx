@@ -71,6 +71,7 @@ export default function ProfileScreen() {
     } catch {}
 
     await authClient.signOut();
+    await SecureStore.deleteItemAsync('blisko_session_token');
     reset();
     useProfilesStore.getState().reset();
     useConversationsStore.getState().reset();
