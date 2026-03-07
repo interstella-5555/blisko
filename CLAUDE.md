@@ -312,6 +312,8 @@ We use [Biome](https://biomejs.dev/) for formatting and linting. Config: `biome.
 - `pnpm lint` — lint all files
 - `pnpm check` — format + lint + organize imports (CI runs this)
 
+**TanStack Query ESLint rules:** Biome has no plugin system, so TanStack's ESLint rules ([`no-unstable-deps`](https://github.com/TanStack/query/blob/main/docs/eslint/no-unstable-deps.md), [`exhaustive-deps`](https://github.com/TanStack/query/blob/main/docs/eslint/exhaustive-deps.md)) can't be used. Not a real gap — tRPC manages queryKeys automatically, and Biome's `useExhaustiveDependencies` already covers React hook deps. The tRPC method-chain pattern (`trpc.*.useMutation()`) also means Biome can't match these as custom hooks anyway.
+
 **Before finishing any task**, run `npx @biomejs/biome check .` and verify 0 errors. Do NOT add new `biome-ignore` comments or disable rules in `biome.json` just to make errors go away — fix the actual code instead. The only acceptable `biome-ignore` is when the code is intentionally correct and the rule is a false positive (e.g. `noArrayIndexKey` on a fixed-length OTP input).
 
 **Auto-formatting hook:** `.claude/settings.json` runs `biome format --write` after every Edit/Write tool call.
