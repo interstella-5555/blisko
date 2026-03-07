@@ -83,6 +83,12 @@ interface HardDeleteUserJob {
   userId: string;
 }
 
+interface ExportUserDataJob {
+  type: "export-user-data";
+  userId: string;
+  email: string;
+}
+
 type AIJob =
   | AnalyzePairJob
   | AnalyzeUserPairsJob
@@ -90,7 +96,8 @@ type AIJob =
   | GenerateProfilingQuestionJob
   | GenerateProfileFromQAJob
   | StatusMatchingJob
-  | HardDeleteUserJob;
+  | HardDeleteUserJob
+  | ExportUserDataJob;
 
 // --- Queue (lazy init) ---
 
@@ -628,6 +635,15 @@ async function processHardDeleteUser(userId: string) {
   console.log(`[queue] hard-delete-user completed for ${userId}`);
 }
 
+// --- Export user data processor ---
+
+async function processExportUserData(userId: string, email: string) {
+  console.log(`[queue] export-user-data starting for ${userId}`);
+  const { collectAndExportUserData } = await import("./data-export");
+  await collectAndExportUserData(userId, email);
+  console.log(`[queue] export-user-data completed for ${userId}`);
+}
+
 // --- Main job processor ---
 
 async function processJob(job: Job<AIJob>) {
@@ -656,6 +672,9 @@ async function processJob(job: Job<AIJob>) {
       break;
     case "hard-delete-user":
       await processHardDeleteUser(data.userId);
+      break;
+    case "export-user-data":
+      await processExportUserData(data.userId, data.email);
       break;
   }
 }
@@ -886,4 +905,18 @@ export async function cancelHardDeleteUser(userId: string) {
       /* job may have already run */
     }
   }
+}
+
+export async function enqueueDataExport(userId: string, email: string) {
+  if (!process.env.REDIS_URL) return;
+
+  const queue = getQueue();
+  await queue.add(
+    "export-user-data",
+    { type: "export-user-data", userId, email },
+    {
+      jobId: `export-${userId}-${Date.now()}`,
+      removeOnComplete: true,
+    },
+  );
 }
