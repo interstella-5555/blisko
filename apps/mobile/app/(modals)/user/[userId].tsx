@@ -1,8 +1,10 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ProfileGateSheet } from "../../../src/components/ProfileGateSheet";
 import { Avatar } from "../../../src/components/ui/Avatar";
 import { IconChat, IconCheck, IconWave } from "../../../src/components/ui/icons";
+import { useProfileGate } from "../../../src/hooks/useProfileGate";
 import { formatDistance } from "../../../src/lib/format";
 import { trpc } from "../../../src/lib/trpc";
 import { sendWsMessage, useWebSocket, type WSMessage } from "../../../src/lib/ws";
@@ -63,6 +65,7 @@ export default function UserProfileScreen() {
   const commonInterests: string[] = params.commonInterests ? JSON.parse(params.commonInterests) : [];
   const avatarUrl = params.avatarUrl || null;
 
+  const gate = useProfileGate();
   const [pendingWaveId, setPendingWaveId] = useState<string | null>(null);
   const busyRef = useRef(false);
 
@@ -142,6 +145,7 @@ export default function UserProfileScreen() {
   }, [sentWaves, userId]);
 
   const handleWave = async () => {
+    if (!gate.requireFullProfile()) return;
     if (busyRef.current || pendingWaveId || conversationId) return;
     busyRef.current = true;
     setPendingWaveId("optimistic");
@@ -207,6 +211,7 @@ export default function UserProfileScreen() {
   };
 
   const handleAccept = async () => {
+    if (!gate.requireFullProfile()) return;
     if (busyRef.current || !incomingWave) return;
     busyRef.current = true;
     setOptimisticAction("accepted");
@@ -248,6 +253,7 @@ export default function UserProfileScreen() {
   };
 
   const handleDecline = () => {
+    if (!gate.requireFullProfile()) return;
     if (busyRef.current || !incomingWave) return;
     Alert.alert("Odrzuć zaczepienie", "Czy na pewno chcesz odrzucić to zaczepienie?", [
       { text: "Anuluj", style: "cancel" },
@@ -301,132 +307,135 @@ export default function UserProfileScreen() {
             : "idle";
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      {/* Header — always visible from cached/list params */}
-      <View style={styles.header}>
-        <Avatar uri={profile?.avatarUrl ?? resolvedAvatarUrl} name={displayName} size={100} />
-        <Text style={styles.displayName}>{displayName}</Text>
-        <View style={styles.meta}>
-          {matchPercent > 0 && <Text style={styles.matchBadge}>{matchPercent}% dopasowania</Text>}
-          <Text style={styles.distance}>{formatDistance(resolvedDistance)}</Text>
-        </View>
+    <>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        {/* Header — always visible from cached/list params */}
+        <View style={styles.header}>
+          <Avatar uri={profile?.avatarUrl ?? resolvedAvatarUrl} name={displayName} size={100} />
+          <Text style={styles.displayName}>{displayName}</Text>
+          <View style={styles.meta}>
+            {matchPercent > 0 && <Text style={styles.matchBadge}>{matchPercent}% dopasowania</Text>}
+            <Text style={styles.distance}>{formatDistance(resolvedDistance)}</Text>
+          </View>
 
-        {/* Inline action */}
-        <View style={styles.actionRow}>
-          {actionState === "idle" && (
-            <Pressable style={styles.actionPill} onPress={handleWave}>
-              <IconWave size={13} color={colors.bg} />
-              <Text style={styles.actionPillText}>Zaczep</Text>
-            </Pressable>
-          )}
-          {actionState === "pending" && (
-            <Pressable style={styles.pendingPill} onPress={handleCancelWave}>
-              <IconCheck size={12} color={colors.muted} />
-              <Text style={styles.pendingPillText}>Zaczepiono</Text>
-            </Pressable>
-          )}
-          {actionState === "incoming" && (
-            <View style={styles.incomingActions}>
-              <Pressable style={styles.declinePill} onPress={handleDecline}>
-                <Text style={styles.declinePillText}>Odrzuć</Text>
+          {/* Inline action */}
+          <View style={styles.actionRow}>
+            {actionState === "idle" && (
+              <Pressable style={styles.actionPill} onPress={handleWave}>
+                <IconWave size={13} color={colors.bg} />
+                <Text style={styles.actionPillText}>Zaczep</Text>
               </Pressable>
-              <Pressable style={styles.actionPill} onPress={handleAccept}>
-                <Text style={styles.actionPillText}>Akceptuj</Text>
+            )}
+            {actionState === "pending" && (
+              <Pressable style={styles.pendingPill} onPress={handleCancelWave}>
+                <IconCheck size={12} color={colors.muted} />
+                <Text style={styles.pendingPillText}>Zaczepiono</Text>
               </Pressable>
-            </View>
-          )}
-          {actionState === "chat" && (
-            <Pressable style={styles.chatPill} onPress={handleOpenChat}>
-              <IconChat size={13} color={colors.bg} />
-              <Text style={styles.chatPillText}>Napisz wiadomość</Text>
-            </Pressable>
-          )}
-        </View>
-      </View>
-
-      {/* Status "Na teraz" */}
-      {profile?.currentStatus && (
-        <View style={styles.otherStatus}>
-          <Text style={styles.otherStatusLabel}>NA TERAZ</Text>
-          <Text style={styles.otherStatusText} numberOfLines={1}>
-            {profile.currentStatus}
-          </Text>
-        </View>
-      )}
-
-      {/* AI connection analysis */}
-      {analysis?.longDescription ? (
-        <View style={styles.snippetBlock}>
-          <Text style={styles.snippetLabel}>WSPÓLNE</Text>
-          <Text style={styles.snippetText}>{analysis.longDescription}</Text>
-        </View>
-      ) : commonInterests.length > 0 ? (
-        <View style={styles.snippetBlock}>
-          <Text style={styles.snippetLabel}>WSPÓLNE</Text>
-          <View style={styles.pillRow}>
-            {commonInterests.map((interest) => (
-              <View key={interest} style={styles.pill}>
-                <Text style={styles.pillText}>{interest}</Text>
+            )}
+            {actionState === "incoming" && (
+              <View style={styles.incomingActions}>
+                <Pressable style={styles.declinePill} onPress={handleDecline}>
+                  <Text style={styles.declinePillText}>Odrzuć</Text>
+                </Pressable>
+                <Pressable style={styles.actionPill} onPress={handleAccept}>
+                  <Text style={styles.actionPillText}>Akceptuj</Text>
+                </Pressable>
               </View>
-            ))}
+            )}
+            {actionState === "chat" && (
+              <Pressable style={styles.chatPill} onPress={handleOpenChat}>
+                <IconChat size={13} color={colors.bg} />
+                <Text style={styles.chatPillText}>Napisz wiadomość</Text>
+              </Pressable>
+            )}
           </View>
         </View>
-      ) : !analysis ? (
-        <View style={styles.snippetBlock}>
-          <Text style={styles.snippetLabel}>WSPÓLNE</Text>
-          <SkeletonLines count={3} />
-        </View>
-      ) : null}
 
-      {/* Bio */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>O mnie</Text>
-        {!cached && isLoading ? (
-          <SkeletonLines count={3} />
-        ) : (
-          <Text style={styles.sectionContent}>{resolvedBio || "Brak opisu"}</Text>
+        {/* Status "Na teraz" */}
+        {profile?.currentStatus && (
+          <View style={styles.otherStatus}>
+            <Text style={styles.otherStatusLabel}>NA TERAZ</Text>
+            <Text style={styles.otherStatusText} numberOfLines={1}>
+              {profile.currentStatus}
+            </Text>
+          </View>
         )}
-      </View>
 
-      {/* Looking for */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Kogo szukam</Text>
-        {!cached && isLoading ? (
-          <SkeletonLines count={2} />
-        ) : (
-          <Text style={styles.sectionContent}>{resolvedLookingFor || "Brak opisu"}</Text>
-        )}
-      </View>
+        {/* AI connection analysis */}
+        {analysis?.longDescription ? (
+          <View style={styles.snippetBlock}>
+            <Text style={styles.snippetLabel}>WSPÓLNE</Text>
+            <Text style={styles.snippetText}>{analysis.longDescription}</Text>
+          </View>
+        ) : commonInterests.length > 0 ? (
+          <View style={styles.snippetBlock}>
+            <Text style={styles.snippetLabel}>WSPÓLNE</Text>
+            <View style={styles.pillRow}>
+              {commonInterests.map((interest) => (
+                <View key={interest} style={styles.pill}>
+                  <Text style={styles.pillText}>{interest}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : !analysis ? (
+          <View style={styles.snippetBlock}>
+            <Text style={styles.snippetLabel}>WSPÓLNE</Text>
+            <SkeletonLines count={3} />
+          </View>
+        ) : null}
 
-      {/* Social links */}
-      {profile?.socialLinks && Object.values(profile.socialLinks).some(Boolean) && (
-        <View style={styles.socialLinksRow}>
-          {profile.socialLinks.facebook && (
-            <Pressable
-              style={styles.socialPill}
-              onPress={() => Linking.openURL(`https://facebook.com/${profile.socialLinks!.facebook}`)}
-            >
-              <Text style={styles.socialPillIcon}>👤</Text>
-              <Text style={styles.socialPillLabel}>{profile.socialLinks.facebook}</Text>
-            </Pressable>
-          )}
-          {profile.socialLinks.linkedin && (
-            <Pressable
-              style={styles.socialPill}
-              onPress={() => {
-                const url = profile.socialLinks!.linkedin!.startsWith("http")
-                  ? profile.socialLinks!.linkedin!
-                  : `https://linkedin.com/in/${profile.socialLinks!.linkedin}`;
-                Linking.openURL(url);
-              }}
-            >
-              <Text style={styles.socialPillIcon}>💼</Text>
-              <Text style={styles.socialPillLabel}>{profile.socialLinks.linkedin}</Text>
-            </Pressable>
+        {/* Bio */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>O mnie</Text>
+          {!cached && isLoading ? (
+            <SkeletonLines count={3} />
+          ) : (
+            <Text style={styles.sectionContent}>{resolvedBio || "Brak opisu"}</Text>
           )}
         </View>
-      )}
-    </ScrollView>
+
+        {/* Looking for */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Kogo szukam</Text>
+          {!cached && isLoading ? (
+            <SkeletonLines count={2} />
+          ) : (
+            <Text style={styles.sectionContent}>{resolvedLookingFor || "Brak opisu"}</Text>
+          )}
+        </View>
+
+        {/* Social links */}
+        {profile?.socialLinks && Object.values(profile.socialLinks).some(Boolean) && (
+          <View style={styles.socialLinksRow}>
+            {profile.socialLinks.facebook && (
+              <Pressable
+                style={styles.socialPill}
+                onPress={() => Linking.openURL(`https://facebook.com/${profile.socialLinks!.facebook}`)}
+              >
+                <Text style={styles.socialPillIcon}>👤</Text>
+                <Text style={styles.socialPillLabel}>{profile.socialLinks.facebook}</Text>
+              </Pressable>
+            )}
+            {profile.socialLinks.linkedin && (
+              <Pressable
+                style={styles.socialPill}
+                onPress={() => {
+                  const url = profile.socialLinks!.linkedin!.startsWith("http")
+                    ? profile.socialLinks!.linkedin!
+                    : `https://linkedin.com/in/${profile.socialLinks!.linkedin}`;
+                  Linking.openURL(url);
+                }}
+              >
+                <Text style={styles.socialPillIcon}>💼</Text>
+                <Text style={styles.socialPillLabel}>{profile.socialLinks.linkedin}</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+      </ScrollView>
+      <ProfileGateSheet visible={gate.sheetVisible} onDismiss={() => gate.setSheetVisible(false)} />
+    </>
   );
 }
 

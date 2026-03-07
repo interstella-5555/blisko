@@ -16,6 +16,7 @@ export interface Profile {
   visibilityMode: "visible" | "matches_only" | "hidden";
   interests: string[] | null;
   embedding: number[] | null;
+  isComplete: boolean;
   currentStatus: string | null;
   statusExpiresAt: Date | null;
   statusSetAt: Date | null;

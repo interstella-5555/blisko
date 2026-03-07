@@ -317,6 +317,7 @@ export const profilingRouter = router({
           lookingFor,
           portrait: session.generatedPortrait,
           portraitSharedForMatching: input.portraitSharedForMatching,
+          isComplete: true,
           updatedAt: new Date(),
         })
         .where(eq(schema.profiles.userId, ctx.userId))
@@ -336,6 +337,7 @@ export const profilingRouter = router({
           lookingFor,
           portrait: session.generatedPortrait,
           portraitSharedForMatching: input.portraitSharedForMatching,
+          isComplete: true,
           ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
         })
         .returning();

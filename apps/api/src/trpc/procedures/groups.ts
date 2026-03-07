@@ -11,6 +11,7 @@ import { and, eq, isNotNull, lte, ne, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { sendPushToUser } from "@/services/push";
+import { featureGate } from "@/trpc/middleware/featureGate";
 import { protectedProcedure, router } from "@/trpc/trpc";
 import { ee } from "@/ws/events";
 
@@ -75,68 +76,71 @@ async function requireGroup(conversationId: string) {
 }
 
 export const groupsRouter = router({
-  create: protectedProcedure.input(createGroupSchema).mutation(async ({ ctx, input }) => {
-    const inviteCode = generateInviteCode();
+  create: protectedProcedure
+    .use(featureGate("groups.create"))
+    .input(createGroupSchema)
+    .mutation(async ({ ctx, input }) => {
+      const inviteCode = generateInviteCode();
 
-    const [conversation] = await db
-      .insert(schema.conversations)
-      .values({
-        type: "group",
-        name: input.name,
-        description: input.description ?? null,
-        inviteCode,
-        creatorId: ctx.userId,
-        latitude: input.latitude ?? null,
-        longitude: input.longitude ?? null,
-        isDiscoverable: input.isDiscoverable,
-      })
-      .returning();
+      const [conversation] = await db
+        .insert(schema.conversations)
+        .values({
+          type: "group",
+          name: input.name,
+          description: input.description ?? null,
+          inviteCode,
+          creatorId: ctx.userId,
+          latitude: input.latitude ?? null,
+          longitude: input.longitude ?? null,
+          isDiscoverable: input.isDiscoverable,
+        })
+        .returning();
 
-    // Add creator as owner
-    await db.insert(schema.conversationParticipants).values({
-      conversationId: conversation.id,
-      userId: ctx.userId,
-      role: "owner",
-    });
+      // Add creator as owner
+      await db.insert(schema.conversationParticipants).values({
+        conversationId: conversation.id,
+        userId: ctx.userId,
+        role: "owner",
+      });
 
-    // Add initial members
-    if (input.memberUserIds.length > 0) {
-      await db.insert(schema.conversationParticipants).values(
-        input.memberUserIds.map((userId) => ({
-          conversationId: conversation.id,
-          userId,
-          role: "member" as const,
-        })),
-      );
+      // Add initial members
+      if (input.memberUserIds.length > 0) {
+        await db.insert(schema.conversationParticipants).values(
+          input.memberUserIds.map((userId) => ({
+            conversationId: conversation.id,
+            userId,
+            role: "member" as const,
+          })),
+        );
 
-      // Notify invited members
-      for (const userId of input.memberUserIds) {
-        ee.emit("groupInvited", {
-          userId,
-          conversationId: conversation.id,
-          groupName: input.name,
-        });
+        // Notify invited members
+        for (const userId of input.memberUserIds) {
+          ee.emit("groupInvited", {
+            userId,
+            conversationId: conversation.id,
+            groupName: input.name,
+          });
 
-        void sendPushToUser(userId, {
-          title: input.name ?? "Grupa",
-          body: "Nowe zaproszenie do grupy",
-          data: { type: "group", conversationId: conversation.id },
-        });
+          void sendPushToUser(userId, {
+            title: input.name ?? "Grupa",
+            body: "Nowe zaproszenie do grupy",
+            data: { type: "group", conversationId: conversation.id },
+          });
+        }
       }
-    }
 
-    // Create default topic
-    await db.insert(schema.topics).values({
-      conversationId: conversation.id,
-      name: "Ogólny",
-      emoji: "💬",
-      creatorId: ctx.userId,
-      isPinned: true,
-      sortOrder: 0,
-    });
+      // Create default topic
+      await db.insert(schema.topics).values({
+        conversationId: conversation.id,
+        name: "Ogólny",
+        emoji: "💬",
+        creatorId: ctx.userId,
+        isPinned: true,
+        sortOrder: 0,
+      });
 
-    return conversation;
-  }),
+      return conversation;
+    }),
 
   update: protectedProcedure.input(updateGroupSchema).mutation(async ({ ctx, input }) => {
     await requireGroup(input.conversationId);
@@ -233,6 +237,7 @@ export const groupsRouter = router({
   }),
 
   joinDiscoverable: protectedProcedure
+    .use(featureGate("groups.joinDiscoverable"))
     .input(z.object({ conversationId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const conv = await requireGroup(input.conversationId);
