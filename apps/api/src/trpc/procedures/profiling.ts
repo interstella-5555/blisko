@@ -3,7 +3,7 @@ import { eq, and, asc, desc, sql } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc';
 import { db } from '../../db';
-import { profiles, profilingSessions, profilingQA } from '../../db/schema';
+import { profiles, profilingSessions, profilingQA, user as userTable } from '../../db/schema';
 import {
   startProfilingSchema,
   answerQuestionSchema,
@@ -384,6 +384,11 @@ export const profilingRouter = router({
           .where(eq(profiles.userId, ctx.userId))
           .returning();
       } else {
+        const [authUser] = await db
+          .select({ image: userTable.image })
+          .from(userTable)
+          .where(eq(userTable.id, ctx.userId));
+
         [profile] = await db
           .insert(profiles)
           .values({
@@ -393,6 +398,7 @@ export const profilingRouter = router({
             lookingFor,
             portrait: session.generatedPortrait,
             portraitSharedForMatching: input.portraitSharedForMatching,
+            ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
           })
           .returning();
       }
@@ -568,6 +574,11 @@ export const profilingRouter = router({
         throw new TRPCError({ code: 'CONFLICT', message: 'Profile already exists' });
       }
 
+      const [authUser] = await db
+        .select({ image: userTable.image })
+        .from(userTable)
+        .where(eq(userTable.id, ctx.userId));
+
       const [profile] = await db
         .insert(profiles)
         .values({
@@ -576,6 +587,7 @@ export const profilingRouter = router({
           bio: '',
           lookingFor: '',
           visibilityMode: 'hidden',
+          ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
         })
         .returning();
 

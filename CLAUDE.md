@@ -372,13 +372,16 @@ When user shares an idea, feedback, or feature concept:
   - **Idea** = vague, needs refinement
 - **Priority**: set when user expresses urgency, otherwise leave unset (None).
 - **Sub-issues**: when a feature has distinct parts, create sub-issues with `parentId`. Discover naturally — don't force upfront decomposition. Every sub-ticket MUST have its own acceptance criteria — never reference parent's criteria. Each sub-ticket stands alone.
-- **Specs & plans**: use **Linear Documents** attached to the parent ticket (`create_document` with `issue` param) for implementation plans, PRDs, and technical specs. **Never save plans as local files** — `docs/plans/` is legacy. When using `writing-plans` skill, save output as Linear Document instead of local file. Each sub-ticket must be **self-contained** — all info needed to implement it should be in its description (code snippets, file paths, props, styles). Never reference external files from ticket descriptions.
+- **Specs & plans**: When using `writing-plans` skill, ask where to save the plan:
+  - **`docs/plans/`** (default) — for plans that will be implemented immediately in this session. Save to `docs/plans/YYYY-MM-DD-<topic>.md`.
+  - **Linear Document** — for plans saved for later. Use `create_document` with `issue` param to attach to the ticket.
+  Each sub-ticket must be **self-contained** — all info needed to implement it should be in its description (code snippets, file paths, props, styles). Never reference external files from ticket descriptions.
 - **Mid-conversation**: if something worth tracking comes up, create the issue immediately.
 - **External feedback**: when user relays feedback from others (e.g. Jarek), capture each distinct point as a separate Idea issue. Tag description with who gave the feedback ("Feedback od Jarka:").
 
 ### Development workflow — Superpowers skills
 
-Superpowers skills are **mandatory** at each stage, not optional. Use `brainstorming` skill before any creative/design work. Use `writing-plans` skill for implementation plans (output → Linear Document). Use `verification-before-completion` skill before claiming anything is done.
+Superpowers skills are **mandatory** at each stage, not optional. Use `brainstorming` skill before any creative/design work. Use `writing-plans` skill for implementation plans (ask where to save: `docs/plans/` for immediate work, Linear Document for later). Use `verification-before-completion` skill before claiming anything is done.
 
 | Stage | Skill | When |
 |-------|-------|------|
@@ -403,7 +406,7 @@ When user says "work on BLI-X" or similar:
 1. **Fetch & understand** — get issue description + comments + sub-issues.
 2. **Status → In Progress** — do this immediately, don't ask.
 3. **Create branch** — use Linear's `gitBranchName` from the issue (format: `kwypchlo/bli-X-slug`).
-4. **Brainstorm if needed** — for non-trivial work, use `brainstorming` skill first. Then `writing-plans` skill → save as Linear Document attached to the ticket.
+4. **Brainstorm if needed** — for non-trivial work, use `brainstorming` skill first. Then `writing-plans` skill (ask where to save plan).
 5. **Implement** — use `test-driven-development` skill. If bugs arise, use `systematic-debugging` skill.
 6. **Commit** — issue ID at end of message: `Fix map default state (BLI-6)`. Keep existing style (imperative, verb-first).
 7. **Verify** — use `verification-before-completion` skill before claiming done.

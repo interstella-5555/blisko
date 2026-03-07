@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, Alert } from 'react-native';
 import Svg, { Path, Circle, Polyline } from 'react-native-svg';
+import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { authClient } from '@/lib/auth';
 import { trpc } from '@/lib/trpc';
@@ -61,19 +62,20 @@ type Provider = keyof typeof providerConfig;
 
 function ConnectedAccountRow({
   provider,
+  connected,
   username,
   onConnect,
   onDisconnect,
   disconnecting,
 }: {
   provider: Provider;
+  connected: boolean;
   username: string | null | undefined;
   onConnect: () => void;
   onDisconnect: () => void;
   disconnecting: boolean;
 }) {
   const { label, Icon } = providerConfig[provider];
-  const connected = !!username;
   const hasUsername = provider === 'facebook' || provider === 'linkedin';
 
   return (
@@ -133,7 +135,12 @@ export default function AccountScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.sectionLabel}>EMAIL</Text>
-      <Text style={styles.emailText}>{user?.email}</Text>
+      <View style={styles.emailRow}>
+        <Text style={styles.emailText}>{user?.email}</Text>
+        <Pressable onPress={() => router.push('/settings/change-email' as any)} hitSlop={8}>
+          <Text style={styles.changeEmailText}>ZMIEŃ</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.divider} />
       <Text style={styles.sectionLabel}>POŁĄCZONE KONTA</Text>
@@ -145,6 +152,7 @@ export default function AccountScreen() {
           {Platform.OS === 'ios' && (
             <ConnectedAccountRow
               provider="apple"
+              connected={!!connectedAccounts.data?.find((a) => a.providerId === 'apple')}
               username={connectedAccounts.data?.find((a) => a.providerId === 'apple')?.username}
               onConnect={() => authClient.signIn.social({ provider: 'apple', callbackURL: '/settings/account' })}
               onDisconnect={() => disconnectAccount.mutate({ providerId: 'apple' })}
@@ -153,6 +161,7 @@ export default function AccountScreen() {
           )}
           <ConnectedAccountRow
             provider="google"
+            connected={!!connectedAccounts.data?.find((a) => a.providerId === 'google')}
             username={connectedAccounts.data?.find((a) => a.providerId === 'google')?.username}
             onConnect={() => authClient.signIn.social({ provider: 'google', callbackURL: '/settings/account' })}
             onDisconnect={() => disconnectAccount.mutate({ providerId: 'google' })}
@@ -160,6 +169,7 @@ export default function AccountScreen() {
           />
           <ConnectedAccountRow
             provider="facebook"
+            connected={!!connectedAccounts.data?.find((a) => a.providerId === 'facebook')}
             username={connectedAccounts.data?.find((a) => a.providerId === 'facebook')?.username}
             onConnect={() => authClient.signIn.social({ provider: 'facebook', callbackURL: '/settings/account' })}
             onDisconnect={() => disconnectAccount.mutate({ providerId: 'facebook' })}
@@ -167,6 +177,7 @@ export default function AccountScreen() {
           />
           <ConnectedAccountRow
             provider="linkedin"
+            connected={!!connectedAccounts.data?.find((a) => a.providerId === 'linkedin')}
             username={connectedAccounts.data?.find((a) => a.providerId === 'linkedin')?.username}
             onConnect={() => authClient.signIn.social({ provider: 'linkedin', callbackURL: '/settings/account' })}
             onDisconnect={() => disconnectAccount.mutate({ providerId: 'linkedin' })}
@@ -199,8 +210,20 @@ const styles = StyleSheet.create({
     ...typ.label,
     marginBottom: spacing.gutter,
   },
+  emailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   emailText: {
     ...typ.body,
+  },
+  changeEmailText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: colors.accent,
   },
   divider: {
     height: 1,

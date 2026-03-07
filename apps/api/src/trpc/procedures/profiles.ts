@@ -3,7 +3,7 @@ import { eq, and, ne, sql, isNotNull } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc';
 import { db } from '../../db';
-import { profiles, blocks, connectionAnalyses, statusMatches } from '../../db/schema';
+import { profiles, blocks, connectionAnalyses, statusMatches, user as userTable } from '../../db/schema';
 import {
   createProfileSchema,
   updateProfileSchema,
@@ -49,6 +49,12 @@ export const profilesRouter = router({
 
       await moderateContent([input.displayName, input.bio, input.lookingFor].join('\n\n'));
 
+      // Pull avatar from user.image (set by OAuth provider on signup)
+      const [authUser] = await db
+        .select({ image: userTable.image })
+        .from(userTable)
+        .where(eq(userTable.id, ctx.userId));
+
       const [profile] = await db
         .insert(profiles)
         .values({
@@ -56,6 +62,7 @@ export const profilesRouter = router({
           displayName: input.displayName,
           bio: input.bio,
           lookingFor: input.lookingFor,
+          ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
         })
         .returning();
 

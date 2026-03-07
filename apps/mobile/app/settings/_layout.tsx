@@ -28,6 +28,8 @@ export default function SettingsLayout() {
       <Stack.Screen name="profiling" options={{ title: 'Profilowanie' }} />
       <Stack.Screen name="profiling-result" options={{ title: 'Wynik profilowania' }} />
       <Stack.Screen name="account" options={{ title: 'Konto' }} />
+      <Stack.Screen name="change-email" options={{ title: 'Zmień email' }} />
+      <Stack.Screen name="verify-email" options={{ title: 'Weryfikacja' }} />
       <Stack.Screen name="privacy" options={{ title: 'Prywatność' }} />
       <Stack.Screen name="notifications" options={{ title: 'Powiadomienia' }} />
       <Stack.Screen name="help" options={{ title: 'Pomoc' }} />

@@ -24,8 +24,9 @@ import { Button } from '../../src/components/ui/Button';
 import { IconX } from '../../src/components/ui/icons';
 
 export default function OnboardingNameScreen() {
+  const user = useAuthStore((state) => state.user);
   const { displayName, setDisplayName } = useOnboardingStore();
-  const [name, setName] = useState(displayName);
+  const [name, setName] = useState(displayName || user?.name || '');
 
   const handleLogout = async () => {
     try {
