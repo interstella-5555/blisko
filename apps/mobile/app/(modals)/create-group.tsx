@@ -15,8 +15,10 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import { ProfileGateSheet } from "../../src/components/ProfileGateSheet";
 import { Avatar } from "../../src/components/ui/Avatar";
 import { Button } from "../../src/components/ui/Button";
+import { useProfileGate } from "../../src/hooks/useProfileGate";
 import { trpc } from "../../src/lib/trpc";
 import { sendWsMessage } from "../../src/lib/ws";
 import { useConversationsStore } from "../../src/stores/conversationsStore";
@@ -26,6 +28,7 @@ import { colors, fonts, spacing, type as typ } from "../../src/theme";
 const MAP_HEIGHT = 180;
 
 export default function CreateGroupScreen() {
+  const gate = useProfileGate();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isDiscoverable, setIsDiscoverable] = useState(false);
@@ -93,6 +96,7 @@ export default function CreateGroupScreen() {
   });
 
   const handleCreate = () => {
+    if (!gate.requireFullProfile()) return;
     if (name.trim().length < 1) {
       Alert.alert("Blad", "Podaj nazwe grupy");
       return;
@@ -121,119 +125,126 @@ export default function CreateGroupScreen() {
   const canCreate = name.trim().length >= 1;
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.field}>
-          <Text style={styles.label}>Nazwa grupy</Text>
-          <TextInput
-            testID="group-name-input"
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="np. Sąsiedzi z Mokotowa"
-            placeholderTextColor={colors.muted}
-            spellCheck={false}
-            autoCorrect={false}
-            maxLength={100}
-            autoFocus
-          />
-        </View>
+    <>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.field}>
+            <Text style={styles.label}>Nazwa grupy</Text>
+            <TextInput
+              testID="group-name-input"
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="np. Sąsiedzi z Mokotowa"
+              placeholderTextColor={colors.muted}
+              spellCheck={false}
+              autoCorrect={false}
+              maxLength={100}
+              autoFocus
+            />
+          </View>
 
-        <View style={styles.field}>
-          <Text style={styles.label}>Opis</Text>
-          <TextInput
-            testID="group-description-input"
-            style={[styles.input, styles.multilineInput]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="O czym jest ta grupa? (opcjonalnie)"
-            placeholderTextColor={colors.muted}
-            spellCheck={false}
-            autoCorrect={false}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-            maxLength={500}
-          />
-          {description.length > 0 && <Text style={styles.charCount}>{description.length} / 500</Text>}
-        </View>
+          <View style={styles.field}>
+            <Text style={styles.label}>Opis</Text>
+            <TextInput
+              testID="group-description-input"
+              style={[styles.input, styles.multilineInput]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="O czym jest ta grupa? (opcjonalnie)"
+              placeholderTextColor={colors.muted}
+              spellCheck={false}
+              autoCorrect={false}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              maxLength={500}
+            />
+            {description.length > 0 && <Text style={styles.charCount}>{description.length} / 500</Text>}
+          </View>
 
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Widoczna w okolicy</Text>
-          <Switch
-            value={isDiscoverable}
-            onValueChange={hasLocation ? setIsDiscoverable : undefined}
-            disabled={!hasLocation}
-            trackColor={{ false: colors.rule, true: colors.accent }}
-            thumbColor={colors.bg}
-          />
-        </View>
-        <Text style={styles.toggleDescription}>
-          {hasLocation
-            ? "Osoby w poblizu beda mogly znalezc i dolaczyc do grupy"
-            : "Włącz lokalizację, żeby grupa była widoczna"}
-        </Text>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Widoczna w okolicy</Text>
+            <Switch
+              value={isDiscoverable}
+              onValueChange={hasLocation ? setIsDiscoverable : undefined}
+              disabled={!hasLocation}
+              trackColor={{ false: colors.rule, true: colors.accent }}
+              thumbColor={colors.bg}
+            />
+          </View>
+          <Text style={styles.toggleDescription}>
+            {hasLocation
+              ? "Osoby w poblizu beda mogly znalezc i dolaczyc do grupy"
+              : "Włącz lokalizację, żeby grupa była widoczna"}
+          </Text>
 
-        {/* Map section — animated reveal when discoverable */}
-        <Animated.View style={{ height: mapSectionHeight, overflow: "hidden" }}>
-          <View style={styles.mapContainer}>
-            {hasLocation && (
-              <MapView
-                style={styles.map}
-                initialRegion={{
-                  latitude: groupLat || userLat!,
-                  longitude: groupLng || userLng!,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }}
-                scrollEnabled
-                zoomEnabled
-                rotateEnabled={false}
-                pitchEnabled={false}
-              >
-                <Marker
-                  coordinate={{ latitude: groupLat, longitude: groupLng }}
-                  draggable
-                  onDragEnd={(e) => {
-                    setGroupLat(e.nativeEvent.coordinate.latitude);
-                    setGroupLng(e.nativeEvent.coordinate.longitude);
+          {/* Map section — animated reveal when discoverable */}
+          <Animated.View style={{ height: mapSectionHeight, overflow: "hidden" }}>
+            <View style={styles.mapContainer}>
+              {hasLocation && (
+                <MapView
+                  style={styles.map}
+                  initialRegion={{
+                    latitude: groupLat || userLat!,
+                    longitude: groupLng || userLng!,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
                   }}
-                />
-              </MapView>
-            )}
-          </View>
-          <Text style={styles.mapHint}>Przesuń pin, żeby ustawić lokalizację</Text>
-        </Animated.View>
+                  scrollEnabled
+                  zoomEnabled
+                  rotateEnabled={false}
+                  pitchEnabled={false}
+                >
+                  <Marker
+                    coordinate={{ latitude: groupLat, longitude: groupLng }}
+                    draggable
+                    onDragEnd={(e) => {
+                      setGroupLat(e.nativeEvent.coordinate.latitude);
+                      setGroupLng(e.nativeEvent.coordinate.longitude);
+                    }}
+                  />
+                </MapView>
+              )}
+            </View>
+            <Text style={styles.mapHint}>Przesuń pin, żeby ustawić lokalizację</Text>
+          </Animated.View>
 
-        {dmContacts.length > 0 && (
-          <View style={styles.membersSection}>
-            <Text style={styles.label}>Dodaj czlonkow</Text>
-            {dmContacts.map((contact) => (
-              <Pressable key={contact.userId} style={styles.contactRow} onPress={() => toggleMember(contact.userId)}>
-                <Avatar uri={contact.avatarUrl} name={contact.displayName} size={36} />
-                <Text style={styles.contactName} numberOfLines={1}>
-                  {contact.displayName}
-                </Text>
-                <View style={[styles.checkbox, selectedUserIds.has(contact.userId) && styles.checkboxChecked]}>
-                  {selectedUserIds.has(contact.userId) && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        )}
+          {dmContacts.length > 0 && (
+            <View style={styles.membersSection}>
+              <Text style={styles.label}>Dodaj czlonkow</Text>
+              {dmContacts.map((contact) => (
+                <Pressable key={contact.userId} style={styles.contactRow} onPress={() => toggleMember(contact.userId)}>
+                  <Avatar uri={contact.avatarUrl} name={contact.displayName} size={36} />
+                  <Text style={styles.contactName} numberOfLines={1}>
+                    {contact.displayName}
+                  </Text>
+                  <View style={[styles.checkbox, selectedUserIds.has(contact.userId) && styles.checkboxChecked]}>
+                    {selectedUserIds.has(contact.userId) && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          )}
 
-        <View style={styles.submitContainer}>
-          <Button
-            testID="create-group-btn"
-            title="Utworz grupe"
-            variant="fullWidth"
-            onPress={handleCreate}
-            disabled={!canCreate}
-            loading={createGroup.isPending}
-          />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <View style={styles.submitContainer}>
+            <Button
+              testID="create-group-btn"
+              title="Utworz grupe"
+              variant="fullWidth"
+              onPress={handleCreate}
+              disabled={!canCreate}
+              loading={createGroup.isPending}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+      <ProfileGateSheet visible={gate.sheetVisible} onDismiss={() => gate.setSheetVisible(false)} />
+    </>
   );
 }
 

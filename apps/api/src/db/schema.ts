@@ -86,6 +86,7 @@ export const profiles = pgTable(
     embedding: real("embedding").array(),
     portrait: text("portrait"),
     portraitSharedForMatching: boolean("portrait_shared_for_matching").default(false).notNull(),
+    isComplete: boolean("is_complete").default(false).notNull(),
     currentStatus: text("current_status"),
     statusExpiresAt: timestamp("status_expires_at"),
     statusEmbedding: real("status_embedding").array(),
@@ -362,6 +363,13 @@ export const profilingQA = pgTable(
     sessionIdIdx: index("pqa_session_id_idx").on(table.sessionId),
   }),
 );
+
+// Feature gates (simplified ABAC)
+export const featureGates = pgTable("feature_gates", {
+  feature: text("feature").primaryKey(),
+  requires: text("requires").array().notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+});
 
 // Relations
 export const userRelations = relations(user, ({ one, many }) => ({

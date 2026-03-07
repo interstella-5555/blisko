@@ -129,9 +129,9 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
   const nameA = job.data.nameA ?? profileA?.displayName ?? userAId.slice(0, 8);
   const nameB = job.data.nameB ?? profileB?.displayName ?? userBId.slice(0, 8);
 
-  if (!profileA?.portrait || !profileB?.portrait) {
+  if (!profileA?.portrait || !profileB?.portrait || !profileA.isComplete || !profileB.isComplete) {
     console.log(
-      `[queue] analyze-pair skip (no profile) | db-fetch: ${(performance.now() - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB}`,
+      `[queue] analyze-pair skip (incomplete profile) | db-fetch: ${(performance.now() - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB}`,
     );
     return;
   }
@@ -320,6 +320,7 @@ async function processAnalyzeUserPairs(userId: string, latitude: number, longitu
       and(
         ne(schema.profiles.userId, userId),
         eq(schema.profiles.visibilityMode, "visible"),
+        eq(schema.profiles.isComplete, true),
         between(schema.profiles.latitude, minLat, maxLat),
         between(schema.profiles.longitude, minLon, maxLon),
         lte(distanceFormula, radiusMeters),
@@ -444,6 +445,7 @@ async function processStatusMatching(userId: string) {
   const [user] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, userId));
 
   if (!user?.currentStatus) return;
+  if (!user.isComplete) return;
 
   // Check if status expired — clean up and return
   if (user.statusExpiresAt && user.statusExpiresAt < new Date()) {
@@ -475,6 +477,7 @@ async function processStatusMatching(userId: string) {
       and(
         ne(schema.profiles.userId, userId),
         eq(schema.profiles.visibilityMode, "visible"),
+        eq(schema.profiles.isComplete, true),
         isNotNull(schema.profiles.latitude),
         isNotNull(schema.profiles.longitude),
         gte(schema.profiles.latitude, user.latitude - nearbyRadius),

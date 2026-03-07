@@ -6,6 +6,7 @@ import type { TRPCContext } from "./context";
 const t = initTRPC.context<TRPCContext>().create();
 
 export const router = t.router;
+export const middleware = t.middleware;
 export const publicProcedure = t.procedure;
 
 // Middleware that requires authentication

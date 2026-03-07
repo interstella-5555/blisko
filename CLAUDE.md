@@ -324,26 +324,31 @@ We use [Biome](https://biomejs.dev/) for formatting and linting. Config: `biome.
 
 ```ts
 // ✅ Correct
-import { db, schema } from '~/db';
+import { db, schema } from '@/db';
 // then use: schema.profiles, schema.user, schema.waves, etc.
 
 // ❌ Wrong — never import individual tables from db/schema.ts
-import { profiles, user, waves, blocks, ... } from '~/db/schema';
+import { profiles, user, waves, blocks, ... } from '@/db/schema';
 ```
 
 The only exception is `apps/api/src/db/index.ts` itself, which must import from `schema.ts` to set up Drizzle.
 
-## Import aliases (API)
+## Import aliases
 
-In `apps/api/`, use the `~/` path alias (`~/*` → `src/*`) instead of `..` relative imports. Relative `./` (same directory) imports are fine.
+When a tsconfig defines path aliases, always prefer them over `..` relative imports. Relative `./` (same directory) imports are fine. Update this table when changing tsconfig paths.
+
+| App | Alias | Maps to | Example |
+|-----|-------|---------|---------|
+| `apps/api` | `@/*` | `src/*` | `import { db } from '@/db'` |
+| `apps/mobile` | `@/*` | `src/*` | `import { trpc } from '@/lib/trpc'` |
+| `apps/design` | `~/*` | `src/*` | `import { Theme } from '~/theme'` |
 
 ```ts
-// ✅ Correct
-import { db, schema } from '~/db';
-import { ee } from '~/ws/events';
-import { sendPushToUser } from '~/services/push';
+// ✅ Correct — use alias
+import { db, schema } from '@/db';
+import { ee } from '@/ws/events';
 
-// ❌ Wrong — don't navigate up with ..
+// ❌ Wrong — don't drill up with ..
 import { db, schema } from '../../db';
 import { ee } from '../ws/events';
 ```

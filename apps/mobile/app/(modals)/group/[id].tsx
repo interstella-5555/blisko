@@ -2,8 +2,10 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { ProfileGateSheet } from "../../../src/components/ProfileGateSheet";
 import { Avatar } from "../../../src/components/ui/Avatar";
 import { Button } from "../../../src/components/ui/Button";
+import { useProfileGate } from "../../../src/hooks/useProfileGate";
 import { formatDistance } from "../../../src/lib/format";
 import { trpc } from "../../../src/lib/trpc";
 import { sendWsMessage } from "../../../src/lib/ws";
@@ -27,6 +29,7 @@ const ROLE_ORDER: Record<string, number> = {
 const MAX_INLINE_MEMBERS = 5;
 
 export default function GroupInfoScreen() {
+  const gate = useProfileGate();
   const { id: conversationId } = useLocalSearchParams<{ id: string }>();
   const userId = useAuthStore((s) => s.user?.id);
   const [showTopicForm, setShowTopicForm] = useState(false);
@@ -160,8 +163,9 @@ export default function GroupInfoScreen() {
   );
 
   const handleJoin = useCallback(() => {
+    if (!gate.requireFullProfile()) return;
     joinGroup.mutate({ conversationId: conversationId! });
-  }, [conversationId, joinGroup]);
+  }, [conversationId, joinGroup, gate]);
 
   const handleCreateTopic = useCallback(() => {
     if (!topicName.trim()) return;
@@ -230,6 +234,7 @@ export default function GroupInfoScreen() {
             </View>
           </View>
         </View>
+        <ProfileGateSheet visible={gate.sheetVisible} onDismiss={() => gate.setSheetVisible(false)} />
       </>
     );
   }

@@ -420,6 +420,19 @@ export const profilesRouter = router({
 
   // Get AI connection analysis for a specific user
   getConnectionAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).query(async ({ ctx, input }) => {
+    // Return null if either user has incomplete profile
+    const [myProfile] = await db
+      .select({ isComplete: schema.profiles.isComplete })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.userId, ctx.userId));
+    if (!myProfile?.isComplete) return null;
+
+    const [theirProfile] = await db
+      .select({ isComplete: schema.profiles.isComplete })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.userId, input.userId));
+    if (!theirProfile?.isComplete) return null;
+
     const [analysis] = await db
       .select()
       .from(schema.connectionAnalyses)
@@ -495,9 +508,11 @@ export const profilesRouter = router({
       .where(eq(schema.profiles.userId, ctx.userId))
       .returning();
 
-    enqueueStatusMatching(ctx.userId).catch((err) => {
-      console.error("[profiles] Failed to enqueue status matching:", err);
-    });
+    if (profile.isComplete) {
+      enqueueStatusMatching(ctx.userId).catch((err) => {
+        console.error("[profiles] Failed to enqueue status matching:", err);
+      });
+    }
 
     return profile;
   }),

@@ -23,6 +23,7 @@ interface Profile {
   avatarUrl?: string | null;
   socialLinks?: { facebook?: string; linkedin?: string; website?: string } | null;
   visibilityMode?: "visible" | "matches_only" | "hidden";
+  isComplete?: boolean;
   currentStatus?: string | null;
   statusExpiresAt?: string | null;
   statusSetAt?: string | null;
