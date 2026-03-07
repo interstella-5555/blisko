@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface User {
   id: string;
@@ -22,7 +22,7 @@ interface Profile {
   lookingFor: string;
   avatarUrl?: string | null;
   socialLinks?: { facebook?: string; linkedin?: string; website?: string } | null;
-  visibilityMode?: 'visible' | 'matches_only' | 'hidden';
+  visibilityMode?: "visible" | "matches_only" | "hidden";
   currentStatus?: string | null;
   statusExpiresAt?: string | null;
   statusSetAt?: string | null;

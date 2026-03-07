@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
+import { create } from "zustand";
 
-const RADIUS_KEY = 'blisko_nearby_radius';
+const RADIUS_KEY = "blisko_nearby_radius";
 type RadiusOption = 500 | 1000 | 2000;
 
 interface PreferencesState {

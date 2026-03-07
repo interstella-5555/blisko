@@ -1,13 +1,8 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
-import { colors, fonts, spacing } from '../../theme';
-import { Avatar } from '../ui/Avatar';
-import { Button } from '../ui/Button';
-import { StatusBadge } from '../ui/Badge';
+import { StyleSheet, Text, View } from "react-native";
+import { colors, fonts, spacing } from "../../theme";
+import { Avatar } from "../ui/Avatar";
+import { StatusBadge } from "../ui/Badge";
+import { Button } from "../ui/Button";
 
 interface WaveProfile {
   id: string;
@@ -21,14 +16,14 @@ interface Wave {
   id: string;
   fromUserId: string;
   toUserId: string;
-  status: 'pending' | 'accepted' | 'declined';
+  status: "pending" | "accepted" | "declined";
   createdAt: string;
 }
 
 interface WaveCardProps {
   wave: Wave;
   profile: WaveProfile;
-  type: 'received' | 'sent';
+  type: "received" | "sent";
   onAccept?: () => void;
   onDecline?: () => void;
   isAccepting?: boolean;
@@ -44,8 +39,8 @@ export function WaveCard({
   isAccepting = false,
   isDeclining = false,
 }: WaveCardProps) {
-  const isReceived = type === 'received';
-  const isPending = wave.status === 'pending';
+  const isReceived = type === "received";
+  const isPending = wave.status === "pending";
   const isLoading = isAccepting || isDeclining;
 
   const formatTime = (dateString: string) => {
@@ -56,11 +51,11 @@ export function WaveCard({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'teraz';
+    if (diffMins < 1) return "teraz";
     if (diffMins < 60) return `${diffMins} min temu`;
     if (diffHours < 24) return `${diffHours} godz. temu`;
     if (diffDays < 7) return `${diffDays} dni temu`;
-    return date.toLocaleDateString('pl-PL');
+    return date.toLocaleDateString("pl-PL");
   };
 
   return (
@@ -113,8 +108,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.gutter,
   },
   info: {
@@ -140,7 +135,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.gutter,
   },
   actions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.gutter,
   },
 });

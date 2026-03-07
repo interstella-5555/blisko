@@ -1,7 +1,7 @@
-import { generateText, generateObject, embed } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
-import { GPT_MODEL, EMBEDDING_MODEL } from '@repo/shared';
+import { openai } from "@ai-sdk/openai";
+import { EMBEDDING_MODEL, GPT_MODEL } from "@repo/shared";
+import { embed, generateObject, generateText } from "ai";
+import { z } from "zod";
 
 function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
@@ -9,7 +9,7 @@ function isConfigured(): boolean {
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   if (!isConfigured()) {
-    console.warn('OPENAI_API_KEY not set, returning empty embedding');
+    console.warn("OPENAI_API_KEY not set, returning empty embedding");
     return [];
   }
 
@@ -21,17 +21,14 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
     return embedding;
   } catch (error) {
-    console.error('Error generating embedding:', error);
+    console.error("Error generating embedding:", error);
     return [];
   }
 }
 
-export async function generatePortrait(
-  bio: string,
-  lookingFor: string
-): Promise<string> {
+export async function generatePortrait(bio: string, lookingFor: string): Promise<string> {
   if (!isConfigured()) {
-    console.warn('OPENAI_API_KEY not set, returning raw bio+lookingFor');
+    console.warn("OPENAI_API_KEY not set, returning raw bio+lookingFor");
     return `${bio}\n\n${lookingFor}`;
   }
 
@@ -50,16 +47,14 @@ Nie oceniaj, nie wartościuj — opisuj. Pisz w 3. osobie, naturalnym językiem 
 
     return text || `${bio}\n\n${lookingFor}`;
   } catch (error) {
-    console.error('Error generating social profile:', error);
+    console.error("Error generating social profile:", error);
     return `${bio}\n\n${lookingFor}`;
   }
 }
 
-export async function extractInterests(
-  portrait: string
-): Promise<string[]> {
+export async function extractInterests(portrait: string): Promise<string[]> {
   if (!isConfigured()) {
-    console.warn('OPENAI_API_KEY not set, returning empty interests');
+    console.warn("OPENAI_API_KEY not set, returning empty interests");
     return [];
   }
 
@@ -69,18 +64,14 @@ export async function extractInterests(
       temperature: 0,
       maxOutputTokens: 200,
       schema: z.object({
-        interests: z
-          .array(z.string())
-          .describe(
-            'Lista 8-12 krótkich tagów zainteresowań, po polsku, małymi literami'
-          ),
+        interests: z.array(z.string()).describe("Lista 8-12 krótkich tagów zainteresowań, po polsku, małymi literami"),
       }),
       prompt: `Wyciągnij 8-12 krótkich tagów zainteresowań z podanego profilu społecznego. Tagi powinny być krótkie (1-3 słowa), po polsku, małymi literami.\n\nProfil:\n${portrait}`,
     });
 
     return object.interests;
   } catch (error) {
-    console.error('Error extracting interests:', error);
+    console.error("Error extracting interests:", error);
     return [];
   }
 }
@@ -94,24 +85,23 @@ const connectionAnalysisSchema = z.object({
   descriptionForB: z.string().max(500),
 });
 
-export type ConnectionAnalysisResult = z.infer<
-  typeof connectionAnalysisSchema
->;
+export type ConnectionAnalysisResult = z.infer<typeof connectionAnalysisSchema>;
 
 export async function evaluateStatusMatch(
   statusText: string,
   otherContext: string,
-  matchType: 'status' | 'profile'
+  matchType: "status" | "profile",
 ): Promise<{ isMatch: boolean; reason: string }> {
-  if (!isConfigured()) return { isMatch: false, reason: '' };
+  if (!isConfigured()) return { isMatch: false, reason: "" };
 
-  const prompt = matchType === 'status'
-    ? `Osoba A szuka: "${statusText}"
+  const prompt =
+    matchType === "status"
+      ? `Osoba A szuka: "${statusText}"
 Osoba B szuka: "${otherContext}"
 
 Czy te dwie potrzeby/oferty się uzupełniają? Jedna osoba może pomóc drugiej lub mogą coś zrobić razem?
 Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po polsku, max 60 znaków"}`
-    : `Osoba A szuka teraz: "${statusText}"
+      : `Osoba A szuka teraz: "${statusText}"
 Profil osoby B: "${otherContext}"
 
 Czy profil osoby B pasuje do tego czego szuka osoba A?
@@ -126,16 +116,16 @@ Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po pols
     const parsed = JSON.parse(text);
     return {
       isMatch: Boolean(parsed.isMatch),
-      reason: String(parsed.reason || '').slice(0, 80),
+      reason: String(parsed.reason || "").slice(0, 80),
     };
   } catch {
-    return { isMatch: false, reason: '' };
+    return { isMatch: false, reason: "" };
   }
 }
 
 export async function analyzeConnection(
   profileA: { portrait: string; displayName: string; lookingFor: string },
-  profileB: { portrait: string; displayName: string; lookingFor: string }
+  profileB: { portrait: string; displayName: string; lookingFor: string },
 ): Promise<ConnectionAnalysisResult> {
   try {
     const { object } = await generateObject({
@@ -246,7 +236,7 @@ Szuka: ${profileB.lookingFor}
     });
     return object;
   } catch (error) {
-    console.error('Error analyzing connection:', error);
+    console.error("Error analyzing connection:", error);
     throw error;
   }
 }

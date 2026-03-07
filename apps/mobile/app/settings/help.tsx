@@ -1,10 +1,19 @@
-import { View, Text, StyleSheet, Pressable, Alert, Linking } from 'react-native';
-import Svg, { Polyline } from 'react-native-svg';
-import { colors, spacing, fonts } from '../../src/theme';
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Polyline } from "react-native-svg";
+import { colors, fonts, spacing } from "../../src/theme";
 
 function IconChevronRight({ size = 16 }: { size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={colors.muted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={colors.muted}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <Polyline points="9,18 15,12 9,6" />
     </Svg>
   );
@@ -27,26 +36,23 @@ function Row({ label, onPress }: RowProps) {
 export default function HelpScreen() {
   return (
     <View style={styles.container}>
-      <Row
-        label="Jak to dziala?"
-        onPress={() => Alert.alert('Wkrotce!')}
-      />
+      <Row label="Jak to dziala?" onPress={() => Alert.alert("Wkrotce!")} />
       <Row
         label="Zglos problem"
-        onPress={() => Linking.openURL('mailto:support@blisko.app?subject=Zgloszenie problemu')}
+        onPress={() => Linking.openURL("mailto:support@blisko.app?subject=Zgloszenie problemu")}
       />
       <Row
         label="Regulamin"
         onPress={() => {
           // TODO: link to terms of service URL
-          Linking.openURL('https://blisko.app/regulamin');
+          Linking.openURL("https://blisko.app/regulamin");
         }}
       />
       <Row
         label="Polityka prywatnosci"
         onPress={() => {
           // TODO: link to privacy policy URL
-          Linking.openURL('https://blisko.app/prywatnosc');
+          Linking.openURL("https://blisko.app/prywatnosc");
         }}
       />
     </View>
@@ -60,9 +66,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing.tight,
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: spacing.column,
     paddingHorizontal: spacing.section,
     borderBottomWidth: StyleSheet.hairlineWidth,

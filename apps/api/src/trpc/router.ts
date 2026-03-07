@@ -1,12 +1,12 @@
-import { router } from './trpc';
-import { profilesRouter } from './procedures/profiles';
-import { wavesRouter } from './procedures/waves';
-import { messagesRouter } from './procedures/messages';
-import { profilingRouter } from './procedures/profiling';
-import { groupsRouter } from './procedures/groups';
-import { topicsRouter } from './procedures/topics';
-import { accountsRouter } from './procedures/accounts';
-import { pushTokensRouter } from './procedures/pushTokens';
+import { accountsRouter } from "./procedures/accounts";
+import { groupsRouter } from "./procedures/groups";
+import { messagesRouter } from "./procedures/messages";
+import { profilesRouter } from "./procedures/profiles";
+import { profilingRouter } from "./procedures/profiling";
+import { pushTokensRouter } from "./procedures/pushTokens";
+import { topicsRouter } from "./procedures/topics";
+import { wavesRouter } from "./procedures/waves";
+import { router } from "./trpc";
 
 export const appRouter = router({
   profiles: profilesRouter,

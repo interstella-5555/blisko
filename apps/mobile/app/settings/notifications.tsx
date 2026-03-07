@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
+import { useState } from "react";
+import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
 interface ToggleRowProps {
   label: string;
@@ -33,29 +33,14 @@ export default function NotificationsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>PUSH</Text>
 
-        <ToggleRow
-          label="Nowe zaczepki"
-          value={newWaves}
-          onValueChange={setNewWaves}
-        />
-        <ToggleRow
-          label="Odpowiedzi na zaczepki"
-          value={waveResponses}
-          onValueChange={setWaveResponses}
-        />
-        <ToggleRow
-          label="Nowe wiadomosci"
-          value={newMessages}
-          onValueChange={setNewMessages}
-        />
-        <ToggleRow
-          label="Zaproszenia do grup"
-          value={groupInvites}
-          onValueChange={setGroupInvites}
-        />
+        <ToggleRow label="Nowe zaczepki" value={newWaves} onValueChange={setNewWaves} />
+        <ToggleRow label="Odpowiedzi na zaczepki" value={waveResponses} onValueChange={setWaveResponses} />
+        <ToggleRow label="Nowe wiadomosci" value={newMessages} onValueChange={setNewMessages} />
+        <ToggleRow label="Zaproszenia do grup" value={groupInvites} onValueChange={setGroupInvites} />
 
         <Text style={styles.helperText}>
-          Powiadomienia push wymagaja zgody systemowej. Jesli je wylaczyles, wlacz je w Ustawieniach iPhone'a {'>'} Blisko.
+          Powiadomienia push wymagaja zgody systemowej. Jesli je wylaczyles, wlacz je w Ustawieniach iPhone'a {">"}{" "}
+          Blisko.
         </Text>
       </View>
     </ScrollView>
@@ -76,9 +61,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.gutter,
   },
   toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: spacing.column,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.rule,

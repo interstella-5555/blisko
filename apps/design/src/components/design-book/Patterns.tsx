@@ -1,5 +1,5 @@
-import s from './patterns.module.css'
-import { Icon } from '~/components/Icons'
+import { Icon } from "~/components/Icons";
+import s from "./patterns.module.css";
 
 export function Patterns() {
   return (
@@ -10,27 +10,27 @@ export function Patterns() {
         <div className={s.rules}>
           <div className={s.ruleRow}>
             <span className={s.ruleLabel}>Hairline</span>
-            <div className={s.ruleLine} style={{ borderBottom: '1px solid var(--db-rule)' }} />
+            <div className={s.ruleLine} style={{ borderBottom: "1px solid var(--db-rule)" }} />
             <code className={s.ruleCode}>1px solid #D5D0C4</code>
           </div>
           <div className={s.ruleRow}>
             <span className={s.ruleLabel}>Section</span>
-            <div className={s.ruleLine} style={{ borderBottom: '1px solid var(--db-ink)' }} />
+            <div className={s.ruleLine} style={{ borderBottom: "1px solid var(--db-ink)" }} />
             <code className={s.ruleCode}>1px solid #1A1A1A</code>
           </div>
           <div className={s.ruleRow}>
             <span className={s.ruleLabel}>Double</span>
-            <div className={s.ruleLine} style={{ borderBottom: '3px double var(--db-ink)' }} />
+            <div className={s.ruleLine} style={{ borderBottom: "3px double var(--db-ink)" }} />
             <code className={s.ruleCode}>3px double #1A1A1A</code>
           </div>
           <div className={s.ruleRow}>
             <span className={s.ruleLabel}>Heavy</span>
-            <div className={s.ruleLine} style={{ borderBottom: '2px solid var(--db-ink)' }} />
+            <div className={s.ruleLine} style={{ borderBottom: "2px solid var(--db-ink)" }} />
             <code className={s.ruleCode}>2px solid #1A1A1A</code>
           </div>
           <div className={s.ruleRow}>
             <span className={s.ruleLabel}>Tab Bar</span>
-            <div className={s.ruleLine} style={{ borderBottom: '2px solid var(--db-ink)' }} />
+            <div className={s.ruleLine} style={{ borderBottom: "2px solid var(--db-ink)" }} />
             <code className={s.ruleCode}>2px solid #1A1A1A (top border)</code>
           </div>
         </div>
@@ -41,14 +41,22 @@ export function Patterns() {
         <h4 className={s.groupTitle}>Tag Prefix Pattern</h4>
         <div className={s.tagDemo}>
           <div className={s.tagRow}>
-            <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> pies</span>
-            <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> kregle</span>
-            <span className={s.tagMatch}><Icon name="bullet-rose" className={s.tagMatchIcon} /> bieganie</span>
-            <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> kawa</span>
+            <span className={s.tag}>
+              <Icon name="bullet-rose" className={s.tagIcon} /> pies
+            </span>
+            <span className={s.tag}>
+              <Icon name="bullet-rose" className={s.tagIcon} /> kregle
+            </span>
+            <span className={s.tagMatch}>
+              <Icon name="bullet-rose" className={s.tagMatchIcon} /> bieganie
+            </span>
+            <span className={s.tag}>
+              <Icon name="bullet-rose" className={s.tagIcon} /> kawa
+            </span>
           </div>
           <p className={s.tagNote}>
-            The bullet rose (4-petal rosette) prefixes interest tags, evoking editorial ornamental tradition.
-            Matched interests use accent red with bold weight.
+            The bullet rose (4-petal rosette) prefixes interest tags, evoking editorial ornamental tradition. Matched
+            interests use accent red with bold weight.
           </p>
         </div>
       </div>
@@ -108,5 +116,5 @@ export function Patterns() {
         </div>
       </div>
     </>
-  )
+  );
 }

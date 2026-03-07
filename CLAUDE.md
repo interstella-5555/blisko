@@ -302,6 +302,20 @@ Always prefer Drizzle's built-in filter functions over raw `sql`\`...\``. Use `b
 
 Raw `sql` is only acceptable when there's no Drizzle equivalent: Haversine/distance formulas, `CASE WHEN`, `NULLS LAST` ordering, `TRUNCATE`, column arithmetic in `.set()`, or computed column aliases in `ORDER BY`.
 
+## Biome (linter + formatter)
+
+We use [Biome](https://biomejs.dev/) for formatting and linting. Config: `biome.json`.
+
+**Commands:**
+- `pnpm format` — format all files
+- `pnpm format:check` — check formatting (CI)
+- `pnpm lint` — lint all files
+- `pnpm check` — format + lint + organize imports (CI runs this)
+
+**Before finishing any task**, run `npx @biomejs/biome check .` and verify 0 errors. Do NOT add new `biome-ignore` comments or disable rules in `biome.json` just to make errors go away — fix the actual code instead. The only acceptable `biome-ignore` is when the code is intentionally correct and the rule is a false positive (e.g. `noArrayIndexKey` on a fixed-length OTP input).
+
+**Auto-formatting hook:** `.claude/settings.json` runs `biome format --write` after every Edit/Write tool call.
+
 ## Schema imports
 
 **NEVER** import individual tables from `apps/api/src/db/schema.ts` directly. Instead, import the `schema` namespace from `apps/api/src/db/index.ts` and access tables as `schema.profiles`, `schema.user`, `schema.waves`, etc.

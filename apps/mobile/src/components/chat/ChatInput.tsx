@@ -1,15 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  TextInput,
-  Text,
-  StyleSheet,
-  Pressable,
-  Keyboard,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, spacing } from '../../theme';
-import { IconCamera, IconPin } from '../ui/icons';
+import { useEffect, useRef, useState } from "react";
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors, fonts, spacing } from "../../theme";
+import { IconCamera, IconPin } from "../ui/icons";
 
 interface ReplyingTo {
   id: string;
@@ -34,22 +27,25 @@ export function ChatInput({
   onCancelReply,
   onTyping,
 }: ChatInputProps) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const { bottom } = useSafeAreaInsets();
 
   useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardWillShow', () => setKeyboardVisible(true));
-    const hideSub = Keyboard.addListener('keyboardWillHide', () => setKeyboardVisible(false));
-    return () => { showSub.remove(); hideSub.remove(); };
+    const showSub = Keyboard.addListener("keyboardWillShow", () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener("keyboardWillHide", () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
   }, []);
 
   const handleSend = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
     onSend(trimmed, replyingTo?.id);
-    setText('');
+    setText("");
     onCancelReply?.();
   };
 
@@ -64,7 +60,9 @@ export function ChatInput({
         <View style={styles.replyBar}>
           <View style={styles.replyContent}>
             <Text style={styles.replyLabel}>Odpowiadasz:</Text>
-            <Text style={styles.replyText} numberOfLines={1}>{replyingTo.content}</Text>
+            <Text style={styles.replyText} numberOfLines={1}>
+              {replyingTo.content}
+            </Text>
           </View>
           <Pressable onPress={onCancelReply} hitSlop={8} testID="chat-reply-close">
             <Text style={styles.replyClose}>✕</Text>
@@ -113,13 +111,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   replyBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.section,
     paddingVertical: spacing.tight,
     borderBottomWidth: 1,
     borderBottomColor: colors.rule,
-    backgroundColor: 'rgba(213, 208, 196, 0.15)',
+    backgroundColor: "rgba(213, 208, 196, 0.15)",
   },
   replyContent: {
     flex: 1,
@@ -129,7 +127,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 9,
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: colors.accent,
   },
   replyText: {
@@ -145,8 +143,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     paddingHorizontal: spacing.gutter,
     paddingVertical: spacing.tight,
     gap: spacing.tick,
@@ -183,10 +181,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: '#FFFFFF',
+    textTransform: "uppercase",
+    color: "#FFFFFF",
   },
   sendTextDisabled: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
 });

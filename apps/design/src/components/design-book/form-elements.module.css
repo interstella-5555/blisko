@@ -5,7 +5,7 @@
 }
 
 .groupTitle {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -35,7 +35,7 @@
 
 .buttonLabel {
   grid-column: 1 / -1;
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 13px;
   color: var(--db-ink);
   margin-bottom: 12px;
@@ -115,7 +115,7 @@
 
 /* Accent Fill */
 .btnAccent {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -144,7 +144,7 @@
 
 /* Secondary Ghost */
 .btnSecondary {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -171,7 +171,7 @@
 
 /* Destructive */
 .btnDestructive {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -203,7 +203,7 @@
 /* Full Width */
 .btnFull {
   width: 100%;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -237,7 +237,7 @@
 }
 
 .inputLabel {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 13px;
   color: var(--db-ink);
   margin-bottom: 12px;
@@ -249,7 +249,7 @@
 
 .fieldLabel {
   display: block;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
@@ -259,7 +259,7 @@
 }
 
 .inputField {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 14px;
   color: var(--db-ink);
   padding: 10px 0;
@@ -273,11 +273,11 @@
   color: var(--db-rule);
   border-bottom-color: var(--db-rule);
   font-style: italic;
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
 }
 
 .textareaField {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 13px;
   color: var(--db-ink);
   padding: 10px 0;
@@ -290,7 +290,7 @@
 }
 
 .charCount {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   color: var(--db-muted);
   text-align: right;
@@ -310,7 +310,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 20px;
   color: var(--db-ink);
   background: var(--db-bg);
@@ -331,7 +331,7 @@
 }
 
 .errorText {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-error);
   margin-top: 8px;
@@ -353,7 +353,7 @@
 }
 
 .badgeLabel {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 13px;
   color: var(--db-ink);
   margin-bottom: 12px;
@@ -367,7 +367,7 @@
 }
 
 .tag {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -398,7 +398,7 @@
 
 .statusBadge {
   display: inline-block;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
@@ -417,7 +417,7 @@
   border-radius: 10px;
   background: var(--db-accent);
   color: #fff;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 700;
 }
@@ -427,7 +427,7 @@
 }
 
 .distBadge {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   color: var(--db-muted);
 }

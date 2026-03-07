@@ -1,22 +1,22 @@
-import { z } from "zod";
-import { eq, and, asc, desc, sql, isNull } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "~/trpc/trpc";
-import { db, schema } from "~/db";
 import {
-  startProfilingSchema,
-  answerQuestionSchema,
-  requestMoreQuestionsSchema,
-  completeProfilingSchema,
-  applyProfilingSchema,
-  submitOnboardingSchema,
   answerFollowUpSchema,
+  answerQuestionSchema,
+  applyProfilingSchema,
+  completeProfilingSchema,
   createGhostProfileSchema,
   ONBOARDING_QUESTIONS,
+  requestMoreQuestionsSchema,
+  startProfilingSchema,
+  submitOnboardingSchema,
 } from "@repo/shared";
-import { enqueueProfilingQuestion, enqueueProfileFromQA, enqueueProfileAI } from "~/services/queue";
-import { moderateContent } from "~/services/moderation";
-import { generateFollowUpQuestions } from "~/services/profiling-ai";
+import { TRPCError } from "@trpc/server";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { z } from "zod";
+import { db, schema } from "@/db";
+import { moderateContent } from "@/services/moderation";
+import { generateFollowUpQuestions } from "@/services/profiling-ai";
+import { enqueueProfileAI, enqueueProfileFromQA, enqueueProfilingQuestion } from "@/services/queue";
+import { protectedProcedure, router } from "@/trpc/trpc";
 
 // --- Helpers ---
 
@@ -307,7 +307,7 @@ export const profilingRouter = router({
     // Check if profile exists — create or update
     const [existing] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId));
 
-    let profile;
+    let profile: typeof schema.profiles.$inferSelect;
     if (existing) {
       [profile] = await db
         .update(schema.profiles)

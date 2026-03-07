@@ -1,17 +1,10 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import { eq, and, gt, desc, sql } from 'drizzle-orm';
-import {
-  user,
-  profiles,
-  waves,
-  messages,
-  conversationParticipants,
-  connectionAnalyses,
-} from '../../api/src/db/schema';
-import { getToken, respondToWave, sendMessage } from './api-client';
-import { generateBotMessage } from './ai';
-import { initEvents, closeEvents, emit } from './events';
+import { and, desc, eq, gt, sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { connectionAnalyses, conversationParticipants, messages, profiles, user, waves } from "../../api/src/db/schema";
+import { generateBotMessage } from "./ai";
+import { getToken, respondToWave, sendMessage } from "./api-client";
+import { closeEvents, emit, initEvents } from "./events";
 
 // ── Config ───────────────────────────────────────────────────────────
 
@@ -22,7 +15,7 @@ const ACTIVITY_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
-  console.error('[bot] DATABASE_URL not set');
+  console.error("[bot] DATABASE_URL not set");
   process.exit(1);
 }
 
@@ -33,9 +26,9 @@ const db = drizzle(client);
 
 if (process.env.REDIS_URL) {
   initEvents(process.env.REDIS_URL);
-  console.log('[bot] Events: publishing to Redis');
+  console.log("[bot] Events: publishing to Redis");
 } else {
-  console.log('[bot] Events: REDIS_URL not set, events disabled');
+  console.log("[bot] Events: REDIS_URL not set, events disabled");
 }
 
 // ── Analysis-ready subscription ─────────────────────────────────────
@@ -43,15 +36,18 @@ if (process.env.REDIS_URL) {
 const MATCH_WAIT_TIMEOUT = 60_000; // 60s max wait for analysis
 
 /** Waves waiting for match score: key = `${fromUserId}-${toUserId}` */
-const wavesWaitingForMatch = new Map<string, {
-  wave: { id: string; fromUserId: string; toUserId: string };
-  resolve: () => void;
-  timer: Timer;
-}>();
+const wavesWaitingForMatch = new Map<
+  string,
+  {
+    wave: { id: string; fromUserId: string; toUserId: string };
+    resolve: () => void;
+    timer: Timer;
+  }
+>();
 
 if (process.env.REDIS_URL) {
   const analysisSub = new Bun.RedisClient(process.env.REDIS_URL);
-  analysisSub.subscribe('analysis:ready', (message: string) => {
+  analysisSub.subscribe("analysis:ready", (message: string) => {
     try {
       const event = JSON.parse(message);
       // Check both directions — we need the recipient's view
@@ -76,7 +72,7 @@ const pendingWaves = new Set<string>(); // wave IDs with scheduled responses
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function isSeedEmail(email: string): boolean {
-  return email.endsWith('@example.com');
+  return email.endsWith("@example.com");
 }
 
 async function getDisplayName(userId: string): Promise<string> {
@@ -89,10 +85,7 @@ async function getDisplayName(userId: string): Promise<string> {
 }
 
 /** Check if a seed user has recent human activity (non-bot messages) */
-async function isHumanControlled(
-  seedUserId: string,
-  conversationId?: string,
-): Promise<boolean> {
+async function isHumanControlled(seedUserId: string, conversationId?: string): Promise<boolean> {
   const cutoff = new Date(Date.now() - ACTIVITY_WINDOW_MS);
   const conditions = [
     eq(messages.senderId, seedUserId),
@@ -113,19 +106,11 @@ async function isHumanControlled(
 }
 
 /** Get match score from connection_analyses for the wave recipient's view */
-async function getMatchScore(
-  fromUserId: string,
-  toUserId: string,
-): Promise<number | null> {
+async function getMatchScore(fromUserId: string, toUserId: string): Promise<number | null> {
   const [analysis] = await db
     .select({ aiMatchScore: connectionAnalyses.aiMatchScore })
     .from(connectionAnalyses)
-    .where(
-      and(
-        eq(connectionAnalyses.fromUserId, toUserId),
-        eq(connectionAnalyses.toUserId, fromUserId),
-      ),
-    )
+    .where(and(eq(connectionAnalyses.fromUserId, toUserId), eq(connectionAnalyses.toUserId, fromUserId)))
     .limit(1);
 
   return analysis?.aiMatchScore ?? null;
@@ -159,44 +144,28 @@ function shouldInitiateConversation(matchScore: number | null): { initiate: bool
 }
 
 async function getProfileByUserId(userId: string) {
-  const [profile] = await db
-    .select()
-    .from(profiles)
-    .where(eq(profiles.userId, userId))
-    .limit(1);
+  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
   return profile;
 }
 
 // ── Wave handling ────────────────────────────────────────────────────
 
-async function handleWave(wave: {
-  id: string;
-  fromUserId: string;
-  toUserId: string;
-}) {
+async function handleWave(wave: { id: string; fromUserId: string; toUserId: string }) {
   const botName = await getDisplayName(wave.toUserId);
   const fromName = await getDisplayName(wave.fromUserId);
 
   try {
     // Re-check wave still pending
-    const [current] = await db
-      .select({ status: waves.status })
-      .from(waves)
-      .where(eq(waves.id, wave.id))
-      .limit(1);
+    const [current] = await db.select({ status: waves.status }).from(waves).where(eq(waves.id, wave.id)).limit(1);
 
-    if (!current || current.status !== 'pending') {
-      emit({ type: 'wave_expired', bot: botName, from: fromName, reason: 'no longer pending' });
+    if (!current || current.status !== "pending") {
+      emit({ type: "wave_expired", bot: botName, from: fromName, reason: "no longer pending" });
       pendingWaves.delete(wave.id);
       return;
     }
 
     // Get seed user email for token
-    const [seedUser] = await db
-      .select({ email: user.email })
-      .from(user)
-      .where(eq(user.id, wave.toUserId))
-      .limit(1);
+    const [seedUser] = await db.select({ email: user.email }).from(user).where(eq(user.id, wave.toUserId)).limit(1);
 
     if (!seedUser) {
       pendingWaves.delete(wave.id);
@@ -205,7 +174,7 @@ async function handleWave(wave: {
 
     // Activity guard
     if (await isHumanControlled(wave.toUserId)) {
-      emit({ type: 'wave_skip', bot: botName, from: fromName, reason: 'human controlling this user' });
+      emit({ type: "wave_skip", bot: botName, from: fromName, reason: "human controlling this user" });
       pendingWaves.delete(wave.id);
       return;
     }
@@ -218,7 +187,7 @@ async function handleWave(wave: {
     // If no match score yet, wait for analysis to complete
     if (matchScore === null) {
       const waitKey = `${wave.fromUserId}-${wave.toUserId}`;
-      emit({ type: 'wave_waiting', bot: botName, from: fromName, reason: 'waiting for match score' });
+      emit({ type: "wave_waiting", bot: botName, from: fromName, reason: "waiting for match score" });
 
       const gotScore = await new Promise<boolean>((resolve) => {
         const timer = setTimeout(() => {
@@ -239,9 +208,19 @@ async function handleWave(wave: {
 
       if (gotScore) {
         matchScore = await getMatchScore(wave.fromUserId, wave.toUserId);
-        emit({ type: 'wave_match_ready', bot: botName, from: fromName, matchScore: matchScore !== null ? `${matchScore.toFixed(0)}%` : null });
+        emit({
+          type: "wave_match_ready",
+          bot: botName,
+          from: fromName,
+          matchScore: matchScore !== null ? `${matchScore.toFixed(0)}%` : null,
+        });
       } else {
-        emit({ type: 'wave_match_timeout', bot: botName, from: fromName, reason: `no score after ${MATCH_WAIT_TIMEOUT / 1000}s` });
+        emit({
+          type: "wave_match_timeout",
+          bot: botName,
+          from: fromName,
+          reason: `no score after ${MATCH_WAIT_TIMEOUT / 1000}s`,
+        });
       }
     }
 
@@ -249,7 +228,7 @@ async function handleWave(wave: {
     const scoreStr = matchScore !== null ? `${matchScore.toFixed(0)}%` : null;
 
     emit({
-      type: accept ? 'wave_accept' : 'wave_decline',
+      type: accept ? "wave_accept" : "wave_decline",
       bot: botName,
       from: fromName,
       matchScore: scoreStr,
@@ -263,7 +242,7 @@ async function handleWave(wave: {
 
       if (initiate) {
         emit({
-          type: 'opening_scheduled',
+          type: "opening_scheduled",
           bot: botName,
           from: fromName,
           probability: `${(initProb * 100).toFixed(0)}%`,
@@ -274,30 +253,35 @@ async function handleWave(wave: {
           const otherProfile = await getProfileByUserId(wave.fromUserId);
 
           if (botProfile && otherProfile) {
-            const content = await generateBotMessage(
-              botProfile,
-              otherProfile,
-              [],
-              true,
-            );
+            const content = await generateBotMessage(botProfile, otherProfile, [], true);
 
             await sendMessage(token, result.conversationId!, content);
-            emit({ type: 'opening_sent', bot: botName, from: fromName, message: content.slice(0, 80) });
+            emit({ type: "opening_sent", bot: botName, from: fromName, message: content.slice(0, 80) });
           }
-        } catch (err: any) {
-          emit({ type: 'opening_error', bot: botName, from: fromName, error: err.message?.slice(0, 100) });
+        } catch (err: unknown) {
+          emit({
+            type: "opening_error",
+            bot: botName,
+            from: fromName,
+            error: err instanceof Error ? err.message.slice(0, 100) : String(err),
+          });
         }
       } else {
         emit({
-          type: 'opening_skip',
+          type: "opening_skip",
           bot: botName,
           from: fromName,
           reason: `probability ${(initProb * 100).toFixed(0)}% — waiting for first message`,
         });
       }
     }
-  } catch (err: any) {
-    emit({ type: 'wave_error', bot: botName, from: fromName, error: err.message?.slice(0, 100) });
+  } catch (err: unknown) {
+    emit({
+      type: "wave_error",
+      bot: botName,
+      from: fromName,
+      error: err instanceof Error ? err.message.slice(0, 100) : String(err),
+    });
   } finally {
     pendingWaves.delete(wave.id);
   }
@@ -305,17 +289,13 @@ async function handleWave(wave: {
 
 // ── Message handling ─────────────────────────────────────────────────
 
-async function handleMessage(
-  conversationId: string,
-  seedUserId: string,
-  seedEmail: string,
-) {
+async function handleMessage(conversationId: string, seedUserId: string, seedEmail: string) {
   const botName = await getDisplayName(seedUserId);
 
   try {
     // Activity guard
     if (await isHumanControlled(seedUserId, conversationId)) {
-      emit({ type: 'reply_skip', bot: botName, reason: 'human controlling this user' });
+      emit({ type: "reply_skip", bot: botName, reason: "human controlling this user" });
       return;
     }
 
@@ -332,7 +312,7 @@ async function handleMessage(
       .limit(50);
 
     const history = recentMessages.reverse().map((m) => ({
-      senderId: m.senderId === seedUserId ? 'bot' : 'other',
+      senderId: m.senderId === seedUserId ? "bot" : "other",
       content: m.content,
     }));
 
@@ -351,16 +331,12 @@ async function handleMessage(
     const otherName = await getDisplayName(otherUserId);
 
     // Seed-to-seed guard
-    const [otherUser] = await db
-      .select({ email: user.email })
-      .from(user)
-      .where(eq(user.id, otherUserId))
-      .limit(1);
+    const [otherUser] = await db.select({ email: user.email }).from(user).where(eq(user.id, otherUserId)).limit(1);
 
     if (otherUser && isSeedEmail(otherUser.email)) {
       const otherHasHuman = await isHumanControlled(otherUserId, conversationId);
       if (!otherHasHuman) {
-        emit({ type: 'reply_skip', bot: botName, from: otherName, reason: 'seed-to-seed without human' });
+        emit({ type: "reply_skip", bot: botName, from: otherName, reason: "seed-to-seed without human" });
         return;
       }
     }
@@ -371,9 +347,13 @@ async function handleMessage(
     const content = await generateBotMessage(botProfile, otherProfile, history, false);
 
     await sendMessage(token, conversationId, content);
-    emit({ type: 'reply_sent', bot: botName, from: otherName, message: content.slice(0, 80) });
-  } catch (err: any) {
-    emit({ type: 'reply_error', bot: botName, error: err.message?.slice(0, 100) });
+    emit({ type: "reply_sent", bot: botName, from: otherName, message: content.slice(0, 80) });
+  } catch (err: unknown) {
+    emit({
+      type: "reply_error",
+      bot: botName,
+      error: err instanceof Error ? err.message.slice(0, 100) : String(err),
+    });
   }
 }
 
@@ -390,11 +370,7 @@ async function pollWaves() {
       .from(waves)
       .innerJoin(user, eq(waves.toUserId, user.id))
       .where(
-        and(
-          eq(waves.status, 'pending'),
-          gt(waves.createdAt, lastWaveCheck),
-          sql`${user.email} LIKE '%@example.com'`,
-        ),
+        and(eq(waves.status, "pending"), gt(waves.createdAt, lastWaveCheck), sql`${user.email} LIKE '%@example.com'`),
       );
 
     lastWaveCheck = new Date();
@@ -405,12 +381,12 @@ async function pollWaves() {
 
       const botName = await getDisplayName(wave.toUserId);
       const fromName = await getDisplayName(wave.fromUserId);
-      emit({ type: 'wave_received', bot: botName, from: fromName });
+      emit({ type: "wave_received", bot: botName, from: fromName });
 
       await handleWave(wave);
     }
   } catch (err) {
-    console.error('[bot] pollWaves error:', err);
+    console.error("[bot] pollWaves error:", err);
   }
 }
 
@@ -422,12 +398,7 @@ async function pollMessages() {
         senderId: messages.senderId,
       })
       .from(messages)
-      .where(
-        and(
-          gt(messages.createdAt, lastMessageCheck),
-          sql`${messages.deletedAt} IS NULL`,
-        ),
-      )
+      .where(and(gt(messages.createdAt, lastMessageCheck), sql`${messages.deletedAt} IS NULL`))
       .orderBy(desc(messages.createdAt))
       .limit(100);
 
@@ -449,7 +420,9 @@ async function pollMessages() {
 
       const seedParticipants = participants.filter((p) => isSeedEmail(p.email));
       if (seedParticipants.length === 0) {
-        console.log(`[bot] pollMessages: no seed participant in conv ${convId.slice(0, 8)}, emails: ${participants.map((p) => p.email).join(', ')}`);
+        console.log(
+          `[bot] pollMessages: no seed participant in conv ${convId.slice(0, 8)}, emails: ${participants.map((p) => p.email).join(", ")}`,
+        );
         continue;
       }
 
@@ -464,24 +437,22 @@ async function pollMessages() {
 
       const botName = await getDisplayName(seedParticipant.userId);
       const senderName = await getDisplayName(convMessages[0].senderId);
-      emit({ type: 'message_received', bot: botName, from: senderName });
+      emit({ type: "message_received", bot: botName, from: senderName });
 
       handleMessage(convId, seedParticipant.userId, seedParticipant.email);
     }
   } catch (err) {
-    console.error('[bot] pollMessages error:', err);
+    console.error("[bot] pollMessages error:", err);
   }
 }
 
 // ── Main ─────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('[bot] Starting seed user chatbot...');
+  console.log("[bot] Starting seed user chatbot...");
   console.log(`[bot] Polling every ${POLL_INTERVAL}ms`);
-  console.log(`[bot] API: ${process.env.API_URL || 'http://localhost:3000'}`);
-  console.log(
-    `[bot] OpenAI: ${process.env.OPENAI_API_KEY ? 'configured' : 'NOT SET (using fallbacks)'}`,
-  );
+  console.log(`[bot] API: ${process.env.API_URL || "http://localhost:3000"}`);
+  console.log(`[bot] OpenAI: ${process.env.OPENAI_API_KEY ? "configured" : "NOT SET (using fallbacks)"}`);
 
   lastWaveCheck = new Date();
   lastMessageCheck = new Date();
@@ -496,16 +467,16 @@ async function main() {
     }
   }, POLL_INTERVAL);
 
-  console.log('[bot] Ready. Waiting for waves and messages...');
+  console.log("[bot] Ready. Waiting for waves and messages...");
 }
 
 main().catch((err) => {
-  console.error('[bot] Fatal error:', err);
+  console.error("[bot] Fatal error:", err);
   process.exit(1);
 });
 
-process.on('SIGINT', () => {
-  console.log('\n[bot] Shutting down...');
+process.on("SIGINT", () => {
+  console.log("\n[bot] Shutting down...");
   closeEvents();
   client.end();
   process.exit(0);

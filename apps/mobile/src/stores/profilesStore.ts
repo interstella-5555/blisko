@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 export interface CachedProfile {
   userId: string;
@@ -42,7 +42,7 @@ export const useProfilesStore = create<ProfilesStore>((set, get) => ({
       }
 
       profiles.set(userId, {
-        ...(existing ?? { userId, displayName: '', avatarUrl: null, _partial: true }),
+        ...(existing ?? { userId, displayName: "", avatarUrl: null, _partial: true }),
         ...clean,
       } as CachedProfile);
 
@@ -67,7 +67,7 @@ export const useProfilesStore = create<ProfilesStore>((set, get) => ({
         }
 
         profiles.set(userId, {
-          ...(existing ?? { userId, displayName: '', avatarUrl: null, _partial: true }),
+          ...(existing ?? { userId, displayName: "", avatarUrl: null, _partial: true }),
           ...clean,
         } as CachedProfile);
       }

@@ -1,42 +1,42 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
-import { useOnboardingStore } from '../../src/stores/onboardingStore';
-import { useAuthStore } from '../../src/stores/authStore';
-import { trpc } from '../../src/lib/trpc';
-import { colors, type as typ, spacing } from '../../src/theme';
-import { Button } from '../../src/components/ui/Button';
+import { router } from "expo-router";
+import { useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { Button } from "../../src/components/ui/Button";
+import { trpc } from "../../src/lib/trpc";
+import { useAuthStore } from "../../src/stores/authStore";
+import { useOnboardingStore } from "../../src/stores/onboardingStore";
+import { colors, spacing, type as typ } from "../../src/theme";
 
 export default function VisibilityScreen() {
   const { displayName, complete } = useOnboardingStore();
   const setProfile = useAuthStore((s) => s.setProfile);
   const setHasCheckedProfile = useAuthStore((s) => s.setHasCheckedProfile);
   const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const createGhost = trpc.profiling.createGhostProfile.useMutation();
 
   const handleGhost = async () => {
     setIsCreating(true);
-    setError('');
+    setError("");
     try {
       const profile = await createGhost.mutateAsync({ displayName });
       setProfile(profile);
       setHasCheckedProfile(true);
       complete();
       setTimeout(() => {
-        router.replace('/(tabs)');
+        router.replace("/(tabs)");
       }, 100);
     } catch (err) {
-      console.error('Failed to create ghost profile:', err);
-      setError('Nie udało się utworzyć profilu. Spróbuj ponownie.');
+      console.error("Failed to create ghost profile:", err);
+      setError("Nie udało się utworzyć profilu. Spróbuj ponownie.");
     } finally {
       setIsCreating(false);
     }
   };
 
   const handleFillProfile = () => {
-    router.push('/onboarding/questions');
+    router.push("/onboarding/questions");
   };
 
   return (
@@ -46,23 +46,12 @@ export default function VisibilityScreen() {
 
         <View style={styles.options}>
           <View style={styles.option}>
-            <Button
-              title="Wypełnij profil"
-              variant="accent"
-              onPress={handleFillProfile}
-            />
-            <Text style={styles.optionDesc}>
-              Inni zobaczą Twój profil i będą mogli Cię znaleźć
-            </Text>
+            <Button title="Wypełnij profil" variant="accent" onPress={handleFillProfile} />
+            <Text style={styles.optionDesc}>Inni zobaczą Twój profil i będą mogli Cię znaleźć</Text>
           </View>
 
           <View style={styles.option}>
-            <Button
-              title="Na razie tylko imię"
-              variant="ghost"
-              onPress={handleGhost}
-              loading={isCreating}
-            />
+            <Button title="Na razie tylko imię" variant="ghost" onPress={handleGhost} loading={isCreating} />
             <Text style={styles.optionDesc}>
               Nie będziesz widoczny. Możesz dołączać do grup tylko przez zaproszenie.
             </Text>
@@ -103,7 +92,7 @@ const styles = StyleSheet.create({
   error: {
     ...typ.body,
     color: colors.status.error.text,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: spacing.column,
   },
 });

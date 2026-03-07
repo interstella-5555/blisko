@@ -1,6 +1,6 @@
-import { useCallback, useRef } from 'react';
-import { trpc } from '../lib/trpc';
-import { useMessagesStore, type EnrichedMessage } from '../stores/messagesStore';
+import { useCallback, useRef } from "react";
+import { trpc } from "../lib/trpc";
+import { type EnrichedMessage, useMessagesStore } from "../stores/messagesStore";
 
 export function usePrefetchMessages() {
   const utils = trpc.useUtils();
@@ -19,31 +19,25 @@ export function usePrefetchMessages() {
           // Don't overwrite if store was populated while we were fetching
           if (useMessagesStore.getState().has(conversationId)) return;
 
-          const toEnriched = (msg: any): EnrichedMessage => ({
+          type RawMessage = (typeof data)["messages"][number];
+          const toEnriched = (msg: RawMessage): EnrichedMessage => ({
             id: msg.id,
             conversationId: msg.conversationId ?? conversationId,
             senderId: msg.senderId,
             content: msg.content,
-            type: msg.type ?? 'text',
-            metadata: msg.metadata ?? null,
+            type: msg.type ?? "text",
+            metadata: (msg.metadata as Record<string, unknown> | null) ?? null,
             replyToId: msg.replyToId ?? null,
-            createdAt: msg.createdAt?.toISOString?.() ?? String(msg.createdAt),
-            readAt: msg.readAt
-              ? (msg.readAt.toISOString?.() ?? String(msg.readAt))
-              : null,
-            deletedAt: msg.deletedAt
-              ? (msg.deletedAt.toISOString?.() ?? String(msg.deletedAt))
-              : null,
-            replyTo: msg.replyTo ?? null,
-            reactions: msg.reactions ?? [],
+            createdAt: String(msg.createdAt),
+            readAt: msg.readAt ? String(msg.readAt) : null,
+            deletedAt: msg.deletedAt ? String(msg.deletedAt) : null,
+            replyTo: ((msg as Record<string, unknown>).replyTo as EnrichedMessage["replyTo"]) ?? null,
+            reactions: ((msg as Record<string, unknown>).reactions as EnrichedMessage["reactions"]) ?? [],
           });
 
-          useMessagesStore.getState().set(
-            conversationId,
-            data.messages.map(toEnriched),
-            !!data.nextCursor,
-            data.nextCursor,
-          );
+          useMessagesStore
+            .getState()
+            .set(conversationId, data.messages.map(toEnriched), !!data.nextCursor, data.nextCursor);
         })
         .catch(() => {
           // Silently fail — chat screen will fetch on open

@@ -1,17 +1,17 @@
-import { useRef } from 'react';
+import { useRef } from "react";
 import {
-  View,
-  Pressable,
-  Text,
-  StyleSheet,
-  Animated,
   ActivityIndicator,
-  type ViewStyle,
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
   type TextStyle,
-} from 'react-native';
-import { colors, fonts } from '../../theme';
+  View,
+  type ViewStyle,
+} from "react-native";
+import { colors, fonts } from "../../theme";
 
-type ButtonVariant = 'accent' | 'ghost' | 'fullWidth' | 'wave' | 'outline';
+type ButtonVariant = "accent" | "ghost" | "fullWidth" | "wave" | "outline";
 
 interface ButtonProps {
   title?: string;
@@ -25,7 +25,7 @@ interface ButtonProps {
 
 export function Button({
   title,
-  variant = 'accent',
+  variant = "accent",
   onPress,
   disabled = false,
   loading = false,
@@ -68,13 +68,11 @@ export function Button({
         {loading && (
           <ActivityIndicator
             size={12}
-            color={variant === 'ghost' || variant === 'outline' ? colors.ink : colors.bg}
+            color={variant === "ghost" || variant === "outline" ? colors.ink : colors.bg}
             style={StyleSheet.absoluteFill}
           />
         )}
-        <View style={loading ? styles.hidden : undefined}>
-          {children || <Text style={textStyle}>{title}</Text>}
-        </View>
+        <View style={loading ? styles.hidden : undefined}>{children || <Text style={textStyle}>{title}</Text>}</View>
       </Pressable>
     </Animated.View>
   );
@@ -82,8 +80,8 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 14,
     paddingHorizontal: 24,
   },
@@ -91,7 +89,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   disabled: {
     opacity: 0.4,
@@ -106,11 +104,11 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
     backgroundColor: colors.accent,
   },
   ghost: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   fullWidth: {
     backgroundColor: colors.ink,
-    width: '100%',
+    width: "100%",
   },
   wave: {
     width: 34,
@@ -118,12 +116,12 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
     borderRadius: 17,
     borderWidth: 1,
     borderColor: colors.ink,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     paddingVertical: 0,
     paddingHorizontal: 0,
   },
   outline: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: colors.rule,
   },
@@ -131,7 +129,7 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
 
 const textVariantStyles: Record<ButtonVariant, TextStyle> = {
   accent: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   ghost: {
     color: colors.accent,

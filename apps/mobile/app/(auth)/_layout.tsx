@@ -1,6 +1,6 @@
-import { Redirect, Stack } from 'expo-router';
-import { useAuthStore } from '../../src/stores/authStore';
-import { View, ActivityIndicator } from 'react-native';
+import { Redirect, Stack } from "expo-router";
+import { ActivityIndicator, View } from "react-native";
+import { useAuthStore } from "../../src/stores/authStore";
 
 export default function AuthLayout() {
   const session = useAuthStore((state) => state.session);
@@ -8,7 +8,7 @@ export default function AuthLayout() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
       </View>
     );

@@ -25,13 +25,13 @@
 }
 
 .label {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 12px;
   color: var(--db-ink);
 }
 
 .code {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   color: var(--db-muted);
   letter-spacing: 0.5px;

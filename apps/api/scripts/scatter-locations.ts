@@ -6,14 +6,12 @@
  * Run: cd apps/api && bun run scripts/scatter-locations.ts
  */
 
-const API = process.env.API_URL || 'http://localhost:3000';
+const API = process.env.API_URL || "http://localhost:3000";
 const USER_COUNT = 250;
 const BATCH_SIZE = 10;
 const GEOJSON_PATH = `${import.meta.dir}/warszawa-dzielnice.geojson`;
 
-const TARGET_DISTRICTS = [
-  'Ochota', 'Włochy', 'Wola', 'Śródmieście', 'Mokotów', 'Ursynów', 'Bemowo',
-];
+const TARGET_DISTRICTS = ["Ochota", "Włochy", "Wola", "Śródmieście", "Mokotów", "Ursynów", "Bemowo"];
 
 // --- Point-in-polygon (ray casting) ---
 
@@ -25,7 +23,7 @@ function pointInRing(lat: number, lng: number, ring: Ring): boolean {
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const [xi, yi] = ring[i];
     const [xj, yj] = ring[j];
-    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+    if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
       inside = !inside;
     }
   }
@@ -41,10 +39,18 @@ function pointInMultiPolygon(lat: number, lng: number, mp: MultiPolygon): boolea
   return false;
 }
 
-interface BBox { latMin: number; latMax: number; lngMin: number; lngMax: number }
+interface BBox {
+  latMin: number;
+  latMax: number;
+  lngMin: number;
+  lngMax: number;
+}
 
 function computeBBox(mp: MultiPolygon): BBox {
-  let latMin = Infinity, latMax = -Infinity, lngMin = Infinity, lngMax = -Infinity;
+  let latMin = Infinity,
+    latMax = -Infinity,
+    lngMin = Infinity,
+    lngMax = -Infinity;
   for (const polygon of mp) {
     for (const ring of polygon) {
       for (const [lng, lat] of ring) {
@@ -58,14 +64,23 @@ function computeBBox(mp: MultiPolygon): BBox {
   return { latMin, latMax, lngMin, lngMax };
 }
 
-interface District { name: string; coords: MultiPolygon; bbox: BBox }
+interface District {
+  name: string;
+  coords: MultiPolygon;
+  bbox: BBox;
+}
+
+interface GeoFeature {
+  properties: { name: string };
+  geometry: { coordinates: number[][][] };
+}
 
 async function loadDistricts(): Promise<District[]> {
   const geo = await Bun.file(GEOJSON_PATH).json();
   const targetSet = new Set(TARGET_DISTRICTS);
   return geo.features
-    .filter((f: any) => targetSet.has(f.properties.name))
-    .map((f: any) => ({
+    .filter((f: GeoFeature) => targetSet.has(f.properties.name))
+    .map((f: GeoFeature) => ({
       name: f.properties.name,
       coords: f.geometry.coordinates,
       bbox: computeBBox(f.geometry.coordinates),
@@ -86,8 +101,8 @@ function randomPointInDistricts(districts: District[]): { lat: number; lng: numb
 
 async function autoLogin(email: string): Promise<string> {
   const res = await fetch(`${API}/dev/auto-login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
   });
   if (!res.ok) throw new Error(`auto-login failed: ${res.status}`);
@@ -97,9 +112,9 @@ async function autoLogin(email: string): Promise<string> {
 
 async function updateLocation(token: string, latitude: number, longitude: number) {
   const res = await fetch(`${API}/trpc/profiles.updateLocation`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ latitude, longitude, skipAnalysis: true }),
@@ -112,7 +127,7 @@ async function updateLocation(token: string, latitude: number, longitude: number
 
 async function main() {
   const districts = await loadDistricts();
-  console.log(`Loaded ${districts.length} district polygons: ${districts.map(d => d.name).join(', ')}`);
+  console.log(`Loaded ${districts.length} district polygons: ${districts.map((d) => d.name).join(", ")}`);
   console.log(`Scattering ${USER_COUNT} users via API...`);
 
   let updated = 0;
@@ -134,7 +149,7 @@ async function main() {
           failed++;
           console.error(`Failed ${email}:`, err);
         }
-      })
+      }),
     );
   }
 

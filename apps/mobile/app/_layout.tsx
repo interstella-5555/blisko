@@ -1,41 +1,39 @@
-import { useEffect } from 'react';
-import { View, ActivityIndicator, AppState, Platform, Alert } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { focusManager, MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useFonts } from "expo-font";
+import { router, Stack } from "expo-router";
 // Workaround: expo-router 6.0.22 bug — Stack uses useLinkPreviewContext
 // but ExpoRoot's provider doesn't always reach it (pnpm dual-instance issue)
-import { LinkPreviewContextProvider } from 'expo-router/build/link/preview/LinkPreviewContext';
-import { StatusBar } from 'expo-status-bar';
-import { useFonts } from 'expo-font';
-import { focusManager, QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query';
-import { trpc, trpcClient } from '../src/lib/trpc';
-import { useAuthStore } from '../src/stores/authStore';
-import { authClient } from '../src/lib/auth';
-import { useWebSocket } from '../src/lib/ws';
-import { NotificationProvider } from '../src/providers/NotificationProvider';
-import { NotificationOverlay } from '../src/components/ui/NotificationOverlay';
-import { ToastProvider } from '../src/providers/ToastProvider';
-import { ToastOverlay } from '../src/components/ui/ToastOverlay';
-import { colors } from '../src/theme';
+import { LinkPreviewContextProvider } from "expo-router/build/link/preview/LinkPreviewContext";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { ActivityIndicator, Alert, AppState, Platform, View } from "react-native";
+import { NotificationOverlay } from "../src/components/ui/NotificationOverlay";
+import { ToastOverlay } from "../src/components/ui/ToastOverlay";
+import { authClient } from "../src/lib/auth";
+import { trpc, trpcClient } from "../src/lib/trpc";
+import { useWebSocket } from "../src/lib/ws";
+import { NotificationProvider } from "../src/providers/NotificationProvider";
+import { ToastProvider } from "../src/providers/ToastProvider";
+import { useAuthStore } from "../src/stores/authStore";
+import { colors } from "../src/theme";
 
 let accountDeletedAlertShown = false;
 
 function handleAccountDeleted(error: unknown) {
-  const err = error as any;
-  if (err?.data?.code === 'FORBIDDEN' && err?.message === 'ACCOUNT_DELETED' && !accountDeletedAlertShown) {
+  const err = error as { data?: { code?: string }; message?: string };
+  if (err?.data?.code === "FORBIDDEN" && err?.message === "ACCOUNT_DELETED" && !accountDeletedAlertShown) {
     accountDeletedAlertShown = true;
-    Alert.alert(
-      'Konto usunięte',
-      'Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.',
-      [{
-        text: 'OK',
+    Alert.alert("Konto usunięte", "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.", [
+      {
+        text: "OK",
         onPress: () => {
           accountDeletedAlertShown = false;
           authClient.signOut();
           useAuthStore.getState().reset();
-          router.replace('/(auth)/login');
+          router.replace("/(auth)/login");
         },
-      }]
-    );
+      },
+    ]);
   }
 }
 
@@ -44,8 +42,9 @@ export const queryClient = new QueryClient({
   mutationCache: new MutationCache({ onError: handleAccountDeleted }),
   defaultOptions: {
     queries: {
-      retry: (failureCount, error: any) => {
-        if (error?.data?.code === 'FORBIDDEN' && error?.message === 'ACCOUNT_DELETED') return false;
+      retry: (failureCount, error: unknown) => {
+        const err = error as { data?: { code?: string }; message?: string };
+        if (err?.data?.code === "FORBIDDEN" && err?.message === "ACCOUNT_DELETED") return false;
         return failureCount < 3;
       },
     },
@@ -62,19 +61,19 @@ export default function RootLayout() {
 
   // Tell React Query when app is focused (required for React Native)
   useEffect(() => {
-    if (Platform.OS === 'web') return;
-    const sub = AppState.addEventListener('change', (status) => {
-      focusManager.setFocused(status === 'active');
+    if (Platform.OS === "web") return;
+    const sub = AppState.addEventListener("change", (status) => {
+      focusManager.setFocused(status === "active");
     });
     return () => sub.remove();
   }, []);
 
   const [fontsLoaded] = useFonts({
-    'InstrumentSerif-Regular': require('../assets/fonts/InstrumentSerif-Regular.ttf'),
-    'InstrumentSerif-Italic': require('../assets/fonts/InstrumentSerif-Italic.ttf'),
-    'DMSans-Regular': require('../assets/fonts/DMSans-Regular.ttf'),
-    'DMSans-Medium': require('../assets/fonts/DMSans-Medium.ttf'),
-    'DMSans-SemiBold': require('../assets/fonts/DMSans-SemiBold.ttf'),
+    "InstrumentSerif-Regular": require("../assets/fonts/InstrumentSerif-Regular.ttf"),
+    "InstrumentSerif-Italic": require("../assets/fonts/InstrumentSerif-Italic.ttf"),
+    "DMSans-Regular": require("../assets/fonts/DMSans-Regular.ttf"),
+    "DMSans-Medium": require("../assets/fonts/DMSans-Medium.ttf"),
+    "DMSans-SemiBold": require("../assets/fonts/DMSans-SemiBold.ttf"),
   });
 
   useEffect(() => {
@@ -87,7 +86,7 @@ export default function RootLayout() {
           setSession(data.session);
         }
       } catch (error) {
-        console.error('Session check error:', error);
+        console.error("Session check error:", error);
       }
       setLoading(false);
     };
@@ -97,7 +96,7 @@ export default function RootLayout() {
 
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color={colors.ink} />
       </View>
     );
@@ -115,14 +114,14 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="settings" options={{ headerShown: false }} />
                 <Stack.Screen name="onboarding" />
-                <Stack.Screen name="(modals)" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
                 <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
                 <Stack.Screen
                   name="set-status"
                   options={{
-                    presentation: 'formSheet',
+                    presentation: "formSheet",
                     headerShown: false,
-                    sheetAllowedDetents: 'fitToContents',
+                    sheetAllowedDetents: "fitToContents",
                     sheetGrabberVisible: true,
                     sheetCornerRadius: 20,
                     contentStyle: { backgroundColor: colors.bg },
@@ -131,9 +130,9 @@ export default function RootLayout() {
                 <Stack.Screen
                   name="filters"
                   options={{
-                    presentation: 'formSheet',
+                    presentation: "formSheet",
                     headerShown: false,
-                    sheetAllowedDetents: 'fitToContents',
+                    sheetAllowedDetents: "fitToContents",
                     sheetGrabberVisible: true,
                     sheetCornerRadius: 20,
                     contentStyle: { backgroundColor: colors.bg },

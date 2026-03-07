@@ -5,7 +5,7 @@
 }
 
 .groupTitle {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -40,13 +40,13 @@
 }
 
 .swatchName {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 14px;
   color: var(--db-ink);
 }
 
 .swatchHex {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   color: var(--db-muted);
   letter-spacing: 0.5px;
@@ -80,7 +80,7 @@
 
 .statusBadge {
   display: inline-block;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -101,7 +101,7 @@
   align-items: center;
   gap: 8px;
   font-size: 10px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   color: var(--db-muted);
 }
 

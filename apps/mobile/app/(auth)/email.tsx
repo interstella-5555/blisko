@@ -1,44 +1,34 @@
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-} from 'react-native';
+import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useState } from "react";
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Button } from "../../src/components/ui/Button";
+import { Input } from "../../src/components/ui/Input";
+import { authClient } from "../../src/lib/auth";
+import { useAuthStore } from "../../src/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
-import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
-import { authClient } from '../../src/lib/auth';
-import { useAuthStore } from '../../src/stores/authStore';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { Input } from '../../src/components/ui/Input';
-import { Button } from '../../src/components/ui/Button';
-import { useToast } from '../../src/providers/ToastProvider';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
 const authErrorMessages: Record<string, string> = {
-  'Too many requests. Please try again later.': 'Zbyt wiele prób. Spróbuj ponownie za chwilę.',
+  "Too many requests. Please try again later.": "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
 };
 
 function translateAuthError(message?: string): string {
-  if (!message) return 'Wystąpił błąd';
+  if (!message) return "Wystąpił błąd";
   return authErrorMessages[message] || message;
 }
 
 export default function EmailLoginScreen() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { setUser, setSession, setProfile, setHasCheckedProfile } = useAuthStore();
-  const { showToast } = useToast();
 
   const handleSendMagicLink = async (emailOverride?: string) => {
     const target = (emailOverride || email).trim();
     if (!target) {
-      setError('Podaj adres email');
+      setError("Podaj adres email");
       return;
     }
 
@@ -46,33 +36,30 @@ export default function EmailLoginScreen() {
     setError(null);
 
     // Dev auto-login for @example.com emails
-    if (target.endsWith('@example.com')) {
+    if (target.endsWith("@example.com")) {
       try {
         const response = await fetch(`${API_URL}/dev/auto-login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: target }),
         });
 
         if (!response.ok) {
           const data = await response.json();
-          setError(data.error || 'Auto-login failed');
+          setError(data.error || "Auto-login failed");
           setIsLoading(false);
           return;
         }
 
         const data = await response.json();
 
+        await SecureStore.setItemAsync("blisko_session_token", data.session.token);
         await SecureStore.setItemAsync(
-          'blisko_session_token',
-          data.session.token
-        );
-        await SecureStore.setItemAsync(
-          'blisko_session_data',
+          "blisko_session_data",
           JSON.stringify({
             session: data.session,
             user: data.user,
-          })
+          }),
         );
 
         setProfile(null);
@@ -84,10 +71,10 @@ export default function EmailLoginScreen() {
           expiresAt: new Date(data.session.expiresAt),
         });
 
-        router.replace('/(tabs)');
+        router.replace("/(tabs)");
         return;
-      } catch (err) {
-        setError('Dev auto-login failed');
+      } catch (_err) {
+        setError("Dev auto-login failed");
         setIsLoading(false);
         return;
       }
@@ -96,7 +83,7 @@ export default function EmailLoginScreen() {
     try {
       const result = await authClient.emailOtp.sendVerificationOtp({
         email: target,
-        type: 'sign-in',
+        type: "sign-in",
       });
 
       if (result.error) {
@@ -106,26 +93,21 @@ export default function EmailLoginScreen() {
       }
 
       router.push({
-        pathname: '/(auth)/verify',
+        pathname: "/(auth)/verify",
         params: { email: target },
       });
-    } catch (err) {
-      setError('Nie udało się wysłać kodu');
+    } catch (_err) {
+      setError("Nie udało się wysłać kodu");
     }
 
     setIsLoading(false);
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
         <Text style={styles.title}>Zaloguj się emailem</Text>
-        <Text style={styles.subtitle}>
-          Wyślemy Ci jednorazowy kod weryfikacyjny
-        </Text>
+        <Text style={styles.subtitle}>Wyślemy Ci jednorazowy kod weryfikacyjny</Text>
 
         <View style={styles.form}>
           <Input
@@ -144,7 +126,7 @@ export default function EmailLoginScreen() {
 
           <Button
             testID="send-link-button"
-            title={isLoading ? 'Wysyłanie...' : 'Wyślij kod'}
+            title={isLoading ? "Wysyłanie..." : "Wyślij kod"}
             variant="accent"
             onPress={() => handleSendMagicLink()}
             disabled={isLoading}
@@ -167,19 +149,19 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: spacing.section,
   },
   title: {
     ...typ.display,
     fontSize: 22,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: spacing.tight,
   },
   subtitle: {
     ...typ.body,
     color: colors.muted,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: spacing.block,
   },
   form: {
@@ -191,13 +173,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   backLink: {
-    alignSelf: 'center',
+    alignSelf: "center",
     marginTop: spacing.column,
   },
   backLinkText: {
     fontFamily: fonts.sans,
     fontSize: 13,
     color: colors.muted,
-    textDecorationLine: 'underline',
+    textDecorationLine: "underline",
   },
 });

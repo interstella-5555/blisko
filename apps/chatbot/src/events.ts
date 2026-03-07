@@ -1,6 +1,6 @@
-import type { RedisClient } from 'bun';
+import type { RedisClient } from "bun";
 
-const CHANNEL = 'bot:events';
+const CHANNEL = "bot:events";
 
 let redis: RedisClient | null = null;
 

@@ -23,9 +23,14 @@
     "mobile:testflight": "pnpm --filter @repo/mobile testflight",
     "ralph": "bash scripts/ralph.sh",
     "ralph:dry": "bash scripts/ralph.sh --dry-run",
-    "prepare": "husky"
+    "prepare": "husky",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "check": "biome check ."
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.6",
     "husky": "^9.1.7",
     "lint-staged": "^16.3.1",
     "typescript": "^5.3.0"
@@ -39,6 +44,7 @@
     "node": ">=20"
   },
   "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,css}": "biome format --write --no-errors-on-unmatched",
     "apps/api/src/**/*.ts": "bash -c 'pnpm --filter @repo/api typecheck'",
     "apps/mobile/**/*.{ts,tsx}": "bash -c 'pnpm --filter @repo/mobile typecheck'",
     "packages/shared/src/**/*.ts": "bash -c 'pnpm --filter @repo/shared typecheck'"

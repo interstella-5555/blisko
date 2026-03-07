@@ -10,15 +10,7 @@ const USER_COUNT = 250;
 const GEOJSON_PATH = `${import.meta.dir}/warszawa-dzielnice.geojson`;
 
 // Districts to scatter users across (change this list to control distribution)
-const TARGET_DISTRICTS = [
-  'Ochota',
-  'Włochy',
-  'Wola',
-  'Śródmieście',
-  'Mokotów',
-  'Ursynów',
-  'Bemowo',
-];
+const TARGET_DISTRICTS = ["Ochota", "Włochy", "Wola", "Śródmieście", "Mokotów", "Ursynów", "Bemowo"];
 
 // --- Point-in-polygon (ray casting) ---
 
@@ -30,7 +22,7 @@ function pointInRing(lat: number, lng: number, ring: Ring): boolean {
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const [xi, yi] = ring[i]; // [lng, lat]
     const [xj, yj] = ring[j];
-    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+    if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
       inside = !inside;
     }
   }
@@ -56,7 +48,10 @@ interface BBox {
 }
 
 function computeBBox(mp: MultiPolygon): BBox {
-  let latMin = Infinity, latMax = -Infinity, lngMin = Infinity, lngMax = -Infinity;
+  let latMin = Infinity,
+    latMax = -Infinity,
+    lngMin = Infinity,
+    lngMax = -Infinity;
   for (const polygon of mp) {
     for (const ring of polygon) {
       for (const [lng, lat] of ring) {
@@ -85,12 +80,17 @@ interface District {
   bbox: BBox;
 }
 
+interface GeoFeature {
+  properties: { name: string };
+  geometry: { coordinates: number[][][] };
+}
+
 async function loadDistricts(targetNames: string[]): Promise<District[]> {
   const geo = await Bun.file(GEOJSON_PATH).json();
   const targetSet = new Set(targetNames);
   return geo.features
-    .filter((f: any) => targetSet.has(f.properties.name))
-    .map((f: any) => ({
+    .filter((f: GeoFeature) => targetSet.has(f.properties.name))
+    .map((f: GeoFeature) => ({
       name: f.properties.name,
       coords: f.geometry.coordinates,
       bbox: computeBBox(f.geometry.coordinates),
@@ -119,21 +119,25 @@ function randomPointInDistricts(districts: District[]): { lat: number; lng: numb
 // --- DB ---
 
 async function loadDatabaseUrl(): Promise<string> {
-  const dir = import.meta.dir + '/..';
-  const mainEnv = await Bun.file(`${dir}/.env`).text().catch(() => '');
-  const localEnv = await Bun.file(`${dir}/.env.local`).text().catch(() => '');
-  const allEnv = mainEnv + '\n' + localEnv;
+  const dir = `${import.meta.dir}/..`;
+  const mainEnv = await Bun.file(`${dir}/.env`)
+    .text()
+    .catch(() => "");
+  const localEnv = await Bun.file(`${dir}/.env.local`)
+    .text()
+    .catch(() => "");
+  const allEnv = `${mainEnv}\n${localEnv}`;
   const match = allEnv.match(/DATABASE_URL=(.+)/);
-  if (!match) throw new Error('DATABASE_URL not found in apps/api/.env or .env.local');
+  if (!match) throw new Error("DATABASE_URL not found in apps/api/.env or .env.local");
   return match[1].trim();
 }
 
 async function main() {
   const districts = await loadDistricts(TARGET_DISTRICTS);
-  console.log(`Loaded ${districts.length} district polygons: ${districts.map(d => d.name).join(', ')}`);
+  console.log(`Loaded ${districts.length} district polygons: ${districts.map((d) => d.name).join(", ")}`);
 
   const dbUrl = await loadDatabaseUrl();
-  const { default: postgres } = await import('postgres');
+  const { default: postgres } = await import("postgres");
   const sql = postgres(dbUrl);
 
   console.log(`Scattering ${USER_COUNT} seed users...`);
@@ -163,8 +167,8 @@ async function main() {
   await sql.end();
 
   console.log(`\nDone! Updated ${updated} users.\n`);
-  console.log('Dzielnica           | Kont');
-  console.log('--------------------|------');
+  console.log("Dzielnica           | Kont");
+  console.log("--------------------|------");
   const sorted = Object.entries(districtCounts).sort((a, b) => b[1] - a[1]);
   for (const [name, count] of sorted) {
     console.log(`${name.padEnd(20)}| ${count}`);

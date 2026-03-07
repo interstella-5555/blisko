@@ -1,40 +1,93 @@
-import { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
-import { authClient } from '../../src/lib/auth';
-import { useAuthStore } from '../../src/stores/authStore';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { IconSend } from '../../src/components/ui/icons';
-import { Button } from '../../src/components/ui/Button';
+import { router, useLocalSearchParams } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Button } from "../../src/components/ui/Button";
+import { IconSend } from "../../src/components/ui/icons";
+import { authClient } from "../../src/lib/auth";
+import { useAuthStore } from "../../src/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
 const CODE_LENGTH = 6;
 const RESEND_COOLDOWN = 10; // seconds between resends (10s for testing)
 
 export default function VerifyScreen() {
   const { email, otp: initialOtp } = useLocalSearchParams<{ email: string; otp?: string }>();
-  const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
+  const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const { setUser, setSession, setHasCheckedProfile, setProfile } = useAuthStore();
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
+  const handleVerify = useCallback(
+    async (verifyCode?: string) => {
+      const codeToVerify = verifyCode || code.join("");
+
+      if (codeToVerify.length !== CODE_LENGTH) {
+        setError("Wpisz 6-cyfrowy kod");
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const result = await authClient.signIn.emailOtp({
+          email: email!,
+          otp: codeToVerify,
+        });
+
+        if (result.error) {
+          setError(result.error.message || "Nieprawidłowy kod");
+          setIsLoading(false);
+          return;
+        }
+
+        if (result.data?.user && result.data?.token) {
+          const { user, token } = result.data;
+          const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+          await SecureStore.setItemAsync("blisko_session_token", token);
+          await SecureStore.setItemAsync(
+            "blisko_session_data",
+            JSON.stringify({ token, user, expiresAt: expiresAt.toISOString() }),
+          );
+
+          // Reset profile state so query runs fresh
+          setProfile(null);
+          setHasCheckedProfile(false);
+
+          setUser(user);
+          setSession({
+            id: token, // Use token as session id
+            userId: user.id,
+            token,
+            expiresAt,
+          });
+
+          router.replace("/(tabs)");
+        } else {
+          setError("Nieprawidłowa odpowiedź serwera");
+        }
+      } catch (err) {
+        console.error("Verify error:", err);
+        setError("Nie udało się zweryfikować kodu");
+      }
+
+      setIsLoading(false);
+    },
+    [code, email, setProfile, setHasCheckedProfile, setUser, setSession],
+  );
+
   // Auto-verify if OTP came from deep link
   useEffect(() => {
     if (initialOtp && initialOtp.length === CODE_LENGTH) {
-      const digits = initialOtp.split('');
+      const digits = initialOtp.split("");
       setCode(digits);
       handleVerify(initialOtp);
     }
-  }, [initialOtp]);
+  }, [initialOtp, handleVerify]);
 
   // Countdown timer for resend cooldown
   useEffect(() => {
@@ -47,7 +100,7 @@ export default function VerifyScreen() {
   const handleCodeChange = (value: string, index: number) => {
     // Handle paste of full code
     if (value.length > 1) {
-      const digits = value.replace(/\D/g, '').slice(0, CODE_LENGTH).split('');
+      const digits = value.replace(/\D/g, "").slice(0, CODE_LENGTH).split("");
       const newCode = [...code];
       digits.forEach((digit, i) => {
         if (index + i < CODE_LENGTH) {
@@ -61,14 +114,14 @@ export default function VerifyScreen() {
       inputRefs.current[nextIndex]?.focus();
 
       // Auto-submit if complete
-      if (newCode.every(d => d !== '')) {
-        handleVerify(newCode.join(''));
+      if (newCode.every((d) => d !== "")) {
+        handleVerify(newCode.join(""));
       }
       return;
     }
 
     // Single digit
-    const digit = value.replace(/\D/g, '');
+    const digit = value.replace(/\D/g, "");
     const newCode = [...code];
     newCode[index] = digit;
     setCode(newCode);
@@ -79,72 +132,15 @@ export default function VerifyScreen() {
     }
 
     // Auto-submit if complete
-    if (newCode.every(d => d !== '')) {
-      handleVerify(newCode.join(''));
+    if (newCode.every((d) => d !== "")) {
+      handleVerify(newCode.join(""));
     }
   };
 
-  const handleKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
+  const handleKeyPress = (e: { nativeEvent: { key: string } }, index: number) => {
+    if (e.nativeEvent.key === "Backspace" && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
-  };
-
-  const handleVerify = async (verifyCode?: string) => {
-    const codeToVerify = verifyCode || code.join('');
-
-    if (codeToVerify.length !== CODE_LENGTH) {
-      setError('Wpisz 6-cyfrowy kod');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await authClient.signIn.emailOtp({
-        email: email!,
-        otp: codeToVerify,
-      });
-
-      if (result.error) {
-        setError(result.error.message || 'Nieprawidłowy kod');
-        setIsLoading(false);
-        return;
-      }
-
-      if (result.data?.user && result.data?.token) {
-        const { user, token } = result.data;
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-
-        await SecureStore.setItemAsync('blisko_session_token', token);
-        await SecureStore.setItemAsync(
-          'blisko_session_data',
-          JSON.stringify({ token, user, expiresAt: expiresAt.toISOString() })
-        );
-
-        // Reset profile state so query runs fresh
-        setProfile(null);
-        setHasCheckedProfile(false);
-
-        setUser(user);
-        setSession({
-          id: token, // Use token as session id
-          userId: user.id,
-          token,
-          expiresAt,
-        });
-
-        router.replace('/(tabs)');
-      } else {
-        setError('Nieprawidłowa odpowiedź serwera');
-      }
-    } catch (err) {
-      console.error('Verify error:', err);
-      setError('Nie udało się zweryfikować kodu');
-    }
-
-    setIsLoading(false);
   };
 
   const handleResend = async () => {
@@ -156,49 +152,43 @@ export default function VerifyScreen() {
     try {
       const result = await authClient.emailOtp.sendVerificationOtp({
         email: email!,
-        type: 'sign-in',
+        type: "sign-in",
       });
 
       if (result.error) {
-        setError(result.error.message || 'Nie udało się wysłać kodu');
+        setError(result.error.message || "Nie udało się wysłać kodu");
       } else {
         setResendCooldown(RESEND_COOLDOWN);
         // Clear the code inputs
-        setCode(Array(CODE_LENGTH).fill(''));
+        setCode(Array(CODE_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
       }
-    } catch (err) {
-      setError('Nie udało się wysłać kodu');
+    } catch (_err) {
+      setError("Nie udało się wysłać kodu");
     }
 
     setIsLoading(false);
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
           <IconSend size={32} color={colors.ink} />
         </View>
         <Text style={styles.title}>Wpisz kod</Text>
-        <Text style={styles.message}>
-          Wysłaliśmy 6-cyfrowy kod na adres:
-        </Text>
+        <Text style={styles.message}>Wysłaliśmy 6-cyfrowy kod na adres:</Text>
         <Text style={styles.email}>{email}</Text>
 
         <View style={styles.codeContainer}>
           {code.map((digit, index) => (
             <TextInput
+              // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length OTP inputs
               key={index}
-              ref={(ref) => { inputRefs.current[index] = ref; }}
-              style={[
-                styles.codeInput,
-                digit && styles.codeInputFilled,
-                error && styles.codeInputError,
-              ]}
+              ref={(ref) => {
+                inputRefs.current[index] = ref;
+              }}
+              style={[styles.codeInput, digit && styles.codeInputFilled, error && styles.codeInputError]}
               value={digit}
               onChangeText={(value) => handleCodeChange(value, index)}
               onKeyPress={(e) => handleKeyPress(e, index)}
@@ -213,28 +203,18 @@ export default function VerifyScreen() {
 
         {error && <Text style={styles.error}>{error}</Text>}
 
-        {isLoading && (
-          <Text style={styles.loading}>Weryfikacja...</Text>
-        )}
+        {isLoading && <Text style={styles.loading}>Weryfikacja...</Text>}
 
-        <Text style={styles.hint}>
-          Sprawdź folder spam jeśli nie widzisz maila
-        </Text>
+        <Text style={styles.hint}>Sprawdź folder spam jeśli nie widzisz maila</Text>
 
         <Button
-          title={resendCooldown > 0
-            ? `Wyślij kod ponownie (${resendCooldown}s)`
-            : 'Wyślij kod ponownie'}
+          title={resendCooldown > 0 ? `Wyślij kod ponownie (${resendCooldown}s)` : "Wyślij kod ponownie"}
           variant="ghost"
           onPress={handleResend}
           disabled={resendCooldown > 0 || isLoading}
         />
 
-        <Button
-          title="Wróć"
-          variant="ghost"
-          onPress={() => router.back()}
-        />
+        <Button title="Wróć" variant="ghost" onPress={() => router.back()} />
       </View>
     </KeyboardAvoidingView>
   );
@@ -247,8 +227,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: spacing.section,
   },
   iconContainer: {
@@ -261,7 +241,7 @@ const styles = StyleSheet.create({
   message: {
     ...typ.body,
     color: colors.muted,
-    textAlign: 'center',
+    textAlign: "center",
   },
   email: {
     ...typ.body,
@@ -271,8 +251,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.block,
   },
   codeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 8,
     marginBottom: spacing.section,
   },
@@ -283,8 +263,8 @@ const styles = StyleSheet.create({
     borderColor: colors.ink,
     fontFamily: fonts.serif,
     fontSize: 20,
-    textAlign: 'center',
-    backgroundColor: 'transparent',
+    textAlign: "center",
+    backgroundColor: "transparent",
     color: colors.ink,
   },
   codeInputFilled: {
@@ -298,7 +278,7 @@ const styles = StyleSheet.create({
     color: colors.status.error.text,
     fontSize: 14,
     marginBottom: spacing.column,
-    textAlign: 'center',
+    textAlign: "center",
   },
   loading: {
     ...typ.body,
@@ -307,7 +287,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...typ.caption,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: spacing.section,
     marginBottom: spacing.column,
   },

@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface OnboardingState {
   displayName: string;
@@ -27,9 +27,9 @@ interface OnboardingState {
 }
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({
-  displayName: '',
-  bio: '',
-  lookingFor: '',
+  displayName: "",
+  bio: "",
+  lookingFor: "",
   profilingSessionId: null,
   step: 0,
   isComplete: false,
@@ -44,10 +44,18 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   prevStep: () => set((state) => ({ step: Math.max(0, state.step - 1) })),
   setStep: (step) => set({ step }),
   complete: () => set({ isComplete: true }),
-  reset: () => set({
-    displayName: '', bio: '', lookingFor: '', profilingSessionId: null,
-    step: 0, isComplete: false, answers: {}, skipped: [], isGhost: false,
-  }),
+  reset: () =>
+    set({
+      displayName: "",
+      bio: "",
+      lookingFor: "",
+      profilingSessionId: null,
+      step: 0,
+      isComplete: false,
+      answers: {},
+      skipped: [],
+      isGhost: false,
+    }),
   setAnswer: (questionId, answer) =>
     set((state) => ({
       answers: { ...state.answers, [questionId]: answer },
@@ -55,9 +63,7 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
     })),
   addSkipped: (questionId) =>
     set((state) => ({
-      skipped: state.skipped.includes(questionId)
-        ? state.skipped
-        : [...state.skipped, questionId],
+      skipped: state.skipped.includes(questionId) ? state.skipped : [...state.skipped, questionId],
       answers: (() => {
         const { [questionId]: _, ...rest } = state.answers;
         return rest;

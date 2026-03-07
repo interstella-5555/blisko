@@ -1,21 +1,13 @@
-import { useEffect, useRef, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Animated,
-  Dimensions,
-  Platform,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MessageBubble, type MessageBubbleProps } from './MessageBubble';
-import { IconReply, IconCopy, IconTrash } from '../ui/icons';
-import { colors, fonts, spacing } from '../../theme';
+import { useCallback, useEffect, useRef } from "react";
+import { Animated, Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors, fonts, spacing } from "../../theme";
+import { IconCopy, IconReply, IconTrash } from "../ui/icons";
+import { MessageBubble, type MessageBubbleProps } from "./MessageBubble";
 
-const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
+const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 // Space needed for reaction bar + action menu + padding
 const REACTION_BAR_HEIGHT = 52;
@@ -26,7 +18,7 @@ interface ContextMenuData {
   messageId: string;
   isMine: boolean;
   layout: { x: number; y: number; width: number; height: number };
-  bubbleProps: Omit<MessageBubbleProps, 'onLongPress' | 'onReactionPress' | 'hidden'>;
+  bubbleProps: Omit<MessageBubbleProps, "onLongPress" | "onReactionPress" | "hidden">;
 }
 
 interface MessageContextMenuProps {
@@ -38,14 +30,7 @@ interface MessageContextMenuProps {
   onClose: () => void;
 }
 
-export function MessageContextMenu({
-  data,
-  onReact,
-  onReply,
-  onCopy,
-  onDelete,
-  onClose,
-}: MessageContextMenuProps) {
+export function MessageContextMenu({ data, onReact, onReply, onCopy, onDelete, onClose }: MessageContextMenuProps) {
   const insets = useSafeAreaInsets();
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const messageScale = useRef(new Animated.Value(0.97)).current;
@@ -127,7 +112,7 @@ export function MessageContextMenu({
         }),
       ]).start();
     });
-  }, []);
+  }, [actionAnim, backdropAnim, messageScale, reactionAnim]);
 
   const dismiss = useCallback(
     (callback?: () => void) => {
@@ -157,13 +142,10 @@ export function MessageContextMenu({
         onClose();
       });
     },
-    [backdropAnim, reactionAnim, actionAnim, messageScale, onClose]
+    [backdropAnim, reactionAnim, actionAnim, messageScale, onClose],
   );
 
-  const handleReact = useCallback(
-    (emoji: string) => dismiss(() => onReact(emoji)),
-    [dismiss, onReact]
-  );
+  const handleReact = useCallback((emoji: string) => dismiss(() => onReact(emoji)), [dismiss, onReact]);
 
   const handleReply = useCallback(() => dismiss(onReply), [dismiss, onReply]);
   const handleCopy = useCallback(() => dismiss(onCopy), [dismiss, onCopy]);
@@ -257,7 +239,7 @@ export function MessageContextMenu({
 
         <View style={styles.actionSeparator} />
 
-        {data.bubbleProps.type !== 'location' && (
+        {data.bubbleProps.type !== "location" && (
           <>
             <Pressable
               style={({ pressed }) => [styles.actionRow, pressed && styles.actionRowPressed]}
@@ -293,14 +275,14 @@ const styles = StyleSheet.create({
   },
   dimLayer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(26, 26, 26, 0.4)',
+    backgroundColor: "rgba(26, 26, 26, 0.4)",
   },
   floatingMessage: {
-    position: 'absolute',
+    position: "absolute",
   },
   reactionBar: {
-    position: 'absolute',
-    flexDirection: 'row',
+    position: "absolute",
+    flexDirection: "row",
     backgroundColor: colors.bg,
     borderWidth: 1,
     borderColor: colors.rule,
@@ -308,7 +290,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 4,
     gap: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -332,14 +314,14 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   actionMenu: {
-    position: 'absolute',
+    position: "absolute",
     backgroundColor: colors.bg,
     borderWidth: 1,
     borderColor: colors.rule,
     borderRadius: 14,
     minWidth: 180,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -352,8 +334,8 @@ const styles = StyleSheet.create({
     left: spacing.section,
   },
   actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 13,
     gap: 12,

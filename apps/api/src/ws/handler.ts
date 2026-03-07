@@ -1,24 +1,24 @@
 import type { ServerWebSocket } from "bun";
-import { eq, and, gt } from "drizzle-orm";
-import { db, schema } from "~/db";
-import { ee } from "./events";
+import { and, eq, gt } from "drizzle-orm";
+import { db, schema } from "@/db";
 import type {
-  NewMessageEvent,
-  TypingEvent,
-  ReactionEvent,
-  NewWaveEvent,
-  WaveRespondedEvent,
   AnalysisReadyEvent,
-  NearbyChangedEvent,
-  ProfileReadyEvent,
-  QuestionReadyEvent,
-  ProfilingCompleteEvent,
-  StatusMatchesReadyEvent,
+  GroupInvitedEvent,
   GroupMemberEvent,
   GroupUpdatedEvent,
+  NearbyChangedEvent,
+  NewMessageEvent,
+  NewWaveEvent,
+  ProfileReadyEvent,
+  ProfilingCompleteEvent,
+  QuestionReadyEvent,
+  ReactionEvent,
+  StatusMatchesReadyEvent,
   TopicEvent,
-  GroupInvitedEvent,
+  TypingEvent,
+  WaveRespondedEvent,
 } from "./events";
+import { ee } from "./events";
 
 export interface WSData {
   userId: string | null;
@@ -227,7 +227,7 @@ ee.on("groupInvited", (event: GroupInvitedEvent) => {
 });
 
 // Forward per-conversation typing events
-ee.on("typing", (event: TypingEvent) => {
+ee.on("typing", (_event: TypingEvent) => {
   // Use a wildcard pattern — typing events come as typing:<id>
 });
 

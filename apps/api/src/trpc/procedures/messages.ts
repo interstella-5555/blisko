@@ -1,12 +1,12 @@
-import { z } from "zod";
-import { eq, and, desc, isNull, ne, sql, ilike, gt, lt, inArray, isNotNull, notInArray } from "drizzle-orm";
-import { router, protectedProcedure } from "~/trpc/trpc";
-import { db, schema } from "~/db";
-import { sendMessageSchema, deleteMessageSchema, reactToMessageSchema, searchMessagesSchema } from "@repo/shared";
+import { deleteMessageSchema, reactToMessageSchema, searchMessagesSchema, sendMessageSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { ee } from "~/ws/events";
-import { ensureTypingListener } from "~/ws/handler";
-import { sendPushToUser } from "~/services/push";
+import { and, desc, eq, gt, ilike, inArray, isNotNull, isNull, lt, ne, notInArray, sql } from "drizzle-orm";
+import { z } from "zod";
+import { db, schema } from "@/db";
+import { sendPushToUser } from "@/services/push";
+import { protectedProcedure, router } from "@/trpc/trpc";
+import { ee } from "@/ws/events";
+import { ensureTypingListener } from "@/ws/handler";
 
 export const messagesRouter = router({
   // Get all conversations for current user
@@ -395,7 +395,7 @@ export const messagesRouter = router({
       .from(schema.conversationParticipants)
       .where(eq(schema.conversationParticipants.conversationId, input.conversationId));
 
-    const messagePreview = message.content.length > 100 ? message.content.slice(0, 97) + "..." : message.content;
+    const messagePreview = message.content.length > 100 ? `${message.content.slice(0, 97)}...` : message.content;
 
     for (const p of participants) {
       if (p.userId === ctx.userId) continue;

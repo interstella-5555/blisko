@@ -1,20 +1,14 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-} from 'react-native';
-import { router } from 'expo-router';
-import { useAuthStore } from '../../src/stores/authStore';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { Avatar } from '../../src/components/ui/Avatar';
-import { IconSparkles } from '../../src/components/ui/icons';
+import { router } from "expo-router";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Avatar } from "../../src/components/ui/Avatar";
+import { IconSparkles } from "../../src/components/ui/icons";
+import { useAuthStore } from "../../src/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
 function formatTimeLeft(expiresAt: string | null | undefined): string {
-  if (!expiresAt) return '∞';
+  if (!expiresAt) return "∞";
   const diff = new Date(expiresAt).getTime() - Date.now();
-  if (diff <= 0) return 'wygasł';
+  if (diff <= 0) return "wygasł";
   const hours = Math.floor(diff / 3600000);
   const minutes = Math.floor((diff % 3600000) / 60000);
   if (hours > 0) return `${hours}h`;
@@ -35,13 +29,9 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Avatar
-          uri={profile?.avatarUrl}
-          name={profile?.displayName || user?.email?.charAt(0) || '?'}
-          size={100}
-        />
+        <Avatar uri={profile?.avatarUrl} name={profile?.displayName || user?.email?.charAt(0) || "?"} size={100} />
         <Text testID="profile-display-name" style={styles.displayName}>
-          {profile?.displayName || 'Brak nazwy'}
+          {profile?.displayName || "Brak nazwy"}
         </Text>
         <Text style={styles.email}>{user?.email}</Text>
 
@@ -51,7 +41,7 @@ export default function ProfileScreen() {
               style={styles.statusPill}
               onPress={() =>
                 router.push({
-                  pathname: '/set-status' as any,
+                  pathname: "/set-status" as never,
                   params: { prefill: profile!.currentStatus! },
                 })
               }
@@ -60,15 +50,10 @@ export default function ProfileScreen() {
                 {profile!.currentStatus}
               </Text>
             </Pressable>
-            <Text style={styles.statusExpiry}>
-              wygasa za {formatTimeLeft(profile!.statusExpiresAt)}
-            </Text>
+            <Text style={styles.statusExpiry}>wygasa za {formatTimeLeft(profile!.statusExpiresAt)}</Text>
           </View>
         ) : (
-          <Pressable
-            style={styles.setStatusButton}
-            onPress={() => router.push('/set-status' as any)}
-          >
+          <Pressable style={styles.setStatusButton} onPress={() => router.push("/set-status" as never)}>
             <Text style={styles.setStatusText}>+ Ustaw status na teraz</Text>
           </Pressable>
         )}
@@ -77,30 +62,27 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>O mnie</Text>
         <Text testID="profile-bio" style={styles.sectionContent}>
-          {profile?.bio || 'Brak opisu'}
+          {profile?.bio || "Brak opisu"}
         </Text>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Kogo szukam</Text>
         <Text testID="profile-looking-for" style={styles.sectionContent}>
-          {profile?.lookingFor || 'Brak opisu'}
+          {profile?.lookingFor || "Brak opisu"}
         </Text>
       </View>
 
-      <Pressable
-        style={styles.reprofileLink}
-        onPress={() => router.push('/settings/profiling' as any)}
-      >
+      <Pressable style={styles.reprofileLink} onPress={() => router.push("/settings/profiling" as never)}>
         <View style={styles.reprofileRow}>
           <IconSparkles size={16} color={colors.muted} />
           <Text style={styles.reprofileTitle}>Wyprobuj automatyczne profilowanie</Text>
         </View>
         <Text style={styles.reprofileDescription}>
-          Odpowiedz na kilka pytan — na ich podstawie wygenerujemy nowy opis, sekcje "kogo szukam" i portret osobowosci. Przed zapisaniem mozesz wszystko przejrzec i edytowac.
+          Odpowiedz na kilka pytan — na ich podstawie wygenerujemy nowy opis, sekcje "kogo szukam" i portret osobowosci.
+          Przed zapisaniem mozesz wszystko przejrzec i edytowac.
         </Text>
       </Pressable>
-
     </ScrollView>
   );
 }
@@ -111,7 +93,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.block,
     borderBottomWidth: 1,
     borderBottomColor: colors.rule,
@@ -126,7 +108,7 @@ const styles = StyleSheet.create({
   },
   setStatusButton: {
     borderWidth: 1.5,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     borderColor: colors.rule,
     borderRadius: 999,
     paddingVertical: 8,
@@ -140,28 +122,28 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     marginTop: 14,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statusPill: {
-    backgroundColor: '#FDF5EC',
+    backgroundColor: "#FDF5EC",
     borderWidth: 1.5,
-    borderColor: '#E8C9A0',
+    borderColor: "#E8C9A0",
     borderRadius: 999,
     paddingVertical: 8,
     paddingHorizontal: 20,
     maxWidth: 260,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statusText: {
     fontFamily: fonts.sans,
     fontSize: 14,
     color: colors.ink,
-    textAlign: 'center',
+    textAlign: "center",
   },
   statusExpiry: {
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
-    color: '#D4851C',
+    color: "#D4851C",
     marginTop: 4,
   },
   section: {
@@ -183,8 +165,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.rule,
   },
   reprofileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.tight,
   },
   reprofileTitle: {

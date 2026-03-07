@@ -1,7 +1,7 @@
-import { betterAuth } from "better-auth";
-import { emailOTP } from "better-auth/plugins";
 import { expo } from "@better-auth/expo";
+import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { emailOTP } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { Resend } from "resend";
 import { db, schema } from "./db";

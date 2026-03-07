@@ -1,7 +1,7 @@
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
-import { eq, and, gt } from "drizzle-orm";
-import { auth } from "~/auth";
-import { db, schema } from "~/db";
+import { and, eq, gt } from "drizzle-orm";
+import { auth } from "@/auth";
+import { db, schema } from "@/db";
 
 export interface TRPCContext {
   userId: string | null;
@@ -21,7 +21,7 @@ export async function createContext(opts: FetchCreateContextFnOptions): Promise<
     if (session?.user) {
       userId = session.user.id;
     }
-  } catch (error) {
+  } catch (_error) {
     // Ignore Better Auth errors, will try Bearer token next
   }
 

@@ -1,5 +1,5 @@
-import { View, Text, Image, StyleSheet } from 'react-native';
-import { colors, fonts } from '../../theme';
+import { Image, StyleSheet, Text, View } from "react-native";
+import { colors, fonts } from "../../theme";
 
 interface AvatarProps {
   uri?: string | null;
@@ -24,27 +24,12 @@ export function Avatar({ uri, name, size = 40 }: AvatarProps) {
     >
       {uri ? (
         <>
-          <Image
-            source={{ uri }}
-            style={[styles.image, { width: size, height: size, borderRadius }]}
-          />
-          <View
-            style={[
-              styles.grayscaleOverlay,
-              { width: size, height: size, borderRadius },
-            ]}
-          />
+          <Image source={{ uri }} style={[styles.image, { width: size, height: size, borderRadius }]} />
+          <View style={[styles.grayscaleOverlay, { width: size, height: size, borderRadius }]} />
         </>
       ) : (
-        <View
-          style={[
-            styles.fallback,
-            { width: size, height: size, borderRadius },
-          ]}
-        >
-          <Text style={[styles.letter, { fontSize, lineHeight: fontSize }]}>
-            {name.charAt(0).toUpperCase()}
-          </Text>
+        <View style={[styles.fallback, { width: size, height: size, borderRadius }]}>
+          <Text style={[styles.letter, { fontSize, lineHeight: fontSize }]}>{name.charAt(0).toUpperCase()}</Text>
         </View>
       )}
     </View>
@@ -55,13 +40,13 @@ const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
     borderColor: colors.rule,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   image: {
-    resizeMode: 'cover',
+    resizeMode: "cover",
   },
   grayscaleOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     backgroundColor: colors.ink,
@@ -69,8 +54,8 @@ const styles = StyleSheet.create({
   },
   fallback: {
     backgroundColor: colors.ink,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   letter: {
     fontFamily: fonts.serif,

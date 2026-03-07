@@ -1,13 +1,13 @@
-import { forwardRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Linking, Platform, type ViewStyle } from 'react-native';
-import { Avatar } from '../ui/Avatar';
-import { colors, fonts, spacing } from '../../theme';
+import { forwardRef } from "react";
+import { Image, Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { colors, fonts, spacing } from "../../theme";
+import { Avatar } from "../ui/Avatar";
 
-export type BubblePosition = 'solo' | 'first' | 'mid' | 'last';
+export type BubblePosition = "solo" | "first" | "mid" | "last";
 
 export interface MessageBubbleProps {
   content: string;
-  type?: 'text' | 'image' | 'location';
+  type?: "text" | "image" | "location";
   metadata?: Record<string, unknown> | null;
   isMine: boolean;
   createdAt: string;
@@ -24,7 +24,7 @@ export interface MessageBubbleProps {
   senderName?: string;
   showAvatarColumn?: boolean;
   timestamp?: string | null;
-  receipt?: 'sent' | 'read' | null;
+  receipt?: "sent" | "read" | null;
   hidden?: boolean;
   onLongPress?: () => void;
   onReactionPress?: (emoji: string) => void;
@@ -36,37 +36,70 @@ const RADIUS_SMALL = 4;
 
 const mineRadii: Record<BubblePosition, ViewStyle> = {
   solo: { borderRadius: RADIUS },
-  first: { borderTopLeftRadius: RADIUS, borderTopRightRadius: RADIUS, borderBottomRightRadius: RADIUS_SMALL, borderBottomLeftRadius: RADIUS },
-  mid: { borderTopLeftRadius: RADIUS, borderTopRightRadius: RADIUS_SMALL, borderBottomRightRadius: RADIUS_SMALL, borderBottomLeftRadius: RADIUS },
-  last: { borderTopLeftRadius: RADIUS, borderTopRightRadius: RADIUS_SMALL, borderBottomRightRadius: RADIUS, borderBottomLeftRadius: RADIUS },
+  first: {
+    borderTopLeftRadius: RADIUS,
+    borderTopRightRadius: RADIUS,
+    borderBottomRightRadius: RADIUS_SMALL,
+    borderBottomLeftRadius: RADIUS,
+  },
+  mid: {
+    borderTopLeftRadius: RADIUS,
+    borderTopRightRadius: RADIUS_SMALL,
+    borderBottomRightRadius: RADIUS_SMALL,
+    borderBottomLeftRadius: RADIUS,
+  },
+  last: {
+    borderTopLeftRadius: RADIUS,
+    borderTopRightRadius: RADIUS_SMALL,
+    borderBottomRightRadius: RADIUS,
+    borderBottomLeftRadius: RADIUS,
+  },
 };
 
 const theirsRadii: Record<BubblePosition, ViewStyle> = {
   solo: { borderRadius: RADIUS },
-  first: { borderTopLeftRadius: RADIUS, borderTopRightRadius: RADIUS, borderBottomRightRadius: RADIUS, borderBottomLeftRadius: RADIUS_SMALL },
-  mid: { borderTopLeftRadius: RADIUS_SMALL, borderTopRightRadius: RADIUS, borderBottomRightRadius: RADIUS, borderBottomLeftRadius: RADIUS_SMALL },
-  last: { borderTopLeftRadius: RADIUS_SMALL, borderTopRightRadius: RADIUS, borderBottomRightRadius: RADIUS, borderBottomLeftRadius: RADIUS },
+  first: {
+    borderTopLeftRadius: RADIUS,
+    borderTopRightRadius: RADIUS,
+    borderBottomRightRadius: RADIUS,
+    borderBottomLeftRadius: RADIUS_SMALL,
+  },
+  mid: {
+    borderTopLeftRadius: RADIUS_SMALL,
+    borderTopRightRadius: RADIUS,
+    borderBottomRightRadius: RADIUS,
+    borderBottomLeftRadius: RADIUS_SMALL,
+  },
+  last: {
+    borderTopLeftRadius: RADIUS_SMALL,
+    borderTopRightRadius: RADIUS,
+    borderBottomRightRadius: RADIUS,
+    borderBottomLeftRadius: RADIUS,
+  },
 };
 
-export const MessageBubble = forwardRef<View, MessageBubbleProps>(function MessageBubble({
-  content,
-  type = 'text',
-  metadata,
-  isMine,
-  deletedAt,
-  replyTo,
-  reactions,
-  position = 'solo',
-  showAvatar,
-  avatarUrl,
-  senderName,
-  showAvatarColumn = true,
-  timestamp,
-  receipt,
-  hidden,
-  onLongPress,
-  onReactionPress,
-}, ref) {
+export const MessageBubble = forwardRef<View, MessageBubbleProps>(function MessageBubble(
+  {
+    content,
+    type = "text",
+    metadata,
+    isMine,
+    deletedAt,
+    replyTo,
+    reactions,
+    position = "solo",
+    showAvatar,
+    avatarUrl,
+    senderName,
+    showAvatarColumn = true,
+    timestamp,
+    receipt,
+    hidden,
+    onLongPress,
+    onReactionPress,
+  },
+  ref,
+) {
   if (deletedAt) {
     return (
       <View style={[styles.bubble, styles.bubbleDeleted]} testID="message-deleted">
@@ -84,23 +117,24 @@ export const MessageBubble = forwardRef<View, MessageBubbleProps>(function Messa
     >
       {replyTo && (
         <View style={styles.replyBar}>
-          <Text style={styles.replySender} numberOfLines={1}>{replyTo.senderName}</Text>
-          <Text style={styles.replyContent} numberOfLines={1}>{replyTo.content}</Text>
+          <Text style={styles.replySender} numberOfLines={1}>
+            {replyTo.senderName}
+          </Text>
+          <Text style={styles.replyContent} numberOfLines={1}>
+            {replyTo.content}
+          </Text>
         </View>
       )}
-      {type === 'image' && metadata ? (
-        <Image
-          source={{ uri: metadata.imageUrl as string }}
-          style={styles.imageContent}
-          resizeMode="cover"
-        />
-      ) : type === 'location' && metadata ? (
+      {type === "image" && metadata ? (
+        <Image source={{ uri: metadata.imageUrl as string }} style={styles.imageContent} resizeMode="cover" />
+      ) : type === "location" && metadata ? (
         <Pressable
           style={styles.locationContent}
           onPress={() => {
-            const url = Platform.OS === 'ios'
-              ? `maps:0,0?q=${metadata.latitude},${metadata.longitude}`
-              : `geo:${metadata.latitude},${metadata.longitude}`;
+            const url =
+              Platform.OS === "ios"
+                ? `maps:0,0?q=${metadata.latitude},${metadata.longitude}`
+                : `geo:${metadata.latitude},${metadata.longitude}`;
             Linking.openURL(url);
           }}
         >
@@ -110,16 +144,16 @@ export const MessageBubble = forwardRef<View, MessageBubbleProps>(function Messa
           </Text>
         </Pressable>
       ) : (
-        <Text style={[styles.content, isMine ? styles.contentMine : styles.contentTheirs]}>
-          {content}
-        </Text>
+        <Text style={[styles.content, isMine ? styles.contentMine : styles.contentTheirs]}>{content}</Text>
       )}
       {timestamp && (
         <View style={styles.timestampRow}>
-          <Text style={[styles.timestampText, isMine ? styles.timestampMine : styles.timestampTheirs]}>{timestamp}</Text>
+          <Text style={[styles.timestampText, isMine ? styles.timestampMine : styles.timestampTheirs]}>
+            {timestamp}
+          </Text>
           {receipt && (
-            <Text style={[styles.receiptMark, receipt === 'read' ? styles.receiptRead : styles.receiptSent]}>
-              {receipt === 'read' ? '✓✓' : '✓'}
+            <Text style={[styles.receiptMark, receipt === "read" ? styles.receiptRead : styles.receiptSent]}>
+              {receipt === "read" ? "✓✓" : "✓"}
             </Text>
           )}
         </View>
@@ -128,23 +162,31 @@ export const MessageBubble = forwardRef<View, MessageBubbleProps>(function Messa
   );
 
   return (
-    <View ref={ref} style={[styles.wrapper, isMine ? styles.wrapperMine : styles.wrapperTheirs, hidden && styles.hidden]} testID="message-bubble">
+    <View
+      ref={ref}
+      style={[styles.wrapper, isMine ? styles.wrapperMine : styles.wrapperTheirs, hidden && styles.hidden]}
+      testID="message-bubble"
+    >
       {!isMine && showAvatarColumn ? (
         <View style={styles.messageRow}>
           {showAvatar ? (
-            <Avatar uri={avatarUrl} name={senderName || '?'} size={28} />
+            <Avatar uri={avatarUrl} name={senderName || "?"} size={28} />
           ) : (
             <View style={styles.avatarSpacer} />
           )}
-          <View style={styles.bubbleCol}>
-            {bubbleContent}
-          </View>
+          <View style={styles.bubbleCol}>{bubbleContent}</View>
         </View>
       ) : (
         bubbleContent
       )}
       {reactions && reactions.length > 0 && (
-        <View style={[styles.reactions, isMine ? styles.reactionsMine : styles.reactionsTheirs, !isMine && !showAvatarColumn && { marginLeft: 0 }]}>
+        <View
+          style={[
+            styles.reactions,
+            isMine ? styles.reactionsMine : styles.reactionsTheirs,
+            !isMine && !showAvatarColumn && { marginLeft: 0 },
+          ]}
+        >
           {reactions.map((r) => (
             <Pressable
               key={r.emoji}
@@ -164,20 +206,20 @@ export const MessageBubble = forwardRef<View, MessageBubbleProps>(function Messa
 const styles = StyleSheet.create({
   wrapper: {
     marginVertical: 1,
-    maxWidth: '80%',
+    maxWidth: "80%",
   },
   wrapperMine: {
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
   },
   wrapperTheirs: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   hidden: {
     opacity: 0,
   },
   messageRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     gap: 6,
   },
   avatarSpacer: {
@@ -198,18 +240,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.mapBg,
   },
   bubbleDeleted: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: colors.rule,
-    borderStyle: 'dashed',
-    alignSelf: 'center',
-    maxWidth: '80%',
+    borderStyle: "dashed",
+    alignSelf: "center",
+    maxWidth: "80%",
     marginVertical: 2,
   },
   deletedText: {
     fontFamily: fonts.sans,
     fontSize: 13,
-    fontStyle: 'italic',
+    fontStyle: "italic",
     color: colors.muted,
     paddingHorizontal: spacing.gutter,
     paddingVertical: spacing.tight,
@@ -226,7 +268,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: colors.accent,
   },
   replyContent: {
@@ -241,8 +283,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   locationContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.tight,
     paddingVertical: 4,
   },
@@ -265,9 +307,9 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   timestampRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
     gap: 4,
     marginTop: 2,
   },
@@ -295,29 +337,29 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   reactions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 4,
     marginTop: -4,
     marginBottom: 4,
   },
   reactionsMine: {
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   reactionsTheirs: {
-    justifyContent: 'flex-start',
+    justifyContent: "flex-start",
     marginLeft: 34,
   },
   reactionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 12,
     paddingHorizontal: 4,
     paddingVertical: 2,
     gap: 2,
   },
   reactionChipActive: {
-    backgroundColor: 'rgba(192, 57, 43, 0.08)',
+    backgroundColor: "rgba(192, 57, 43, 0.08)",
   },
   reactionEmoji: {
     fontSize: 14,

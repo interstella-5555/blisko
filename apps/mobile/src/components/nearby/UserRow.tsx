@@ -1,11 +1,11 @@
-import { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, Easing } from 'react-native';
-import { colors, fonts, type as typ, spacing } from '../../theme';
-import { Avatar } from '../ui/Avatar';
-import { IconBulletRose } from '../ui/icons';
-import { formatDistance } from '../../lib/format';
+import { useEffect, useRef } from "react";
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import { formatDistance } from "../../lib/format";
+import { colors, fonts, spacing, type as typ } from "../../theme";
+import { Avatar } from "../ui/Avatar";
+import { IconBulletRose } from "../ui/icons";
 
-export type UserRowStatus = 'none' | 'waved' | 'incoming' | 'friend';
+export type UserRowStatus = "none" | "waved" | "incoming" | "friend";
 
 interface UserRowProps {
   userId: string;
@@ -29,20 +29,20 @@ interface UserRowProps {
 const formatRelativeTime = (dateString: string): string => {
   const diffMs = Date.now() - new Date(dateString).getTime();
   const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return 'teraz';
+  if (diffMins < 1) return "teraz";
   if (diffMins < 60) return `${diffMins} min temu`;
   const diffHours = Math.floor(diffMs / 3600000);
   if (diffHours < 24) return `${diffHours} godz. temu`;
   const diffDays = Math.floor(diffMs / 86400000);
   if (diffDays < 7) return `${diffDays} dni temu`;
-  return new Date(dateString).toLocaleDateString('pl-PL');
+  return new Date(dateString).toLocaleDateString("pl-PL");
 };
 
 function getSnippetText(
   shortSnippet: string | null,
   analysisReady: boolean,
   commonInterests: string[],
-  bio: string | null
+  bio: string | null,
 ): { text: string | null; isAnalyzing: boolean; isHighlight: boolean } {
   if (shortSnippet) return { text: shortSnippet, isAnalyzing: false, isHighlight: true };
   if (!analysisReady && bio) {
@@ -50,7 +50,7 @@ function getSnippetText(
   }
   if (commonInterests.length > 0)
     return {
-      text: `Wspólne: ${commonInterests.slice(0, 3).join(', ')}`,
+      text: `Wspólne: ${commonInterests.slice(0, 3).join(", ")}`,
       isAnalyzing: false,
       isHighlight: true,
     };
@@ -75,7 +75,7 @@ function PulsingRosette() {
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
     animation.start();
     return () => animation.stop();
@@ -94,13 +94,10 @@ function getMatchColor(percent: number): string {
   return colors.muted;
 }
 
-const statusConfig: Record<
-  Exclude<UserRowStatus, 'none'>,
-  { label: string; color: string }
-> = {
-  waved: { label: 'ZACZEPIONO', color: colors.muted },
-  incoming: { label: 'CHCE CIĘ POZNAĆ', color: colors.status.warning.text },
-  friend: { label: 'ZNAJOMY', color: colors.status.success.text },
+const statusConfig: Record<Exclude<UserRowStatus, "none">, { label: string; color: string }> = {
+  waved: { label: "ZACZEPIONO", color: colors.muted },
+  incoming: { label: "CHCE CIĘ POZNAĆ", color: colors.status.warning.text },
+  friend: { label: "ZNAJOMY", color: colors.status.success.text },
 };
 
 export function UserRow({
@@ -119,7 +116,11 @@ export function UserRow({
   timestamp,
 }: UserRowProps) {
   const hasNearbyData = distance !== undefined;
-  const { text: snippet, isAnalyzing, isHighlight } = hasNearbyData
+  const {
+    text: snippet,
+    isAnalyzing,
+    isHighlight,
+  } = hasNearbyData
     ? getSnippetText(shortSnippet ?? null, analysisReady ?? false, commonInterests ?? [], bio)
     : { text: bio || null, isAnalyzing: false, isHighlight: false };
   const matchPercent = matchScore ?? Math.round((rankScore ?? 0) * 100);
@@ -136,17 +137,11 @@ export function UserRow({
           {matchPercent > 0 && (
             <View style={styles.matchBadge}>
               <IconBulletRose size={10} color={getMatchColor(matchPercent)} />
-              <Text style={[styles.matchText, { color: getMatchColor(matchPercent) }]}>
-                {matchPercent}%
-              </Text>
+              <Text style={[styles.matchText, { color: getMatchColor(matchPercent) }]}>{matchPercent}%</Text>
             </View>
           )}
-          {distance !== undefined && (
-            <Text style={styles.distance}>{formatDistance(distance)}</Text>
-          )}
-          {!distance && timestamp && (
-            <Text style={styles.distance}>{formatRelativeTime(timestamp)}</Text>
-          )}
+          {distance !== undefined && <Text style={styles.distance}>{formatDistance(distance)}</Text>}
+          {!distance && timestamp && <Text style={styles.distance}>{formatRelativeTime(timestamp)}</Text>}
           {statusMatch && (
             <View style={styles.naTerazBadge}>
               <View style={styles.naTerazDot} />
@@ -154,23 +149,20 @@ export function UserRow({
             </View>
           )}
           <View style={{ flex: 1 }} />
-          {showAnalyzing && status === 'none' && (
+          {showAnalyzing && status === "none" && (
             <View style={styles.analyzingBadge}>
               <PulsingRosette />
               <Text style={styles.analyzingText}>analizowanie</Text>
             </View>
           )}
-          {status !== 'none' && (
+          {status !== "none" && (
             <Text style={[styles.statusLabel, { color: statusConfig[status].color }]}>
               {statusConfig[status].label}
             </Text>
           )}
         </View>
         {snippet && (
-          <Text
-            style={[styles.snippet, isHighlight && styles.snippetHighlight]}
-            numberOfLines={4}
-          >
+          <Text style={[styles.snippet, isHighlight && styles.snippetHighlight]} numberOfLines={4}>
             {snippet}
           </Text>
         )}
@@ -186,8 +178,8 @@ export function UserRow({
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     paddingVertical: spacing.gutter,
     paddingHorizontal: spacing.column,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -198,8 +190,8 @@ const styles = StyleSheet.create({
     marginLeft: spacing.gutter,
   },
   nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.tight,
   },
   name: {
@@ -209,8 +201,8 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   matchBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 3,
   },
   matchText: {
@@ -236,12 +228,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
   },
   naTerazBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
-    backgroundColor: '#FDF5EC',
+    backgroundColor: "#FDF5EC",
     borderWidth: 1,
-    borderColor: '#E8C9A0',
+    borderColor: "#E8C9A0",
     borderRadius: 8,
     paddingVertical: 1,
     paddingHorizontal: 7,
@@ -250,28 +242,28 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#D4851C',
+    backgroundColor: "#D4851C",
   },
   naTerazText: {
     fontSize: 9,
-    fontWeight: '600',
-    color: '#D4851C',
+    fontWeight: "600",
+    color: "#D4851C",
   },
   naTerazReason: {
     fontSize: 10,
-    color: '#D4851C',
-    fontWeight: '500',
+    color: "#D4851C",
+    fontWeight: "500",
     marginTop: 3,
   },
   analyzingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   analyzingText: {
     fontFamily: fonts.sans,
     fontSize: 11,
     color: colors.muted,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
 });

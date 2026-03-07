@@ -3,19 +3,19 @@
    ───────────────────────────────────────────── */
 
 :root {
-  --db-ink: #1A1A1A;
-  --db-bg: #FAF7F2;
-  --db-accent: #C0392B;
-  --db-rule: #D5D0C4;
-  --db-muted: #8B8680;
-  --db-map-bg: #F0ECE3;
-  --db-map-block: #E2DDD2;
-  --db-success: #5B7A5E;
-  --db-warning: #B8863E;
-  --db-error: #9B3B3B;
-  --db-success-bg: #EEF2EE;
-  --db-warning-bg: #F5F0E6;
-  --db-error-bg: #F2EEEE;
+  --db-ink: #1a1a1a;
+  --db-bg: #faf7f2;
+  --db-accent: #c0392b;
+  --db-rule: #d5d0c4;
+  --db-muted: #8b8680;
+  --db-map-bg: #f0ece3;
+  --db-map-block: #e2ddd2;
+  --db-success: #5b7a5e;
+  --db-warning: #b8863e;
+  --db-error: #9b3b3b;
+  --db-success-bg: #eef2ee;
+  --db-warning-bg: #f5f0e6;
+  --db-error-bg: #f2eeee;
 }
 
 /* ── Page Layout ────────────────────────────── */
@@ -25,7 +25,7 @@
   min-height: 100vh;
   background: var(--db-bg);
   color: var(--db-ink);
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   overflow-x: clip;
 }
 
@@ -44,7 +44,7 @@
 }
 
 .sidebarTitle {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 14px;
   font-weight: 400;
   color: var(--db-muted);
@@ -74,7 +74,9 @@
   color: var(--db-muted);
   text-decoration: none;
   border-left: 2px solid transparent;
-  transition: color 0.2s, border-color 0.2s;
+  transition:
+    color 0.2s,
+    border-color 0.2s;
 }
 
 .navLink:hover {
@@ -95,7 +97,7 @@
 .navNumber {
   display: inline-block;
   width: 32px;
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 13px;
   color: var(--db-rule);
   font-style: italic;
@@ -119,7 +121,7 @@
 }
 
 .mastheadTitle {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 48px;
   font-weight: 400;
   color: var(--db-ink);
@@ -132,7 +134,7 @@
 }
 
 .mastheadEdition {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 3px;
@@ -156,7 +158,7 @@
 }
 
 .sectionNumber {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 36px;
   font-weight: 400;
   color: var(--db-rule);
@@ -165,14 +167,14 @@
 }
 
 .sectionTitle {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 24px;
   font-weight: 400;
   color: var(--db-ink);
 }
 
 .sectionSubtitle {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 13px;
   color: var(--db-muted);
   margin-top: 8px;
@@ -188,7 +190,7 @@
 }
 
 .subsectionTitle {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -218,7 +220,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;

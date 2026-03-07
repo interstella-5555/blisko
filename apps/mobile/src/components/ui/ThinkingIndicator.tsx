@@ -1,13 +1,13 @@
-import { useRef, useEffect, useState } from 'react';
-import { View, Text, Animated, Easing, StyleSheet } from 'react-native';
-import { colors, fonts } from '../../theme';
+import { useEffect, useRef, useState } from "react";
+import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { colors, fonts } from "../../theme";
 
 const DEFAULT_MESSAGES = [
-  'Analizuję Twoje odpowiedzi…',
-  'Przygotowuję kolejne pytanie…',
-  'Zastanawiam się nad czymś ciekawym…',
-  'Jeszcze chwilka…',
-  'Szukam najlepszego pytania…',
+  "Analizuję Twoje odpowiedzi…",
+  "Przygotowuję kolejne pytanie…",
+  "Zastanawiam się nad czymś ciekawym…",
+  "Jeszcze chwilka…",
+  "Szukam najlepszego pytania…",
 ];
 
 interface ThinkingIndicatorProps {
@@ -37,7 +37,7 @@ function InkRipple() {
             duration: 0,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       );
 
     const a1 = createRipple(ring1, 0);
@@ -101,25 +101,21 @@ function CenterDot() {
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
     anim.start();
     return () => anim.stop();
   }, [scale]);
 
-  return (
-    <Animated.View
-      style={[rippleStyles.centerDot, { transform: [{ scale }] }]}
-    />
-  );
+  return <Animated.View style={[rippleStyles.centerDot, { transform: [{ scale }] }]} />;
 }
 
 const rippleStyles = StyleSheet.create({
   container: {
     width: 80,
     height: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   centerDot: {
     width: 8,
@@ -134,7 +130,7 @@ const rippleStyles = StyleSheet.create({
 function TypewriterText({ messages }: { messages: string[] }) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [charCount, setCharCount] = useState(0);
-  const [phase, setPhase] = useState<'typing' | 'holding' | 'clearing'>('typing');
+  const [phase, setPhase] = useState<"typing" | "holding" | "clearing">("typing");
   const cursorOpacity = useRef(new Animated.Value(1)).current;
 
   const currentMessage = messages[msgIndex];
@@ -156,7 +152,7 @@ function TypewriterText({ messages }: { messages: string[] }) {
           easing: Easing.step0,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
     anim.start();
     return () => anim.stop();
@@ -164,41 +160,39 @@ function TypewriterText({ messages }: { messages: string[] }) {
 
   // Typing engine
   useEffect(() => {
-    if (phase === 'typing') {
+    if (phase === "typing") {
       if (charCount < currentMessage.length) {
         const delay = 30 + Math.random() * 40;
         const timer = setTimeout(() => setCharCount((c) => c + 1), delay);
         return () => clearTimeout(timer);
       } else {
-        setPhase('holding');
+        setPhase("holding");
       }
     }
 
-    if (phase === 'holding') {
+    if (phase === "holding") {
       const timer = setTimeout(() => {
         if (messages.length > 1) {
-          setPhase('clearing');
+          setPhase("clearing");
         }
       }, 2500);
       return () => clearTimeout(timer);
     }
 
-    if (phase === 'clearing') {
+    if (phase === "clearing") {
       if (charCount > 0) {
         const timer = setTimeout(() => setCharCount((c) => c - 1), 15);
         return () => clearTimeout(timer);
       } else {
         setMsgIndex((i) => (i + 1) % messages.length);
-        setPhase('typing');
+        setPhase("typing");
       }
     }
   }, [phase, charCount, currentMessage, messages]);
 
   return (
     <View style={typeStyles.container}>
-      <Text style={typeStyles.text}>
-        {displayText}
-      </Text>
+      <Text style={typeStyles.text}>{displayText}</Text>
       <Animated.View style={[typeStyles.cursor, { opacity: cursorOpacity }]} />
     </View>
   );
@@ -207,9 +201,9 @@ function TypewriterText({ messages }: { messages: string[] }) {
 const typeStyles = StyleSheet.create({
   container: {
     minHeight: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   text: {
     fontFamily: fonts.serifItalic,
@@ -237,7 +231,7 @@ export function ThinkingIndicator({ messages = DEFAULT_MESSAGES }: ThinkingIndic
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 32,
   },
 });

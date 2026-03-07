@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, Switch } from 'react-native';
-import { usePreferencesStore } from '../src/stores/preferencesStore';
-import { colors, type as typ, spacing, fonts } from '../src/theme';
+import { StyleSheet, Switch, Text, View } from "react-native";
+import { usePreferencesStore } from "../src/stores/preferencesStore";
+import { colors, fonts, spacing } from "../src/theme";
 
 export default function FiltersScreen() {
   const photoOnly = usePreferencesStore((s) => s.photoOnly);
@@ -19,7 +19,7 @@ export default function FiltersScreen() {
         <Switch
           value={photoOnly}
           onValueChange={setPhotoOnly}
-          trackColor={{ false: '#C0BAA8', true: colors.ink }}
+          trackColor={{ false: "#C0BAA8", true: colors.ink }}
           thumbColor="#FFFFFF"
         />
       </View>
@@ -31,7 +31,7 @@ export default function FiltersScreen() {
         <Switch
           value={nearbyOnly}
           onValueChange={setNearbyOnly}
-          trackColor={{ false: '#C0BAA8', true: colors.ink }}
+          trackColor={{ false: "#C0BAA8", true: colors.ink }}
           thumbColor="#FFFFFF"
         />
       </View>
@@ -52,9 +52,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.section,
   },
   toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: spacing.gutter,
   },
   toggleRowBorder: {

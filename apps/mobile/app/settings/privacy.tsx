@@ -1,33 +1,42 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
-import Svg, { Polyline } from 'react-native-svg';
-import { useAuthStore } from '../../src/stores/authStore';
-import { trpc } from '../../src/lib/trpc';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
+import { useState } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Svg, { Polyline } from "react-native-svg";
+import { trpc } from "../../src/lib/trpc";
+import { useAuthStore } from "../../src/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
-type VisibilityMode = 'visible' | 'matches_only' | 'hidden';
+type VisibilityMode = "visible" | "matches_only" | "hidden";
 
 const VISIBILITY_OPTIONS: { key: VisibilityMode; name: string; desc: string }[] = [
   {
-    key: 'visible',
-    name: 'Widoczny',
-    desc: 'Twoj profil jest widoczny na mapie i w wynikach wyszukiwania dla wszystkich.',
+    key: "visible",
+    name: "Widoczny",
+    desc: "Twoj profil jest widoczny na mapie i w wynikach wyszukiwania dla wszystkich.",
   },
   {
-    key: 'matches_only',
-    name: 'Tylko dopasowania',
-    desc: 'Nie pojawisz sie na mapie. Widzisz innych, ale oni Ciebie tylko po wyslaniu wave.',
+    key: "matches_only",
+    name: "Tylko dopasowania",
+    desc: "Nie pojawisz sie na mapie. Widzisz innych, ale oni Ciebie tylko po wyslaniu wave.",
   },
   {
-    key: 'hidden',
-    name: 'Ukryty',
-    desc: 'Twoj profil jest calkowicie niewidoczny. Nikt Cie nie znajdzie ani nie zobaczy.',
+    key: "hidden",
+    name: "Ukryty",
+    desc: "Twoj profil jest calkowicie niewidoczny. Nikt Cie nie znajdzie ani nie zobaczy.",
   },
 ];
 
 function IconChevronRight({ size = 16 }: { size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={colors.muted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={colors.muted}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <Polyline points="9,18 15,12 9,6" />
     </Svg>
   );
@@ -37,7 +46,7 @@ export default function PrivacyScreen() {
   const profile = useAuthStore((state) => state.profile);
   const setProfile = useAuthStore((state) => state.setProfile);
 
-  const [mode, setMode] = useState<VisibilityMode>(profile?.visibilityMode ?? 'visible');
+  const [mode, setMode] = useState<VisibilityMode>(profile?.visibilityMode ?? "visible");
 
   const utils = trpc.useUtils();
   const updateProfile = trpc.profiles.update.useMutation({
@@ -58,34 +67,24 @@ export default function PrivacyScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>TRYB WIDOCZNOSCI</Text>
         {VISIBILITY_OPTIONS.map((opt) => (
-          <Pressable
-            key={opt.key}
-            style={styles.option}
-            onPress={() => handleChangeMode(opt.key)}
-          >
+          <Pressable key={opt.key} style={styles.option} onPress={() => handleChangeMode(opt.key)}>
             <View style={[styles.radio, mode === opt.key && styles.radioSelected]}>
               {mode === opt.key && <View style={styles.radioDot} />}
             </View>
             <View style={styles.optionInfo}>
-              <Text style={[styles.optionName, mode !== opt.key && styles.dimmed]}>
-                {opt.name}
-              </Text>
-              <Text style={[styles.optionDesc, mode !== opt.key && styles.dimmed]}>
-                {opt.desc}
-              </Text>
+              <Text style={[styles.optionName, mode !== opt.key && styles.dimmed]}>{opt.name}</Text>
+              <Text style={[styles.optionDesc, mode !== opt.key && styles.dimmed]}>{opt.desc}</Text>
             </View>
           </Pressable>
         ))}
-        <Text style={styles.note}>
-          Zmiana trybu widocznosci nie wplywa na istniejace rozmowy i dopasowania.
-        </Text>
+        <Text style={styles.note}>Zmiana trybu widocznosci nie wplywa na istniejace rozmowy i dopasowania.</Text>
       </View>
 
       {/* Blocked users section */}
       <View style={styles.section}>
         <Pressable
           style={styles.blockedRow}
-          onPress={() => Alert.alert('Zablokowani uzytkownicy', 'Brak zablokowanych uzytkownikow')}
+          onPress={() => Alert.alert("Zablokowani uzytkownicy", "Brak zablokowanych uzytkownikow")}
         >
           <Text style={styles.blockedLabel}>Zablokowani uzytkownicy</Text>
           <IconChevronRight />
@@ -109,8 +108,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.gutter,
   },
   option: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: spacing.gutter,
     paddingVertical: spacing.compact,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -122,8 +121,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 2,
     borderColor: colors.rule,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 2,
   },
   radioSelected: {
@@ -158,9 +157,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   blockedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: spacing.column,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.rule,

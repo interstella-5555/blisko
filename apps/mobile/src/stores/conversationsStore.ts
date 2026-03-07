@@ -1,9 +1,9 @@
-import { create } from 'zustand';
-import { useProfilesStore } from './profilesStore';
+import { create } from "zustand";
+import { useProfilesStore } from "./profilesStore";
 
 export interface ConversationEntry {
   id: string;
-  type: 'dm' | 'group';
+  type: "dm" | "group";
   participant: {
     userId: string;
     displayName: string;
@@ -32,18 +32,12 @@ interface ConversationsStore {
 
   set(conversations: ConversationEntry[]): void;
   addNew(conv: ConversationEntry): void;
-  updateLastMessage(
-    convId: string,
-    msg: ConversationEntry['lastMessage'],
-  ): void;
+  updateLastMessage(convId: string, msg: ConversationEntry["lastMessage"]): void;
   incrementUnread(convId: string): void;
   markAsRead(convId: string): void;
   setActiveConversation(id: string | null): void;
   updateMemberCount(convId: string, delta: number): void;
-  updateGroupInfo(
-    convId: string,
-    updates: { name?: string; description?: string; avatarUrl?: string | null },
-  ): void;
+  updateGroupInfo(convId: string, updates: { name?: string; description?: string; avatarUrl?: string | null }): void;
   reset(): void;
 }
 
@@ -68,9 +62,7 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
 
     const activeId = get().activeConversationId;
     const mapped = activeId
-      ? conversations.map((c) =>
-          c.id === activeId ? { ...c, unreadCount: 0 } : c,
-        )
+      ? conversations.map((c) => (c.id === activeId ? { ...c, unreadCount: 0 } : c))
       : conversations;
     set({ conversations: mapped, _hydrated: true });
   },
@@ -88,32 +80,23 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
   updateLastMessage(convId, msg) {
     set((state) => {
       const updated = state.conversations.map((c) =>
-        c.id === convId
-          ? { ...c, lastMessage: msg, updatedAt: msg?.createdAt ?? c.updatedAt }
-          : c,
+        c.id === convId ? { ...c, lastMessage: msg, updatedAt: msg?.createdAt ?? c.updatedAt } : c,
       );
       // Re-sort by updatedAt desc
-      updated.sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      );
+      updated.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
       return { conversations: updated };
     });
   },
 
   incrementUnread(convId) {
     set((state) => ({
-      conversations: state.conversations.map((c) =>
-        c.id === convId ? { ...c, unreadCount: c.unreadCount + 1 } : c,
-      ),
+      conversations: state.conversations.map((c) => (c.id === convId ? { ...c, unreadCount: c.unreadCount + 1 } : c)),
     }));
   },
 
   markAsRead(convId) {
     set((state) => ({
-      conversations: state.conversations.map((c) =>
-        c.id === convId ? { ...c, unreadCount: 0 } : c,
-      ),
+      conversations: state.conversations.map((c) => (c.id === convId ? { ...c, unreadCount: 0 } : c)),
     }));
   },
 
@@ -128,9 +111,7 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
   updateMemberCount(convId, delta) {
     set((state) => ({
       conversations: state.conversations.map((c) =>
-        c.id === convId && c.memberCount != null
-          ? { ...c, memberCount: c.memberCount + delta }
-          : c,
+        c.id === convId && c.memberCount != null ? { ...c, memberCount: c.memberCount + delta } : c,
       ),
     }));
   },
@@ -142,10 +123,7 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
           ? {
               ...c,
               groupName: updates.name ?? c.groupName,
-              groupAvatarUrl:
-                updates.avatarUrl !== undefined
-                  ? updates.avatarUrl
-                  : c.groupAvatarUrl,
+              groupAvatarUrl: updates.avatarUrl !== undefined ? updates.avatarUrl : c.groupAvatarUrl,
             }
           : c,
       ),

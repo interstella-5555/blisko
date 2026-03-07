@@ -1,12 +1,12 @@
-import { Queue, Worker, type Job } from "bullmq";
-import { createHash } from "crypto";
-import { eq, and, ne, gte, lte, isNotNull, or, sql, between, notInArray } from "drizzle-orm";
-import { RedisClient } from "bun";
+import { createHash } from "node:crypto";
 import { cosineSimilarity } from "@repo/shared";
-import { db, schema } from "~/db";
-import { analyzeConnection, generatePortrait, generateEmbedding, extractInterests, evaluateStatusMatch } from "./ai";
+import { type Job, Queue, Worker } from "bullmq";
+import { RedisClient } from "bun";
+import { and, between, eq, gte, isNotNull, lte, ne, notInArray, or, sql } from "drizzle-orm";
+import { db, schema } from "@/db";
+import { ee } from "@/ws/events";
+import { analyzeConnection, evaluateStatusMatch, extractInterests, generateEmbedding, generatePortrait } from "./ai";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
-import { ee } from "~/ws/events";
 
 function getConnectionConfig() {
   const url = new URL(process.env.REDIS_URL!);

@@ -1,24 +1,21 @@
-import s from './newspaper.module.css'
-import { PhoneFrame } from '~/components/PhoneFrame'
-import { Icon } from '~/components/Icons'
-import type { VariantMeta } from '~/variants/types'
+import { Icon } from "~/components/Icons";
+import { PhoneFrame } from "~/components/PhoneFrame";
+import type { VariantMeta } from "~/variants/types";
+import s from "./newspaper.module.css";
 
 export const meta: VariantMeta = {
   id: 4,
-  name: 'Newspaper / Editorial',
-  tagline: 'Content-first — ludzie czytaja, nie swajpuja',
-  inspiration: 'Monocle, Kinfolk, NYT',
+  name: "Newspaper / Editorial",
+  tagline: "Content-first — ludzie czytaja, nie swajpuja",
+  inspiration: "Monocle, Kinfolk, NYT",
   features: [
-    'Serif headings (Instrument Serif), cienkie rules, kolumnowy uklad',
-    'Czerwony akcent na kremowym tle — notki prasowe zamiast kart',
-    'Tagi jako rubryki ogloszeniowe z rozetka (bullet rose)',
+    "Serif headings (Instrument Serif), cienkie rules, kolumnowy uklad",
+    "Czerwony akcent na kremowym tle — notki prasowe zamiast kart",
+    "Tagi jako rubryki ogloszeniowe z rozetka (bullet rose)",
   ],
-  uxAnalysis: [
-    'Powaznie i dorosle — odcina od dating-appow',
-    'Ludzie CZYTAJA opisy zamiast scrollowac karty',
-  ],
-  uxPattern: 'Profil = artykul do przeczytania, nie karta do swajpniecia.',
-}
+  uxAnalysis: ["Powaznie i dorosle — odcina od dating-appow", "Ludzie CZYTAJA opisy zamiast scrollowac karty"],
+  uxPattern: "Profil = artykul do przeczytania, nie karta do swajpniecia.",
+};
 
 export default function Newspaper() {
   return (
@@ -66,9 +63,15 @@ export default function Newspaper() {
                 <span className={s.dist}>~800m</span>
               </div>
               <div className={s.tags}>
-                <span className={`${s.tag} ${s.match}`}><Icon name="bullet-rose" className={s.tagIcon} /> pies</span>
-                <span className={`${s.tag} ${s.match}`}><Icon name="bullet-rose" className={s.tagIcon} /> kregle</span>
-                <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> bieganie</span>
+                <span className={`${s.tag} ${s.match}`}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> pies
+                </span>
+                <span className={`${s.tag} ${s.match}`}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> kregle
+                </span>
+                <span className={s.tag}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> bieganie
+                </span>
               </div>
             </div>
             <div className={s.waveBtn}>
@@ -85,8 +88,12 @@ export default function Newspaper() {
                 <span className={s.dist}>~1.2 km</span>
               </div>
               <div className={s.tags}>
-                <span className={`${s.tag} ${s.match}`}><Icon name="bullet-rose" className={s.tagIcon} /> bieganie</span>
-                <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> kawa</span>
+                <span className={`${s.tag} ${s.match}`}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> bieganie
+                </span>
+                <span className={s.tag}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> kawa
+                </span>
               </div>
             </div>
             <div className={s.waveBtn}>
@@ -103,8 +110,12 @@ export default function Newspaper() {
                 <span className={s.dist}>~2.1 km</span>
               </div>
               <div className={s.tags}>
-                <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> sci-fi</span>
-                <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> gry</span>
+                <span className={s.tag}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> sci-fi
+                </span>
+                <span className={s.tag}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> gry
+                </span>
               </div>
             </div>
             <div className={s.waveBtn}>
@@ -132,5 +143,5 @@ export default function Newspaper() {
         </div>
       </div>
     </PhoneFrame>
-  )
+  );
 }

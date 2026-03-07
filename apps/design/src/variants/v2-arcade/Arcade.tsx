@@ -1,7 +1,7 @@
-import { PhoneFrame } from '~/components/PhoneFrame';
-import { Icon } from '~/components/Icons';
-import type { VariantMeta } from '~/variants/types';
-import s from './arcade.module.css';
+import { Icon } from "~/components/Icons";
+import { PhoneFrame } from "~/components/PhoneFrame";
+import type { VariantMeta } from "~/variants/types";
+import s from "./arcade.module.css";
 
 export default function Arcade() {
   return (
@@ -46,7 +46,7 @@ export default function Arcade() {
                 <span className="dist">~800m</span>
               </div>
               <div className={s.compatBar}>
-                <div className={`${s.compatFill} ${s.compatHigh}`} style={{ width: '85%' }}></div>
+                <div className={`${s.compatFill} ${s.compatHigh}`} style={{ width: "85%" }}></div>
               </div>
               <div className="tags">
                 <span className="tag match">pies</span>
@@ -69,7 +69,7 @@ export default function Arcade() {
                 <span className="dist">~1.2 km</span>
               </div>
               <div className={s.compatBar}>
-                <div className={`${s.compatFill} ${s.compatMid}`} style={{ width: '60%' }}></div>
+                <div className={`${s.compatFill} ${s.compatMid}`} style={{ width: "60%" }}></div>
               </div>
               <div className="tags">
                 <span className="tag match">bieganie</span>
@@ -91,7 +91,7 @@ export default function Arcade() {
                 <span className="dist">~2.1 km</span>
               </div>
               <div className={s.compatBar}>
-                <div className={`${s.compatFill} ${s.compatLow}`} style={{ width: '30%' }}></div>
+                <div className={`${s.compatFill} ${s.compatLow}`} style={{ width: "30%" }}></div>
               </div>
               <div className="tags">
                 <span className="tag">sci-fi</span>
@@ -128,17 +128,17 @@ export default function Arcade() {
 
 export const meta: VariantMeta = {
   id: 13,
-  name: 'Arcade / RPG Encounter',
-  tagline: 'Gamifikacja bez tandetnosci — encounters z barem kompatybilnosci',
-  inspiration: 'Pokemon encounters, Undertale, Strava badges',
+  name: "Arcade / RPG Encounter",
+  tagline: "Gamifikacja bez tandetnosci — encounters z barem kompatybilnosci",
+  inspiration: "Pokemon encounters, Undertale, Strava badges",
   features: [
-    'Chunky UI, neonowe kolory na ciemnym tle (green/orange/purple)',
+    "Chunky UI, neonowe kolory na ciemnym tle (green/orange/purple)",
     '"Encounter" karty z compatibility bar i XP badge',
-    'Grid-based mapa z terrain patches, RPG-style markers',
+    "Grid-based mapa z terrain patches, RPG-style markers",
   ],
   uxAnalysis: [
-    'Achievement system motywuje — LVL + XP widoczne globalnie',
-    'Compatibility bar daje wizualna informacje o dopasowaniu',
+    "Achievement system motywuje — LVL + XP widoczne globalnie",
+    "Compatibility bar daje wizualna informacje o dopasowaniu",
   ],
-  uxPattern: 'Encounter mechanic — nowa osoba = RPG encounter z barem kompatybilnosci.',
+  uxPattern: "Encounter mechanic — nowa osoba = RPG encounter z barem kompatybilnosci.",
 };

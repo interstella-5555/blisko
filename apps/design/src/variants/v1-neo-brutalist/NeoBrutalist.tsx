@@ -1,7 +1,7 @@
-import { PhoneFrame } from '~/components/PhoneFrame';
-import { Icon } from '~/components/Icons';
-import type { VariantMeta } from '~/variants/types';
-import s from './neo-brutalist.module.css';
+import { Icon } from "~/components/Icons";
+import { PhoneFrame } from "~/components/PhoneFrame";
+import type { VariantMeta } from "~/variants/types";
+import s from "./neo-brutalist.module.css";
 
 export default function NeoBrutalist() {
   return (
@@ -19,8 +19,7 @@ export default function NeoBrutalist() {
         <div className={`${s.mapRoad} ${s.roadV2}`}></div>
 
         <div className={s.radiusBadge}>
-          <div className={s.dot}></div>
-          2 km
+          <div className={s.dot}></div>2 km
         </div>
 
         <div className={`${s.marker} ${s.markerGroup}`}>5</div>
@@ -32,14 +31,20 @@ export default function NeoBrutalist() {
       </div>
 
       <div className={s.sheet}>
-        <div className={s.sheetHandleRow}><div className={s.sheetHandle}></div></div>
+        <div className={s.sheetHandleRow}>
+          <div className={s.sheetHandle}></div>
+        </div>
         <div className={s.sheetHead}>
-          <div className={s.sheetCount}>8 <span>osob w poblizu</span></div>
+          <div className={s.sheetCount}>
+            8 <span>osob w poblizu</span>
+          </div>
           <button className={s.sheetAction}>FILTRUJ</button>
         </div>
         <div className={s.userList}>
           <div className={s.userCard}>
-            <div className={s.avatar}><img src="https://i.pravatar.cc/92?img=33" alt="" loading="lazy" /></div>
+            <div className={s.avatar}>
+              <img src="https://i.pravatar.cc/92?img=33" alt="" loading="lazy" />
+            </div>
             <div className={s.info}>
               <div className={s.nameRow}>
                 <span className={s.name}>Adam, 28</span>
@@ -57,7 +62,9 @@ export default function NeoBrutalist() {
           </div>
 
           <div className={s.userCard}>
-            <div className={s.avatar}><img src="https://i.pravatar.cc/92?img=47" alt="" loading="lazy" /></div>
+            <div className={s.avatar}>
+              <img src="https://i.pravatar.cc/92?img=47" alt="" loading="lazy" />
+            </div>
             <div className={s.info}>
               <div className={s.nameRow}>
                 <span className={s.name}>Maja, 25</span>
@@ -74,7 +81,9 @@ export default function NeoBrutalist() {
           </div>
 
           <div className={s.userCard}>
-            <div className={s.avatar}><img src="https://i.pravatar.cc/92?img=59" alt="" loading="lazy" /></div>
+            <div className={s.avatar}>
+              <img src="https://i.pravatar.cc/92?img=59" alt="" loading="lazy" />
+            </div>
             <div className={s.info}>
               <div className={s.nameRow}>
                 <span className={s.name}>Tomek, 32</span>
@@ -116,17 +125,17 @@ export default function NeoBrutalist() {
 
 export const meta: VariantMeta = {
   id: 1,
-  name: 'Neo-Brutalist',
-  tagline: 'Grube ramki, twarde cienie, surowa energia',
-  inspiration: 'Brutalist web, Swiss poster, punk zine',
+  name: "Neo-Brutalist",
+  tagline: "Grube ramki, twarde cienie, surowa energia",
+  inspiration: "Brutalist web, Swiss poster, punk zine",
   features: [
-    'Grube bordery (3px solid), offset shadows, kwadratowe ksztalty',
-    'Space Grotesk + Space Mono — duopoly mono/sans',
-    'Cream bg + electric orange + blue akcenty',
+    "Grube bordery (3px solid), offset shadows, kwadratowe ksztalty",
+    "Space Grotesk + Space Mono — duopoly mono/sans",
+    "Cream bg + electric orange + blue akcenty",
   ],
   uxAnalysis: [
-    'Raw energy — stoi w opozycji do gładkiego UI datingowych appow',
-    'Mocne cienie i ramki tworzą wyraźną hierarchię wizualną',
+    "Raw energy — stoi w opozycji do gładkiego UI datingowych appow",
+    "Mocne cienie i ramki tworzą wyraźną hierarchię wizualną",
   ],
-  uxPattern: 'Card-stack — użytkownicy jako brutalistyczne karty, widoczna hierarchia.',
+  uxPattern: "Card-stack — użytkownicy jako brutalistyczne karty, widoczna hierarchia.",
 };

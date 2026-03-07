@@ -1,24 +1,24 @@
-import { PhoneFrame } from '~/components/PhoneFrame'
-import { Icon } from '~/components/Icons'
-import type { VariantMeta } from '~/variants/types'
-import s from './bioluminescent.module.css'
+import { Icon } from "~/components/Icons";
+import { PhoneFrame } from "~/components/PhoneFrame";
+import type { VariantMeta } from "~/variants/types";
+import s from "./bioluminescent.module.css";
 
 export const meta: VariantMeta = {
   id: 3,
-  name: 'Bioluminescent',
-  tagline: 'Zywy mrok, swiecace akcenty, organiczne formy',
-  inspiration: 'Deep sea creatures, Aurora Borealis, neon fungi',
+  name: "Bioluminescent",
+  tagline: "Zywy mrok, swiecace akcenty, organiczne formy",
+  inspiration: "Deep sea creatures, Aurora Borealis, neon fungi",
   features: [
-    'Dark base z luminous accents (cyan, purple, green) — glow effects',
-    'Organic flowing shapes, wave-top sheet, pulsing location marker',
-    'Backdrop-blur glass morphism, gradient wave buttons',
+    "Dark base z luminous accents (cyan, purple, green) — glow effects",
+    "Organic flowing shapes, wave-top sheet, pulsing location marker",
+    "Backdrop-blur glass morphism, gradient wave buttons",
   ],
   uxAnalysis: [
-    'Dark mode done right — glow creates depth and hierarchy',
-    'Living/breathing feel — pulse animation shows active presence',
+    "Dark mode done right — glow creates depth and hierarchy",
+    "Living/breathing feel — pulse animation shows active presence",
   ],
-  uxPattern: 'Living-dark — interfejs oddycha i świeci, ludzie to bioluminescencyjne organizmy.',
-}
+  uxPattern: "Living-dark — interfejs oddycha i świeci, ludzie to bioluminescencyjne organizmy.",
+};
 
 export default function Bioluminescent() {
   return (
@@ -31,8 +31,7 @@ export default function Bioluminescent() {
         <div className={s.glowZone}></div>
 
         <div className={s.radiusBadge}>
-          <div className="dot"></div>
-          2 km
+          <div className="dot"></div>2 km
         </div>
 
         <div className={`${s.marker} ${s.markerGroup}`}>5</div>
@@ -44,12 +43,8 @@ export default function Bioluminescent() {
       </div>
 
       <div className={s.sheet}>
-        <svg
-          className={s.sheetWave}
-          viewBox="0 0 390 20"
-          preserveAspectRatio="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        <svg className={s.sheetWave} viewBox="0 0 390 20" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <title>Sheet wave decoration</title>
           <path d="M0 20 Q50 0 100 12 Q160 24 220 8 Q280 -4 340 14 Q370 22 390 16 L390 20 Z" fill="#0F1318" />
         </svg>
         <div className={s.sheetBody}>
@@ -79,7 +74,7 @@ export default function Bioluminescent() {
                 </div>
               </div>
               <div className="waveBtn">
-                <Icon name="wave" style={{ color: 'var(--glow1)' }} />
+                <Icon name="wave" style={{ color: "var(--glow1)" }} />
               </div>
             </div>
 
@@ -98,7 +93,7 @@ export default function Bioluminescent() {
                 </div>
               </div>
               <div className="waveBtn">
-                <Icon name="wave" style={{ color: 'var(--glow1)' }} />
+                <Icon name="wave" style={{ color: "var(--glow1)" }} />
               </div>
             </div>
 
@@ -117,7 +112,7 @@ export default function Bioluminescent() {
                 </div>
               </div>
               <div className="waveBtn">
-                <Icon name="wave" style={{ color: 'var(--glow1)' }} />
+                <Icon name="wave" style={{ color: "var(--glow1)" }} />
               </div>
             </div>
           </div>
@@ -143,5 +138,5 @@ export default function Bioluminescent() {
         </div>
       </div>
     </PhoneFrame>
-  )
+  );
 }

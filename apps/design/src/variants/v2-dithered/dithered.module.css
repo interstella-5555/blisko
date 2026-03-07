@@ -1,8 +1,8 @@
 .phoneFrame {
-  --bg: #E8E4D8;
-  --ink: #2C2C2C;
-  --accent: #5B4A9E;
-  --muted: #8A8578;
+  --bg: #e8e4d8;
+  --ink: #2c2c2c;
+  --accent: #5b4a9e;
+  --muted: #8a8578;
   background: var(--bg);
   border: 2px solid var(--ink);
   box-shadow: 6px 6px 0 var(--ink);
@@ -15,7 +15,7 @@
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 4px;
-  font-family: 'Space Mono', monospace;
+  font-family: "Space Mono", monospace;
   font-size: 12px;
   color: var(--bg);
 }
@@ -23,7 +23,7 @@
 .menuBar {
   background: var(--ink);
   color: var(--bg);
-  font-family: 'Space Mono', monospace;
+  font-family: "Space Mono", monospace;
   font-size: 11px;
   padding: 4px 12px;
   display: flex;
@@ -53,8 +53,20 @@
   position: absolute;
   inset: 0;
   background:
-    repeating-linear-gradient(0deg, transparent, transparent 7px, rgba(44, 44, 44, 0.06) 7px, rgba(44, 44, 44, 0.06) 8px),
-    repeating-linear-gradient(90deg, transparent, transparent 7px, rgba(44, 44, 44, 0.06) 7px, rgba(44, 44, 44, 0.06) 8px);
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 7px,
+      rgba(44, 44, 44, 0.06) 7px,
+      rgba(44, 44, 44, 0.06) 8px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 7px,
+      rgba(44, 44, 44, 0.06) 7px,
+      rgba(44, 44, 44, 0.06) 8px
+    );
 }
 
 /* Dither pattern overlay */
@@ -116,7 +128,7 @@
 
 .marker {
   position: absolute;
-  font-family: 'Space Mono', monospace;
+  font-family: "Space Mono", monospace;
   font-weight: 700;
   color: var(--bg);
   display: flex;
@@ -175,7 +187,7 @@
   background: var(--bg);
   border: 2px solid var(--ink);
   padding: 3px 8px;
-  font-family: 'Space Mono', monospace;
+  font-family: "Space Mono", monospace;
   font-size: 10px;
   font-weight: 700;
   color: var(--ink);
@@ -224,14 +236,14 @@
 }
 
 .sheetCount {
-  font-family: 'Space Mono', monospace;
+  font-family: "Space Mono", monospace;
   font-size: 12px;
   font-weight: 700;
   color: var(--ink);
 }
 
 .sheetAction {
-  font-family: 'Space Mono', monospace;
+  font-family: "Space Mono", monospace;
   font-size: 10px;
   font-weight: 700;
   color: var(--ink);
@@ -286,14 +298,14 @@
 }
 
 .name {
-  font-family: 'Space Mono', monospace;
+  font-family: "Space Mono", monospace;
   font-size: 12px;
   font-weight: 700;
   color: var(--ink);
 }
 
 .dist {
-  font-family: 'Space Mono', monospace;
+  font-family: "Space Mono", monospace;
   font-size: 9px;
   color: var(--muted);
 }
@@ -305,7 +317,7 @@
 }
 
 .tag {
-  font-family: 'Space Mono', monospace;
+  font-family: "Space Mono", monospace;
   font-size: 9px;
   padding: 1px 6px;
   color: var(--ink);
@@ -360,7 +372,7 @@
 }
 
 .tab span {
-  font-family: 'Space Mono', monospace;
+  font-family: "Space Mono", monospace;
   font-size: 8px;
   text-transform: uppercase;
   color: var(--muted);

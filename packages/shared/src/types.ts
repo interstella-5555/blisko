@@ -13,7 +13,7 @@ export interface Profile {
   bio: string;
   lookingFor: string;
   socialLinks: { facebook?: string; linkedin?: string } | null;
-  visibilityMode: 'visible' | 'matches_only' | 'hidden';
+  visibilityMode: "visible" | "matches_only" | "hidden";
   interests: string[] | null;
   embedding: number[] | null;
   currentStatus: string | null;
@@ -34,7 +34,7 @@ export interface Wave {
   createdAt: Date;
 }
 
-export type WaveStatus = 'pending' | 'accepted' | 'declined';
+export type WaveStatus = "pending" | "accepted" | "declined";
 
 export interface Conversation {
   id: string;
@@ -48,7 +48,7 @@ export interface ConversationParticipant {
   joinedAt: Date;
 }
 
-export type MessageType = 'text' | 'image' | 'location';
+export type MessageType = "text" | "image" | "location";
 
 export interface Message {
   id: string;
@@ -82,19 +82,19 @@ export interface PushToken {
   id: string;
   userId: string;
   token: string;
-  platform: 'ios' | 'android';
+  platform: "ios" | "android";
   createdAt: Date;
 }
 
 export interface StatusMatch {
   matchedUserId: string;
   reason: string;
-  matchedVia: 'status' | 'profile';
+  matchedVia: "status" | "profile";
 }
 
 export interface NearbyUserStatusMatch {
   reason: string;
-  matchedVia: 'status' | 'profile';
+  matchedVia: "status" | "profile";
 }
 
 // API Response types

@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useRef, useState } from 'react';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from "expo-haptics";
+import { createContext, useCallback, useContext, useRef, useState } from "react";
 
 export interface NotificationConfig {
   id: string;
@@ -59,7 +59,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     },
-    [current?.id]
+    [current?.id],
   );
 
   const handleDismiss = useCallback(() => {

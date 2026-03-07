@@ -1,7 +1,7 @@
-import s from './street-poster.module.css'
-import { PhoneFrame } from '~/components/PhoneFrame'
-import { Icon } from '~/components/Icons'
-import type { VariantMeta } from '~/variants/types'
+import { Icon } from "~/components/Icons";
+import { PhoneFrame } from "~/components/PhoneFrame";
+import type { VariantMeta } from "~/variants/types";
+import s from "./street-poster.module.css";
 
 export default function StreetPoster() {
   return (
@@ -109,22 +109,22 @@ export default function StreetPoster() {
         </div>
       </div>
     </PhoneFrame>
-  )
+  );
 }
 
 export const meta: VariantMeta = {
   id: 10,
-  name: 'Street Poster / Wheat-paste',
-  tagline: 'Odkrywanie ludzi jak plakatow na murach',
-  inspiration: 'Plakaty na murach, punk zine, Shepard Fairey',
+  name: "Street Poster / Wheat-paste",
+  tagline: "Odkrywanie ludzi jak plakatow na murach",
+  inspiration: "Plakaty na murach, punk zine, Shepard Fairey",
   features: [
-    'Tekstury betonu/papieru, bold condensed type (Archivo Black)',
-    'Lekko obrocene karty — kolaz warstw, stempelki',
-    'Kontrastowe zdjecia z obnizonym kolorem',
+    "Tekstury betonu/papieru, bold condensed type (Archivo Black)",
+    "Lekko obrocene karty — kolaz warstw, stempelki",
+    "Kontrastowe zdjecia z obnizonym kolorem",
   ],
   uxAnalysis: [
-    'Street-level odkrywanie = odkrywanie plakatow, czujesz miasto',
-    'Anti-korporacja = autentycznosc, wyroznia sie na rynku',
+    "Street-level odkrywanie = odkrywanie plakatow, czujesz miasto",
+    "Anti-korporacja = autentycznosc, wyroznia sie na rynku",
   ],
   uxPattern: 'Layered discovery — nowe profile "naklejaja sie" jak plakaty na murze.',
-}
+};

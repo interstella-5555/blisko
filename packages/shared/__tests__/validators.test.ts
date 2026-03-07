@@ -1,98 +1,93 @@
-import { describe, it, expect } from 'vitest';
-import {
-  createProfileSchema,
-  updateProfileSchema,
-  sendWaveSchema,
-  getNearbyUsersSchema,
-} from '../src/validators';
+import { describe, expect, it } from "vitest";
+import { createProfileSchema, getNearbyUsersSchema, sendWaveSchema, updateProfileSchema } from "../src/validators";
 
-describe('createProfileSchema', () => {
-  it('validates correct profile data', () => {
+describe("createProfileSchema", () => {
+  it("validates correct profile data", () => {
     const result = createProfileSchema.safeParse({
-      displayName: 'John',
-      bio: 'Hello, I am John and I love coding',
-      lookingFor: 'Looking for people who share my passion for technology',
+      displayName: "John",
+      bio: "Hello, I am John and I love coding",
+      lookingFor: "Looking for people who share my passion for technology",
     });
 
     expect(result.success).toBe(true);
   });
 
-  it('rejects short display name', () => {
+  it("rejects short display name", () => {
     const result = createProfileSchema.safeParse({
-      displayName: 'J',
-      bio: 'Hello, I am John and I love coding',
-      lookingFor: 'Looking for people who share my passion for technology',
+      displayName: "J",
+      bio: "Hello, I am John and I love coding",
+      lookingFor: "Looking for people who share my passion for technology",
     });
 
     expect(result.success).toBe(false);
   });
 
-  it('rejects short bio', () => {
+  it("rejects short bio", () => {
     const result = createProfileSchema.safeParse({
-      displayName: 'John',
-      bio: 'Short',
-      lookingFor: 'Looking for people who share my passion for technology',
+      displayName: "John",
+      bio: "Short",
+      lookingFor: "Looking for people who share my passion for technology",
     });
 
     expect(result.success).toBe(false);
   });
 });
 
-describe('updateProfileSchema', () => {
-  it('allows partial updates', () => {
+describe("updateProfileSchema", () => {
+  it("allows partial updates", () => {
     const result = updateProfileSchema.safeParse({
-      displayName: 'Jane',
+      displayName: "Jane",
     });
 
     expect(result.success).toBe(true);
   });
 
-  it('validates avatar URL', () => {
+  it("validates avatar URL", () => {
     const result = updateProfileSchema.safeParse({
-      avatarUrl: 'not-a-url',
+      avatarUrl: "not-a-url",
     });
 
     expect(result.success).toBe(false);
   });
 
-  it('accepts valid avatar URL', () => {
+  it("accepts valid avatar URL", () => {
     const result = updateProfileSchema.safeParse({
-      avatarUrl: 'https://example.com/avatar.jpg',
+      avatarUrl: "https://example.com/avatar.jpg",
     });
 
     expect(result.success).toBe(true);
   });
 });
 
-describe('sendWaveSchema', () => {
-  it('validates wave with message', () => {
+describe("sendWaveSchema", () => {
+  it("validates wave with message", () => {
     const result = sendWaveSchema.safeParse({
-      toUserId: '123e4567-e89b-12d3-a456-426614174000',
-      message: 'Hi there!',
+      toUserId: "123e4567-e89b-12d3-a456-426614174000",
+      message: "Hi there!",
     });
 
     expect(result.success).toBe(true);
   });
 
-  it('validates wave without message', () => {
+  it("validates wave without message", () => {
     const result = sendWaveSchema.safeParse({
-      toUserId: '123e4567-e89b-12d3-a456-426614174000',
+      toUserId: "123e4567-e89b-12d3-a456-426614174000",
     });
 
     expect(result.success).toBe(true);
   });
 
-  it('rejects empty toUserId', () => {
+  it("rejects empty toUserId", () => {
     const result = sendWaveSchema.safeParse({
-      toUserId: '',
+      toUserId: "",
     });
 
     expect(result.success).toBe(false);
   });
 });
 
-describe('getNearbyUsersSchema', () => {
-  it('validates correct location data', () => {
+describe("getNearbyUsersSchema", () => {
+  it("validates correct location data", () => {
     const result = getNearbyUsersSchema.safeParse({
       latitude: 52.2297,
       longitude: 21.0122,
@@ -102,7 +97,7 @@ describe('getNearbyUsersSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('uses default values', () => {
+  it("uses default values", () => {
     const result = getNearbyUsersSchema.safeParse({
       latitude: 52.2297,
       longitude: 21.0122,
@@ -115,7 +110,7 @@ describe('getNearbyUsersSchema', () => {
     }
   });
 
-  it('rejects out of range latitude', () => {
+  it("rejects out of range latitude", () => {
     const result = getNearbyUsersSchema.safeParse({
       latitude: 100,
       longitude: 21.0122,
@@ -124,7 +119,7 @@ describe('getNearbyUsersSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects out of range longitude', () => {
+  it("rejects out of range longitude", () => {
     const result = getNearbyUsersSchema.safeParse({
       latitude: 52.2297,
       longitude: 200,

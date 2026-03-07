@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useRef, useState } from 'react';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from "expo-haptics";
+import { createContext, useCallback, useContext, useRef, useState } from "react";
 
-export type ToastType = 'error' | 'success' | 'info';
+export type ToastType = "error" | "success" | "info";
 
 export interface ToastConfig {
   id: string;
@@ -11,7 +11,7 @@ export interface ToastConfig {
 }
 
 interface ToastContextValue {
-  showToast: (config: Omit<ToastConfig, 'id'>) => void;
+  showToast: (config: Omit<ToastConfig, "id">) => void;
   current: ToastConfig | null;
   dismiss: () => void;
 }
@@ -37,9 +37,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       showingRef.current = true;
       setCurrent(next);
       Haptics.notificationAsync(
-        next.type === 'error'
+        next.type === "error"
           ? Haptics.NotificationFeedbackType.Error
-          : next.type === 'success'
+          : next.type === "success"
             ? Haptics.NotificationFeedbackType.Success
             : Haptics.NotificationFeedbackType.Warning,
       );
@@ -49,35 +49,28 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const showToast = useCallback(
-    (config: Omit<ToastConfig, 'id'>) => {
-      const toast: ToastConfig = { ...config, id: `toast-${Date.now()}` };
+  const showToast = useCallback((config: Omit<ToastConfig, "id">) => {
+    const toast: ToastConfig = { ...config, id: `toast-${Date.now()}` };
 
-      if (showingRef.current) {
-        queueRef.current.push(toast);
-      } else {
-        showingRef.current = true;
-        setCurrent(toast);
-        Haptics.notificationAsync(
-          toast.type === 'error'
-            ? Haptics.NotificationFeedbackType.Error
-            : toast.type === 'success'
-              ? Haptics.NotificationFeedbackType.Success
-              : Haptics.NotificationFeedbackType.Warning,
-        );
-      }
-    },
-    [],
-  );
+    if (showingRef.current) {
+      queueRef.current.push(toast);
+    } else {
+      showingRef.current = true;
+      setCurrent(toast);
+      Haptics.notificationAsync(
+        toast.type === "error"
+          ? Haptics.NotificationFeedbackType.Error
+          : toast.type === "success"
+            ? Haptics.NotificationFeedbackType.Success
+            : Haptics.NotificationFeedbackType.Warning,
+      );
+    }
+  }, []);
 
   const dismiss = useCallback(() => {
     setCurrent(null);
     setTimeout(showNext, 300);
   }, [showNext]);
 
-  return (
-    <ToastContext.Provider value={{ showToast, current, dismiss }}>
-      {children}
-    </ToastContext.Provider>
-  );
+  return <ToastContext.Provider value={{ showToast, current, dismiss }}>{children}</ToastContext.Provider>;
 }

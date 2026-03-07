@@ -1,64 +1,54 @@
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-} from 'react-native';
-import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
-import { useOnboardingStore } from '../../src/stores/onboardingStore';
-import { useAuthStore } from '../../src/stores/authStore';
-import { useProfilesStore } from '../../src/stores/profilesStore';
-import { useConversationsStore } from '../../src/stores/conversationsStore';
-import { useMessagesStore } from '../../src/stores/messagesStore';
-import { useWavesStore } from '../../src/stores/wavesStore';
-import { authClient } from '../../src/lib/auth';
-import { trpcClient } from '../../src/lib/trpc';
-import { queryClient } from '../_layout';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { Input } from '../../src/components/ui/Input';
-import { Button } from '../../src/components/ui/Button';
-import { IconX } from '../../src/components/ui/icons';
+import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useState } from "react";
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Button } from "../../src/components/ui/Button";
+import { Input } from "../../src/components/ui/Input";
+import { IconX } from "../../src/components/ui/icons";
+import { authClient } from "../../src/lib/auth";
+import { trpcClient } from "../../src/lib/trpc";
+import { useAuthStore } from "../../src/stores/authStore";
+import { useConversationsStore } from "../../src/stores/conversationsStore";
+import { useMessagesStore } from "../../src/stores/messagesStore";
+import { useOnboardingStore } from "../../src/stores/onboardingStore";
+import { useProfilesStore } from "../../src/stores/profilesStore";
+import { useWavesStore } from "../../src/stores/wavesStore";
+import { colors, spacing, type as typ } from "../../src/theme";
+import { queryClient } from "../_layout";
 
 export default function OnboardingNameScreen() {
   const user = useAuthStore((state) => state.user);
   const { displayName, setDisplayName } = useOnboardingStore();
-  const [name, setName] = useState(displayName || user?.name || '');
+  const [name, setName] = useState(displayName || user?.name || "");
 
   const handleLogout = async () => {
     try {
-      const pushToken = await SecureStore.getItemAsync('lastRegisteredPushToken');
+      const pushToken = await SecureStore.getItemAsync("lastRegisteredPushToken");
       if (pushToken) {
         await trpcClient.pushTokens.unregister.mutate({ token: pushToken });
-        await SecureStore.deleteItemAsync('lastRegisteredPushToken');
+        await SecureStore.deleteItemAsync("lastRegisteredPushToken");
       }
     } catch {}
 
     await authClient.signOut();
-    await SecureStore.deleteItemAsync('blisko_session_token');
+    await SecureStore.deleteItemAsync("blisko_session_token");
     queryClient.clear();
     useAuthStore.getState().reset();
     useProfilesStore.getState().reset();
     useConversationsStore.getState().reset();
     useMessagesStore.getState().reset();
     useWavesStore.getState().reset();
-    router.replace('/(auth)/login');
+    router.replace("/(auth)/login");
   };
 
   const handleNext = () => {
     if (name.trim().length < 2) return;
     setDisplayName(name.trim());
-    router.push('/onboarding/visibility');
+    router.push("/onboarding/visibility");
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
         <View style={styles.stepRow}>
           <Text style={styles.step}>Krok 1</Text>
@@ -68,9 +58,7 @@ export default function OnboardingNameScreen() {
           </Pressable>
         </View>
         <Text style={styles.title}>Jak masz na imie?</Text>
-        <Text style={styles.subtitle}>
-          To imie bedzie widoczne dla innych uzytkownikow
-        </Text>
+        <Text style={styles.subtitle}>To imie bedzie widoczne dla innych uzytkownikow</Text>
 
         <Input
           testID="name-input"
@@ -83,12 +71,7 @@ export default function OnboardingNameScreen() {
         />
 
         <View style={{ marginTop: spacing.section }}>
-          <Button
-            title="Dalej"
-            variant="accent"
-            onPress={handleNext}
-            disabled={name.trim().length < 2}
-          />
+          <Button title="Dalej" variant="accent" onPress={handleNext} disabled={name.trim().length < 2} />
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -106,17 +89,17 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   stepRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.tight,
   },
   step: {
     ...typ.caption,
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   logoutText: {

@@ -1,5 +1,5 @@
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 // --- Config from apps/api/.env ---
 
@@ -34,36 +34,35 @@ function timeStr(ts?: number): string {
 // --- Event icons & formatting ---
 
 const EVENT_STYLES: Record<string, { icon: string; color: string }> = {
-  wave_received:      { icon: "👋", color: "\x1b[36m" },   // cyan
-  wave_accept:        { icon: "✓ ", color: "\x1b[32m" },   // green
-  wave_decline:       { icon: "✗ ", color: "\x1b[31m" },   // red
-  wave_skip:          { icon: "⏭ ", color: "\x1b[33m" },   // yellow
-  wave_expired:       { icon: "⏰", color: "\x1b[33m" },   // yellow
-  wave_error:         { icon: "💥", color: "\x1b[31m" },   // red
-  opening_scheduled:  { icon: "⏳", color: "\x1b[36m" },   // cyan
-  opening_sent:       { icon: "💬", color: "\x1b[32m" },   // green
-  opening_skip:       { icon: "🤐", color: "\x1b[33m" },   // yellow
-  opening_error:      { icon: "💥", color: "\x1b[31m" },   // red
-  message_received:   { icon: "📩", color: "\x1b[36m" },   // cyan
-  reply_sent:         { icon: "💬", color: "\x1b[32m" },   // green
-  reply_skip:         { icon: "🤐", color: "\x1b[33m" },   // yellow
-  reply_error:        { icon: "💥", color: "\x1b[31m" },   // red
-  wave_waiting:       { icon: "⏳", color: "\x1b[33m" },   // yellow
-  wave_match_ready:   { icon: "🎯", color: "\x1b[32m" },   // green
-  wave_match_timeout: { icon: "⏰", color: "\x1b[31m" },   // red
+  wave_received: { icon: "👋", color: "\x1b[36m" }, // cyan
+  wave_accept: { icon: "✓ ", color: "\x1b[32m" }, // green
+  wave_decline: { icon: "✗ ", color: "\x1b[31m" }, // red
+  wave_skip: { icon: "⏭ ", color: "\x1b[33m" }, // yellow
+  wave_expired: { icon: "⏰", color: "\x1b[33m" }, // yellow
+  wave_error: { icon: "💥", color: "\x1b[31m" }, // red
+  opening_scheduled: { icon: "⏳", color: "\x1b[36m" }, // cyan
+  opening_sent: { icon: "💬", color: "\x1b[32m" }, // green
+  opening_skip: { icon: "🤐", color: "\x1b[33m" }, // yellow
+  opening_error: { icon: "💥", color: "\x1b[31m" }, // red
+  message_received: { icon: "📩", color: "\x1b[36m" }, // cyan
+  reply_sent: { icon: "💬", color: "\x1b[32m" }, // green
+  reply_skip: { icon: "🤐", color: "\x1b[33m" }, // yellow
+  reply_error: { icon: "💥", color: "\x1b[31m" }, // red
+  wave_waiting: { icon: "⏳", color: "\x1b[33m" }, // yellow
+  wave_match_ready: { icon: "🎯", color: "\x1b[32m" }, // green
+  wave_match_timeout: { icon: "⏰", color: "\x1b[31m" }, // red
 };
 
 const RESET = "\x1b[0m";
 const DIM = "\x1b[2m";
 
-function formatEvent(event: any): string {
-  const style = EVENT_STYLES[event.type] ?? { icon: "? ", color: "" };
-  const time = DIM + timeStr(event.ts) + RESET;
-  const type = style.color + pad(event.type, 20) + RESET;
+function formatEvent(event: Record<string, unknown>): string {
+  const eventType = String(event.type ?? "");
+  const style = EVENT_STYLES[eventType] ?? { icon: "? ", color: "" };
+  const time = DIM + timeStr(event.ts as number | undefined) + RESET;
+  const type = style.color + pad(eventType, 20) + RESET;
 
-  const parts = [
-    `  ${style.icon} ${time} ${type}`,
-  ];
+  const parts = [`  ${style.icon} ${time} ${type}`];
 
   if (event.bot) parts.push(`${event.bot}`);
   if (event.from) parts.push(`← ${event.from}`);

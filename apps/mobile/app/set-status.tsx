@@ -1,33 +1,26 @@
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  Pressable,
-  Alert,
-} from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useAuthStore } from '@/stores/authStore';
-import { trpc } from '@/lib/trpc';
-import { colors, type as typ, spacing, fonts } from '@/theme';
-import { Button } from '@/components/ui/Button';
-import ms from 'ms';
+import { router, useLocalSearchParams } from "expo-router";
+import ms from "ms";
+import { useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Button } from "@/components/ui/Button";
+import { trpc } from "@/lib/trpc";
+import { useAuthStore } from "@/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
-type Duration = '1h' | '6h' | '24h' | 'never';
+type Duration = "1h" | "6h" | "24h" | "never";
 
 const DURATION_OPTIONS: { value: Duration; label: string }[] = [
-  { value: '1h', label: '1h' },
-  { value: '6h', label: '6h' },
-  { value: '24h', label: '24h' },
-  { value: 'never', label: 'Do odwołania' },
+  { value: "1h", label: "1h" },
+  { value: "6h", label: "6h" },
+  { value: "24h", label: "24h" },
+  { value: "never", label: "Do odwołania" },
 ];
 
 export default function SetStatusScreen() {
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
   const setProfile = useAuthStore((state) => state.setProfile);
-  const [text, setText] = useState(prefill || '');
-  const [duration, setDuration] = useState<Duration>('6h');
+  const [text, setText] = useState(prefill || "");
+  const [duration, setDuration] = useState<Duration>("6h");
 
   const isEditing = !!prefill;
 
@@ -49,7 +42,7 @@ export default function SetStatusScreen() {
       invalidateAfterStatusChange();
     },
     onError: () => {
-      Alert.alert('Błąd', 'Nie udało się wyczyścić statusu');
+      Alert.alert("Błąd", "Nie udało się wyczyścić statusu");
     },
   });
 
@@ -63,9 +56,7 @@ export default function SetStatusScreen() {
       setProfile({
         ...previousProfile,
         currentStatus: trimmed,
-        statusExpiresAt: duration === 'never'
-          ? null
-          : new Date(Date.now() + ms(duration)).toISOString(),
+        statusExpiresAt: duration === "never" ? null : new Date(Date.now() + ms(duration)).toISOString(),
         statusSetAt: new Date().toISOString(),
       });
     }
@@ -75,9 +66,8 @@ export default function SetStatusScreen() {
       { text: trimmed, expiresIn: duration },
       {
         onError: () => {
-    
           if (previousProfile) setProfile(previousProfile);
-          Alert.alert('Błąd', 'Nie udało się ustawić statusu');
+          Alert.alert("Błąd", "Nie udało się ustawić statusu");
         },
       },
     );
@@ -123,18 +113,10 @@ export default function SetStatusScreen() {
         {DURATION_OPTIONS.map((opt) => (
           <Pressable
             key={opt.value}
-            style={[
-              styles.durationChip,
-              duration === opt.value && styles.durationChipSelected,
-            ]}
+            style={[styles.durationChip, duration === opt.value && styles.durationChipSelected]}
             onPress={() => setDuration(opt.value)}
           >
-            <Text
-              style={[
-                styles.durationChipText,
-                duration === opt.value && styles.durationChipTextSelected,
-              ]}
-            >
+            <Text style={[styles.durationChipText, duration === opt.value && styles.durationChipTextSelected]}>
               {opt.label}
             </Text>
           </Pressable>
@@ -187,7 +169,7 @@ const styles = StyleSheet.create({
   },
   charCount: {
     ...typ.caption,
-    textAlign: 'right',
+    textAlign: "right",
     marginTop: spacing.hairline,
   },
   durationLabel: {
@@ -195,9 +177,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.gutter,
   },
   durationRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.tight,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
     marginBottom: spacing.block,
   },
   durationChip: {
@@ -208,8 +190,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   durationChipSelected: {
-    backgroundColor: '#D4851C',
-    borderColor: '#D4851C',
+    backgroundColor: "#D4851C",
+    borderColor: "#D4851C",
   },
   durationChipText: {
     fontFamily: fonts.sansSemiBold,
@@ -217,12 +199,12 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   durationChipTextSelected: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   submitContainer: {
     marginTop: spacing.column,
     gap: spacing.column,
-    alignItems: 'center',
+    alignItems: "center",
   },
   clearButton: {
     paddingVertical: spacing.tight,

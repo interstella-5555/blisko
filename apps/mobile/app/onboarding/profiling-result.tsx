@@ -1,46 +1,38 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Switch,
-} from 'react-native';
-import { router } from 'expo-router';
-import { trpc } from '../../src/lib/trpc';
-import { useWebSocket } from '../../src/lib/ws';
-import { useOnboardingStore } from '../../src/stores/onboardingStore';
-import { useAuthStore } from '../../src/stores/authStore';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { Button } from '../../src/components/ui/Button';
-import { ThinkingIndicator } from '../../src/components/ui/ThinkingIndicator';
+import { router } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Button } from "../../src/components/ui/Button";
+import { ThinkingIndicator } from "../../src/components/ui/ThinkingIndicator";
+import { trpc } from "../../src/lib/trpc";
+import { useWebSocket, type WSMessage } from "../../src/lib/ws";
+import { useAuthStore } from "../../src/stores/authStore";
+import { useOnboardingStore } from "../../src/stores/onboardingStore";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
 export default function ProfilingResultScreen() {
   const { profilingSessionId, displayName, complete } = useOnboardingStore();
   const setProfile = useAuthStore((s) => s.setProfile);
   const setHasCheckedProfile = useAuthStore((s) => s.setHasCheckedProfile);
 
-  const [bio, setBio] = useState('');
-  const [lookingFor, setLookingFor] = useState('');
-  const [portrait, setPortrait] = useState('');
+  const [bio, setBio] = useState("");
+  const [lookingFor, setLookingFor] = useState("");
+  const [portrait, setPortrait] = useState("");
   const [portraitShared, setPortraitShared] = useState(false);
   const [portraitExpanded, setPortraitExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [isGenerating, setIsGenerating] = useState(true);
 
   // Redirect if no session (e.g., direct navigation or app restart)
   useEffect(() => {
     if (!profilingSessionId) {
-      router.replace('/onboarding');
+      router.replace("/onboarding");
     }
   }, [profilingSessionId]);
 
   const sessionState = trpc.profiling.getSessionState.useQuery(
     { sessionId: profilingSessionId! },
-    { enabled: !!profilingSessionId }
+    { enabled: !!profilingSessionId },
   );
 
   const applyProfile = trpc.profiling.applyProfile.useMutation();
@@ -60,13 +52,13 @@ export default function ProfilingResultScreen() {
 
   // Listen for WS event when profile generation completes
   const handleWsMessage = useCallback(
-    (msg: any) => {
+    (msg: WSMessage) => {
       if (!profilingSessionId) return;
-      if (msg.type === 'profilingComplete' && msg.sessionId === profilingSessionId) {
+      if (msg.type === "profilingComplete" && msg.sessionId === profilingSessionId) {
         sessionState.refetch();
       }
     },
-    [profilingSessionId, sessionState]
+    [profilingSessionId, sessionState],
   );
 
   useWebSocket(handleWsMessage);
@@ -83,7 +75,7 @@ export default function ProfilingResultScreen() {
   const handleApply = async () => {
     if (!profilingSessionId) return;
     setIsSubmitting(true);
-    setError('');
+    setError("");
 
     try {
       const profile = await applyProfile.mutateAsync({
@@ -97,11 +89,11 @@ export default function ProfilingResultScreen() {
       setHasCheckedProfile(true);
       complete();
       setTimeout(() => {
-        router.replace('/(tabs)');
+        router.replace("/(tabs)");
       }, 100);
     } catch (err) {
-      console.error('Failed to apply profile:', err);
-      setError('Nie udało się zapisać profilu. Spróbuj ponownie.');
+      console.error("Failed to apply profile:", err);
+      setError("Nie udało się zapisać profilu. Spróbuj ponownie.");
     } finally {
       setIsSubmitting(false);
     }
@@ -112,11 +104,7 @@ export default function ProfilingResultScreen() {
     return (
       <View style={[styles.container, styles.centered]}>
         <ThinkingIndicator
-          messages={[
-            'Generuję Twój profil...',
-            'Analizuję Twoje odpowiedzi...',
-            'Jeszcze chwilka...',
-          ]}
+          messages={["Generuję Twój profil...", "Analizuję Twoje odpowiedzi...", "Jeszcze chwilka..."]}
         />
       </View>
     );
@@ -129,9 +117,7 @@ export default function ProfilingResultScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.title}>Twój profil</Text>
-      <Text style={styles.subtitle}>
-        Możesz edytować tekst przed zapisaniem
-      </Text>
+      <Text style={styles.subtitle}>Możesz edytować tekst przed zapisaniem</Text>
 
       <Text style={styles.label}>O MNIE</Text>
       <TextInput
@@ -161,23 +147,14 @@ export default function ProfilingResultScreen() {
 
       {portrait ? (
         <>
-          <Pressable
-            onPress={() => setPortraitExpanded(!portraitExpanded)}
-            style={styles.portraitHeader}
-          >
+          <Pressable onPress={() => setPortraitExpanded(!portraitExpanded)} style={styles.portraitHeader}>
             <Text style={styles.label}>PORTRET OSOBOWOŚCI</Text>
-            <Text style={typ.caption}>
-              {portraitExpanded ? 'Schowaj' : 'Pokaż'}
-            </Text>
+            <Text style={typ.caption}>{portraitExpanded ? "Schowaj" : "Pokaż"}</Text>
           </Pressable>
-          {portraitExpanded && (
-            <Text style={styles.portraitText}>{portrait}</Text>
-          )}
+          {portraitExpanded && <Text style={styles.portraitText}>{portrait}</Text>}
 
           <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>
-              Udostępnij portret do lepszego dopasowywania
-            </Text>
+            <Text style={styles.toggleLabel}>Udostępnij portret do lepszego dopasowywania</Text>
             <Switch
               value={portraitShared}
               onValueChange={setPortraitShared}
@@ -209,8 +186,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollContent: {
     paddingHorizontal: spacing.section,
@@ -241,13 +218,13 @@ const styles = StyleSheet.create({
   },
   charCount: {
     ...typ.caption,
-    textAlign: 'right',
+    textAlign: "right",
     marginTop: spacing.hairline,
   },
   portraitHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: spacing.column,
     marginBottom: spacing.tight,
   },
@@ -258,9 +235,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.column,
   },
   toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: spacing.column,
     paddingVertical: spacing.gutter,
     borderTopWidth: 1,
@@ -276,7 +253,7 @@ const styles = StyleSheet.create({
     color: colors.status.error.text,
     fontSize: 14,
     marginTop: spacing.column,
-    textAlign: 'center',
+    textAlign: "center",
   },
   buttonContainer: {
     marginTop: spacing.section,

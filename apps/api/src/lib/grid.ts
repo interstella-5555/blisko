@@ -18,7 +18,7 @@ export interface GridPosition {
  */
 export function toGridCenter(lat: number, lng: number): GridPosition {
   // Longitude grid size varies with latitude (earth is not flat)
-  const lngGridSize = GRID_SIZE / Math.cos(lat * Math.PI / 180);
+  const lngGridSize = GRID_SIZE / Math.cos((lat * Math.PI) / 180);
 
   const latIdx = Math.floor(lat / GRID_SIZE);
   const lngIdx = Math.floor(lng / lngGridSize);

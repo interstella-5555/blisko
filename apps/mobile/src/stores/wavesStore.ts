@@ -1,9 +1,9 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 export type WaveStatus =
-  | { type: 'sent'; waveId: string }
-  | { type: 'received'; waveId: string }
-  | { type: 'connected' };
+  | { type: "sent"; waveId: string }
+  | { type: "received"; waveId: string }
+  | { type: "connected" };
 
 export interface WaveEntry {
   id: string;
@@ -41,49 +41,36 @@ interface WavesStore {
 
   setReceived(waves: ReceivedWaveEntry[]): void;
   setSent(waves: SentWaveEntry[]): void;
-  addReceived(
-    wave: WaveEntry,
-    fromProfile: { displayName: string; avatarUrl: string | null },
-  ): void;
-  addSent(
-    wave: WaveEntry,
-    toProfile?: Partial<SentWaveEntry['toProfile']>,
-  ): void;
+  addReceived(wave: WaveEntry, fromProfile: { displayName: string; avatarUrl: string | null }): void;
+  addSent(wave: WaveEntry, toProfile?: Partial<SentWaveEntry["toProfile"]>): void;
   removeSent(waveId: string): void;
   reset(): void;
-  updateStatus(
-    waveId: string,
-    accepted: boolean,
-    statusOverride?: string,
-  ): void;
+  updateStatus(waveId: string, accepted: boolean, statusOverride?: string): void;
 }
 
-function computeStatusMap(
-  sent: SentWaveEntry[],
-  received: ReceivedWaveEntry[],
-): Map<string, WaveStatus> {
+function computeStatusMap(sent: SentWaveEntry[], received: ReceivedWaveEntry[]): Map<string, WaveStatus> {
   const map = new Map<string, WaveStatus>();
 
   for (const w of sent) {
-    if (w.wave.status === 'accepted') {
-      map.set(w.wave.toUserId, { type: 'connected' });
-    } else if (w.wave.status === 'pending') {
-      map.set(w.wave.toUserId, { type: 'sent', waveId: w.wave.id });
+    if (w.wave.status === "accepted") {
+      map.set(w.wave.toUserId, { type: "connected" });
+    } else if (w.wave.status === "pending") {
+      map.set(w.wave.toUserId, { type: "sent", waveId: w.wave.id });
     }
   }
 
   for (const w of received) {
-    if (w.wave.status === 'accepted') {
-      map.set(w.wave.fromUserId, { type: 'connected' });
-    } else if (w.wave.status === 'pending' && !map.has(w.wave.fromUserId)) {
-      map.set(w.wave.fromUserId, { type: 'received', waveId: w.wave.id });
+    if (w.wave.status === "accepted") {
+      map.set(w.wave.fromUserId, { type: "connected" });
+    } else if (w.wave.status === "pending" && !map.has(w.wave.fromUserId)) {
+      map.set(w.wave.fromUserId, { type: "received", waveId: w.wave.id });
     }
   }
 
   return map;
 }
 
-export const useWavesStore = create<WavesStore>((set, get) => ({
+export const useWavesStore = create<WavesStore>((set, _get) => ({
   received: [],
   sent: [],
   waveStatusByUserId: new Map(),
@@ -135,7 +122,7 @@ export const useWavesStore = create<WavesStore>((set, get) => ({
           wave,
           toProfile: {
             userId: wave.toUserId,
-            displayName: toProfile?.displayName ?? '',
+            displayName: toProfile?.displayName ?? "",
             avatarUrl: toProfile?.avatarUrl ?? null,
             bio: toProfile?.bio ?? null,
           },
@@ -161,11 +148,9 @@ export const useWavesStore = create<WavesStore>((set, get) => ({
 
   updateStatus(waveId, accepted, statusOverride) {
     set((state) => {
-      const newStatus = statusOverride ?? (accepted ? 'accepted' : 'declined');
+      const newStatus = statusOverride ?? (accepted ? "accepted" : "declined");
 
-      const sent = state.sent.map((s) =>
-        s.wave.id === waveId ? { ...s, wave: { ...s.wave, status: newStatus } } : s,
-      );
+      const sent = state.sent.map((s) => (s.wave.id === waveId ? { ...s, wave: { ...s.wave, status: newStatus } } : s));
       const received = state.received.map((r) =>
         r.wave.id === waveId ? { ...r, wave: { ...r.wave, status: newStatus } } : r,
       );

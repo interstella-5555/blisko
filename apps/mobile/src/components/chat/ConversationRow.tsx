@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Avatar } from '../ui/Avatar';
-import { colors, fonts, spacing } from '../../theme';
+import type React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { colors, fonts, spacing } from "../../theme";
+import { Avatar } from "../ui/Avatar";
 
 interface ConversationRowProps {
-  type?: 'dm' | 'group';
+  type?: "dm" | "group";
   displayName: string;
   avatarUrl: string | null;
   lastMessage: string | null;
@@ -23,30 +23,29 @@ function formatRelativeTime(dateString: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'teraz';
+  if (diffMins < 1) return "teraz";
   if (diffMins < 60) return `${diffMins} min`;
   if (diffHours < 24) return `${diffHours} godz.`;
   if (diffDays < 7) return `${diffDays} d.`;
-  return date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+  return date.toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
 }
 
 export function ConversationRow({
-  type = 'dm',
+  type = "dm",
   displayName,
   avatarUrl,
   lastMessage,
   lastMessageSenderName,
   lastMessageTime,
-  memberCount,
   unreadCount,
   onPress,
 }: ConversationRowProps) {
-  const isGroup = type === 'group';
+  const isGroup = type === "group";
 
   // For groups, build preview with sender name prefix
   let previewText: React.ReactNode;
   if (!lastMessage) {
-    previewText = isGroup ? 'Brak wiadomości' : 'Rozpocznij rozmowę';
+    previewText = isGroup ? "Brak wiadomości" : "Rozpocznij rozmowę";
   } else if (isGroup && lastMessageSenderName) {
     previewText = (
       <Text numberOfLines={1}>
@@ -63,21 +62,18 @@ export function ConversationRow({
       <Avatar uri={avatarUrl} name={displayName} size={48} />
       <View style={styles.content}>
         <View style={styles.topLine}>
-          <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
-          {lastMessageTime && (
-            <Text style={styles.time}>{formatRelativeTime(lastMessageTime)}</Text>
-          )}
+          <Text style={styles.name} numberOfLines={1}>
+            {displayName}
+          </Text>
+          {lastMessageTime && <Text style={styles.time}>{formatRelativeTime(lastMessageTime)}</Text>}
         </View>
         <View style={styles.bottomLine}>
-          <Text
-            style={[styles.preview, unreadCount > 0 && styles.previewUnread]}
-            numberOfLines={1}
-          >
+          <Text style={[styles.preview, unreadCount > 0 && styles.previewUnread]} numberOfLines={1}>
             {previewText}
           </Text>
           {unreadCount > 0 && (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
             </View>
           )}
         </View>
@@ -88,8 +84,8 @@ export function ConversationRow({
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: spacing.gutter,
     paddingHorizontal: spacing.section,
     borderBottomWidth: 1,
@@ -100,9 +96,9 @@ const styles = StyleSheet.create({
     marginLeft: spacing.gutter,
   },
   topLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 2,
   },
   name: {
@@ -118,9 +114,9 @@ const styles = StyleSheet.create({
     marginLeft: spacing.tight,
   },
   bottomLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   preview: {
     fontFamily: fonts.sans,
@@ -137,15 +133,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     minWidth: 20,
     height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 6,
     marginLeft: spacing.tight,
   },
   badgeText: {
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   senderPrefix: {
     fontFamily: fonts.sansMedium,

@@ -1,24 +1,15 @@
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  StyleSheet,
-  Animated,
-  Alert,
-  Linking,
-} from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { trpc } from '../../../src/lib/trpc';
-import { sendWsMessage, useWebSocket } from '../../../src/lib/ws';
-import { useProfilesStore } from '../../../src/stores/profilesStore';
-import { useWavesStore } from '../../../src/stores/wavesStore';
-import { useConversationsStore } from '../../../src/stores/conversationsStore';
-import { colors, type as typ, spacing, fonts } from '../../../src/theme';
-import { Avatar } from '../../../src/components/ui/Avatar';
-import { IconWave, IconCheck, IconChat } from '../../../src/components/ui/icons';
-import { formatDistance } from '../../../src/lib/format';
+import { router, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Avatar } from "../../../src/components/ui/Avatar";
+import { IconChat, IconCheck, IconWave } from "../../../src/components/ui/icons";
+import { formatDistance } from "../../../src/lib/format";
+import { trpc } from "../../../src/lib/trpc";
+import { sendWsMessage, useWebSocket, type WSMessage } from "../../../src/lib/ws";
+import { useConversationsStore } from "../../../src/stores/conversationsStore";
+import { useProfilesStore } from "../../../src/stores/profilesStore";
+import { useWavesStore } from "../../../src/stores/wavesStore";
+import { colors, fonts, spacing, type as typ } from "../../../src/theme";
 
 function SkeletonLines({ count }: { count: number }) {
   const opacity = useRef(new Animated.Value(0.3)).current;
@@ -28,18 +19,19 @@ function SkeletonLines({ count }: { count: number }) {
       Animated.sequence([
         Animated.timing(opacity, { toValue: 0.7, duration: 800, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
-      ])
+      ]),
     );
     animation.start();
     return () => animation.stop();
-  }, []);
+  }, [opacity]);
 
-  const widths = ['100%', '90%', '75%', '85%'];
+  const widths = ["100%", "90%", "75%", "85%"];
+  const items = Array.from({ length: count }, (_, i) => `skeleton-${i}`);
   return (
     <View style={{ gap: spacing.tight }}>
-      {Array.from({ length: count }, (_, i) => (
+      {items.map((key, i) => (
         <Animated.View
-          key={i}
+          key={key}
           style={{
             height: 14,
             width: widths[i % widths.length] as `${number}%`,
@@ -66,11 +58,9 @@ export default function UserProfileScreen() {
 
   const userId = params.userId;
   const distance = Number(params.distance) || 0;
-  const rankScore = Number(params.rankScore) || 0;
+  const _rankScore = Number(params.rankScore) || 0;
   const matchScore = Number(params.matchScore) || 0;
-  const commonInterests: string[] = params.commonInterests
-    ? JSON.parse(params.commonInterests)
-    : [];
+  const commonInterests: string[] = params.commonInterests ? JSON.parse(params.commonInterests) : [];
   const avatarUrl = params.avatarUrl || null;
 
   const [pendingWaveId, setPendingWaveId] = useState<string | null>(null);
@@ -82,7 +72,7 @@ export default function UserProfileScreen() {
   // Skip getById if we already have full profile data in store
   const { data: profile, isLoading } = trpc.profiles.getById.useQuery(
     { userId },
-    { enabled: !!userId && cached?._partial !== false }
+    { enabled: !!userId && cached?._partial !== false },
   );
 
   // When full profile arrives, merge into store
@@ -100,17 +90,20 @@ export default function UserProfileScreen() {
 
   const { data: analysis, isFetched: analysisFetched } = trpc.profiles.getConnectionAnalysis.useQuery(
     { userId },
-    { enabled: !!userId }
+    { enabled: !!userId },
   );
 
   const utils = trpc.useUtils();
 
   // WS: invalidate analysis when backend signals it's ready
-  const wsHandler = useCallback((msg: any) => {
-    if (msg.type === 'analysisReady' && msg.aboutUserId === userId) {
-      utils.profiles.getConnectionAnalysis.invalidate({ userId });
-    }
-  }, [userId]);
+  const wsHandler = useCallback(
+    (msg: WSMessage) => {
+      if (msg.type === "analysisReady" && msg.aboutUserId === userId) {
+        utils.profiles.getConnectionAnalysis.invalidate({ userId });
+      }
+    },
+    [userId, utils.profiles.getConnectionAnalysis.invalidate],
+  );
   useWebSocket(wsHandler);
 
   // Self-healing: if analysis confirmed missing after 10s, poke backend
@@ -121,7 +114,7 @@ export default function UserProfileScreen() {
       ensureAnalysisMutation.mutate({ userId });
     }, 10_000);
     return () => clearTimeout(timer);
-  }, [analysisFetched, analysis, userId]);
+  }, [analysisFetched, analysis, userId, ensureAnalysisMutation.mutate]);
 
   // Read wave/conversation state from stores
   const sentWaves = useWavesStore((s) => s.sent);
@@ -135,48 +128,54 @@ export default function UserProfileScreen() {
   const cancelWaveMutation = trpc.waves.cancel.useMutation();
   const respondMutation = trpc.waves.respond.useMutation();
 
-  const [optimisticAction, setOptimisticAction] = useState<'accepted' | 'declined' | null>(null);
+  const [optimisticAction, setOptimisticAction] = useState<"accepted" | "declined" | null>(null);
 
   const incomingWave = useMemo(() => {
-    return receivedWaves.find(w => w.wave.fromUserId === userId && w.wave.status === 'pending');
+    return receivedWaves.find((w) => w.wave.fromUserId === userId && w.wave.status === "pending");
   }, [receivedWaves, userId]);
 
   // Sync pendingWaveId from store when no mutation is in-flight
   useEffect(() => {
     if (busyRef.current) return;
-    const pending = sentWaves.find(
-      (w) => w.wave.toUserId === userId && w.wave.status === 'pending'
-    );
+    const pending = sentWaves.find((w) => w.wave.toUserId === userId && w.wave.status === "pending");
     setPendingWaveId(pending?.wave.id ?? null);
   }, [sentWaves, userId]);
 
   const handleWave = async () => {
     if (busyRef.current || pendingWaveId || conversationId) return;
     busyRef.current = true;
-    setPendingWaveId('optimistic');
+    setPendingWaveId("optimistic");
     // Optimistic store update
-    useWavesStore.getState().addSent(
-      { id: 'optimistic', fromUserId: '', toUserId: userId, status: 'pending', createdAt: new Date().toISOString() },
-      cached ? { displayName: cached.displayName, avatarUrl: cached.avatarUrl } : undefined,
-    );
+    useWavesStore
+      .getState()
+      .addSent(
+        { id: "optimistic", fromUserId: "", toUserId: userId, status: "pending", createdAt: new Date().toISOString() },
+        cached ? { displayName: cached.displayName, avatarUrl: cached.avatarUrl } : undefined,
+      );
     try {
       const wave = await sendWaveMutation.mutateAsync({ toUserId: userId });
       // Replace optimistic with real
-      useWavesStore.getState().removeSent('optimistic');
+      useWavesStore.getState().removeSent("optimistic");
       useWavesStore.getState().addSent(
-        { id: wave.id, fromUserId: wave.fromUserId, toUserId: wave.toUserId, status: wave.status, createdAt: wave.createdAt.toString() },
+        {
+          id: wave.id,
+          fromUserId: wave.fromUserId,
+          toUserId: wave.toUserId,
+          status: wave.status,
+          createdAt: wave.createdAt.toString(),
+        },
         cached ? { displayName: cached.displayName, avatarUrl: cached.avatarUrl } : undefined,
       );
       setPendingWaveId(wave.id);
       await utils.waves.getSent.invalidate();
-    } catch (error: any) {
-      useWavesStore.getState().removeSent('optimistic');
-      const errorMsg = error.message || error.toString();
-      if (errorMsg.includes('already waved')) {
+    } catch (error: unknown) {
+      useWavesStore.getState().removeSent("optimistic");
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes("already waved")) {
         // Already waved — keep pending state, let next sync pick up the real ID
       } else {
         setPendingWaveId(null);
-        Alert.alert('Błąd', `Nie udało się wysłać zaczepienia: ${errorMsg}`);
+        Alert.alert("Błąd", `Nie udało się wysłać zaczepienia: ${errorMsg}`);
       }
     } finally {
       busyRef.current = false;
@@ -184,7 +183,7 @@ export default function UserProfileScreen() {
   };
 
   const handleCancelWave = async () => {
-    if (busyRef.current || !pendingWaveId || pendingWaveId === 'optimistic') return;
+    if (busyRef.current || !pendingWaveId || pendingWaveId === "optimistic") return;
     busyRef.current = true;
     const prevId = pendingWaveId;
     setPendingWaveId(null);
@@ -210,16 +209,16 @@ export default function UserProfileScreen() {
   const handleAccept = async () => {
     if (busyRef.current || !incomingWave) return;
     busyRef.current = true;
-    setOptimisticAction('accepted');
+    setOptimisticAction("accepted");
     useWavesStore.getState().updateStatus(incomingWave.wave.id, true);
     try {
       const result = await respondMutation.mutateAsync({ waveId: incomingWave.wave.id, accept: true });
       if (result.conversationId) {
-        sendWsMessage({ type: 'subscribe', conversationId: result.conversationId });
+        sendWsMessage({ type: "subscribe", conversationId: result.conversationId });
         // Add new conversation to store
         useConversationsStore.getState().addNew({
           id: result.conversationId,
-          type: 'dm',
+          type: "dm",
           participant: {
             userId,
             displayName: cached?.displayName || params.displayName,
@@ -242,7 +241,7 @@ export default function UserProfileScreen() {
     } catch {
       setOptimisticAction(null);
       // Restore to pending, not declined
-      useWavesStore.getState().updateStatus(incomingWave.wave.id, false, 'pending');
+      useWavesStore.getState().updateStatus(incomingWave.wave.id, false, "pending");
     } finally {
       busyRef.current = false;
     }
@@ -250,30 +249,26 @@ export default function UserProfileScreen() {
 
   const handleDecline = () => {
     if (busyRef.current || !incomingWave) return;
-    Alert.alert(
-      'Odrzuć zaczepienie',
-      'Czy na pewno chcesz odrzucić to zaczepienie?',
-      [
-        { text: 'Anuluj', style: 'cancel' },
-        {
-          text: 'Odrzuć',
-          style: 'destructive',
-          onPress: async () => {
-            busyRef.current = true;
-            setOptimisticAction('declined');
-            useWavesStore.getState().updateStatus(incomingWave.wave.id, false);
-            try {
-              await respondMutation.mutateAsync({ waveId: incomingWave.wave.id, accept: false });
-              await utils.waves.getReceived.invalidate();
-            } catch {
-              setOptimisticAction(null);
-            } finally {
-              busyRef.current = false;
-            }
-          },
+    Alert.alert("Odrzuć zaczepienie", "Czy na pewno chcesz odrzucić to zaczepienie?", [
+      { text: "Anuluj", style: "cancel" },
+      {
+        text: "Odrzuć",
+        style: "destructive",
+        onPress: async () => {
+          busyRef.current = true;
+          setOptimisticAction("declined");
+          useWavesStore.getState().updateStatus(incomingWave.wave.id, false);
+          try {
+            await respondMutation.mutateAsync({ waveId: incomingWave.wave.id, accept: false });
+            await utils.waves.getReceived.invalidate();
+          } catch {
+            setOptimisticAction(null);
+          } finally {
+            busyRef.current = false;
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   // Resolve display values: cached store > route params > query
@@ -283,9 +278,7 @@ export default function UserProfileScreen() {
   const resolvedLookingFor = cached?.lookingFor ?? profile?.lookingFor;
   const resolvedDistance = cached?.distance ?? distance;
   const resolvedMatchScore = cached?.matchScore ?? matchScore;
-  const matchPercent = analysis
-    ? Math.round(analysis.aiMatchScore)
-    : resolvedMatchScore;
+  const matchPercent = analysis ? Math.round(analysis.aiMatchScore) : resolvedMatchScore;
 
   if (!isLoading && !profile && !cached) {
     return (
@@ -296,47 +289,43 @@ export default function UserProfileScreen() {
   }
 
   // Action state: conversation/accepted > waved pending > incoming wave > idle
-  const actionState = conversationId || optimisticAction === 'accepted'
-    ? 'chat'
-    : pendingWaveId
-      ? 'pending'
-      : optimisticAction === 'declined'
-        ? 'idle'
-        : incomingWave
-          ? 'incoming'
-          : 'idle';
+  const actionState =
+    conversationId || optimisticAction === "accepted"
+      ? "chat"
+      : pendingWaveId
+        ? "pending"
+        : optimisticAction === "declined"
+          ? "idle"
+          : incomingWave
+            ? "incoming"
+            : "idle";
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-    >
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       {/* Header — always visible from cached/list params */}
       <View style={styles.header}>
         <Avatar uri={profile?.avatarUrl ?? resolvedAvatarUrl} name={displayName} size={100} />
         <Text style={styles.displayName}>{displayName}</Text>
         <View style={styles.meta}>
-          {matchPercent > 0 && (
-            <Text style={styles.matchBadge}>{matchPercent}% dopasowania</Text>
-          )}
+          {matchPercent > 0 && <Text style={styles.matchBadge}>{matchPercent}% dopasowania</Text>}
           <Text style={styles.distance}>{formatDistance(resolvedDistance)}</Text>
         </View>
 
         {/* Inline action */}
         <View style={styles.actionRow}>
-          {actionState === 'idle' && (
+          {actionState === "idle" && (
             <Pressable style={styles.actionPill} onPress={handleWave}>
               <IconWave size={13} color={colors.bg} />
               <Text style={styles.actionPillText}>Zaczep</Text>
             </Pressable>
           )}
-          {actionState === 'pending' && (
+          {actionState === "pending" && (
             <Pressable style={styles.pendingPill} onPress={handleCancelWave}>
               <IconCheck size={12} color={colors.muted} />
               <Text style={styles.pendingPillText}>Zaczepiono</Text>
             </Pressable>
           )}
-          {actionState === 'incoming' && (
+          {actionState === "incoming" && (
             <View style={styles.incomingActions}>
               <Pressable style={styles.declinePill} onPress={handleDecline}>
                 <Text style={styles.declinePillText}>Odrzuć</Text>
@@ -346,7 +335,7 @@ export default function UserProfileScreen() {
               </Pressable>
             </View>
           )}
-          {actionState === 'chat' && (
+          {actionState === "chat" && (
             <Pressable style={styles.chatPill} onPress={handleOpenChat}>
               <IconChat size={13} color={colors.bg} />
               <Text style={styles.chatPillText}>Napisz wiadomość</Text>
@@ -395,9 +384,7 @@ export default function UserProfileScreen() {
         {!cached && isLoading ? (
           <SkeletonLines count={3} />
         ) : (
-          <Text style={styles.sectionContent}>
-            {resolvedBio || 'Brak opisu'}
-          </Text>
+          <Text style={styles.sectionContent}>{resolvedBio || "Brak opisu"}</Text>
         )}
       </View>
 
@@ -407,9 +394,7 @@ export default function UserProfileScreen() {
         {!cached && isLoading ? (
           <SkeletonLines count={2} />
         ) : (
-          <Text style={styles.sectionContent}>
-            {resolvedLookingFor || 'Brak opisu'}
-          </Text>
+          <Text style={styles.sectionContent}>{resolvedLookingFor || "Brak opisu"}</Text>
         )}
       </View>
 
@@ -429,7 +414,7 @@ export default function UserProfileScreen() {
             <Pressable
               style={styles.socialPill}
               onPress={() => {
-                const url = profile.socialLinks!.linkedin!.startsWith('http')
+                const url = profile.socialLinks!.linkedin!.startsWith("http")
                   ? profile.socialLinks!.linkedin!
                   : `https://linkedin.com/in/${profile.socialLinks!.linkedin}`;
                 Linking.openURL(url);
@@ -452,8 +437,8 @@ const styles = StyleSheet.create({
   },
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: colors.bg,
   },
   emptyText: {
@@ -464,7 +449,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.block,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.block,
     borderBottomWidth: 1,
     borderBottomColor: colors.rule,
@@ -474,8 +459,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.column,
   },
   meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.gutter,
     marginTop: spacing.tight,
   },
@@ -491,8 +476,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.column,
   },
   actionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.tick,
     backgroundColor: colors.accent,
     paddingVertical: spacing.compact,
@@ -503,16 +488,16 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 11,
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: colors.bg,
   },
   incomingActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.gutter,
   },
   declinePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.tick,
     borderWidth: 1,
     borderColor: colors.rule,
@@ -524,12 +509,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 11,
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: colors.muted,
   },
   pendingPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.tick,
     borderWidth: 1,
     borderColor: colors.rule,
@@ -541,12 +526,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 11,
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: colors.muted,
   },
   chatPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.tick,
     backgroundColor: colors.ink,
     paddingVertical: spacing.compact,
@@ -557,7 +542,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 11,
     letterSpacing: 1,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: colors.bg,
   },
   otherStatus: {
@@ -567,15 +552,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
-    backgroundColor: '#FDF5EC',
-    borderColor: '#E8C9A0',
+    backgroundColor: "#FDF5EC",
+    borderColor: "#E8C9A0",
   },
   otherStatusLabel: {
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: '#D4851C',
+    textTransform: "uppercase",
+    color: "#D4851C",
     marginBottom: 4,
   },
   otherStatusText: {
@@ -609,8 +594,8 @@ const styles = StyleSheet.create({
     ...typ.body,
   },
   pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.tight,
   },
   pill: {
@@ -627,8 +612,8 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   socialLinksRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.tight,
     paddingVertical: spacing.column,
     paddingHorizontal: spacing.section,
@@ -636,8 +621,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.rule,
   },
   socialPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.tick,
     paddingVertical: spacing.tick,
     paddingHorizontal: spacing.gutter,

@@ -1,18 +1,18 @@
-import { z } from "zod";
-import { eq, and, sql, ne, isNotNull, notInArray, lte } from "drizzle-orm";
-import { router, protectedProcedure } from "~/trpc/trpc";
-import { db, schema } from "~/db";
 import {
   createGroupSchema,
-  updateGroupSchema,
-  joinGroupSchema,
-  groupMemberActionSchema,
-  setGroupRoleSchema,
   getDiscoverableGroupsSchema,
+  groupMemberActionSchema,
+  joinGroupSchema,
+  setGroupRoleSchema,
+  updateGroupSchema,
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { ee } from "~/ws/events";
-import { sendPushToUser } from "~/services/push";
+import { and, eq, isNotNull, lte, ne, notInArray, sql } from "drizzle-orm";
+import { z } from "zod";
+import { db, schema } from "@/db";
+import { sendPushToUser } from "@/services/push";
+import { protectedProcedure, router } from "@/trpc/trpc";
+import { ee } from "@/ws/events";
 
 function generateInviteCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";

@@ -1,4 +1,4 @@
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { Image, StyleSheet, Text, View } from "react-native";
 
 export interface ClusterUser {
   id: string;
@@ -24,9 +24,7 @@ export function GridClusterMarker({ users, highlighted }: GridClusterMarkerProps
           <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>
-              {user.displayName.charAt(0).toUpperCase()}
-            </Text>
+            <Text style={styles.avatarText}>{user.displayName.charAt(0).toUpperCase()}</Text>
           </View>
         )}
       </View>
@@ -38,20 +36,12 @@ export function GridClusterMarker({ users, highlighted }: GridClusterMarkerProps
     return (
       <View style={[styles.stackContainer, highlighted && styles.highlightedStack]}>
         {users.slice(0, 3).map((user, index) => (
-          <View
-            key={user.id}
-            style={[
-              styles.stackItem,
-              { marginLeft: index * 14, zIndex: 3 - index },
-            ]}
-          >
+          <View key={user.id} style={[styles.stackItem, { marginLeft: index * 14, zIndex: 3 - index }]}>
             {user.avatarUrl ? (
               <Image source={{ uri: user.avatarUrl }} style={styles.smallAvatar} />
             ) : (
               <View style={styles.smallAvatarPlaceholder}>
-                <Text style={styles.smallAvatarText}>
-                  {user.displayName.charAt(0).toUpperCase()}
-                </Text>
+                <Text style={styles.smallAvatarText}>{user.displayName.charAt(0).toUpperCase()}</Text>
               </View>
             )}
           </View>
@@ -73,9 +63,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -90,28 +80,28 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#007AFF",
+    justifyContent: "center",
+    alignItems: "center",
   },
   avatarText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   stackContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     height: 36,
     paddingRight: 8,
   },
   stackItem: {
-    position: 'absolute',
+    position: "absolute",
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 2,
@@ -126,24 +116,24 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#007AFF",
+    justifyContent: "center",
+    alignItems: "center",
   },
   smallAvatarText: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   badgeContainer: {
     minWidth: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#007AFF",
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -151,15 +141,15 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   highlighted: {
     borderWidth: 3,
-    borderColor: '#007AFF',
+    borderColor: "#007AFF",
   },
   highlightedStack: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    backgroundColor: "rgba(0, 122, 255, 0.1)",
     borderRadius: 20,
     padding: 4,
   },

@@ -1,8 +1,8 @@
-import { useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
-import { View, StyleSheet } from 'react-native';
-import MapView, { Marker, type Region } from 'react-native-maps';
-import { GridClusterMarker, type ClusterUser } from './GridClusterMarker';
-import { GroupMarker } from './GroupMarker';
+import { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
+import { StyleSheet, View } from "react-native";
+import MapView, { Marker, type Region } from "react-native-maps";
+import { type ClusterUser, GridClusterMarker } from "./GridClusterMarker";
+import { GroupMarker } from "./GroupMarker";
 
 export interface MapUser {
   profile: {
@@ -58,8 +58,17 @@ interface NearbyMapViewProps {
 
 export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
   (
-    { users, userLatitude, userLongitude, onClusterPress, highlightedGridId, groups, onGroupPress, onRegionChangeComplete },
-    ref
+    {
+      users,
+      userLatitude,
+      userLongitude,
+      onClusterPress,
+      highlightedGridId,
+      groups,
+      onGroupPress,
+      onRegionChangeComplete,
+    },
+    ref,
   ) => {
     const mapRef = useRef<MapView>(null);
 
@@ -72,7 +81,7 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
             latitudeDelta: 0.02,
             longitudeDelta: 0.02,
           },
-          300
+          300,
         );
       },
     }));
@@ -130,10 +139,7 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
               }}
               onPress={() => onClusterPress?.(cluster)}
             >
-              <GridClusterMarker
-                users={clusterUsers(cluster)}
-                highlighted={cluster.gridId === highlightedGridId}
-              />
+              <GridClusterMarker users={clusterUsers(cluster)} highlighted={cluster.gridId === highlightedGridId} />
             </Marker>
           ))}
           {groups?.map((group) => (
@@ -142,17 +148,13 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
               coordinate={{ latitude: group.latitude, longitude: group.longitude }}
               onPress={() => onGroupPress?.(group)}
             >
-              <GroupMarker
-                name={group.name}
-                avatarUrl={group.avatarUrl}
-                nearbyCount={group.nearbyMemberCount}
-              />
+              <GroupMarker name={group.name} avatarUrl={group.avatarUrl} nearbyCount={group.nearbyMemberCount} />
             </Marker>
           ))}
         </MapView>
       </View>
     );
-  }
+  },
 );
 
 const styles = StyleSheet.create({

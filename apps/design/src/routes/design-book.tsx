@@ -1,60 +1,60 @@
-import { useState, useEffect } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
-import s from './design-book.module.css'
-import { ColorPalette } from '~/components/design-book/ColorPalette'
-import { Typography } from '~/components/design-book/Typography'
-import { Iconography } from '~/components/design-book/Iconography'
-import { Patterns } from '~/components/design-book/Patterns'
-import { FormElements } from '~/components/design-book/FormElements'
-import { Components } from '~/components/design-book/Components'
-import { Screens } from '~/components/design-book/Screens'
-import { LayoutRules } from '~/components/design-book/LayoutRules'
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { ColorPalette } from "~/components/design-book/ColorPalette";
+import { Components } from "~/components/design-book/Components";
+import { FormElements } from "~/components/design-book/FormElements";
+import { Iconography } from "~/components/design-book/Iconography";
+import { LayoutRules } from "~/components/design-book/LayoutRules";
+import { Patterns } from "~/components/design-book/Patterns";
+import { Screens } from "~/components/design-book/Screens";
+import { Typography } from "~/components/design-book/Typography";
+import s from "./design-book.module.css";
 
-export const Route = createFileRoute('/design-book')({
+export const Route = createFileRoute("/design-book")({
   component: DesignBookPage,
-})
+});
 
 const SECTIONS = [
-  { id: 'color', num: 'I', title: 'Color Palette' },
-  { id: 'typography', num: 'II', title: 'Typography' },
-  { id: 'icons', num: 'III', title: 'Iconography' },
-  { id: 'patterns', num: 'IV', title: 'Patterns' },
-  { id: 'forms', num: 'V', title: 'Form Elements' },
-  { id: 'components', num: 'VI', title: 'Components' },
-  { id: 'screens', num: 'VII', title: 'Screens' },
-  { id: 'layout', num: 'VIII', title: 'Layout & Motion' },
-]
+  { id: "color", num: "I", title: "Color Palette" },
+  { id: "typography", num: "II", title: "Typography" },
+  { id: "icons", num: "III", title: "Iconography" },
+  { id: "patterns", num: "IV", title: "Patterns" },
+  { id: "forms", num: "V", title: "Form Elements" },
+  { id: "components", num: "VI", title: "Components" },
+  { id: "screens", num: "VII", title: "Screens" },
+  { id: "layout", num: "VIII", title: "Layout & Motion" },
+];
 
 function DesignBookPage() {
-  const [activeId, setActiveId] = useState(SECTIONS[0].id)
-  const isScreenshot = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('screenshot')
+  const [activeId, setActiveId] = useState(SECTIONS[0].id);
+  const isScreenshot = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("screenshot");
 
   useEffect(() => {
-    if (isScreenshot) return
-    const els = SECTIONS.map((sec) => document.getElementById(sec.id)).filter(Boolean) as HTMLElement[]
-    if (!els.length) return
+    if (isScreenshot) return;
+    const els = SECTIONS.map((sec) => document.getElementById(sec.id)).filter(Boolean) as HTMLElement[];
+    if (!els.length) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            setActiveId(entry.target.id)
+            setActiveId(entry.target.id);
           }
         }
       },
-      { rootMargin: '-100px 0px -60% 0px', threshold: 0 },
-    )
+      { rootMargin: "-100px 0px -60% 0px", threshold: 0 },
+    );
 
-    els.forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
-  }, [isScreenshot])
+    for (const el of els) observer.observe(el);
+    return () => observer.disconnect();
+  }, [isScreenshot]);
 
   if (isScreenshot) {
     return (
-      <div style={{ background: '#fff', padding: '48px 64px', minHeight: '100vh' }}>
+      <div style={{ background: "#fff", padding: "48px 64px", minHeight: "100vh" }}>
         <Screens onlyFirstRow />
       </div>
-    )
+    );
   }
 
   return (
@@ -65,10 +65,7 @@ function DesignBookPage() {
         <ul className={s.navList}>
           {SECTIONS.map((sec) => (
             <li key={sec.id} className={s.navItem}>
-              <a
-                href={`#${sec.id}`}
-                className={`${s.navLink} ${activeId === sec.id ? s.navLinkActive : ''}`}
-              >
+              <a href={`#${sec.id}`} className={`${s.navLink} ${activeId === sec.id ? s.navLinkActive : ""}`}>
                 <span className={s.navNumber}>{sec.num}</span>
                 {sec.title}
               </a>
@@ -84,9 +81,7 @@ function DesignBookPage() {
           <h1 className={s.mastheadTitle}>
             BLISKO <span className={s.mastheadDash}>&mdash;</span> Design Book
           </h1>
-          <p className={s.mastheadEdition}>
-            Newspaper / Editorial Variant &middot; Edition I &middot; February 2026
-          </p>
+          <p className={s.mastheadEdition}>Newspaper / Editorial Variant &middot; Edition I &middot; February 2026</p>
         </header>
 
         {/* I. Color Palette */}
@@ -96,8 +91,8 @@ function DesignBookPage() {
             <h2 className={s.sectionTitle}>Color Palette</h2>
           </div>
           <p className={s.sectionSubtitle}>
-            A restrained palette drawn from ink, paper, and editorial red.
-            Status colors are desaturated to maintain the calm, grown-up tone.
+            A restrained palette drawn from ink, paper, and editorial red. Status colors are desaturated to maintain the
+            calm, grown-up tone.
           </p>
           <ColorPalette />
         </section>
@@ -109,8 +104,8 @@ function DesignBookPage() {
             <h2 className={s.sectionTitle}>Typography</h2>
           </div>
           <p className={s.sectionSubtitle}>
-            Two typefaces: Instrument Serif for display and names, DM Sans for everything else.
-            All specimens shown with Polish text matching the app.
+            Two typefaces: Instrument Serif for display and names, DM Sans for everything else. All specimens shown with
+            Polish text matching the app.
           </p>
           <Typography />
         </section>
@@ -122,8 +117,8 @@ function DesignBookPage() {
             <h2 className={s.sectionTitle}>Iconography</h2>
           </div>
           <p className={s.sectionSubtitle}>
-            Editorial stroke icons replacing emoji. Each shown at 16, 24, and 32px.
-            Stroke weight 2px, round caps and joins.
+            Editorial stroke icons replacing emoji. Each shown at 16, 24, and 32px. Stroke weight 2px, round caps and
+            joins.
           </p>
           <Iconography />
         </section>
@@ -135,8 +130,7 @@ function DesignBookPage() {
             <h2 className={s.sectionTitle}>Decorative Patterns</h2>
           </div>
           <p className={s.sectionSubtitle}>
-            Rules, the bullet-rose tag prefix, map grid treatment,
-            and the editorial decorative vocabulary.
+            Rules, the bullet-rose tag prefix, map grid treatment, and the editorial decorative vocabulary.
           </p>
           <Patterns />
         </section>
@@ -148,8 +142,8 @@ function DesignBookPage() {
             <h2 className={s.sectionTitle}>Form Elements</h2>
           </div>
           <p className={s.sectionSubtitle}>
-            Buttons, inputs, tags, and badges in the editorial design language.
-            Bottom-border inputs, ink-on-cream buttons, uppercase DM Sans labels.
+            Buttons, inputs, tags, and badges in the editorial design language. Bottom-border inputs, ink-on-cream
+            buttons, uppercase DM Sans labels.
           </p>
           <FormElements />
         </section>
@@ -161,8 +155,8 @@ function DesignBookPage() {
             <h2 className={s.sectionTitle}>Components</h2>
           </div>
           <p className={s.sectionSubtitle}>
-            User rows, wave cards, bottom sheet, and empty states &mdash;
-            the building blocks of the app&apos;s editorial UI.
+            User rows, wave cards, bottom sheet, and empty states &mdash; the building blocks of the app&apos;s
+            editorial UI.
           </p>
           <Components />
         </section>
@@ -174,8 +168,8 @@ function DesignBookPage() {
             <h2 className={s.sectionTitle}>Screen Compositions</h2>
           </div>
           <p className={s.sectionSubtitle}>
-            Full screen mockups in phone frames showing the complete editorial experience
-            across login, onboarding, waves, chats, and profile.
+            Full screen mockups in phone frames showing the complete editorial experience across login, onboarding,
+            waves, chats, and profile.
           </p>
           <Screens />
         </section>
@@ -187,12 +181,12 @@ function DesignBookPage() {
             <h2 className={s.sectionTitle}>Layout Rules &amp; Motion</h2>
           </div>
           <p className={s.sectionSubtitle}>
-            Spacing scale, layout principles, motion guidelines,
-            and the do/don&apos;t reference for maintaining editorial consistency.
+            Spacing scale, layout principles, motion guidelines, and the do/don&apos;t reference for maintaining
+            editorial consistency.
           </p>
           <LayoutRules />
         </section>
       </main>
     </div>
-  )
+  );
 }

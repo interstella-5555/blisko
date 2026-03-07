@@ -1,10 +1,10 @@
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, and } from "drizzle-orm";
-import { router, protectedProcedure } from "~/trpc/trpc";
-import { db, schema } from "~/db";
-import { auth } from "~/auth";
-import { enqueueHardDeleteUser } from "~/services/queue";
+import { and, eq } from "drizzle-orm";
+import { z } from "zod";
+import { auth } from "@/auth";
+import { db, schema } from "@/db";
+import { enqueueHardDeleteUser } from "@/services/queue";
+import { protectedProcedure, router } from "@/trpc/trpc";
 
 export const accountsRouter = router({
   listConnected: protectedProcedure.query(async ({ ctx }) => {

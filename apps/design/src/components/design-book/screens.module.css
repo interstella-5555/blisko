@@ -16,7 +16,7 @@
 }
 
 .screenLabel {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
@@ -39,7 +39,7 @@
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 4px;
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 13px;
   color: var(--db-muted);
   border-bottom: 1px solid var(--db-rule);
@@ -70,7 +70,7 @@
 }
 
 .tab span {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -99,7 +99,7 @@
 }
 
 .loginTitle {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 36px;
   font-weight: 400;
   color: var(--db-ink);
@@ -107,7 +107,7 @@
 }
 
 .loginEdition {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -121,7 +121,7 @@
 
 .label {
   display: block;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
@@ -131,7 +131,7 @@
 }
 
 .inputField {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 14px;
   color: var(--db-ink);
   padding: 10px 0;
@@ -143,7 +143,7 @@
 
 .btnFull {
   width: 100%;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -169,7 +169,7 @@
 }
 
 .otpTitle {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 24px;
   font-weight: 400;
   color: var(--db-ink);
@@ -177,14 +177,14 @@
 }
 
 .otpText {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 13px;
   color: var(--db-muted);
   margin-bottom: 4px;
 }
 
 .otpEmail {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: var(--db-ink);
@@ -204,7 +204,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 20px;
   color: var(--db-ink);
 }
@@ -214,14 +214,14 @@
 }
 
 .otpResend {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-muted);
   margin-bottom: 16px;
 }
 
 .backBtn {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-accent);
   background: none;
@@ -238,14 +238,14 @@
 }
 
 .stepIndicator {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-muted);
   margin-bottom: 16px;
 }
 
 .onboardTitle {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 24px;
   font-weight: 400;
   color: var(--db-ink);
@@ -253,7 +253,7 @@
 }
 
 .onboardSub {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 13px;
   color: var(--db-muted);
   line-height: 1.5;
@@ -273,7 +273,7 @@
 }
 
 .wavesTitle {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 20px;
   font-weight: 400;
   color: var(--db-ink);
@@ -288,7 +288,7 @@
   flex: 1;
   text-align: center;
   padding: 10px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   font-weight: 500;
   color: var(--db-muted);
@@ -378,19 +378,19 @@
 }
 
 .wName {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 14px;
   color: var(--db-ink);
 }
 
 .wTime {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   color: var(--db-muted);
 }
 
 .wBadgePending {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 8px;
   font-weight: 600;
   text-transform: uppercase;
@@ -403,7 +403,7 @@
 }
 
 .wBadgeAccepted {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 8px;
   font-weight: 600;
   text-transform: uppercase;
@@ -416,7 +416,7 @@
 }
 
 .wBadgeDeclined {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 8px;
   font-weight: 600;
   text-transform: uppercase;
@@ -429,10 +429,10 @@
 }
 
 .wMsg {
-  background: #F0ECE3;
+  background: #f0ece3;
   padding: 8px 10px;
   margin-bottom: 8px;
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 12px;
   color: var(--db-ink);
   line-height: 1.4;
@@ -446,7 +446,7 @@
 .wDecline {
   flex: 1;
   padding: 8px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
@@ -460,7 +460,7 @@
 .wAccept {
   flex: 1;
   padding: 8px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
@@ -483,7 +483,7 @@
 }
 
 .emptyTitle {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 18px;
   font-weight: 400;
   color: var(--db-ink);
@@ -492,7 +492,7 @@
 }
 
 .emptyText {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 12px;
   color: var(--db-muted);
   text-align: center;
@@ -535,7 +535,7 @@
 }
 
 .profileName {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 22px;
   font-weight: 400;
   color: var(--db-ink);
@@ -543,7 +543,7 @@
 }
 
 .profileEmail {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-muted);
 }
@@ -558,7 +558,7 @@
 }
 
 .profileSectionTitle {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
@@ -568,7 +568,7 @@
 }
 
 .profileText {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 13px;
   color: var(--db-ink);
   line-height: 1.6;
@@ -580,7 +580,7 @@
   margin: auto 16px 16px;
   padding: 10px;
   text-align: center;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -637,20 +637,20 @@
 }
 
 .chatRowName {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 14px;
   color: var(--db-ink);
 }
 
 .chatRowTime {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   color: var(--db-muted);
   flex-shrink: 0;
 }
 
 .chatRowMsg {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-muted);
   white-space: nowrap;
@@ -677,7 +677,7 @@
   border-radius: 9px;
   background: var(--db-accent);
   color: #fff;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   font-weight: 700;
 }
@@ -692,9 +692,8 @@
   border-bottom: 1px solid var(--db-rule);
 }
 
-
 .chatConvName {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 16px;
   color: var(--db-ink);
   flex: 1;
@@ -737,7 +736,7 @@
 
 .dateSeparator {
   text-align: center;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   color: var(--db-muted);
   padding: 6px 0 4px;
@@ -798,7 +797,7 @@
 .bubble {
   max-width: 75%;
   padding: 8px 10px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 12px;
   line-height: 1.4;
   position: relative;
@@ -817,20 +816,36 @@
 
 /* ── Bubble grouping rounding ────────────── */
 
-.bubbleMine.bubbleSolo { border-radius: 16px; }
-.bubbleMine.bubbleFirst { border-radius: 16px 16px 4px 16px; }
-.bubbleMine.bubbleMid { border-radius: 16px 4px 4px 16px; }
-.bubbleMine.bubbleLast { border-radius: 16px 4px 16px 16px; }
+.bubbleMine.bubbleSolo {
+  border-radius: 16px;
+}
+.bubbleMine.bubbleFirst {
+  border-radius: 16px 16px 4px 16px;
+}
+.bubbleMine.bubbleMid {
+  border-radius: 16px 4px 4px 16px;
+}
+.bubbleMine.bubbleLast {
+  border-radius: 16px 4px 16px 16px;
+}
 
-.bubbleTheirs.bubbleSolo { border-radius: 16px; }
-.bubbleTheirs.bubbleFirst { border-radius: 16px 16px 16px 4px; }
-.bubbleTheirs.bubbleMid { border-radius: 4px 16px 16px 4px; }
-.bubbleTheirs.bubbleLast { border-radius: 4px 16px 16px 16px; }
+.bubbleTheirs.bubbleSolo {
+  border-radius: 16px;
+}
+.bubbleTheirs.bubbleFirst {
+  border-radius: 16px 16px 16px 4px;
+}
+.bubbleTheirs.bubbleMid {
+  border-radius: 4px 16px 16px 4px;
+}
+.bubbleTheirs.bubbleLast {
+  border-radius: 4px 16px 16px 16px;
+}
 
 /* ── Group time (shown after a group) ────── */
 
 .groupTime {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 8px;
   color: var(--db-muted);
   margin-top: 2px;
@@ -861,7 +876,7 @@
   margin-bottom: 4px;
   border-left: 2px solid var(--db-accent);
   background: rgba(213, 208, 196, 0.15);
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   color: var(--db-muted);
   border-radius: 4px;
@@ -889,7 +904,7 @@
   font-size: 10px;
   padding: 1px 4px;
   border-radius: 8px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
 }
 
 .reactionChipCount {
@@ -905,7 +920,7 @@
 /* ── Typing indicator ────────────────────── */
 
 .typingIndicator {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-style: italic;
   color: var(--db-muted);
@@ -940,7 +955,7 @@
 
 .chatInputField {
   flex: 1;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-muted);
   padding: 6px 12px;
@@ -950,7 +965,7 @@
 }
 
 .chatInputSend {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 8px;
   font-weight: 600;
   text-transform: uppercase;

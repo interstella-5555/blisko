@@ -1,9 +1,9 @@
 const PORT = Number(process.env.PORT) || 3001;
 
-const APP_SCHEME = 'blisko';
-const IOS_BUNDLE_ID = 'com.blisko.app';
-const ANDROID_PACKAGE = 'com.blisko.app';
-const IOS_APP_STORE_URL = 'https://apps.apple.com/app/blisko/id0'; // TODO: update with real ID
+const APP_SCHEME = "blisko";
+const IOS_BUNDLE_ID = "com.blisko.app";
+const ANDROID_PACKAGE = "com.blisko.app";
+const IOS_APP_STORE_URL = "https://apps.apple.com/app/blisko/id0"; // TODO: update with real ID
 const ANDROID_PLAY_URL = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
 
 // Apple App Site Association — enables universal links on iOS
@@ -13,7 +13,7 @@ const AASA = JSON.stringify({
     details: [
       {
         appIDs: [`TEAMID.${IOS_BUNDLE_ID}`], // TODO: replace TEAMID with real Apple Team ID
-        paths: ['/join/*'],
+        paths: ["/join/*"],
       },
     ],
   },
@@ -22,9 +22,9 @@ const AASA = JSON.stringify({
 // Android Asset Links — enables app links on Android
 const ASSET_LINKS = JSON.stringify([
   {
-    relation: ['delegate_permission/common.handle_all_urls'],
+    relation: ["delegate_permission/common.handle_all_urls"],
     target: {
-      namespace: 'android_app',
+      namespace: "android_app",
       package_name: ANDROID_PACKAGE,
       sha256_cert_fingerprints: [], // TODO: add real fingerprints
     },
@@ -144,15 +144,15 @@ const server = Bun.serve({
     const url = new URL(req.url);
 
     // Well-known files for universal/app links
-    if (url.pathname === '/.well-known/apple-app-site-association') {
+    if (url.pathname === "/.well-known/apple-app-site-association") {
       return new Response(AASA, {
-        headers: { 'content-type': 'application/json' },
+        headers: { "content-type": "application/json" },
       });
     }
 
-    if (url.pathname === '/.well-known/assetlinks.json') {
+    if (url.pathname === "/.well-known/assetlinks.json") {
       return new Response(ASSET_LINKS, {
-        headers: { 'content-type': 'application/json' },
+        headers: { "content-type": "application/json" },
       });
     }
 
@@ -161,13 +161,13 @@ const server = Bun.serve({
     if (joinMatch) {
       const code = joinMatch[1];
       return new Response(joinPage(code), {
-        headers: { 'content-type': 'text/html; charset=utf-8' },
+        headers: { "content-type": "text/html; charset=utf-8" },
       });
     }
 
     // Home
     return new Response(homePage(), {
-      headers: { 'content-type': 'text/html; charset=utf-8' },
+      headers: { "content-type": "text/html; charset=utf-8" },
     });
   },
 });

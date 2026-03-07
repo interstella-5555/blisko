@@ -1,25 +1,25 @@
-import { View, Text, StyleSheet, FlatList, RefreshControl, Pressable, type ViewToken } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { trpc } from '../../src/lib/trpc';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { IconChat, IconGroup } from '../../src/components/ui/icons';
-import { ConversationRow } from '../../src/components/chat/ConversationRow';
-import { useConversationsStore, type ConversationEntry } from '../../src/stores/conversationsStore';
-import { usePrefetchMessages } from '../../src/hooks/usePrefetchMessages';
+import { useRouter } from "expo-router";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View, type ViewToken } from "react-native";
+import { ConversationRow } from "../../src/components/chat/ConversationRow";
+import { IconChat, IconGroup } from "../../src/components/ui/icons";
+import { usePrefetchMessages } from "../../src/hooks/usePrefetchMessages";
+import { trpc } from "../../src/lib/trpc";
+import { useConversationsStore } from "../../src/stores/conversationsStore";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
-type FilterType = 'all' | 'dm' | 'group';
+type FilterType = "all" | "dm" | "group";
 
 const FILTER_CHIPS: { key: FilterType; label: string }[] = [
-  { key: 'all', label: 'Wszystko' },
-  { key: 'dm', label: 'Wiadomości' },
-  { key: 'group', label: 'Grupy' },
+  { key: "all", label: "Wszystko" },
+  { key: "dm", label: "Wiadomości" },
+  { key: "group", label: "Grupy" },
 ];
 
 export default function ChatsScreen() {
   const router = useRouter();
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
-  const [filter, setFilter] = useState<FilterType>('all');
+  const [filter, setFilter] = useState<FilterType>("all");
   const { isLoading, refetch } = trpc.messages.getConversations.useQuery();
 
   // Read from conversations store (populated by _layout.tsx hydration + WS updates)
@@ -27,22 +27,20 @@ export default function ChatsScreen() {
   const hydrated = useConversationsStore((s) => s._hydrated);
 
   const filteredConversations = useMemo(() => {
-    if (filter === 'all') return conversations;
+    if (filter === "all") return conversations;
     return conversations.filter((c) => c.type === filter);
   }, [conversations, filter]);
 
   // Prefetch messages for visible conversations
   const prefetch = usePrefetchMessages();
   const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      for (const token of viewableItems) {
-        if (token.isViewable && token.item?.id) {
-          prefetch(token.item.id);
-        }
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    for (const token of viewableItems) {
+      if (token.isViewable && token.item?.id) {
+        prefetch(token.item.id);
       }
-    },
-  ).current;
+    }
+  }).current;
 
   const handleRefresh = useCallback(async () => {
     setIsManualRefreshing(true);
@@ -64,20 +62,13 @@ export default function ChatsScreen() {
             {FILTER_CHIPS.map((chip) => (
               <Pressable
                 key={chip.key}
-                style={[
-                  styles.filterChip,
-                  filter === chip.key
-                    ? styles.filterChipActive
-                    : styles.filterChipInactive,
-                ]}
+                style={[styles.filterChip, filter === chip.key ? styles.filterChipActive : styles.filterChipInactive]}
                 onPress={() => setFilter(chip.key)}
               >
                 <Text
                   style={[
                     styles.filterChipText,
-                    filter === chip.key
-                      ? styles.filterChipTextActive
-                      : styles.filterChipTextInactive,
+                    filter === chip.key ? styles.filterChipTextActive : styles.filterChipTextInactive,
                   ]}
                 >
                   {chip.label}
@@ -89,16 +80,8 @@ export default function ChatsScreen() {
         renderItem={({ item }) => (
           <ConversationRow
             type={item.type}
-            displayName={
-              item.type === 'group'
-                ? item.groupName ?? 'Grupa'
-                : item.participant?.displayName ?? ''
-            }
-            avatarUrl={
-              item.type === 'group'
-                ? item.groupAvatarUrl
-                : item.participant?.avatarUrl ?? null
-            }
+            displayName={item.type === "group" ? (item.groupName ?? "Grupa") : (item.participant?.displayName ?? "")}
+            avatarUrl={item.type === "group" ? item.groupAvatarUrl : (item.participant?.avatarUrl ?? null)}
             lastMessage={item.lastMessage?.content ?? null}
             lastMessageSenderName={item.lastMessage?.senderName ?? null}
             lastMessageTime={item.lastMessage?.createdAt ?? null}
@@ -108,17 +91,12 @@ export default function ChatsScreen() {
           />
         )}
         ListEmptyComponent={
-          isLoading && !hydrated ? null : filter === 'group' ? (
+          isLoading && !hydrated ? null : filter === "group" ? (
             <View style={styles.empty} testID="chats-empty-groups">
               <IconGroup size={48} color={colors.muted} />
               <Text style={styles.emptyTitle}>Brak grup</Text>
-              <Text style={styles.emptyText}>
-                Grupy pozwalają rozmawiać z wieloma osobami naraz
-              </Text>
-              <Pressable
-                style={styles.emptyButton}
-                onPress={() => router.push('/(modals)/create-group')}
-              >
+              <Text style={styles.emptyText}>Grupy pozwalają rozmawiać z wieloma osobami naraz</Text>
+              <Pressable style={styles.emptyButton} onPress={() => router.push("/(modals)/create-group")}>
                 <Text style={styles.emptyButtonText}>Załóż grupę</Text>
               </Pressable>
             </View>
@@ -126,20 +104,14 @@ export default function ChatsScreen() {
             <View style={styles.empty} testID="chats-empty">
               <IconChat size={48} color={colors.muted} />
               <Text style={styles.emptyTitle}>Brak czatów</Text>
-              <Text style={styles.emptyText}>
-                Zacznij rozmowę odpowiadając na zaczepienie
-              </Text>
+              <Text style={styles.emptyText}>Zacznij rozmowę odpowiadając na zaczepienie</Text>
             </View>
           )
         }
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         refreshControl={
-          <RefreshControl
-            refreshing={isManualRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.ink}
-          />
+          <RefreshControl refreshing={isManualRefreshing} onRefresh={handleRefresh} tintColor={colors.ink} />
         }
       />
     </View>
@@ -152,7 +124,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   filterRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.tight,
     paddingHorizontal: spacing.section,
     marginBottom: spacing.gutter,
@@ -169,7 +141,7 @@ const styles = StyleSheet.create({
     borderColor: colors.ink,
   },
   filterChipInactive: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderColor: colors.rule,
   },
   filterChipText: {
@@ -184,8 +156,8 @@ const styles = StyleSheet.create({
   },
   empty: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 100,
     paddingHorizontal: spacing.section,
   },
@@ -197,7 +169,7 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typ.body,
     color: colors.muted,
-    textAlign: 'center',
+    textAlign: "center",
   },
   emptyButton: {
     marginTop: spacing.column,

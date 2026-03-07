@@ -5,7 +5,7 @@
 }
 
 .groupTitle {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -15,7 +15,7 @@
 }
 
 .stateLabel {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
@@ -81,13 +81,13 @@
 }
 
 .name {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 15px;
   color: var(--db-ink);
 }
 
 .dist {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   color: var(--db-muted);
 }
@@ -99,7 +99,7 @@
 }
 
 .tag {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -160,7 +160,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Wave Card ────────────────────────────── */
@@ -199,13 +201,13 @@
 }
 
 .time {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   color: var(--db-muted);
 }
 
 .waveBadge {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
@@ -216,17 +218,17 @@
 }
 
 .waveMessage {
-  background: #F0ECE3;
+  background: #f0ece3;
   padding: 10px 14px;
   margin-bottom: 10px;
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 13px;
   color: var(--db-ink);
   line-height: 1.5;
 }
 
 .waveBio {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 12px;
   color: var(--db-muted);
   line-height: 1.5;
@@ -241,7 +243,7 @@
 .actionDecline {
   flex: 1;
   padding: 10px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -255,7 +257,7 @@
 .actionAccept {
   flex: 1;
   padding: 10px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -269,7 +271,7 @@
 .actionChat {
   flex: 1;
   padding: 10px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -316,7 +318,7 @@
 }
 
 .sheetCount {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 18px;
   color: var(--db-ink);
 }
@@ -327,7 +329,7 @@
 }
 
 .sheetAction {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   color: var(--db-accent);
@@ -365,7 +367,7 @@
 }
 
 .emptyTitle {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 16px;
   font-weight: 400;
   color: var(--db-ink);
@@ -373,7 +375,7 @@
 }
 
 .emptyText {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-muted);
   line-height: 1.5;

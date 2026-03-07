@@ -1,32 +1,32 @@
-import s from './screens.module.css'
-import { PhoneFrame } from '~/components/PhoneFrame'
-import { Icon } from '~/components/Icons'
+import { Icon } from "~/components/Icons";
+import { PhoneFrame } from "~/components/PhoneFrame";
+import s from "./screens.module.css";
 
 function StatusBar() {
-  return <div className={s.statusBar}>09:41</div>
+  return <div className={s.statusBar}>09:41</div>;
 }
 
 function TabBar({ active = 0 }: { active?: number }) {
   const tabs = [
-    { icon: 'pin', label: 'Blisko' },
-    { icon: 'wave', label: 'Zaczepienia' },
-    { icon: 'chat', label: 'Czaty' },
-    { icon: 'person', label: 'Profil' },
-  ]
+    { icon: "pin", label: "Blisko" },
+    { icon: "wave", label: "Zaczepienia" },
+    { icon: "chat", label: "Czaty" },
+    { icon: "person", label: "Profil" },
+  ];
   return (
     <div className={s.tabs}>
       {tabs.map((t, i) => (
-        <div key={t.label} className={`${s.tab} ${i === active ? s.tabActive : ''}`}>
+        <div key={t.label} className={`${s.tab} ${i === active ? s.tabActive : ""}`}>
           <Icon name={t.icon} style={{ width: 20, height: 20 }} />
           <span>{t.label}</span>
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function ScreenLabel({ children }: { children: React.ReactNode }) {
-  return <div className={s.screenLabel}>{children}</div>
+  return <div className={s.screenLabel}>{children}</div>;
 }
 
 function LoginScreen() {
@@ -48,7 +48,7 @@ function LoginScreen() {
         </div>
       </PhoneFrame>
     </div>
-  )
+  );
 }
 
 function OtpScreen() {
@@ -59,12 +59,10 @@ function OtpScreen() {
         <StatusBar />
         <div className={s.otpBody}>
           <div className={s.otpIcon}>
-            <Icon name="send" style={{ width: 32, height: 32, color: 'var(--db-rule)' }} />
+            <Icon name="send" style={{ width: 32, height: 32, color: "var(--db-rule)" }} />
           </div>
           <h2 className={s.otpTitle}>Wpisz kod</h2>
-          <p className={s.otpText}>
-            Wysłaliśmy 6-cyfrowy kod na
-          </p>
+          <p className={s.otpText}>Wysłaliśmy 6-cyfrowy kod na</p>
           <p className={s.otpEmail}>adam@example.com</p>
           <div className={s.otpRow}>
             <div className={`${s.otpDigit} ${s.otpFilled}`}>4</div>
@@ -79,7 +77,7 @@ function OtpScreen() {
         </div>
       </PhoneFrame>
     </div>
-  )
+  );
 }
 
 function OnboardingScreen() {
@@ -99,7 +97,7 @@ function OnboardingScreen() {
         </div>
       </PhoneFrame>
     </div>
-  )
+  );
 }
 
 function WavesReceivedScreen() {
@@ -130,7 +128,9 @@ function WavesReceivedScreen() {
                 <span className={s.wTime}>2 godz. temu</span>
               </div>
             </div>
-            <div className={s.wMsg}><em>Cześć! Też masz psa?</em></div>
+            <div className={s.wMsg}>
+              <em>Cześć! Też masz psa?</em>
+            </div>
             <div className={s.wActions}>
               <button className={s.wDecline}>Odrzuć</button>
               <button className={s.wAccept}>Zaakceptuj</button>
@@ -146,7 +146,9 @@ function WavesReceivedScreen() {
                 <span className={s.wTime}>wczoraj</span>
               </div>
             </div>
-            <div className={s.wMsg}><em>Gramy w kręgle?</em></div>
+            <div className={s.wMsg}>
+              <em>Gramy w kręgle?</em>
+            </div>
             <div className={s.wActions}>
               <button className={s.wDecline}>Odrzuć</button>
               <button className={s.wAccept}>Zaakceptuj</button>
@@ -156,7 +158,7 @@ function WavesReceivedScreen() {
         <TabBar active={1} />
       </PhoneFrame>
     </div>
-  )
+  );
 }
 
 function WavesSentScreen() {
@@ -188,7 +190,9 @@ function WavesSentScreen() {
               </div>
               <span className={s.wBadgePending}>Oczekuje</span>
             </div>
-            <div className={s.wMsg}><em>Cześć! Lubię Twój profil</em></div>
+            <div className={s.wMsg}>
+              <em>Cześć! Lubię Twój profil</em>
+            </div>
           </div>
           <div className={s.wCard}>
             <div className={s.wCardHead}>
@@ -218,7 +222,7 @@ function WavesSentScreen() {
         <TabBar active={1} />
       </PhoneFrame>
     </div>
-  )
+  );
 }
 
 function ChatListScreen() {
@@ -278,7 +282,7 @@ function ChatListScreen() {
         <TabBar active={2} />
       </PhoneFrame>
     </div>
-  )
+  );
 }
 
 function ChatConversationScreen() {
@@ -294,7 +298,7 @@ function ChatConversationScreen() {
               <img src="https://i.pravatar.cc/80?img=12" alt="" />
             </div>
             <span className={s.chatConvName}>Kasia, 24</span>
-            <Icon name="search" style={{ width: 16, height: 16, color: 'var(--db-muted)' }} />
+            <Icon name="search" style={{ width: 16, height: 16, color: "var(--db-muted)" }} />
           </div>
           <div className={s.chatMessages}>
             {/* Date separator */}
@@ -304,32 +308,22 @@ function ChatConversationScreen() {
             <div className={`${s.messageGroup} ${s.messageGroupTheirs}`}>
               <div className={s.messageRow}>
                 <div className={s.avatarSpacer} />
-                <div className={`${s.bubble} ${s.bubbleTheirs} ${s.bubbleFirst}`}>
-                  Hej! Co tam? 👋
-                </div>
+                <div className={`${s.bubble} ${s.bubbleTheirs} ${s.bubbleFirst}`}>Hej! Co tam? 👋</div>
               </div>
               <div className={s.messageRow}>
                 <div className={s.chatConvAvatar}>
                   <img src="https://i.pravatar.cc/80?img=12" alt="" />
                 </div>
-                <div className={`${s.bubble} ${s.bubbleTheirs} ${s.bubbleLast}`}>
-                  Widziałam że mieszkasz blisko
-                </div>
+                <div className={`${s.bubble} ${s.bubbleTheirs} ${s.bubbleLast}`}>Widziałam że mieszkasz blisko</div>
               </div>
               <div className={`${s.groupTime} ${s.groupTimeTheirs}`}>14:22</div>
             </div>
 
             {/* My group 1 */}
             <div className={`${s.messageGroup} ${s.messageGroupMine} ${s.groupGap}`}>
-              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleFirst}`}>
-                Cześć!
-              </div>
-              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleMid}`}>
-                Tak, jestem na Mokotowie
-              </div>
-              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleLast}`}>
-                A Ty?
-              </div>
+              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleFirst}`}>Cześć!</div>
+              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleMid}`}>Tak, jestem na Mokotowie</div>
+              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleLast}`}>A Ty?</div>
               <div className={`${s.groupTime} ${s.groupTimeMine}`}>
                 14:24 <span className={`${s.bubbleCheck} ${s.bubbleCheckRead}`}>✓✓</span>
               </div>
@@ -347,9 +341,7 @@ function ChatConversationScreen() {
                 <div className={s.chatConvAvatar}>
                   <img src="https://i.pravatar.cc/80?img=12" alt="" />
                 </div>
-                <div className={`${s.bubble} ${s.bubbleTheirs} ${s.bubbleLast}`}>
-                  Chodzisz tam ze swoim psem? 🐕
-                </div>
+                <div className={`${s.bubble} ${s.bubbleTheirs} ${s.bubbleLast}`}>Chodzisz tam ze swoim psem? 🐕</div>
               </div>
               <div className={`${s.groupTime} ${s.groupTimeTheirs}`}>14:30</div>
             </div>
@@ -359,7 +351,8 @@ function ChatConversationScreen() {
               <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleSolo}`}>
                 <div className={s.bubbleReply}>
                   <span className={s.bubbleReplyName}>Kasia</span>
-                  <br />Chodzisz tam ze swoim psem? 🐕
+                  <br />
+                  Chodzisz tam ze swoim psem? 🐕
                 </div>
                 Tak! Prawie codziennie ☀️
               </div>
@@ -387,9 +380,7 @@ function ChatConversationScreen() {
 
             {/* My response */}
             <div className={`${s.messageGroup} ${s.messageGroupMine} ${s.groupGap}`}>
-              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleSolo}`}>
-                Chętnie! Może w weekend?
-              </div>
+              <div className={`${s.bubble} ${s.bubbleMine} ${s.bubbleSolo}`}>Chętnie! Może w weekend?</div>
               <div className={`${s.groupTime} ${s.groupTimeMine}`}>
                 14:34 <span className={s.bubbleCheck}>✓</span>
               </div>
@@ -413,7 +404,7 @@ function ChatConversationScreen() {
         </div>
       </PhoneFrame>
     </div>
-  )
+  );
 }
 
 function ChatEmptyScreen() {
@@ -426,14 +417,14 @@ function ChatEmptyScreen() {
           <h1 className={s.wavesTitle}>Czaty</h1>
         </div>
         <div className={s.emptyState}>
-          <Icon name="chat" style={{ width: 32, height: 32, color: 'var(--db-rule)' }} />
+          <Icon name="chat" style={{ width: 32, height: 32, color: "var(--db-rule)" }} />
           <h3 className={s.emptyTitle}>Brak czatów</h3>
           <p className={s.emptyText}>Zacznij rozmowę odpowiadając na zaczepienie.</p>
         </div>
         <TabBar active={2} />
       </PhoneFrame>
     </div>
-  )
+  );
 }
 
 function ProfileScreen() {
@@ -453,15 +444,13 @@ function ProfileScreen() {
           <div className={s.profileSection}>
             <h4 className={s.profileSectionTitle}>O mnie</h4>
             <p className={s.profileText}>
-              Lubię długie spacery z psem po parku i kawę speciality
-              w kameralnych miejscach. Fan sci-fi i planszówek.
+              Lubię długie spacery z psem po parku i kawę speciality w kameralnych miejscach. Fan sci-fi i planszówek.
             </p>
           </div>
           <div className={s.profileSection}>
             <h4 className={s.profileSectionTitle}>Kogo szukam</h4>
             <p className={s.profileText}>
-              Szukam ludzi do wspólnych aktywności — spacery, kawa,
-              a może wspólne granie w planszówki.
+              Szukam ludzi do wspólnych aktywności — spacery, kawa, a może wspólne granie w planszówki.
             </p>
           </div>
           <button className={s.logoutBtn}>Wyloguj się</button>
@@ -469,7 +458,7 @@ function ProfileScreen() {
         <TabBar active={3} />
       </PhoneFrame>
     </div>
-  )
+  );
 }
 
 export function Screens({ onlyFirstRow }: { onlyFirstRow?: boolean }) {
@@ -481,7 +470,7 @@ export function Screens({ onlyFirstRow }: { onlyFirstRow?: boolean }) {
         <ProfileScreen />
         <WavesReceivedScreen />
       </div>
-    )
+    );
   }
   return (
     <>
@@ -503,5 +492,5 @@ export function Screens({ onlyFirstRow }: { onlyFirstRow?: boolean }) {
         <ProfileScreen />
       </div>
     </>
-  )
+  );
 }

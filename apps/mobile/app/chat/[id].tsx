@@ -1,39 +1,36 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   Alert,
-  Pressable,
+  FlatList,
   Keyboard,
-} from 'react-native';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { trpc } from '@/lib/trpc';
-import { useAuthStore } from '@/stores/authStore';
-import { MessageBubble, type BubblePosition } from '@/components/chat/MessageBubble';
-import { ChatInput } from '@/components/chat/ChatInput';
-import { MessageContextMenu, type ContextMenuData } from '@/components/chat/MessageContextMenu';
-import { useTypingIndicator } from '@/lib/ws';
-import { useConversationsStore } from '@/stores/conversationsStore';
-import { useMessagesStore, type EnrichedMessage } from '@/stores/messagesStore';
-import { useProfilesStore } from '@/stores/profilesStore';
-import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
-import { Avatar } from '@/components/ui/Avatar';
-import { IconChevronLeft } from '@/components/ui/icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, fonts, spacing } from '@/theme';
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ChatInput } from "@/components/chat/ChatInput";
+import { type BubblePosition, MessageBubble } from "@/components/chat/MessageBubble";
+import { type ContextMenuData, MessageContextMenu } from "@/components/chat/MessageContextMenu";
+import { Avatar } from "@/components/ui/Avatar";
+import { IconChevronLeft } from "@/components/ui/icons";
+import { trpc } from "@/lib/trpc";
+import { useTypingIndicator } from "@/lib/ws";
+import { useAuthStore } from "@/stores/authStore";
+import { useConversationsStore } from "@/stores/conversationsStore";
+import { type EnrichedMessage, useMessagesStore } from "@/stores/messagesStore";
+import { useProfilesStore } from "@/stores/profilesStore";
+import { colors, fonts, spacing } from "@/theme";
 
 // Deterministic color from userId hash for group sender labels
-const SENDER_COLORS = [
-  '#C0392B', '#2980B9', '#27AE60', '#8E44AD',
-  '#D35400', '#16A085', '#2C3E50', '#E67E22',
-];
+const SENDER_COLORS = ["#C0392B", "#2980B9", "#27AE60", "#8E44AD", "#D35400", "#16A085", "#2C3E50", "#E67E22"];
 function getSenderColor(userId: string): string {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
@@ -60,32 +57,25 @@ export default function ChatScreen() {
   const messageRefs = useRef(new Map<string, View>());
 
   // Get conversation from store — detect group mode
-  const storeConversation = useConversationsStore((s) =>
-    s.conversations.find((c) => c.id === conversationId)
-  );
-  const isGroup = storeConversation?.type === 'group';
+  const storeConversation = useConversationsStore((s) => s.conversations.find((c) => c.id === conversationId));
+  const isGroup = storeConversation?.type === "group";
   const participantName = isGroup
-    ? storeConversation?.groupName ?? 'Grupa'
-    : storeConversation?.participant?.displayName ?? 'Czat';
+    ? (storeConversation?.groupName ?? "Grupa")
+    : (storeConversation?.participant?.displayName ?? "Czat");
 
   // Read messages from store (instant if cached from prefetch or previous visit)
   const cached = useMessagesStore((s) => s.chats.get(conversationId!));
   const storeMessages = cached?.items ?? [];
 
   // tRPC for initial hydration + pagination (no polling — WS keeps store current)
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-  } = trpc.messages.getMessages.useInfiniteQuery(
-    { conversationId: conversationId!, topicId, limit: 50 },
-    {
-      enabled: !!conversationId,
-      getNextPageParam: (lastPage) => lastPage.nextCursor,
-    }
-  );
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    trpc.messages.getMessages.useInfiniteQuery(
+      { conversationId: conversationId!, topicId, limit: 50 },
+      {
+        enabled: !!conversationId,
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
+      },
+    );
 
   // Pipe tRPC data into messagesStore (initial hydration + loadMore pages)
   const pagesLoadedRef = useRef(0);
@@ -98,22 +88,23 @@ export default function ChatScreen() {
     const hasMore = !!lastPage?.nextCursor;
     const store = useMessagesStore.getState();
 
-    const toEnriched = (msg: any): EnrichedMessage => ({
+    type RawMessage = (typeof pages)[number]["messages"][number];
+    const toEnriched = (msg: RawMessage): EnrichedMessage => ({
       id: msg.id,
       conversationId: msg.conversationId ?? conversationId,
       senderId: msg.senderId,
       content: msg.content,
-      type: msg.type ?? 'text',
-      metadata: msg.metadata ?? null,
+      type: msg.type ?? "text",
+      metadata: (msg.metadata as Record<string, unknown> | null) ?? null,
       replyToId: msg.replyToId ?? null,
-      topicId: msg.topicId ?? null,
-      createdAt: msg.createdAt?.toISOString?.() ?? String(msg.createdAt),
-      readAt: msg.readAt ? (msg.readAt.toISOString?.() ?? String(msg.readAt)) : null,
-      deletedAt: msg.deletedAt ? (msg.deletedAt.toISOString?.() ?? String(msg.deletedAt)) : null,
-      replyTo: msg.replyTo ?? null,
-      reactions: msg.reactions ?? [],
-      senderName: msg.senderName ?? null,
-      senderAvatarUrl: msg.senderAvatarUrl ?? null,
+      topicId: (msg as Record<string, unknown>).topicId as string | null | undefined,
+      createdAt: String(msg.createdAt),
+      readAt: msg.readAt ? String(msg.readAt) : null,
+      deletedAt: msg.deletedAt ? String(msg.deletedAt) : null,
+      replyTo: ((msg as Record<string, unknown>).replyTo as EnrichedMessage["replyTo"]) ?? null,
+      reactions: ((msg as Record<string, unknown>).reactions as EnrichedMessage["reactions"]) ?? [],
+      senderName: ((msg as Record<string, unknown>).senderName as string | null) ?? null,
+      senderAvatarUrl: ((msg as Record<string, unknown>).senderAvatarUrl as string | null) ?? null,
     });
 
     if (pagesLoadedRef.current === 0) {
@@ -139,7 +130,7 @@ export default function ChatScreen() {
   const getGroupInfo = useCallback(
     (index: number) => {
       const msg = allMessages[index];
-      if (!msg) return { position: 'solo' as BubblePosition, isLastInGroup: true, showGroupTime: true };
+      if (!msg) return { position: "solo" as BubblePosition, isLastInGroup: true, showGroupTime: true };
 
       const above = allMessages[index + 1]; // visually above (older)
       const below = allMessages[index - 1]; // visually below (newer)
@@ -148,17 +139,17 @@ export default function ChatScreen() {
       const sameSenderBelow = below && below.senderId === msg.senderId && !below.deletedAt;
 
       let position: BubblePosition;
-      if (sameSenderAbove && sameSenderBelow) position = 'mid';
-      else if (sameSenderAbove && !sameSenderBelow) position = 'last';
-      else if (!sameSenderAbove && sameSenderBelow) position = 'first';
-      else position = 'solo';
+      if (sameSenderAbove && sameSenderBelow) position = "mid";
+      else if (sameSenderAbove && !sameSenderBelow) position = "last";
+      else if (!sameSenderAbove && sameSenderBelow) position = "first";
+      else position = "solo";
 
       // Show time only on the last (newest) message in a group
-      const isLastInGroup = position === 'solo' || position === 'last';
+      const isLastInGroup = position === "solo" || position === "last";
 
       return { position, isLastInGroup };
     },
-    [allMessages]
+    [allMessages],
   );
 
   // Typing indicators
@@ -198,8 +189,8 @@ export default function ChatScreen() {
         conversationId: conversationId!,
         senderId: userId!,
         content: newMsg.content,
-        type: (newMsg as any).type ?? 'text',
-        metadata: (newMsg as any).metadata ?? null,
+        type: ((newMsg as Record<string, unknown>).type as string) ?? "text",
+        metadata: ((newMsg as Record<string, unknown>).metadata as Record<string, unknown> | null) ?? null,
         replyToId: newMsg.replyToId ?? null,
         createdAt: new Date().toISOString(),
         readAt: null,
@@ -241,7 +232,7 @@ export default function ChatScreen() {
         store.replaceOptimistic(conversationId!, messageId, {
           ...original,
           deletedAt: new Date().toISOString(),
-          content: '',
+          content: "",
         });
       }
       return { original };
@@ -267,7 +258,7 @@ export default function ChatScreen() {
         topicId,
       });
     },
-    [conversationId, topicId, sendMessage]
+    [conversationId, topicId, sendMessage],
   );
 
   const handleLoadMore = useCallback(() => {
@@ -277,7 +268,7 @@ export default function ChatScreen() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleLongPress = useCallback(
-    (messageId: string, isMine: boolean, bubbleProps: ContextMenuData['bubbleProps']) => {
+    (messageId: string, isMine: boolean, bubbleProps: ContextMenuData["bubbleProps"]) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       const viewRef = messageRefs.current.get(messageId);
@@ -286,7 +277,7 @@ export default function ChatScreen() {
       const keyboardVisible = Keyboard.isVisible?.() ?? false;
       if (keyboardVisible) Keyboard.dismiss();
 
-      const delay = keyboardVisible ? (Platform.OS === 'ios' ? 350 : 100) : 0;
+      const delay = keyboardVisible ? (Platform.OS === "ios" ? 350 : 100) : 0;
 
       setTimeout(() => {
         viewRef.measureInWindow((x, y, width, height) => {
@@ -300,21 +291,21 @@ export default function ChatScreen() {
         });
       }, delay);
     },
-    []
+    [],
   );
 
   const handleReactionPress = useCallback(
     (messageId: string, emoji: string) => {
       reactToMessage.mutate({ messageId, emoji });
     },
-    [reactToMessage]
+    [reactToMessage],
   );
 
   const handleSendImage = useCallback(async () => {
     if (!conversationId) return;
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         quality: 0.8,
         allowsEditing: true,
       });
@@ -323,36 +314,36 @@ export default function ChatScreen() {
 
       const asset = result.assets[0];
       const formData = new FormData();
-      formData.append('file', {
+      formData.append("file", {
         uri: asset.uri,
-        name: asset.fileName || 'photo.jpg',
-        type: asset.mimeType || 'image/jpeg',
-      } as any);
+        name: asset.fileName || "photo.jpg",
+        type: asset.mimeType || "image/jpeg",
+      } as unknown as Blob);
 
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
       const response = await fetch(`${apiUrl}/uploads`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
         headers: {
-          authorization: `Bearer ${useAuthStore.getState().session?.token || ''}`,
+          authorization: `Bearer ${useAuthStore.getState().session?.token || ""}`,
         },
       });
 
-      if (!response.ok) throw new Error('Upload failed');
+      if (!response.ok) throw new Error("Upload failed");
       const { url } = await response.json();
 
       sendMessage.mutate({
         conversationId,
-        content: '[Zdjęcie]',
-        type: 'image',
+        content: "[Zdjęcie]",
+        type: "image",
         metadata: {
           imageUrl: url,
           width: asset.width,
           height: asset.height,
         },
       });
-    } catch (error) {
-      Alert.alert('Błąd', 'Nie udało się wysłać zdjęcia');
+    } catch (_error) {
+      Alert.alert("Błąd", "Nie udało się wysłać zdjęcia");
     }
   }, [conversationId, sendMessage]);
 
@@ -360,23 +351,23 @@ export default function ChatScreen() {
     if (!conversationId) return;
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Brak uprawnień', 'Pozwól na dostęp do lokalizacji w ustawieniach.');
+      if (status !== "granted") {
+        Alert.alert("Brak uprawnień", "Pozwól na dostęp do lokalizacji w ustawieniach.");
         return;
       }
 
       const location = await Location.getCurrentPositionAsync({});
       sendMessage.mutate({
         conversationId,
-        content: 'Moja lokalizacja',
-        type: 'location',
+        content: "Moja lokalizacja",
+        type: "location",
         metadata: {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         },
       });
-    } catch (error) {
-      Alert.alert('Błąd', 'Nie udało się pobrać lokalizacji');
+    } catch (_error) {
+      Alert.alert("Błąd", "Nie udało się pobrać lokalizacji");
     }
   }, [conversationId, sendMessage]);
 
@@ -385,53 +376,37 @@ export default function ChatScreen() {
     if (!isGroup) return [];
     return typingUserIds.map((uid) => {
       const profile = useProfilesStore.getState().get(uid);
-      return profile?.displayName ?? 'Ktoś';
+      return profile?.displayName ?? "Ktoś";
     });
   }, [isGroup, typingUserIds]);
 
-  const headerAvatarUrl = isGroup
-    ? storeConversation?.groupAvatarUrl
-    : storeConversation?.participant?.avatarUrl;
+  const headerAvatarUrl = isGroup ? storeConversation?.groupAvatarUrl : storeConversation?.participant?.avatarUrl;
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
     >
       <Stack.Screen
         options={{
           header: () => (
-            <SafeAreaView edges={['top']} style={styles.headerSafeArea}>
+            <SafeAreaView edges={["top"]} style={styles.headerSafeArea}>
               <View style={styles.header}>
-                <Pressable
-                  onPress={() => router.back()}
-                  style={styles.headerBack}
-                  hitSlop={8}
-                >
+                <Pressable onPress={() => router.back()} style={styles.headerBack} hitSlop={8}>
                   <IconChevronLeft size={24} color={colors.ink} />
                 </Pressable>
                 <Pressable
                   style={styles.headerLeft}
-                  onPress={
-                    isGroup
-                      ? () => router.push(`/(modals)/group/${conversationId}`)
-                      : undefined
-                  }
+                  onPress={isGroup ? () => router.push(`/(modals)/group/${conversationId}`) : undefined}
                 >
-                  <Avatar
-                    uri={headerAvatarUrl}
-                    name={participantName}
-                    size={32}
-                  />
+                  <Avatar uri={headerAvatarUrl} name={participantName} size={32} />
                   <View>
                     <Text style={styles.headerName} numberOfLines={1}>
                       {participantName}
                     </Text>
                     {isGroup && storeConversation?.memberCount != null && (
-                      <Text style={styles.headerSubtitle}>
-                        {storeConversation.memberCount} członków
-                      </Text>
+                      <Text style={styles.headerSubtitle}>{storeConversation.memberCount} członków</Text>
                     )}
                   </View>
                 </Pressable>
@@ -453,41 +428,31 @@ export default function ChatScreen() {
 
           // For groups: use sender-specific avatar; for DMs: use other participant's avatar
           const avatarUrl = isGroup
-            ? item.senderAvatarUrl ?? undefined
-            : storeConversation?.participant?.avatarUrl ?? undefined;
+            ? (item.senderAvatarUrl ?? undefined)
+            : (storeConversation?.participant?.avatarUrl ?? undefined);
 
-          const senderName = isGroup
-            ? item.senderName ?? 'Użytkownik'
-            : participantName;
+          const senderName = isGroup ? (item.senderName ?? "Użytkownik") : participantName;
 
           // In groups, show sender name label above first message in a group from this sender
-          const showSenderLabel =
-            isGroup &&
-            !isMine &&
-            (position === 'first' || position === 'solo');
+          const showSenderLabel = isGroup && !isMine && (position === "first" || position === "solo");
 
           // Add spacing between groups from different senders
           const above = allMessages[index + 1];
           const senderSwitch = above && above.senderId !== item.senderId;
 
           const formattedTime = isLastInGroup
-            ? new Date(item.createdAt as unknown as string).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
+            ? new Date(item.createdAt as unknown as string).toLocaleTimeString("pl-PL", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
             : undefined;
-          const receipt = isLastInGroup && isMine && !isGroup
-            ? (item.readAt ? 'read' as const : 'sent' as const)
-            : undefined;
+          const receipt =
+            isLastInGroup && isMine && !isGroup ? (item.readAt ? ("read" as const) : ("sent" as const)) : undefined;
 
           return (
             <View style={senderSwitch ? styles.groupGap : undefined}>
               {showSenderLabel && (
-                <Text
-                  style={[
-                    styles.senderLabel,
-                    { color: getSenderColor(item.senderId) },
-                  ]}
-                >
-                  {senderName}
-                </Text>
+                <Text style={[styles.senderLabel, { color: getSenderColor(item.senderId) }]}>{senderName}</Text>
               )}
               <MessageBubble
                 ref={(ref: View | null) => {
@@ -495,7 +460,7 @@ export default function ChatScreen() {
                   else messageRefs.current.delete(item.id);
                 }}
                 content={item.content}
-                type={item.type as 'text' | 'image' | 'location'}
+                type={item.type as "text" | "image" | "location"}
                 metadata={item.metadata}
                 isMine={isMine}
                 createdAt={item.createdAt as unknown as string}
@@ -504,7 +469,7 @@ export default function ChatScreen() {
                 replyTo={item.replyTo}
                 reactions={item.reactions}
                 position={position}
-                showAvatar={!isMine && (position === 'last' || position === 'solo')}
+                showAvatar={!isMine && (position === "last" || position === "solo")}
                 showAvatarColumn={isGroup}
                 avatarUrl={avatarUrl}
                 senderName={senderName}
@@ -517,7 +482,7 @@ export default function ChatScreen() {
                     : () =>
                         handleLongPress(item.id, isMine, {
                           content: item.content,
-                          type: item.type as 'text' | 'image' | 'location',
+                          type: item.type as "text" | "image" | "location",
                           metadata: item.metadata,
                           isMine,
                           createdAt: item.createdAt as unknown as string,
@@ -526,7 +491,7 @@ export default function ChatScreen() {
                           replyTo: item.replyTo,
                           reactions: item.reactions,
                           position,
-                          showAvatar: !isMine && (position === 'last' || position === 'solo'),
+                          showAvatar: !isMine && (position === "last" || position === "solo"),
                           showAvatarColumn: isGroup,
                           avatarUrl,
                           senderName,
@@ -544,27 +509,15 @@ export default function ChatScreen() {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
-          isFetchingNextPage ? (
-            <ActivityIndicator
-              size="small"
-              color={colors.muted}
-              style={styles.loader}
-            />
-          ) : null
+          isFetchingNextPage ? <ActivityIndicator size="small" color={colors.muted} style={styles.loader} /> : null
         }
-        ListEmptyComponent={
-          !cached && isLoading ? (
-            <ActivityIndicator size="large" color={colors.ink} />
-          ) : null
-        }
+        ListEmptyComponent={!cached && isLoading ? <ActivityIndicator size="large" color={colors.ink} /> : null}
       />
 
       {someoneTyping && (
         <View style={styles.typingBar}>
           <Text style={styles.typingText}>
-            {isGroup && typingDisplayNames.length > 0
-              ? `${typingDisplayNames.join(', ')} pisze...`
-              : 'pisze...'}
+            {isGroup && typingDisplayNames.length > 0 ? `${typingDisplayNames.join(", ")} pisze...` : "pisze..."}
           </Text>
         </View>
       )}
@@ -587,25 +540,23 @@ export default function ChatScreen() {
           onReply={() => {
             const msg = allMessages.find((m) => m.id === contextMenu.messageId);
             if (msg) {
-              const name = isGroup
-                ? msg.senderName ?? 'Użytkownik'
-                : participantName;
+              const name = isGroup ? (msg.senderName ?? "Użytkownik") : participantName;
               setReplyingTo({ id: msg.id, content: msg.content, senderName: name });
             }
           }}
           onCopy={async () => {
             const msg = allMessages.find((m) => m.id === contextMenu.messageId);
             if (msg) {
-              const { setStringAsync } = await import('expo-clipboard');
-              setStringAsync(msg.type === 'image' ? '[Zdjęcie]' : msg.content);
+              const { setStringAsync } = await import("expo-clipboard");
+              setStringAsync(msg.type === "image" ? "[Zdjęcie]" : msg.content);
             }
           }}
           onDelete={() => {
-            Alert.alert('Usuń wiadomość', 'Czy na pewno chcesz usunąć tę wiadomość?', [
-              { text: 'Anuluj', style: 'cancel' },
+            Alert.alert("Usuń wiadomość", "Czy na pewno chcesz usunąć tę wiadomość?", [
+              { text: "Anuluj", style: "cancel" },
               {
-                text: 'Usuń',
-                style: 'destructive',
+                text: "Usuń",
+                style: "destructive",
                 onPress: () => deleteMessage.mutate({ messageId: contextMenu.messageId }),
               },
             ]);
@@ -635,9 +586,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.rule,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: spacing.section,
     height: 58,
   },
@@ -645,8 +596,8 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     flex: 1,
   },
@@ -678,7 +629,7 @@ const styles = StyleSheet.create({
   typingText: {
     fontFamily: fonts.sans,
     fontSize: 12,
-    fontStyle: 'italic',
+    fontStyle: "italic",
     color: colors.muted,
   },
 });

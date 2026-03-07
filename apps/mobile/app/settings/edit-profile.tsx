@@ -1,30 +1,30 @@
-import { useState } from 'react';
+import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  Alert,
-} from 'react-native';
-import { router } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
-import { useAuthStore } from '../../src/stores/authStore';
-import { trpc } from '../../src/lib/trpc';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { Avatar } from '../../src/components/ui/Avatar';
-import { Button } from '../../src/components/ui/Button';
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { Avatar } from "../../src/components/ui/Avatar";
+import { Button } from "../../src/components/ui/Button";
+import { trpc } from "../../src/lib/trpc";
+import { useAuthStore } from "../../src/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
 export default function EditProfileScreen() {
   const profile = useAuthStore((state) => state.profile);
   const setProfile = useAuthStore((state) => state.setProfile);
 
-  const [displayName, setDisplayName] = useState(profile?.displayName || '');
-  const [bio, setBio] = useState(profile?.bio || '');
-  const [lookingFor, setLookingFor] = useState(profile?.lookingFor || '');
+  const [displayName, setDisplayName] = useState(profile?.displayName || "");
+  const [bio, setBio] = useState(profile?.bio || "");
+  const [lookingFor, setLookingFor] = useState(profile?.lookingFor || "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || null);
   const [uploading, setUploading] = useState(false);
 
@@ -36,14 +36,14 @@ export default function EditProfileScreen() {
       router.back();
     },
     onError: () => {
-      Alert.alert('Blad', 'Nie udalo sie zapisac profilu');
+      Alert.alert("Blad", "Nie udalo sie zapisac profilu");
     },
   });
 
   const handlePickAvatar = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ["images"],
         quality: 0.8,
         allowsEditing: true,
         aspect: [1, 1],
@@ -54,26 +54,26 @@ export default function EditProfileScreen() {
       setUploading(true);
       const asset = result.assets[0];
       const formData = new FormData();
-      formData.append('file', {
+      formData.append("file", {
         uri: asset.uri,
-        name: asset.fileName || 'avatar.jpg',
-        type: asset.mimeType || 'image/jpeg',
-      } as any);
+        name: asset.fileName || "avatar.jpg",
+        type: asset.mimeType || "image/jpeg",
+      } as unknown as Blob);
 
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
       const response = await fetch(`${apiUrl}/uploads`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
         headers: {
-          authorization: `Bearer ${useAuthStore.getState().session?.token || ''}`,
+          authorization: `Bearer ${useAuthStore.getState().session?.token || ""}`,
         },
       });
 
-      if (!response.ok) throw new Error('Upload failed');
+      if (!response.ok) throw new Error("Upload failed");
       const { url } = await response.json();
       setAvatarUrl(url);
-    } catch (error) {
-      Alert.alert('Blad', 'Nie udalo sie przeslac zdjecia');
+    } catch (_error) {
+      Alert.alert("Blad", "Nie udalo sie przeslac zdjecia");
     } finally {
       setUploading(false);
     }
@@ -81,15 +81,15 @@ export default function EditProfileScreen() {
 
   const handleSave = () => {
     if (displayName.trim().length < 2) {
-      Alert.alert('Blad', 'Imie musi miec co najmniej 2 znaki');
+      Alert.alert("Blad", "Imie musi miec co najmniej 2 znaki");
       return;
     }
     if (bio.trim().length < 10) {
-      Alert.alert('Blad', 'Bio musi miec co najmniej 10 znakow');
+      Alert.alert("Blad", "Bio musi miec co najmniej 10 znakow");
       return;
     }
     if (lookingFor.trim().length < 10) {
-      Alert.alert('Blad', '"Kogo szukam" musi miec co najmniej 10 znakow');
+      Alert.alert("Blad", '"Kogo szukam" musi miec co najmniej 10 znakow');
       return;
     }
 
@@ -101,33 +101,17 @@ export default function EditProfileScreen() {
     });
   };
 
-  const canSave =
-    displayName.trim().length >= 2 &&
-    bio.trim().length >= 10 &&
-    lookingFor.trim().length >= 10;
+  const canSave = displayName.trim().length >= 2 && bio.trim().length >= 10 && lookingFor.trim().length >= 10;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.avatarSection}>
           <Pressable onPress={handlePickAvatar} disabled={uploading}>
-            <Avatar
-              uri={avatarUrl}
-              name={displayName || '?'}
-              size={100}
-            />
+            <Avatar uri={avatarUrl} name={displayName || "?"} size={100} />
           </Pressable>
           <Pressable onPress={handlePickAvatar} disabled={uploading}>
-            <Text style={styles.changePhotoText}>
-              {uploading ? 'Przesylanie...' : 'Zmien zdjecie'}
-            </Text>
+            <Text style={styles.changePhotoText}>{uploading ? "Przesylanie..." : "Zmien zdjecie"}</Text>
           </Pressable>
         </View>
 
@@ -216,7 +200,7 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   avatarSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: spacing.block,
   },
   changePhotoText: {
@@ -231,7 +215,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: colors.muted,
     marginBottom: 8,
   },
@@ -247,14 +231,14 @@ const styles = StyleSheet.create({
   multilineInput: {},
   charCount: {
     ...typ.caption,
-    textAlign: 'right',
+    textAlign: "right",
     marginTop: spacing.hairline,
   },
   saveContainer: {
     marginTop: spacing.column,
   },
   cancelButton: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: spacing.column,
   },
   cancelText: {

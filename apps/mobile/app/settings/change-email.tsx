@@ -1,32 +1,26 @@
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { router } from 'expo-router';
-import { useAuthStore } from '@/stores/authStore';
-import { authClient } from '@/lib/auth';
-import { colors, type as typ, spacing, fonts } from '@/theme';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { router } from "expo-router";
+import { useState } from "react";
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { authClient } from "@/lib/auth";
+import { useAuthStore } from "@/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function ChangeEmailScreen() {
   const user = useAuthStore((state) => state.user);
-  const [newEmail, setNewEmail] = useState('');
+  const [newEmail, setNewEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSendCode = async () => {
     const email = newEmail.trim().toLowerCase();
     if (!email) {
-      setError('Podaj nowy adres email');
+      setError("Podaj nowy adres email");
       return;
     }
     if (email === user?.email) {
-      setError('Nowy email musi być inny niż obecny');
+      setError("Nowy email musi być inny niż obecny");
       return;
     }
 
@@ -39,31 +33,26 @@ export default function ChangeEmailScreen() {
       });
 
       if (result.error) {
-        setError(result.error.message || 'Nie udało się wysłać kodu');
+        setError(result.error.message || "Nie udało się wysłać kodu");
         setIsLoading(false);
         return;
       }
 
       router.push({
-        pathname: '/settings/verify-email' as any,
+        pathname: "/settings/verify-email" as never,
         params: { newEmail: email },
       });
-    } catch (err) {
-      setError('Nie udało się wysłać kodu');
+    } catch (_err) {
+      setError("Nie udało się wysłać kodu");
     }
 
     setIsLoading(false);
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
-        <Text style={styles.subtitle}>
-          Obecny email: {user?.email}
-        </Text>
+        <Text style={styles.subtitle}>Obecny email: {user?.email}</Text>
 
         <View style={styles.form}>
           <Input
@@ -80,7 +69,7 @@ export default function ChangeEmailScreen() {
           {error && <Text style={styles.error}>{error}</Text>}
 
           <Button
-            title={isLoading ? 'Wysyłanie...' : 'Wyślij kod weryfikacyjny'}
+            title={isLoading ? "Wysyłanie..." : "Wyślij kod weryfikacyjny"}
             variant="accent"
             onPress={handleSendCode}
             disabled={isLoading}

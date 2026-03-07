@@ -1,5 +1,5 @@
-import s from './components.module.css'
-import { Icon } from '~/components/Icons'
+import { Icon } from "~/components/Icons";
+import s from "./components.module.css";
 
 export function Components() {
   return (
@@ -20,9 +20,15 @@ export function Components() {
                 <span className={s.dist}>~800m</span>
               </div>
               <div className={s.tags}>
-                <span className={`${s.tag} ${s.match}`}><Icon name="bullet-rose" className={s.tagIcon} /> pies</span>
-                <span className={`${s.tag} ${s.match}`}><Icon name="bullet-rose" className={s.tagIcon} /> kręgle</span>
-                <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> bieganie</span>
+                <span className={`${s.tag} ${s.match}`}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> pies
+                </span>
+                <span className={`${s.tag} ${s.match}`}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> kręgle
+                </span>
+                <span className={s.tag}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> bieganie
+                </span>
               </div>
             </div>
             <button className={s.waveBtn}>
@@ -42,8 +48,12 @@ export function Components() {
                 <span className={s.dist}>~1.2 km</span>
               </div>
               <div className={s.tags}>
-                <span className={`${s.tag} ${s.match}`}><Icon name="bullet-rose" className={s.tagIcon} /> bieganie</span>
-                <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> kawa</span>
+                <span className={`${s.tag} ${s.match}`}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> bieganie
+                </span>
+                <span className={s.tag}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> kawa
+                </span>
               </div>
             </div>
             <button className={`${s.waveBtn} ${s.waveBtnDone}`}>
@@ -63,8 +73,12 @@ export function Components() {
                 <span className={s.dist}>~2.1 km</span>
               </div>
               <div className={s.tags}>
-                <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> sci-fi</span>
-                <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> gry</span>
+                <span className={s.tag}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> sci-fi
+                </span>
+                <span className={s.tag}>
+                  <Icon name="bullet-rose" className={s.tagIcon} /> gry
+                </span>
               </div>
             </div>
             <button className={`${s.waveBtn} ${s.waveBtnLoading}`}>
@@ -94,9 +108,7 @@ export function Components() {
               <div className={s.waveMessage}>
                 <em>Cześć! Też masz psa? Może kiedyś wybierzemy się na wspólny spacer?</em>
               </div>
-              <div className={s.waveBio}>
-                Studentka weterynarii, kocham zwierzęta i długie spacery.
-              </div>
+              <div className={s.waveBio}>Studentka weterynarii, kocham zwierzęta i długie spacery.</div>
               <div className={s.waveActions}>
                 <button className={s.actionDecline}>Odrzuć</button>
                 <button className={s.actionAccept}>Zaakceptuj</button>
@@ -141,7 +153,10 @@ export function Components() {
                   <span className={s.name}>Ola, 26</span>
                   <span className={s.time}>5 min temu</span>
                 </div>
-                <span className={s.waveBadge} style={{ background: 'var(--db-warning-bg)', color: 'var(--db-warning)' }}>
+                <span
+                  className={s.waveBadge}
+                  style={{ background: "var(--db-warning-bg)", color: "var(--db-warning)" }}
+                >
                   Oczekuje
                 </span>
               </div>
@@ -163,7 +178,7 @@ export function Components() {
                   <span className={s.name}>Bartek, 31</span>
                   <span className={s.time}>2 dni temu</span>
                 </div>
-                <span className={s.waveBadge} style={{ background: 'var(--db-error-bg)', color: 'var(--db-error)' }}>
+                <span className={s.waveBadge} style={{ background: "var(--db-error-bg)", color: "var(--db-error)" }}>
                   Odrzućono
                 </span>
               </div>
@@ -176,7 +191,9 @@ export function Components() {
       <div className={s.group}>
         <h4 className={s.groupTitle}>Bottom Sheet (Static Mockup)</h4>
         <div className={s.sheetDemo}>
-          <div className={s.sheetHandle}><div className={s.handleBar} /></div>
+          <div className={s.sheetHandle}>
+            <div className={s.handleBar} />
+          </div>
           <div className={s.sheetHead}>
             <div className={s.sheetCount}>
               8 <span>osób w pobliżu</span>
@@ -185,10 +202,10 @@ export function Components() {
           </div>
           <div className={s.sheetList}>
             {[
-              { img: 33, name: 'Adam, 28', dist: '~800m', tags: ['pies', 'kręgle'], matches: [0, 1] },
-              { img: 47, name: 'Maja, 25', dist: '~1.2 km', tags: ['bieganie', 'kawa'], matches: [0] },
-            ].map((u, i) => (
-              <div key={i} className={s.userCard}>
+              { img: 33, name: "Adam, 28", dist: "~800m", tags: ["pies", "kręgle"], matches: [0, 1] },
+              { img: 47, name: "Maja, 25", dist: "~1.2 km", tags: ["bieganie", "kawa"], matches: [0] },
+            ].map((u) => (
+              <div key={u.name} className={s.userCard}>
                 <div className={s.avatar}>
                   <img src={`https://i.pravatar.cc/80?img=${u.img}`} alt="" />
                 </div>
@@ -199,7 +216,7 @@ export function Components() {
                   </div>
                   <div className={s.tags}>
                     {u.tags.map((t, ti) => (
-                      <span key={t} className={`${s.tag} ${u.matches.includes(ti) ? s.match : ''}`}>
+                      <span key={t} className={`${s.tag} ${u.matches.includes(ti) ? s.match : ""}`}>
                         <Icon name="bullet-rose" className={s.tagIcon} /> {t}
                       </span>
                     ))}
@@ -220,21 +237,21 @@ export function Components() {
         <div className={s.emptyGrid}>
           <div className={s.emptyItem}>
             <div className={s.emptyIcon}>
-              <Icon name="pin" style={{ width: 32, height: 32, color: 'var(--db-rule)' }} />
+              <Icon name="pin" style={{ width: 32, height: 32, color: "var(--db-rule)" }} />
             </div>
             <h5 className={s.emptyTitle}>Nikt w pobliżu</h5>
             <p className={s.emptyText}>Nie znaleźliśmy nikogo w Twojej okolicy. Spróbuj ponownie później.</p>
           </div>
           <div className={s.emptyItem}>
             <div className={s.emptyIcon}>
-              <Icon name="wave" style={{ width: 32, height: 32, color: 'var(--db-rule)' }} />
+              <Icon name="wave" style={{ width: 32, height: 32, color: "var(--db-rule)" }} />
             </div>
             <h5 className={s.emptyTitle}>Brak zaczepień</h5>
             <p className={s.emptyText}>Gdy ktoś Cię zaczepi, zobaczysz to tutaj.</p>
           </div>
           <div className={s.emptyItem}>
             <div className={s.emptyIcon}>
-              <Icon name="chat" style={{ width: 32, height: 32, color: 'var(--db-rule)' }} />
+              <Icon name="chat" style={{ width: 32, height: 32, color: "var(--db-rule)" }} />
             </div>
             <h5 className={s.emptyTitle}>Brak czatów</h5>
             <p className={s.emptyText}>Zacznij rozmowę odpowiadając na zaczepienie.</p>
@@ -242,5 +259,5 @@ export function Components() {
         </div>
       </div>
     </>
-  )
+  );
 }

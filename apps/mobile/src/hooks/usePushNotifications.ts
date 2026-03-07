@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
-import * as SecureStore from 'expo-secure-store';
-import Constants from 'expo-constants';
-import { router } from 'expo-router';
-import { useAuthStore } from '../stores/authStore';
-import { trpc } from '../lib/trpc';
+import Constants from "expo-constants";
+import * as Notifications from "expo-notifications";
+import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useRef } from "react";
+import { Platform } from "react-native";
+import { trpc } from "../lib/trpc";
+import { useAuthStore } from "../stores/authStore";
 
 // Suppress push banners in foreground — in-app banners handle it
 Notifications.setNotificationHandler({
@@ -18,7 +18,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const PUSH_TOKEN_KEY = 'lastRegisteredPushToken';
+const PUSH_TOKEN_KEY = "lastRegisteredPushToken";
 
 export function usePushNotifications() {
   const userId = useAuthStore((s) => s.user?.id);
@@ -30,19 +30,17 @@ export function usePushNotifications() {
     if (!userId || registeredRef.current) return;
 
     (async () => {
-      const { status: existing } =
-        await Notifications.getPermissionsAsync();
+      const { status: existing } = await Notifications.getPermissionsAsync();
       let finalStatus = existing;
 
-      if (existing !== 'granted') {
+      if (existing !== "granted") {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
 
-      if (finalStatus !== 'granted') return;
+      if (finalStatus !== "granted") return;
 
-      const projectId =
-        Constants.expoConfig?.extra?.eas?.projectId ?? undefined;
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? undefined;
 
       let token: string;
       try {
@@ -62,7 +60,7 @@ export function usePushNotifications() {
       }
 
       registerMutation.mutate(
-        { token, platform: Platform.OS as 'ios' | 'android' },
+        { token, platform: Platform.OS as "ios" | "android" },
         {
           onSuccess: async () => {
             await SecureStore.setItemAsync(PUSH_TOKEN_KEY, token);
@@ -71,29 +69,23 @@ export function usePushNotifications() {
         },
       );
     })();
-  }, [userId]);
+  }, [userId, registerMutation.mutate]);
 
   // Deep link on notification tap
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const data = response.notification.request.content
-          .data as Record<string, string> | undefined;
-        if (!data?.type) return;
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as Record<string, string> | undefined;
+      if (!data?.type) return;
 
-        if (data.type === 'wave' && data.userId) {
-          router.push({
-            pathname: '/(modals)/user/[userId]',
-            params: { userId: data.userId },
-          });
-        } else if (
-          (data.type === 'chat' || data.type === 'group') &&
-          data.conversationId
-        ) {
-          router.push(`/chat/${data.conversationId}` as any);
-        }
-      },
-    );
+      if (data.type === "wave" && data.userId) {
+        router.push({
+          pathname: "/(modals)/user/[userId]",
+          params: { userId: data.userId },
+        });
+      } else if ((data.type === "chat" || data.type === "group") && data.conversationId) {
+        router.push(`/chat/${data.conversationId}` as never);
+      }
+    });
 
     return () => sub.remove();
   }, []);

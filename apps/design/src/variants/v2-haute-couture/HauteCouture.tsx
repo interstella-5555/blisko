@@ -1,7 +1,7 @@
-import type { VariantMeta } from '~/variants/types'
-import { PhoneFrame } from '~/components/PhoneFrame'
-import { Icon } from '~/components/Icons'
-import s from './haute-couture.module.css'
+import { Icon } from "~/components/Icons";
+import { PhoneFrame } from "~/components/PhoneFrame";
+import type { VariantMeta } from "~/variants/types";
+import s from "./haute-couture.module.css";
 
 export default function HauteCouture() {
   return (
@@ -105,22 +105,22 @@ export default function HauteCouture() {
         </div>
       </div>
     </PhoneFrame>
-  )
+  );
 }
 
 export const meta: VariantMeta = {
   id: 12,
-  name: 'Haute Couture / Fashion Editorial',
-  tagline: 'Premium bez paywalla — szacunek dla profilu',
-  inspiration: 'Jil Sander, Celine, Acne Studios, Apartamento',
+  name: "Haute Couture / Fashion Editorial",
+  tagline: "Premium bez paywalla — szacunek dla profilu",
+  inspiration: "Jil Sander, Celine, Acne Studios, Apartamento",
   features: [
-    'Ekstremalny whitespace, cienki serif italic (Playfair Display)',
-    'Monochromatyczny + zloty akcent, duze kwadratowe zdjecia',
-    'Minimalistyczny lookbook layout — mniej to wiecej',
+    "Ekstremalny whitespace, cienki serif italic (Playfair Display)",
+    "Monochromatyczny + zloty akcent, duze kwadratowe zdjecia",
+    "Minimalistyczny lookbook layout — mniej to wiecej",
   ],
   uxAnalysis: [
     'Sygnal jakosci — "to nie dating app", premium feel',
-    'Profil jak strona w magazynie, nie karta w feedzie',
+    "Profil jak strona w magazynie, nie karta w feedzie",
   ],
-  uxPattern: 'Portrait-first — profil uzytkownika to editorial page, nie miniaturka.',
-}
+  uxPattern: "Portrait-first — profil uzytkownika to editorial page, nie miniaturka.",
+};

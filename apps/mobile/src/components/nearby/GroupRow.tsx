@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { router } from 'expo-router';
-import { colors, fonts, spacing } from '../../theme';
-import { Avatar } from '../ui/Avatar';
-import { formatDistance } from '../../lib/format';
+import { router } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { formatDistance } from "../../lib/format";
+import { colors, fonts, spacing } from "../../theme";
+import { Avatar } from "../ui/Avatar";
 
 interface GroupRowProps {
   conversationId: string;
@@ -24,11 +24,8 @@ export function GroupRow({
   nearbyMemberCount,
 }: GroupRowProps) {
   return (
-    <Pressable
-      style={styles.row}
-      onPress={() => router.push(`/(modals)/group/${conversationId}`)}
-    >
-      <Avatar uri={avatarUrl} name={name ?? 'G'} size={44} />
+    <Pressable style={styles.row} onPress={() => router.push(`/(modals)/group/${conversationId}`)}>
+      <Avatar uri={avatarUrl} name={name ?? "G"} size={44} />
       <View style={styles.info}>
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>
@@ -37,7 +34,7 @@ export function GroupRow({
           <Text style={styles.distance}>{formatDistance(distance)}</Text>
         </View>
         <Text style={styles.meta}>
-          GRUPA · {memberCount} {memberCount === 1 ? 'członek' : 'członków'}
+          GRUPA · {memberCount} {memberCount === 1 ? "członek" : "członków"}
         </Text>
         {description ? (
           <Text style={styles.snippet} numberOfLines={2}>
@@ -46,7 +43,7 @@ export function GroupRow({
         ) : null}
         {nearbyMemberCount != null && nearbyMemberCount > 0 ? (
           <Text style={styles.nearbyBadge}>
-            {nearbyMemberCount} {nearbyMemberCount === 1 ? 'osoba' : 'osób'} w pobliżu
+            {nearbyMemberCount} {nearbyMemberCount === 1 ? "osoba" : "osób"} w pobliżu
           </Text>
         ) : null}
       </View>
@@ -56,8 +53,8 @@ export function GroupRow({
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     paddingVertical: spacing.gutter,
     paddingHorizontal: spacing.column,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -68,8 +65,8 @@ const styles = StyleSheet.create({
     marginLeft: spacing.gutter,
   },
   nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.tight,
   },
   name: {
@@ -82,7 +79,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 12,
     color: colors.muted,
-    marginLeft: 'auto',
+    marginLeft: "auto",
   },
   meta: {
     fontFamily: fonts.sansSemiBold,
@@ -100,7 +97,7 @@ const styles = StyleSheet.create({
   nearbyBadge: {
     fontFamily: fonts.sansMedium,
     fontSize: 12,
-    color: '#5B7A5E',
+    color: "#5B7A5E",
     marginTop: 3,
   },
 });

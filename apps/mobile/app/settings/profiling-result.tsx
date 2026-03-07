@@ -1,40 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Switch,
-} from 'react-native';
-import { router } from 'expo-router';
-import { trpc } from '../../src/lib/trpc';
-import { useWebSocket } from '../../src/lib/ws';
-import { useOnboardingStore } from '../../src/stores/onboardingStore';
-import { useAuthStore } from '../../src/stores/authStore';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { Button } from '../../src/components/ui/Button';
-import { ThinkingIndicator } from '../../src/components/ui/ThinkingIndicator';
+import { router } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Button } from "../../src/components/ui/Button";
+import { ThinkingIndicator } from "../../src/components/ui/ThinkingIndicator";
+import { trpc } from "../../src/lib/trpc";
+import { useWebSocket, type WSMessage } from "../../src/lib/ws";
+import { useAuthStore } from "../../src/stores/authStore";
+import { useOnboardingStore } from "../../src/stores/onboardingStore";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
 export default function ProfilingResultModal() {
   const { profilingSessionId } = useOnboardingStore();
   const profile = useAuthStore((s) => s.profile);
   const setProfile = useAuthStore((s) => s.setProfile);
 
-  const [bio, setBio] = useState('');
-  const [lookingFor, setLookingFor] = useState('');
-  const [portrait, setPortrait] = useState('');
+  const [bio, setBio] = useState("");
+  const [lookingFor, setLookingFor] = useState("");
+  const [portrait, setPortrait] = useState("");
   const [portraitShared, setPortraitShared] = useState(false);
   const [portraitExpanded, setPortraitExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [isGenerating, setIsGenerating] = useState(true);
 
   const utils = trpc.useUtils();
   const sessionState = trpc.profiling.getSessionState.useQuery(
     { sessionId: profilingSessionId! },
-    { enabled: !!profilingSessionId }
+    { enabled: !!profilingSessionId },
   );
 
   const applyProfile = trpc.profiling.applyProfile.useMutation();
@@ -54,13 +46,13 @@ export default function ProfilingResultModal() {
 
   // Listen for WS event when profile generation completes
   const handleWsMessage = useCallback(
-    (msg: any) => {
+    (msg: WSMessage) => {
       if (!profilingSessionId) return;
-      if (msg.type === 'profilingComplete' && msg.sessionId === profilingSessionId) {
+      if (msg.type === "profilingComplete" && msg.sessionId === profilingSessionId) {
         sessionState.refetch();
       }
     },
-    [profilingSessionId, sessionState]
+    [profilingSessionId, sessionState],
   );
 
   useWebSocket(handleWsMessage);
@@ -77,7 +69,7 @@ export default function ProfilingResultModal() {
   const handleApply = async () => {
     if (!profilingSessionId || !profile) return;
     setIsSubmitting(true);
-    setError('');
+    setError("");
 
     try {
       const updated = await applyProfile.mutateAsync({
@@ -91,8 +83,8 @@ export default function ProfilingResultModal() {
       utils.profiles.me.invalidate();
       router.dismiss();
     } catch (err) {
-      console.error('Failed to apply profile:', err);
-      setError('Nie udalo sie zapisac profilu. Sprobuj ponownie.');
+      console.error("Failed to apply profile:", err);
+      setError("Nie udalo sie zapisac profilu. Sprobuj ponownie.");
     } finally {
       setIsSubmitting(false);
     }
@@ -103,11 +95,7 @@ export default function ProfilingResultModal() {
     return (
       <View style={[styles.container, styles.centered]}>
         <ThinkingIndicator
-          messages={[
-            'Generuje Twoj profil...',
-            'Analizuje Twoje odpowiedzi...',
-            'Jeszcze chwilka...',
-          ]}
+          messages={["Generuje Twoj profil...", "Analizuje Twoje odpowiedzi...", "Jeszcze chwilka..."]}
         />
       </View>
     );
@@ -120,9 +108,7 @@ export default function ProfilingResultModal() {
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.title}>Nowy profil</Text>
-      <Text style={styles.subtitle}>
-        Mozesz edytowac tekst przed zapisaniem
-      </Text>
+      <Text style={styles.subtitle}>Mozesz edytowac tekst przed zapisaniem</Text>
 
       <Text style={styles.label}>O MNIE</Text>
       <TextInput
@@ -152,23 +138,14 @@ export default function ProfilingResultModal() {
 
       {portrait ? (
         <>
-          <Pressable
-            onPress={() => setPortraitExpanded(!portraitExpanded)}
-            style={styles.portraitHeader}
-          >
+          <Pressable onPress={() => setPortraitExpanded(!portraitExpanded)} style={styles.portraitHeader}>
             <Text style={styles.label}>PORTRET OSOBOWOSCI</Text>
-            <Text style={typ.caption}>
-              {portraitExpanded ? 'Schowaj' : 'Pokaz'}
-            </Text>
+            <Text style={typ.caption}>{portraitExpanded ? "Schowaj" : "Pokaz"}</Text>
           </Pressable>
-          {portraitExpanded && (
-            <Text style={styles.portraitText}>{portrait}</Text>
-          )}
+          {portraitExpanded && <Text style={styles.portraitText}>{portrait}</Text>}
 
           <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>
-              Udostepnij portret do lepszego dopasowywania
-            </Text>
+            <Text style={styles.toggleLabel}>Udostepnij portret do lepszego dopasowywania</Text>
             <Switch
               value={portraitShared}
               onValueChange={setPortraitShared}
@@ -200,8 +177,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollContent: {
     paddingHorizontal: spacing.section,
@@ -232,13 +209,13 @@ const styles = StyleSheet.create({
   },
   charCount: {
     ...typ.caption,
-    textAlign: 'right',
+    textAlign: "right",
     marginTop: spacing.hairline,
   },
   portraitHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: spacing.column,
     marginBottom: spacing.tight,
   },
@@ -249,9 +226,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.column,
   },
   toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: spacing.column,
     paddingVertical: spacing.gutter,
     borderTopWidth: 1,
@@ -267,7 +244,7 @@ const styles = StyleSheet.create({
     color: colors.status.error.text,
     fontSize: 14,
     marginTop: spacing.column,
-    textAlign: 'center',
+    textAlign: "center",
   },
   buttonContainer: {
     marginTop: spacing.section,

@@ -1,20 +1,17 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { variants } from '~/variants'
-import { VariantCard } from '~/components/VariantCard'
+import { createFileRoute } from "@tanstack/react-router";
+import { VariantCard } from "~/components/VariantCard";
+import { variants } from "~/variants";
 
-export const Route = createFileRoute('/proposals')({
+export const Route = createFileRoute("/proposals")({
   component: ProposalsPage,
-})
+});
 
 function ProposalsPage() {
   return (
     <div className="proposals-page">
       <div className="page-header">
         <h1>Blisko / Style Exploration</h1>
-        <p>
-          13 oryginalnych wariantow stylistycznych — kazdy z unikalna metafora
-          wizualna i wlasnym UX patternem.
-        </p>
+        <p>13 oryginalnych wariantow stylistycznych — kazdy z unikalna metafora wizualna i wlasnym UX patternem.</p>
       </div>
       {variants.map((v, i) => (
         <VariantCard key={v.meta.id} meta={v.meta} index={i}>
@@ -22,5 +19,5 @@ function ProposalsPage() {
         </VariantCard>
       ))}
     </div>
-  )
+  );
 }

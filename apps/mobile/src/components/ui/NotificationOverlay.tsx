@@ -1,5 +1,5 @@
-import { useNotification } from '../../providers/NotificationProvider';
-import { NotificationBanner } from './NotificationBanner';
+import { useNotification } from "../../providers/NotificationProvider";
+import { NotificationBanner } from "./NotificationBanner";
 
 export function NotificationOverlay() {
   const { current, handlePress, handleDismiss } = useNotification();

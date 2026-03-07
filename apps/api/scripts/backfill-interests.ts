@@ -6,23 +6,27 @@
  */
 
 const envPath = `${import.meta.dir}/../.env.local`;
-const envFile = await Bun.file(envPath).text().catch(() => '');
+const envFile = await Bun.file(envPath)
+  .text()
+  .catch(() => "");
 const mainEnvPath = `${import.meta.dir}/../.env`;
-const mainEnvFile = await Bun.file(mainEnvPath).text().catch(() => '');
+const mainEnvFile = await Bun.file(mainEnvPath)
+  .text()
+  .catch(() => "");
 
-const allEnv = mainEnvFile + '\n' + envFile;
+const allEnv = `${mainEnvFile}\n${envFile}`;
 const dbUrlMatch = allEnv.match(/DATABASE_URL=(.+)/);
-if (!dbUrlMatch) throw new Error('DATABASE_URL not found');
+if (!dbUrlMatch) throw new Error("DATABASE_URL not found");
 
 const openaiKeyMatch = allEnv.match(/OPENAI_API_KEY=(.+)/);
-if (!openaiKeyMatch) throw new Error('OPENAI_API_KEY not found');
+if (!openaiKeyMatch) throw new Error("OPENAI_API_KEY not found");
 process.env.OPENAI_API_KEY = openaiKeyMatch[1].trim();
 
-const { default: postgres } = await import('postgres');
+const { default: postgres } = await import("postgres");
 const sql = postgres(dbUrlMatch[1].trim());
 
 // Import AI service
-const { extractInterests } = await import('../src/services/ai');
+const { extractInterests } = await import("../src/services/ai");
 
 const profiles = await sql`
   SELECT id, bio, looking_for, social_links
@@ -44,7 +48,7 @@ for (let i = 0; i < profiles.length; i += BATCH_SIZE) {
       const interests = await extractInterests(text);
 
       if (interests.length > 0) {
-        const pgArray = '{' + interests.map((i: string) => '"' + i.replace(/"/g, '\\"') + '"').join(',') + '}';
+        const pgArray = `{${interests.map((i: string) => `"${i.replace(/"/g, '\\"')}"`).join(",")}}`;
         await sql`
           UPDATE profiles
           SET interests = ${pgArray}::text[]
@@ -56,7 +60,7 @@ for (let i = 0; i < profiles.length; i += BATCH_SIZE) {
       if (processed % 10 === 0) {
         console.log(`  ${processed}/${profiles.length}`);
       }
-    })
+    }),
   );
 }
 

@@ -1,7 +1,7 @@
-import { PhoneFrame } from '~/components/PhoneFrame';
-import { Icon } from '~/components/Icons';
-import type { VariantMeta } from '~/variants/types';
-import s from './transit.module.css';
+import { Icon } from "~/components/Icons";
+import { PhoneFrame } from "~/components/PhoneFrame";
+import type { VariantMeta } from "~/variants/types";
+import s from "./transit.module.css";
 
 export default function Transit() {
   return (
@@ -10,10 +10,10 @@ export default function Transit() {
       <div className={s.headerBar}>
         <h1>Blisko</h1>
         <div className="lineLegend">
-          <div className="lineDot" style={{ background: '#E53935' }}></div>
-          <div className="lineDot" style={{ background: '#1E88E5' }}></div>
-          <div className="lineDot" style={{ background: '#43A047' }}></div>
-          <div className="lineDot" style={{ background: '#FDD835' }}></div>
+          <div className="lineDot" style={{ background: "#E53935" }}></div>
+          <div className="lineDot" style={{ background: "#1E88E5" }}></div>
+          <div className="lineDot" style={{ background: "#43A047" }}></div>
+          <div className="lineDot" style={{ background: "#FDD835" }}></div>
         </div>
       </div>
       <div className={s.mapArea}>
@@ -126,17 +126,17 @@ export default function Transit() {
 
 export const meta: VariantMeta = {
   id: 5,
-  name: 'Transit / Wayfinding',
-  tagline: 'Nawiguj po liniach zainteresowań',
-  inspiration: 'Vignelli NYC subway, japonskie stacje, Citymapper',
+  name: "Transit / Wayfinding",
+  tagline: "Nawiguj po liniach zainteresowań",
+  inspiration: "Vignelli NYC subway, japonskie stacje, Citymapper",
   features: [
-    'Kolorowe linie metra — kazde zainteresowanie = inna linia',
-    'Czarne UI z kolorowymi akcentami, strzalki kierunkowe',
-    'Karty z kolorowym lewym paskiem (linia) i okraglymi przystankami',
+    "Kolorowe linie metra — kazde zainteresowanie = inna linia",
+    "Czarne UI z kolorowymi akcentami, strzalki kierunkowe",
+    "Karty z kolorowym lewym paskiem (linia) i okraglymi przystankami",
   ],
   uxAnalysis: [
-    'Lokalizacja to rdzen apki — wayfinding jest naturalny',
-    'Wspolne zainteresowania = przesiadki — intuicyjna metafora',
+    "Lokalizacja to rdzen apki — wayfinding jest naturalny",
+    "Wspolne zainteresowania = przesiadki — intuicyjna metafora",
   ],
-  uxPattern: 'Interest-lines — jedziesz po liniach zainteresowań, wspolne linie = przesiadki.',
+  uxPattern: "Interest-lines — jedziesz po liniach zainteresowań, wspolne linie = przesiadki.",
 };

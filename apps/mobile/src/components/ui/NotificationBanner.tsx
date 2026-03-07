@@ -1,15 +1,8 @@
-import { useEffect, useRef } from 'react';
-import {
-  Animated,
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar } from './Avatar';
-import { colors, fonts, spacing } from '../../theme';
+import { useCallback, useEffect, useRef } from "react";
+import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors, fonts, spacing } from "../../theme";
+import { Avatar } from "./Avatar";
 
 interface NotificationBannerProps {
   visible: boolean;
@@ -37,23 +30,23 @@ export function NotificationBanner({
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const touchActiveRef = useRef(false);
 
-  const startAutoHide = () => {
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      if (!touchActiveRef.current) {
-        slideOut();
-      }
-    }, AUTO_DISMISS_MS);
-  };
-
-  const slideOut = () => {
+  const slideOut = useCallback(() => {
     clearTimeout(timerRef.current);
     Animated.timing(translateY, {
       toValue: -200,
       duration: 200,
       useNativeDriver: true,
     }).start(() => onDismiss());
-  };
+  }, [translateY, onDismiss]);
+
+  const startAutoHide = useCallback(() => {
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      if (!touchActiveRef.current) {
+        slideOut();
+      }
+    }, AUTO_DISMISS_MS);
+  }, [slideOut]);
 
   useEffect(() => {
     if (visible) {
@@ -68,7 +61,7 @@ export function NotificationBanner({
       slideOut();
     }
     return () => clearTimeout(timerRef.current);
-  }, [visible]);
+  }, [visible, slideOut, startAutoHide, translateY]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -97,15 +90,12 @@ export function NotificationBanner({
           startAutoHide();
         }
       },
-    })
+    }),
   ).current;
 
   return (
     <Animated.View
-      style={[
-        styles.wrapper,
-        { paddingTop: insets.top + spacing.hairline, transform: [{ translateY }] },
-      ]}
+      style={[styles.wrapper, { paddingTop: insets.top + spacing.hairline, transform: [{ translateY }] }]}
       {...panResponder.panHandlers}
     >
       <Pressable onPress={onPress} style={styles.container}>
@@ -127,7 +117,7 @@ export function NotificationBanner({
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -136,8 +126,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.tight,
   },
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.gutter,
     backgroundColor: colors.bg,
     borderWidth: 1,
@@ -148,7 +138,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.column,
     paddingVertical: spacing.gutter,
     // Shadow
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,

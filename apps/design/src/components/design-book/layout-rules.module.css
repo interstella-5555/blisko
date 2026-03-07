@@ -5,7 +5,7 @@
 }
 
 .groupTitle {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -47,7 +47,7 @@
 }
 
 .spacingPx {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-ink);
   width: 40px;
@@ -56,7 +56,7 @@
 }
 
 .spacingName {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 13px;
   color: var(--db-ink);
   width: 80px;
@@ -64,7 +64,7 @@
 }
 
 .spacingUsage {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-muted);
 }
@@ -85,7 +85,7 @@
 }
 
 .ruleTitle {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 14px;
   color: var(--db-ink);
   margin-bottom: 12px;
@@ -96,7 +96,7 @@
 }
 
 .ruleDesc {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-muted);
   line-height: 1.5;
@@ -128,7 +128,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 8px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   color: var(--db-muted);
   border-left: 1px dashed var(--db-accent);
@@ -147,7 +147,7 @@
 }
 
 .dividerLine span {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   color: var(--db-muted);
 }
@@ -161,7 +161,7 @@
 .tabBarBorder {
   background: var(--db-ink);
   color: var(--db-bg);
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 8px;
   padding: 2px 8px;
   text-transform: uppercase;
@@ -173,7 +173,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   color: var(--db-muted);
   height: 48px;
@@ -203,7 +203,7 @@
 }
 
 .snapLine span {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 8px;
   color: var(--db-accent);
   letter-spacing: 0.5px;
@@ -225,7 +225,7 @@
 }
 
 .motionTitle {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 14px;
   color: var(--db-ink);
   margin-bottom: 12px;
@@ -244,7 +244,7 @@
 }
 
 .motionLabel {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -252,13 +252,13 @@
 }
 
 .motionValue code {
-  font-family: 'Instrument Serif', serif;
+  font-family: "Instrument Serif", serif;
   font-size: 24px;
   color: var(--db-ink);
 }
 
 .motionDesc {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 11px;
   color: var(--db-muted);
   line-height: 1.5;
@@ -271,7 +271,7 @@
 }
 
 .motionList li {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 12px;
   color: var(--db-ink);
   line-height: 1.8;
@@ -280,7 +280,7 @@
 }
 
 .motionList li::before {
-  content: '\2014';
+  content: "\2014";
   position: absolute;
   left: 0;
   color: var(--db-rule);
@@ -307,7 +307,7 @@
 }
 
 .doHeader {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -319,7 +319,7 @@
 }
 
 .dontHeader {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -337,7 +337,7 @@
 }
 
 .doList li {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 12px;
   color: var(--db-ink);
   line-height: 1.8;
@@ -346,7 +346,7 @@
 }
 
 .doList li::before {
-  content: '\2014';
+  content: "\2014";
   position: absolute;
   left: 0;
   color: var(--db-rule);

@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, spacing } from '../../theme';
-import type { ToastType } from '../../providers/ToastProvider';
+import { useCallback, useEffect, useRef } from "react";
+import { Animated, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { ToastType } from "../../providers/ToastProvider";
+import { colors, fonts, spacing } from "../../theme";
 
 interface ToastBannerProps {
   visible: boolean;
@@ -17,24 +17,24 @@ const AUTO_DISMISS_MS = 4000;
 const typeColors = {
   error: {
     bg: colors.status.error.bg,
-    border: '#D4C4C4',
+    border: "#D4C4C4",
     bar: colors.status.error.text,
     title: colors.status.error.text,
-    message: '#7A4A4A',
+    message: "#7A4A4A",
   },
   success: {
     bg: colors.status.success.bg,
-    border: '#B8C9B9',
+    border: "#B8C9B9",
     bar: colors.status.success.text,
     title: colors.status.success.text,
-    message: '#4A6A4D',
+    message: "#4A6A4D",
   },
   info: {
-    bg: '#EDF1F5',
-    border: '#B8C8D8',
-    bar: '#4A6B8A',
-    title: '#4A6B8A',
-    message: '#4A5F73',
+    bg: "#EDF1F5",
+    border: "#B8C8D8",
+    bar: "#4A6B8A",
+    title: "#4A6B8A",
+    message: "#4A5F73",
   },
 };
 
@@ -46,14 +46,7 @@ export function ToastBanner({ visible, type, title, message, onDismiss }: ToastB
   const touchActiveRef = useRef(false);
   const c = typeColors[type];
 
-  const startAutoHide = () => {
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      if (!touchActiveRef.current) slideOut();
-    }, AUTO_DISMISS_MS);
-  };
-
-  const slideOut = () => {
+  const slideOut = useCallback(() => {
     clearTimeout(timerRef.current);
     Animated.parallel([
       Animated.timing(translateY, {
@@ -67,7 +60,14 @@ export function ToastBanner({ visible, type, title, message, onDismiss }: ToastB
         useNativeDriver: true,
       }),
     ]).start(() => onDismiss());
-  };
+  }, [translateY, scale, onDismiss]);
+
+  const startAutoHide = useCallback(() => {
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      if (!touchActiveRef.current) slideOut();
+    }, AUTO_DISMISS_MS);
+  }, [slideOut]);
 
   useEffect(() => {
     if (visible) {
@@ -90,7 +90,7 @@ export function ToastBanner({ visible, type, title, message, onDismiss }: ToastB
       slideOut();
     }
     return () => clearTimeout(timerRef.current);
-  }, [visible]);
+  }, [visible, scale, slideOut, startAutoHide, translateY]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -122,10 +122,7 @@ export function ToastBanner({ visible, type, title, message, onDismiss }: ToastB
 
   return (
     <Animated.View
-      style={[
-        styles.wrapper,
-        { paddingTop: insets.top + spacing.hairline, transform: [{ translateY }, { scale }] },
-      ]}
+      style={[styles.wrapper, { paddingTop: insets.top + spacing.hairline, transform: [{ translateY }, { scale }] }]}
       {...panResponder.panHandlers}
     >
       <Pressable onPress={onDismiss} style={[styles.container, { backgroundColor: c.bg, borderColor: c.border }]}>
@@ -147,7 +144,7 @@ export function ToastBanner({ visible, type, title, message, onDismiss }: ToastB
 
 const styles = StyleSheet.create({
   wrapper: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -156,8 +153,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.tight,
   },
   container: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: spacing.compact,
     borderWidth: 1,
     borderRadius: 10,
@@ -166,7 +163,7 @@ const styles = StyleSheet.create({
   },
   bar: {
     width: 2.5,
-    alignSelf: 'stretch',
+    alignSelf: "stretch",
     borderRadius: 2,
   },
   textContainer: {

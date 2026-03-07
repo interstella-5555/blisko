@@ -1,5 +1,5 @@
-import { useToast } from '../../providers/ToastProvider';
-import { ToastBanner } from './ToastBanner';
+import { useToast } from "../../providers/ToastProvider";
+import { ToastBanner } from "./ToastBanner";
 
 export function ToastOverlay() {
   const { current, dismiss } = useToast();
@@ -7,12 +7,6 @@ export function ToastOverlay() {
   if (!current) return null;
 
   return (
-    <ToastBanner
-      visible
-      type={current.type}
-      title={current.title}
-      message={current.message}
-      onDismiss={dismiss}
-    />
+    <ToastBanner visible type={current.type} title={current.title} message={current.message} onDismiss={dismiss} />
   );
 }

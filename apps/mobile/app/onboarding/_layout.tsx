@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
-import { Stack, router } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
-import { trpc } from '../../src/lib/trpc';
-import { useAuthStore } from '../../src/stores/authStore';
+import { router, Stack } from "expo-router";
+import { useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { trpc } from "../../src/lib/trpc";
+import { useAuthStore } from "../../src/stores/authStore";
 
 export default function OnboardingLayout() {
   const user = useAuthStore((state) => state.user);
@@ -18,14 +18,14 @@ export default function OnboardingLayout() {
     if (profile) {
       setProfile(profile);
       setHasCheckedProfile(true);
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     }
   }, [profile, setProfile, setHasCheckedProfile]);
 
   // Show loading while checking profile
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -34,7 +34,7 @@ export default function OnboardingLayout() {
   // If profile exists, don't render onboarding (redirect will happen)
   if (profile) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -44,7 +44,7 @@ export default function OnboardingLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: 'slide_from_right',
+        animation: "slide_from_right",
       }}
     >
       <Stack.Screen name="index" />

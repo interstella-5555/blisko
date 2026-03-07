@@ -1,26 +1,26 @@
-import { z } from "zod";
-import { eq, and, ne, sql, isNotNull, between, notInArray, lte } from "drizzle-orm";
-import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "~/trpc/trpc";
-import { db, schema } from "~/db";
 import {
-  createProfileSchema,
-  updateProfileSchema,
-  updateLocationSchema,
-  getNearbyUsersSchema,
-  getNearbyUsersForMapSchema,
-  setStatusSchema,
   cosineSimilarity,
+  createProfileSchema,
+  getNearbyUsersForMapSchema,
+  getNearbyUsersSchema,
+  setStatusSchema,
+  updateLocationSchema,
+  updateProfileSchema,
 } from "@repo/shared";
-import { toGridCenter, roundDistance } from "~/lib/grid";
+import { TRPCError } from "@trpc/server";
+import { and, between, eq, isNotNull, lte, ne, notInArray, sql } from "drizzle-orm";
+import { z } from "zod";
+import { db, schema } from "@/db";
+import { roundDistance, toGridCenter } from "@/lib/grid";
+import { moderateContent } from "@/services/moderation";
 import {
-  enqueueUserPairAnalysis,
   enqueuePairAnalysis,
   enqueueProfileAI,
   enqueueStatusMatching,
-} from "~/services/queue";
-import { moderateContent } from "~/services/moderation";
-import { ee } from "~/ws/events";
+  enqueueUserPairAnalysis,
+} from "@/services/queue";
+import { protectedProcedure, router } from "@/trpc/trpc";
+import { ee } from "@/ws/events";
 
 export const profilesRouter = router({
   // Get current user's profile
@@ -288,10 +288,7 @@ export const profilesRouter = router({
         db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId)),
         db.select().from(schema.connectionAnalyses).where(eq(schema.connectionAnalyses.fromUserId, ctx.userId)),
         db.select().from(schema.statusMatches).where(eq(schema.statusMatches.userId, ctx.userId)),
-        db
-          .select({ count: sql<number>`count(*)` })
-          .from(schema.profiles)
-          .where(baseWhere),
+        db.select({ count: sql<number>`count(*)` }).from(schema.profiles).where(baseWhere),
       ]);
 
     const allBlockedIds = new Set([...blockedUsers.map((b) => b.blockedId), ...blockedByUsers.map((b) => b.blockerId)]);

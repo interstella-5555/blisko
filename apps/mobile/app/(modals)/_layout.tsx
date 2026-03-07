@@ -1,9 +1,9 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Stack, router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { NotificationOverlay } from '../../src/components/ui/NotificationOverlay';
-import { IconChevronLeft } from '@/components/ui/icons';
+import { router, Stack } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { IconChevronLeft } from "@/components/ui/icons";
+import { NotificationOverlay } from "../../src/components/ui/NotificationOverlay";
+import { colors, fonts, spacing } from "../../src/theme";
 
 export default function ModalsLayout() {
   return (
@@ -11,7 +11,7 @@ export default function ModalsLayout() {
       <Stack
         screenOptions={{
           header: ({ options }) => (
-            <SafeAreaView edges={['top']} style={styles.safeArea}>
+            <SafeAreaView edges={["top"]} style={styles.safeArea}>
               <View style={styles.header}>
                 <Pressable onPress={() => router.back()} hitSlop={8} style={styles.back}>
                   <IconChevronLeft size={24} color={colors.ink} />
@@ -24,22 +24,10 @@ export default function ModalsLayout() {
           contentStyle: { backgroundColor: colors.bg },
         }}
       >
-        <Stack.Screen
-          name="user/[userId]"
-          options={{ title: 'Profil' }}
-        />
-        <Stack.Screen
-          name="create-group"
-          options={{ title: 'Nowa grupa' }}
-        />
-        <Stack.Screen
-          name="group/[id]"
-          options={{ title: 'Grupa' }}
-        />
-        <Stack.Screen
-          name="group/members/[id]"
-          options={{ title: 'Członkowie' }}
-        />
+        <Stack.Screen name="user/[userId]" options={{ title: "Profil" }} />
+        <Stack.Screen name="create-group" options={{ title: "Nowa grupa" }} />
+        <Stack.Screen name="group/[id]" options={{ title: "Grupa" }} />
+        <Stack.Screen name="group/members/[id]" options={{ title: "Członkowie" }} />
       </Stack>
       <NotificationOverlay />
     </>
@@ -51,9 +39,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: spacing.section,
     height: 58,
   },

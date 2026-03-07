@@ -1,33 +1,33 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { router } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  ScrollView,
+  Alert,
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  Alert,
+  ScrollView,
+  StyleSheet,
   Switch,
-  Animated,
-  Easing,
-} from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-import { router } from 'expo-router';
-import { trpc } from '../../src/lib/trpc';
-import { sendWsMessage } from '../../src/lib/ws';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { Button } from '../../src/components/ui/Button';
-import { Avatar } from '../../src/components/ui/Avatar';
-import { useConversationsStore } from '../../src/stores/conversationsStore';
-import { useLocationStore } from '../../src/stores/locationStore';
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import MapView, { Marker } from "react-native-maps";
+import { Avatar } from "../../src/components/ui/Avatar";
+import { Button } from "../../src/components/ui/Button";
+import { trpc } from "../../src/lib/trpc";
+import { sendWsMessage } from "../../src/lib/ws";
+import { useConversationsStore } from "../../src/stores/conversationsStore";
+import { useLocationStore } from "../../src/stores/locationStore";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
 const MAP_HEIGHT = 180;
 
 export default function CreateGroupScreen() {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [isDiscoverable, setIsDiscoverable] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
 
@@ -43,7 +43,7 @@ export default function CreateGroupScreen() {
       setGroupLat(userLat);
       setGroupLng(userLng);
     }
-  }, [userLat, userLng]);
+  }, [userLat, userLng, groupLat, groupLng]);
 
   // Animate map section
   const mapAnim = useRef(new Animated.Value(0)).current;
@@ -54,7 +54,7 @@ export default function CreateGroupScreen() {
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [isDiscoverable, hasLocation]);
+  }, [isDiscoverable, hasLocation, mapAnim]);
 
   const mapSectionHeight = mapAnim.interpolate({
     inputRange: [0, 1],
@@ -64,21 +64,18 @@ export default function CreateGroupScreen() {
   // Get DM contacts from conversations store
   const conversations = useConversationsStore((s) => s.conversations);
   const dmContacts = useMemo(
-    () =>
-      conversations
-        .filter((c) => c.type === 'dm' && c.participant)
-        .map((c) => c.participant!),
+    () => conversations.filter((c) => c.type === "dm" && c.participant).map((c) => c.participant!),
     [conversations],
   );
 
   const createGroup = trpc.groups.create.useMutation({
     onSuccess: (data) => {
       // Subscribe to WS events for the new group
-      sendWsMessage({ type: 'subscribe', conversationId: data.id });
+      sendWsMessage({ type: "subscribe", conversationId: data.id });
       // Add the new group to conversations store
       useConversationsStore.getState().addNew({
         id: data.id,
-        type: 'group',
+        type: "group",
         participant: null,
         groupName: data.name,
         groupAvatarUrl: data.avatarUrl,
@@ -91,22 +88,20 @@ export default function CreateGroupScreen() {
       router.replace(`/chat/${data.id}`);
     },
     onError: () => {
-      Alert.alert('Blad', 'Nie udalo sie utworzyc grupy');
+      Alert.alert("Blad", "Nie udalo sie utworzyc grupy");
     },
   });
 
   const handleCreate = () => {
     if (name.trim().length < 1) {
-      Alert.alert('Blad', 'Podaj nazwe grupy');
+      Alert.alert("Blad", "Podaj nazwe grupy");
       return;
     }
     createGroup.mutate({
       name: name.trim(),
       description: description.trim() || undefined,
       isDiscoverable,
-      ...(isDiscoverable && hasLocation
-        ? { latitude: groupLat, longitude: groupLng }
-        : {}),
+      ...(isDiscoverable && hasLocation ? { latitude: groupLat, longitude: groupLng } : {}),
       memberUserIds: [...selectedUserIds],
     });
   };
@@ -126,15 +121,8 @@ export default function CreateGroupScreen() {
   const canCreate = name.trim().length >= 1;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.field}>
           <Text style={styles.label}>Nazwa grupy</Text>
           <TextInput
@@ -167,9 +155,7 @@ export default function CreateGroupScreen() {
             textAlignVertical="top"
             maxLength={500}
           />
-          {description.length > 0 && (
-            <Text style={styles.charCount}>{description.length} / 500</Text>
-          )}
+          {description.length > 0 && <Text style={styles.charCount}>{description.length} / 500</Text>}
         </View>
 
         <View style={styles.toggleRow}>
@@ -184,12 +170,12 @@ export default function CreateGroupScreen() {
         </View>
         <Text style={styles.toggleDescription}>
           {hasLocation
-            ? 'Osoby w poblizu beda mogly znalezc i dolaczyc do grupy'
-            : 'Włącz lokalizację, żeby grupa była widoczna'}
+            ? "Osoby w poblizu beda mogly znalezc i dolaczyc do grupy"
+            : "Włącz lokalizację, żeby grupa była widoczna"}
         </Text>
 
         {/* Map section — animated reveal when discoverable */}
-        <Animated.View style={{ height: mapSectionHeight, overflow: 'hidden' }}>
+        <Animated.View style={{ height: mapSectionHeight, overflow: "hidden" }}>
           <View style={styles.mapContainer}>
             {hasLocation && (
               <MapView
@@ -216,37 +202,20 @@ export default function CreateGroupScreen() {
               </MapView>
             )}
           </View>
-          <Text style={styles.mapHint}>
-            Przesuń pin, żeby ustawić lokalizację
-          </Text>
+          <Text style={styles.mapHint}>Przesuń pin, żeby ustawić lokalizację</Text>
         </Animated.View>
 
         {dmContacts.length > 0 && (
           <View style={styles.membersSection}>
             <Text style={styles.label}>Dodaj czlonkow</Text>
             {dmContacts.map((contact) => (
-              <Pressable
-                key={contact.userId}
-                style={styles.contactRow}
-                onPress={() => toggleMember(contact.userId)}
-              >
-                <Avatar
-                  uri={contact.avatarUrl}
-                  name={contact.displayName}
-                  size={36}
-                />
+              <Pressable key={contact.userId} style={styles.contactRow} onPress={() => toggleMember(contact.userId)}>
+                <Avatar uri={contact.avatarUrl} name={contact.displayName} size={36} />
                 <Text style={styles.contactName} numberOfLines={1}>
                   {contact.displayName}
                 </Text>
-                <View
-                  style={[
-                    styles.checkbox,
-                    selectedUserIds.has(contact.userId) && styles.checkboxChecked,
-                  ]}
-                >
-                  {selectedUserIds.has(contact.userId) && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
+                <View style={[styles.checkbox, selectedUserIds.has(contact.userId) && styles.checkboxChecked]}>
+                  {selectedUserIds.has(contact.userId) && <Text style={styles.checkmark}>✓</Text>}
                 </View>
               </Pressable>
             ))}
@@ -288,7 +257,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: colors.muted,
     marginBottom: 8,
   },
@@ -304,13 +273,13 @@ const styles = StyleSheet.create({
   multilineInput: {},
   charCount: {
     ...typ.caption,
-    textAlign: 'right',
+    textAlign: "right",
     marginTop: spacing.hairline,
   },
   toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: spacing.hairline,
   },
   toggleLabel: {
@@ -327,7 +296,7 @@ const styles = StyleSheet.create({
   mapContainer: {
     height: MAP_HEIGHT,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
     backgroundColor: colors.mapBg,
     marginTop: spacing.tight,
   },
@@ -343,8 +312,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.section,
   },
   contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: spacing.compact,
     gap: spacing.gutter,
   },
@@ -360,8 +329,8 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     borderWidth: 1.5,
     borderColor: colors.rule,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   checkboxChecked: {
     backgroundColor: colors.ink,

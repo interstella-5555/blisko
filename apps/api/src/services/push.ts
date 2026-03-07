@@ -1,7 +1,7 @@
-import Expo, { type ExpoPushMessage, type ExpoPushTicket } from "expo-server-sdk";
 import { eq } from "drizzle-orm";
-import { db, schema } from "~/db";
-import { clients } from "~/ws/handler";
+import Expo, { type ExpoPushMessage, type ExpoPushTicket } from "expo-server-sdk";
+import { db, schema } from "@/db";
+import { clients } from "@/ws/handler";
 
 const expo = new Expo();
 

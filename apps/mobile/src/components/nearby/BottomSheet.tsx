@@ -1,20 +1,8 @@
-import {
-  useRef,
-  useCallback,
-  useImperativeHandle,
-  forwardRef,
-  type ReactNode,
-} from 'react';
-import {
-  View,
-  StyleSheet,
-  Animated,
-  PanResponder,
-  Dimensions,
-} from 'react-native';
-import { colors } from '../../theme';
+import { forwardRef, type ReactNode, useCallback, useImperativeHandle, useRef } from "react";
+import { Animated, Dimensions, PanResponder, StyleSheet, View } from "react-native";
+import { colors } from "../../theme";
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
+const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 export interface BottomSheetRef {
   snapTo: (index: number) => void;
@@ -32,9 +20,7 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
     // translateY: 0 = fully expanded (top snap), positive = further down
     // We store the sheet height as SCREEN_HEIGHT - translateY
     // So translateY = SCREEN_HEIGHT - sheetHeight
-    const translateY = useRef(
-      new Animated.Value(SCREEN_HEIGHT - initialHeight)
-    ).current;
+    const translateY = useRef(new Animated.Value(SCREEN_HEIGHT - initialHeight)).current;
     const currentSnapIndex = useRef(initialSnap);
     const lastTranslateY = useRef(SCREEN_HEIGHT - initialHeight);
 
@@ -55,7 +41,7 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
           useNativeDriver: true,
         }).start();
       },
-      [snapPoints, translateY]
+      [snapPoints, translateY],
     );
 
     useImperativeHandle(ref, () => ({ snapTo }), [snapTo]);
@@ -65,10 +51,7 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
         onStartShouldSetPanResponder: () => false,
         onMoveShouldSetPanResponder: (_, gestureState) => {
           // Only capture vertical drags
-          return (
-            Math.abs(gestureState.dy) > 5 &&
-            Math.abs(gestureState.dy) > Math.abs(gestureState.dx)
-          );
+          return Math.abs(gestureState.dy) > 5 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
         },
         onPanResponderGrant: () => {
           // Store current value when drag starts
@@ -123,7 +106,7 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
             useNativeDriver: true,
           }).start();
         },
-      })
+      }),
     ).current;
 
     return (
@@ -142,12 +125,12 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
         <View style={styles.content}>{children}</View>
       </Animated.View>
     );
-  }
+  },
 );
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     top: 0,
@@ -157,7 +140,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
   },
   handleContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 10,
   },
   handle: {

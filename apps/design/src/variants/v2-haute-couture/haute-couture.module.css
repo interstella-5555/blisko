@@ -1,20 +1,23 @@
 .phoneFrame {
-  --bg: #FAFAFA;
-  --ink: #1A1A1A;
-  --accent: #B8860B;
-  --muted: #AAAAAA;
-  --light: #E8E8E8;
+  --bg: #fafafa;
+  --ink: #1a1a1a;
+  --accent: #b8860b;
+  --muted: #aaaaaa;
+  --light: #e8e8e8;
   background: var(--bg);
   border: 1px solid var(--light);
-  box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
 }
 .statusBar {
   height: 54px;
   background: var(--bg);
-  display: flex; align-items: flex-end; justify-content: center;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
   padding-bottom: 4px;
-  font-family: 'Playfair Display', serif;
-  font-size: 12px; font-style: italic;
+  font-family: "Playfair Display", serif;
+  font-size: 12px;
+  font-style: italic;
   color: var(--muted);
 }
 .headerBar {
@@ -22,8 +25,9 @@
   text-align: center;
 }
 .headerBar h1 {
-  font-family: 'Playfair Display', serif;
-  font-size: 14px; font-weight: 400;
+  font-family: "Playfair Display", serif;
+  font-size: 14px;
+  font-weight: 400;
   color: var(--ink);
   letter-spacing: 8px;
   text-transform: uppercase;
@@ -31,14 +35,15 @@
 
 .mapArea {
   height: 280px;
-  background: #F5F5F5;
+  background: #f5f5f5;
   position: relative;
   overflow: hidden;
   margin: 0 20px;
 }
 /* Minimal map — just faint lines */
 .mapLines {
-  position: absolute; inset: 0;
+  position: absolute;
+  inset: 0;
   background:
     linear-gradient(0deg, transparent 49.5%, var(--light) 49.5%, var(--light) 50.5%, transparent 50.5%),
     linear-gradient(90deg, transparent 49.5%, var(--light) 49.5%, var(--light) 50.5%, transparent 50.5%);
@@ -48,134 +53,223 @@
 
 .marker {
   position: absolute;
-  font-family: 'Playfair Display', serif;
+  font-family: "Playfair Display", serif;
   color: #fff;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
 }
 .markerGroup {
-  width: 36px; height: 36px;
+  width: 36px;
+  height: 36px;
   background: var(--ink);
-  top: 90px; left: 150px;
-  font-size: 14px; font-style: italic;
+  top: 90px;
+  left: 150px;
+  font-size: 14px;
+  font-style: italic;
 }
 .markerSmall {
-  width: 28px; height: 28px;
+  width: 28px;
+  height: 28px;
   background: var(--muted);
-  top: 180px; left: 70px;
-  font-size: 11px; font-style: italic;
+  top: 180px;
+  left: 70px;
+  font-size: 11px;
+  font-style: italic;
 }
 .markerAvatar {
-  width: 56px; height: 56px;
-  top: 110px; left: 240px;
+  width: 56px;
+  height: 56px;
+  top: 110px;
+  left: 240px;
   overflow: hidden;
   border: 1px solid var(--light);
 }
-.markerAvatar img { width: 100%; height: 100%; object-fit: cover; }
+.markerAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .myLoc {
   position: absolute;
-  top: 135px; left: 140px;
-  width: 8px; height: 8px;
+  top: 135px;
+  left: 140px;
+  width: 8px;
+  height: 8px;
   background: var(--accent);
   border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(184,134,11,0.15);
+  box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.15);
 }
 .radiusBadge {
   position: absolute;
-  top: 12px; right: 12px;
-  font-family: 'Playfair Display', serif;
-  font-size: 11px; font-style: italic;
+  top: 12px;
+  right: 12px;
+  font-family: "Playfair Display", serif;
+  font-size: 11px;
+  font-style: italic;
   color: var(--muted);
 }
 
 .sheet {
   position: absolute;
-  bottom: 70px; left: 0; right: 0;
+  bottom: 70px;
+  left: 0;
+  right: 0;
   top: 386px;
   background: var(--bg);
   border-top: 1px solid var(--light);
-  display: flex; flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
-.sheetHandleRow { display: flex; align-items: center; justify-content: center; padding: 10px 0 0; }
-.sheetHandle { width: 24px; height: 1px; background: var(--muted); }
+.sheetHandleRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0 0;
+}
+.sheetHandle {
+  width: 24px;
+  height: 1px;
+  background: var(--muted);
+}
 .sheetHead {
-  display: flex; justify-content: space-between; align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   padding: 10px 20px 8px;
 }
 .sheetCount {
-  font-family: 'Playfair Display', serif;
-  font-size: 14px; font-style: italic;
+  font-family: "Playfair Display", serif;
+  font-size: 14px;
+  font-style: italic;
   color: var(--ink);
 }
 .sheetAction {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   color: var(--accent);
-  text-transform: uppercase; letter-spacing: 2px;
-  background: none; border: none;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  background: none;
+  border: none;
 }
 .userList {
-  flex: 1; overflow: hidden;
+  flex: 1;
+  overflow: hidden;
   padding: 0 20px 8px;
-  display: flex; flex-direction: column; gap: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 .userCard {
-  display: flex; align-items: center; gap: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
   padding: 12px 0;
   border-bottom: 1px solid var(--light);
 }
 .userCard :global(.avatar) {
-  width: 48px; height: 48px;
-  border-radius: 0; overflow: hidden; flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 0;
+  overflow: hidden;
+  flex-shrink: 0;
 }
-.userCard :global(.avatar) img { width: 100%; height: 100%; object-fit: cover; }
-.userCard :global(.info) { flex: 1; min-width: 0; }
-.userCard :global(.nameRow) { display: flex; align-items: baseline; gap: 10px; margin-bottom: 3px; }
+.userCard :global(.avatar) img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.userCard :global(.info) {
+  flex: 1;
+  min-width: 0;
+}
+.userCard :global(.nameRow) {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 3px;
+}
 .userCard :global(.name) {
-  font-family: 'Playfair Display', serif;
-  font-size: 15px; color: var(--ink);
+  font-family: "Playfair Display", serif;
+  font-size: 15px;
+  color: var(--ink);
 }
 .userCard :global(.dist) {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 10px; color: var(--muted);
+  font-family: "DM Sans", sans-serif;
+  font-size: 10px;
+  color: var(--muted);
   font-style: italic;
 }
-.userCard :global(.tags) { display: flex; gap: 8px; flex-wrap: wrap; }
+.userCard :global(.tags) {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .userCard :global(.tag) {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 9px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
-.userCard :global(.tag.match) { color: var(--accent); }
+.userCard :global(.tag.match) {
+  color: var(--accent);
+}
 .userCard :global(.waveBtn) {
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   background: none;
   border: 1px solid var(--ink);
   border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
-.userCard :global(.waveBtn) svg { width: 16px; height: 16px; color: var(--ink); }
+.userCard :global(.waveBtn) svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ink);
+}
 
 .tabs {
-  position: absolute; bottom: 0; left: 0; right: 0;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   height: 70px;
   background: var(--bg);
   border-top: 1px solid var(--light);
-  display: flex; padding-top: 6px;
+  display: flex;
+  padding-top: 6px;
 }
 .tab {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; gap: 3px; padding-top: 8px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding-top: 8px;
 }
-.tab svg { width: 18px; height: 18px; }
+.tab svg {
+  width: 18px;
+  height: 18px;
+}
 .tab span {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 8px; text-transform: uppercase;
-  letter-spacing: 2px; color: var(--muted);
+  font-family: "DM Sans", sans-serif;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted);
 }
-.tab:global(.active) span { color: var(--ink); }
-.tab :global(.tabIcon) { color: var(--muted); }
-.tab:global(.active) :global(.tabIcon) { color: var(--ink); }
+.tab:global(.active) span {
+  color: var(--ink);
+}
+.tab :global(.tabIcon) {
+  color: var(--muted);
+}
+.tab:global(.active) :global(.tabIcon) {
+  color: var(--ink);
+}

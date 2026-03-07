@@ -1,37 +1,96 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { AppState } from 'react-native';
-import { useAuthStore } from '../stores/authStore';
-import { authClient } from './auth';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState } from "react-native";
+import { useAuthStore } from "../stores/authStore";
+import { authClient } from "./auth";
+
+export interface WSNewMessage {
+  id: string;
+  conversationId?: string;
+  senderId: string;
+  content: string;
+  type?: string;
+  metadata?: Record<string, unknown> | null;
+  replyToId?: string | null;
+  createdAt: string;
+  readAt?: string | null;
+  deletedAt?: string | null;
+  replyTo?: { id: string; content: string; senderName: string } | null;
+}
+
+export interface WSWave {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  status: string;
+  createdAt: string;
+}
 
 export type WSMessage =
-  | { type: 'auth'; status: 'ok'; conversationIds: string[] }
-  | { type: 'auth'; status: 'error'; message: string }
-  | { type: 'newMessage'; conversationId: string; message: any; senderName?: string | null; senderAvatarUrl?: string | null }
-  | { type: 'typing'; conversationId: string; userId: string; isTyping: boolean }
-  | { type: 'reaction'; conversationId: string; messageId: string; emoji: string; userId: string; action: 'added' | 'removed' }
-  | { type: 'newWave'; wave: any; fromProfile: { displayName: string; avatarUrl: string | null } }
-  | { type: 'waveResponded'; waveId: string; accepted: boolean; conversationId: string | null; responderProfile: { displayName: string; avatarUrl: string | null } }
-  | { type: 'analysisReady'; aboutUserId: string; shortSnippet: string }
-  | { type: 'nearbyChanged' }
-  | { type: 'profileReady' }
-  | { type: 'questionReady'; sessionId: string; questionNumber: number }
-  | { type: 'profilingComplete'; sessionId: string }
-  | { type: 'groupMember'; conversationId: string; userId: string; action: 'joined' | 'left' | 'removed' | 'roleChanged'; role?: string; displayName?: string }
-  | { type: 'groupUpdated'; conversationId: string; updates: { name?: string; description?: string; avatarUrl?: string | null } }
-  | { type: 'topicEvent'; conversationId: string; topic: { id: string; name: string; emoji: string | null }; action: 'created' | 'updated' | 'deleted' | 'closed' }
-  | { type: 'groupInvited'; conversationId: string; groupName: string | null }
-  | { type: 'reconnected' };
+  | { type: "auth"; status: "ok"; conversationIds: string[] }
+  | { type: "auth"; status: "error"; message: string }
+  | {
+      type: "newMessage";
+      conversationId: string;
+      message: WSNewMessage;
+      senderName?: string | null;
+      senderAvatarUrl?: string | null;
+    }
+  | { type: "typing"; conversationId: string; userId: string; isTyping: boolean }
+  | {
+      type: "reaction";
+      conversationId: string;
+      messageId: string;
+      emoji: string;
+      userId: string;
+      action: "added" | "removed";
+    }
+  | { type: "newWave"; wave: WSWave; fromProfile: { displayName: string; avatarUrl: string | null } }
+  | {
+      type: "waveResponded";
+      waveId: string;
+      accepted: boolean;
+      conversationId: string | null;
+      responderId?: string;
+      responderProfile?: { displayName: string; avatarUrl: string | null };
+    }
+  | { type: "analysisReady"; aboutUserId: string; shortSnippet: string }
+  | { type: "nearbyChanged" }
+  | { type: "statusMatchesReady" }
+  | { type: "profileReady" }
+  | { type: "questionReady"; sessionId: string; questionNumber: number }
+  | { type: "profilingComplete"; sessionId: string }
+  | {
+      type: "groupMember";
+      conversationId: string;
+      userId: string;
+      action: "joined" | "left" | "removed" | "roleChanged";
+      role?: string;
+      displayName?: string;
+    }
+  | {
+      type: "groupUpdated";
+      conversationId: string;
+      updates: { name?: string; description?: string; avatarUrl?: string | null };
+    }
+  | {
+      type: "topicEvent";
+      conversationId: string;
+      topic: { id: string; name: string; emoji: string | null };
+      action: "created" | "updated" | "deleted" | "closed";
+    }
+  | { type: "groupInvited"; conversationId: string; groupName: string | null }
+  | { type: "reconnected" };
 
 type MessageHandler = (msg: WSMessage) => void;
 
 const getWsUrl = () => {
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
-  return apiUrl.replace(/^http/, 'ws') + '/ws';
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+  return `${apiUrl.replace(/^http/, "ws")}/ws`;
 };
 
 let globalWs: WebSocket | null = null;
-let handlers = new Set<MessageHandler>();
+const handlers = new Set<MessageHandler>();
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let isConnecting = false;
 let hasConnectedBefore = false;
@@ -46,14 +105,14 @@ async function getToken(): Promise<string | null> {
     const { data } = await authClient.getSession();
     if (data?.session?.token) return data.session.token;
   } catch (e) {
-    console.warn('[WS] authClient.getSession() failed:', e);
+    console.warn("[WS] authClient.getSession() failed:", e);
   }
 
   // 3. SecureStore fallback
   try {
-    return await SecureStore.getItemAsync('blisko_session_token');
+    return await SecureStore.getItemAsync("blisko_session_token");
   } catch (e) {
-    console.warn('[WS] SecureStore fallback failed:', e);
+    console.warn("[WS] SecureStore fallback failed:", e);
   }
 
   return null;
@@ -64,59 +123,59 @@ function connect() {
   isConnecting = true;
 
   const url = getWsUrl();
-  console.log('[WS] connecting to', url);
+  console.log("[WS] connecting to", url);
   const ws = new WebSocket(url);
   globalWs = ws;
 
   ws.onopen = async () => {
     isConnecting = false;
-    console.log('[WS] connected, authenticating...');
+    console.log("[WS] connected, authenticating...");
     const token = await getToken();
     if (token) {
-      ws.send(JSON.stringify({ type: 'auth', token }));
-      console.log('[WS] auth sent');
+      ws.send(JSON.stringify({ type: "auth", token }));
+      console.log("[WS] auth sent");
     } else {
-      console.warn('[WS] no token available, cannot authenticate');
+      console.warn("[WS] no token available, cannot authenticate");
     }
   };
 
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data) as WSMessage;
-      if (data.type === 'auth') {
-        console.log('[WS] auth response:', data.status, data.status === 'error' ? (data as any).message : '');
+      if (data.type === "auth") {
+        console.log("[WS] auth response:", data.status, data.status === "error" ? data.message : "");
         // On successful re-auth after reconnect, notify handlers to reconcile
-        if (data.status === 'ok') {
+        if (data.status === "ok") {
           if (hasConnectedBefore) {
-            console.log('[WS] reconnected — dispatching reconciliation');
+            console.log("[WS] reconnected — dispatching reconciliation");
             for (const handler of handlers) {
-              handler({ type: 'reconnected' });
+              handler({ type: "reconnected" });
             }
           }
           hasConnectedBefore = true;
         }
       } else {
-        console.log('[WS] received:', data.type, `(${handlers.size} handlers)`);
+        console.log("[WS] received:", data.type, `(${handlers.size} handlers)`);
       }
       for (const handler of handlers) {
         handler(data);
       }
     } catch (e) {
-      console.warn('[WS] message parse error:', e);
+      console.warn("[WS] message parse error:", e);
     }
   };
 
   ws.onclose = (event) => {
     isConnecting = false;
     globalWs = null;
-    console.log('[WS] closed (code:', event.code, '), reconnecting in 3s');
+    console.log("[WS] closed (code:", event.code, "), reconnecting in 3s");
     if (reconnectTimer) clearTimeout(reconnectTimer);
     reconnectTimer = setTimeout(connect, 3000);
   };
 
   ws.onerror = (event) => {
     isConnecting = false;
-    console.warn('[WS] error:', event);
+    console.warn("[WS] error:", event);
     ws.close();
   };
 }
@@ -150,15 +209,15 @@ export function useWebSocket(onMessage?: MessageHandler) {
 
     connect();
 
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') connect();
-      else if (state === 'background') disconnect();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") connect();
+      else if (state === "background") disconnect();
     });
 
     return () => {
       sub.remove();
     };
-  }, [user?.id]);
+  }, [user?.id, user]);
 
   useEffect(() => {
     if (!onMessage) return;
@@ -180,7 +239,7 @@ export function useTypingIndicator(conversationId: string | undefined) {
 
   const handleMessage = useCallback(
     (msg: WSMessage) => {
-      if (msg.type !== 'typing' || msg.conversationId !== conversationId) return;
+      if (msg.type !== "typing" || msg.conversationId !== conversationId) return;
       if (msg.userId === userId) return; // Ignore own typing
 
       setTypingUsers((prev) => {
@@ -207,7 +266,7 @@ export function useTypingIndicator(conversationId: string | undefined) {
         return next;
       });
     },
-    [conversationId, userId]
+    [conversationId, userId],
   );
 
   useWebSocket(handleMessage);
@@ -215,26 +274,26 @@ export function useTypingIndicator(conversationId: string | undefined) {
   const sendTyping = useCallback(
     (isTyping: boolean) => {
       if (!conversationId) return;
-      sendWsMessage({ type: 'typing', conversationId, isTyping });
+      sendWsMessage({ type: "typing", conversationId, isTyping });
 
       // Auto-stop after 3s
       if (isTyping) {
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = setTimeout(() => {
-          sendWsMessage({ type: 'typing', conversationId, isTyping: false });
+          sendWsMessage({ type: "typing", conversationId, isTyping: false });
         }, 3000);
       }
     },
-    [conversationId]
+    [conversationId],
   );
 
   // Cleanup
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      typingUsers.forEach((timeout) => clearTimeout(timeout));
+      for (const timeout of typingUsers.values()) clearTimeout(timeout);
     };
-  }, []);
+  }, [typingUsers.values]);
 
   return {
     isTyping: typingUsers.size > 0,

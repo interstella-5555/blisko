@@ -1,7 +1,7 @@
-import { generateObject } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
-import { GPT_MODEL } from '@repo/shared';
+import { openai } from "@ai-sdk/openai";
+import { GPT_MODEL } from "@repo/shared";
+import { generateObject } from "ai";
+import { z } from "zod";
 
 function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
@@ -16,19 +16,16 @@ export type FollowUpQuestionsResult = z.infer<typeof followUpQuestionsSchema>;
 export async function generateFollowUpQuestions(
   displayName: string,
   answeredQA: { question: string; answer: string }[],
-  skippedQuestionIds: string[]
+  skippedQuestionIds: string[],
 ): Promise<FollowUpQuestionsResult> {
   if (!isConfigured()) {
-    return { questions: ['Opowiedz mi więcej o sobie.'] };
+    return { questions: ["Opowiedz mi więcej o sobie."] };
   }
 
-  const qaBlock = answeredQA
-    .map((qa) => `P: ${qa.question}\nO: ${qa.answer}`)
-    .join('\n');
+  const qaBlock = answeredQA.map((qa) => `P: ${qa.question}\nO: ${qa.answer}`).join("\n");
 
-  const skippedBlock = skippedQuestionIds.length > 0
-    ? `\n\nPominięte pytania (ID): ${skippedQuestionIds.join(', ')}`
-    : '';
+  const skippedBlock =
+    skippedQuestionIds.length > 0 ? `\n\nPominięte pytania (ID): ${skippedQuestionIds.join(", ")}` : "";
 
   const { object } = await generateObject({
     model: openai(GPT_MODEL),
@@ -75,32 +72,31 @@ export async function generateNextQuestion(
     previousSessionQA?: { question: string; answer: string }[];
     userRequestedMore?: boolean;
     directionHint?: string;
-  }
+  },
 ): Promise<NextQuestionResult> {
   if (!isConfigured()) {
     return {
-      question: 'Opowiedz mi o swoich zainteresowaniach.',
-      suggestions: ['Sport i aktywność', 'Muzyka i sztuka', 'Technologia', 'Podróże'],
+      question: "Opowiedz mi o swoich zainteresowaniach.",
+      suggestions: ["Sport i aktywność", "Muzyka i sztuka", "Technologia", "Podróże"],
       sufficient: qaHistory.length >= 5,
     };
   }
 
-  let contextBlock = '';
+  let contextBlock = "";
   if (options?.previousSessionQA?.length) {
     contextBlock += `\n\nPoprzednia sesja profilowania (kontekst):\n${options.previousSessionQA
       .map((qa) => `P: ${qa.question}\nO: ${qa.answer}`)
-      .join('\n')}`;
+      .join("\n")}`;
   }
 
-  const historyBlock = qaHistory.length > 0
-    ? `\n\nDotychczasowa rozmowa:\n${qaHistory
-        .map((qa) => `P: ${qa.question}\nO: ${qa.answer}`)
-        .join('\n')}`
-    : '';
+  const historyBlock =
+    qaHistory.length > 0
+      ? `\n\nDotychczasowa rozmowa:\n${qaHistory.map((qa) => `P: ${qa.question}\nO: ${qa.answer}`).join("\n")}`
+      : "";
 
-  let extraInstructions = '';
+  let extraInstructions = "";
   if (options?.userRequestedMore) {
-    extraInstructions += '\nUżytkownik poprosił o więcej pytań — wygeneruj pytanie pogłębione.';
+    extraInstructions += "\nUżytkownik poprosił o więcej pytań — wygeneruj pytanie pogłębione.";
     if (options?.directionHint) {
       extraInstructions += `\n<user_hint>${options.directionHint}</user_hint>`;
     }
@@ -142,26 +138,24 @@ export type ProfileFromQAResult = z.infer<typeof profileFromQASchema>;
 export async function generateProfileFromQA(
   displayName: string,
   qaHistory: { question: string; answer: string }[],
-  previousSessionQA?: { question: string; answer: string }[]
+  previousSessionQA?: { question: string; answer: string }[],
 ): Promise<ProfileFromQAResult> {
   if (!isConfigured()) {
     return {
-      bio: 'Jestem osobą otwartą na nowe znajomości.',
-      lookingFor: 'Szukam ludzi o podobnych zainteresowaniach.',
-      portrait: 'Osoba otwarta i ciekawa świata.',
+      bio: "Jestem osobą otwartą na nowe znajomości.",
+      lookingFor: "Szukam ludzi o podobnych zainteresowaniach.",
+      portrait: "Osoba otwarta i ciekawa świata.",
     };
   }
 
-  let contextBlock = '';
+  let contextBlock = "";
   if (previousSessionQA?.length) {
     contextBlock = `\n\nPoprzednia sesja (kontekst dodatkowy):\n${previousSessionQA
       .map((qa) => `P: ${qa.question}\nO: ${qa.answer}`)
-      .join('\n')}`;
+      .join("\n")}`;
   }
 
-  const qaBlock = qaHistory
-    .map((qa) => `P: ${qa.question}\nO: ${qa.answer}`)
-    .join('\n');
+  const qaBlock = qaHistory.map((qa) => `P: ${qa.question}\nO: ${qa.answer}`).join("\n");
 
   const { object } = await generateObject({
     model: openai(GPT_MODEL),

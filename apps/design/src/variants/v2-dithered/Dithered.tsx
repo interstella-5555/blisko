@@ -1,7 +1,7 @@
-import { PhoneFrame } from '~/components/PhoneFrame';
-import { Icon } from '~/components/Icons';
-import type { VariantMeta } from '~/variants/types';
-import s from './dithered.module.css';
+import { Icon } from "~/components/Icons";
+import { PhoneFrame } from "~/components/PhoneFrame";
+import type { VariantMeta } from "~/variants/types";
+import s from "./dithered.module.css";
 
 export default function Dithered() {
   return (
@@ -128,17 +128,17 @@ export default function Dithered() {
 
 export const meta: VariantMeta = {
   id: 7,
-  name: 'Dithered / 1-Bit Retro',
-  tagline: 'Privacy-by-design — rozmyta tozsamosc z nostalgia',
-  inspiration: 'Poolside FM, wczesny Mac, Obra Dinn',
+  name: "Dithered / 1-Bit Retro",
+  tagline: "Privacy-by-design — rozmyta tozsamosc z nostalgia",
+  inspiration: "Poolside FM, wczesny Mac, Obra Dinn",
   features: [
-    '1-bit dithered zdjecia, pixel-grid ramki, System 7 menu bar',
-    '2-3 kolory, monospace everywhere, ostre prostokatne ksztalty',
-    'Zdjecia w grayscale z podwyzsonym kontrastem',
+    "1-bit dithered zdjecia, pixel-grid ramki, System 7 menu bar",
+    "2-3 kolory, monospace everywhere, ostre prostokatne ksztalty",
+    "Zdjecia w grayscale z podwyzsonym kontrastem",
   ],
   uxAnalysis: [
-    'Privacy-by-design — dithered = rozmyta tozsamosc, buduje ciekawosc',
-    'Nostalgia = cieplo, nic takiego nie istnieje na rynku',
+    "Privacy-by-design — dithered = rozmyta tozsamosc, buduje ciekawosc",
+    "Nostalgia = cieplo, nic takiego nie istnieje na rynku",
   ],
-  uxPattern: 'Progressive reveal — zdjecia wyostrzaja sie w miare budowania polaczenia.',
+  uxPattern: "Progressive reveal — zdjecia wyostrzaja sie w miare budowania polaczenia.",
 };

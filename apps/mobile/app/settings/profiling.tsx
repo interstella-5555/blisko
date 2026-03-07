@@ -1,27 +1,27 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { ONBOARDING_QUESTIONS } from "@repo/shared";
+import { router } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
+  Animated,
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
-  Animated,
   Pressable,
-  Dimensions,
-} from 'react-native';
-import { router } from 'expo-router';
-import { ONBOARDING_QUESTIONS } from '@repo/shared';
-import { trpc } from '../../src/lib/trpc';
-import { useOnboardingStore } from '../../src/stores/onboardingStore';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { Button } from '../../src/components/ui/Button';
-import { IconChevronLeft } from '@/components/ui/icons';
-import { ThinkingIndicator } from '../../src/components/ui/ThinkingIndicator';
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { IconChevronLeft } from "@/components/ui/icons";
+import { Button } from "../../src/components/ui/Button";
+import { ThinkingIndicator } from "../../src/components/ui/ThinkingIndicator";
+import { trpc } from "../../src/lib/trpc";
+import { useOnboardingStore } from "../../src/stores/onboardingStore";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_WIDTH = Dimensions.get("window").width;
 
-type Phase = 'questions' | 'submitting' | 'followups' | 'generating';
+type Phase = "questions" | "submitting" | "followups" | "generating";
 
 interface FollowUp {
   id: string;
@@ -32,14 +32,14 @@ export default function ProfilingModal() {
   const { setProfilingSessionId } = useOnboardingStore();
 
   const [questionIndex, setQuestionIndex] = useState(0);
-  const [currentText, setCurrentText] = useState('');
+  const [currentText, setCurrentText] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [phase, setPhase] = useState<Phase>('questions');
+  const [phase, setPhase] = useState<Phase>("questions");
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const [followUpIndex, setFollowUpIndex] = useState(0);
-  const [followUpText, setFollowUpText] = useState('');
+  const [followUpText, setFollowUpText] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const slideAnim = useRef(new Animated.Value(0)).current;
   const inputRef = useRef<TextInput>(null);
@@ -56,17 +56,17 @@ export default function ProfilingModal() {
       inputRef.current?.focus();
     }, 350);
     return () => clearTimeout(timer);
-  }, [questionIndex, followUpIndex, phase]);
+  }, []);
 
-  const animateSlide = (direction: 'forward' | 'back', callback: () => void) => {
-    const toValue = direction === 'forward' ? -SCREEN_WIDTH : SCREEN_WIDTH;
+  const animateSlide = (direction: "forward" | "back", callback: () => void) => {
+    const toValue = direction === "forward" ? -SCREEN_WIDTH : SCREEN_WIDTH;
     Animated.timing(slideAnim, {
       toValue,
       duration: 200,
       useNativeDriver: true,
     }).start(() => {
       callback();
-      slideAnim.setValue(direction === 'forward' ? SCREEN_WIDTH : -SCREEN_WIDTH);
+      slideAnim.setValue(direction === "forward" ? SCREEN_WIDTH : -SCREEN_WIDTH);
       Animated.spring(slideAnim, {
         toValue: 0,
         damping: 20,
@@ -80,15 +80,13 @@ export default function ProfilingModal() {
     const trimmed = currentText.trim();
     if (!trimmed && currentQuestion.required) return;
 
-    const newAnswers = trimmed
-      ? { ...answers, [currentQuestion.id]: trimmed }
-      : answers;
+    const newAnswers = trimmed ? { ...answers, [currentQuestion.id]: trimmed } : answers;
     setAnswers(newAnswers);
 
     if (questionIndex < totalQuestions - 1) {
-      animateSlide('forward', () => {
+      animateSlide("forward", () => {
         setQuestionIndex((i) => i + 1);
-        setCurrentText('');
+        setCurrentText("");
       });
     } else {
       handleSubmitAll(newAnswers);
@@ -99,9 +97,9 @@ export default function ProfilingModal() {
     if (!currentQuestion) return;
 
     if (questionIndex < totalQuestions - 1) {
-      animateSlide('forward', () => {
+      animateSlide("forward", () => {
         setQuestionIndex((i) => i + 1);
-        setCurrentText('');
+        setCurrentText("");
       });
     } else {
       handleSubmitAll(answers);
@@ -110,10 +108,10 @@ export default function ProfilingModal() {
 
   const handleBack = () => {
     if (questionIndex > 0) {
-      animateSlide('back', () => {
+      animateSlide("back", () => {
         const prev = ONBOARDING_QUESTIONS[questionIndex - 1];
         setQuestionIndex((i) => i - 1);
-        setCurrentText(prev ? answers[prev.id] ?? '' : '');
+        setCurrentText(prev ? (answers[prev.id] ?? "") : "");
       });
     } else {
       router.back();
@@ -121,17 +119,15 @@ export default function ProfilingModal() {
   };
 
   const handleSubmitAll = async (finalAnswers: Record<string, string>) => {
-    setPhase('submitting');
-    setError('');
+    setPhase("submitting");
+    setError("");
 
     const answersArray = Object.entries(finalAnswers)
       .filter(([, v]) => v.trim())
       .map(([questionId, answer]) => ({ questionId, answer }));
 
     const answeredIds = new Set(answersArray.map((a) => a.questionId));
-    const allSkipped = ONBOARDING_QUESTIONS
-      .map((q) => q.id)
-      .filter((id) => !answeredIds.has(id));
+    const allSkipped = ONBOARDING_QUESTIONS.map((q) => q.id).filter((id) => !answeredIds.has(id));
 
     try {
       const result = await submitOnboarding.mutateAsync({
@@ -145,15 +141,15 @@ export default function ProfilingModal() {
       if (result.followUpQuestions.length > 0) {
         setFollowUps(result.followUpQuestions);
         setFollowUpIndex(0);
-        setFollowUpText('');
-        setPhase('followups');
+        setFollowUpText("");
+        setPhase("followups");
       } else {
         await triggerProfileGeneration(result.sessionId);
       }
     } catch (err) {
-      console.error('Failed to submit:', err);
-      setError('Nie udalo sie przeslac odpowiedzi. Sprobuj ponownie.');
-      setPhase('questions');
+      console.error("Failed to submit:", err);
+      setError("Nie udalo sie przeslac odpowiedzi. Sprobuj ponownie.");
+      setPhase("questions");
     }
   };
 
@@ -164,7 +160,7 @@ export default function ProfilingModal() {
     const currentFollowUp = followUps[followUpIndex];
     if (!currentFollowUp || !sessionId) return;
 
-    setError('');
+    setError("");
 
     try {
       await answerFollowUp.mutateAsync({
@@ -174,41 +170,41 @@ export default function ProfilingModal() {
       });
 
       if (followUpIndex < followUps.length - 1) {
-        animateSlide('forward', () => {
+        animateSlide("forward", () => {
           setFollowUpIndex((i) => i + 1);
-          setFollowUpText('');
+          setFollowUpText("");
         });
       } else {
         await triggerProfileGeneration(sessionId);
       }
     } catch (err) {
-      console.error('Failed to answer follow-up:', err);
-      setError('Nie udalo sie zapisac odpowiedzi. Sprobuj ponownie.');
+      console.error("Failed to answer follow-up:", err);
+      setError("Nie udalo sie zapisac odpowiedzi. Sprobuj ponownie.");
     }
   };
 
   const triggerProfileGeneration = async (sid: string) => {
-    setPhase('generating');
+    setPhase("generating");
     try {
       await completeSession.mutateAsync({ sessionId: sid });
-      router.replace('/settings/profiling-result');
+      router.replace("/settings/profiling-result");
     } catch (err) {
-      console.error('Failed to complete session:', err);
-      setError('Nie udalo sie wygenerowac profilu. Sprobuj ponownie.');
+      console.error("Failed to complete session:", err);
+      setError("Nie udalo sie wygenerowac profilu. Sprobuj ponownie.");
     }
   };
 
   // --- Submitting ---
-  if (phase === 'submitting') {
+  if (phase === "submitting") {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ThinkingIndicator messages={['Analizuje Twoje odpowiedzi...']} />
+        <ThinkingIndicator messages={["Analizuje Twoje odpowiedzi..."]} />
       </View>
     );
   }
 
   // --- Generating (with error retry) ---
-  if (phase === 'generating') {
+  if (phase === "generating") {
     return (
       <View style={[styles.container, styles.centered]}>
         {error ? (
@@ -219,7 +215,7 @@ export default function ProfilingModal() {
                 title="Sprobuj ponownie"
                 variant="accent"
                 onPress={() => {
-                  setError('');
+                  setError("");
                   if (sessionId) triggerProfileGeneration(sessionId);
                 }}
               />
@@ -227,11 +223,7 @@ export default function ProfilingModal() {
           </View>
         ) : (
           <ThinkingIndicator
-            messages={[
-              'Generuje Twoj profil...',
-              'Analizuje Twoje odpowiedzi...',
-              'Jeszcze chwilka...',
-            ]}
+            messages={["Generuje Twoj profil...", "Analizuje Twoje odpowiedzi...", "Jeszcze chwilka..."]}
           />
         )}
       </View>
@@ -239,27 +231,22 @@ export default function ProfilingModal() {
   }
 
   // --- Follow-ups ---
-  if (phase === 'followups') {
+  if (phase === "followups") {
     const currentFU = followUps[followUpIndex];
     if (!currentFU) return null;
 
     return (
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: '100%' }]} />
+          <View style={[styles.progressBarFill, { width: "100%" }]} />
         </View>
 
-        <Animated.View
-          style={[styles.content, { transform: [{ translateX: slideAnim }] }]}
-        >
+        <Animated.View style={[styles.content, { transform: [{ translateX: slideAnim }] }]}>
           <View style={styles.header}>
             <View />
             <Text style={styles.counter}>
-              Jeszcze {followUps.length - followUpIndex}{' '}
-              {followUps.length - followUpIndex === 1 ? 'pytanie' : 'pytania'}
+              Jeszcze {followUps.length - followUpIndex}{" "}
+              {followUps.length - followUpIndex === 1 ? "pytanie" : "pytania"}
             </Text>
           </View>
 
@@ -301,17 +288,12 @@ export default function ProfilingModal() {
   const progress = (questionIndex + 1) / totalQuestions;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.progressBarBg}>
         <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
       </View>
 
-      <Animated.View
-        style={[styles.content, { transform: [{ translateX: slideAnim }] }]}
-      >
+      <Animated.View style={[styles.content, { transform: [{ translateX: slideAnim }] }]}>
         <View style={styles.header}>
           <Pressable onPress={handleBack} hitSlop={8}>
             <IconChevronLeft size={24} color={colors.ink} />
@@ -364,13 +346,13 @@ const styles = StyleSheet.create({
   },
   centered: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   progressBarBg: {
     height: 3,
     backgroundColor: colors.rule,
-    width: '100%',
+    width: "100%",
   },
   progressBarFill: {
     height: 3,
@@ -382,9 +364,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing.block,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.block,
   },
   counter: {
@@ -407,7 +389,7 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: spacing.section,
     gap: spacing.column,
-    alignItems: 'center',
+    alignItems: "center",
   },
   skipText: {
     ...typ.caption,
@@ -416,11 +398,11 @@ const styles = StyleSheet.create({
   error: {
     ...typ.body,
     color: colors.status.error.text,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: spacing.column,
   },
   errorRetry: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: spacing.section,
   },
 });

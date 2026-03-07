@@ -1,25 +1,18 @@
-import { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
-import { authClient } from '@/lib/auth';
-import { useAuthStore } from '@/stores/authStore';
-import { colors, type as typ, spacing, fonts } from '@/theme';
-import { IconSend } from '@/components/ui/icons';
-import { Button } from '@/components/ui/Button';
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Button } from "@/components/ui/Button";
+import { IconSend } from "@/components/ui/icons";
+import { authClient } from "@/lib/auth";
+import { useAuthStore } from "@/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 const CODE_LENGTH = 6;
 const RESEND_COOLDOWN = 30;
 
 export default function VerifyEmailScreen() {
   const { newEmail } = useLocalSearchParams<{ newEmail: string }>();
-  const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
+  const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -36,7 +29,7 @@ export default function VerifyEmailScreen() {
 
   const handleCodeChange = (value: string, index: number) => {
     if (value.length > 1) {
-      const digits = value.replace(/\D/g, '').slice(0, CODE_LENGTH).split('');
+      const digits = value.replace(/\D/g, "").slice(0, CODE_LENGTH).split("");
       const newCode = [...code];
       digits.forEach((digit, i) => {
         if (index + i < CODE_LENGTH) {
@@ -46,13 +39,13 @@ export default function VerifyEmailScreen() {
       setCode(newCode);
       const nextIndex = Math.min(index + digits.length, CODE_LENGTH - 1);
       inputRefs.current[nextIndex]?.focus();
-      if (newCode.every(d => d !== '')) {
-        handleVerify(newCode.join(''));
+      if (newCode.every((d) => d !== "")) {
+        handleVerify(newCode.join(""));
       }
       return;
     }
 
-    const digit = value.replace(/\D/g, '');
+    const digit = value.replace(/\D/g, "");
     const newCode = [...code];
     newCode[index] = digit;
     setCode(newCode);
@@ -61,21 +54,21 @@ export default function VerifyEmailScreen() {
       inputRefs.current[index + 1]?.focus();
     }
 
-    if (newCode.every(d => d !== '')) {
-      handleVerify(newCode.join(''));
+    if (newCode.every((d) => d !== "")) {
+      handleVerify(newCode.join(""));
     }
   };
 
-  const handleKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
+  const handleKeyPress = (e: { nativeEvent: { key: string } }, index: number) => {
+    if (e.nativeEvent.key === "Backspace" && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
   const handleVerify = async (verifyCode?: string) => {
-    const codeToVerify = verifyCode || code.join('');
+    const codeToVerify = verifyCode || code.join("");
     if (codeToVerify.length !== CODE_LENGTH) {
-      setError('Wpisz 6-cyfrowy kod');
+      setError("Wpisz 6-cyfrowy kod");
       return;
     }
 
@@ -89,7 +82,7 @@ export default function VerifyEmailScreen() {
       });
 
       if (result.error) {
-        setError(result.error.message || 'Nieprawidłowy kod');
+        setError(result.error.message || "Nieprawidłowy kod");
         setIsLoading(false);
         return;
       }
@@ -99,8 +92,8 @@ export default function VerifyEmailScreen() {
       }
 
       router.dismiss(2);
-    } catch (err) {
-      setError('Nie udało się zweryfikować kodu');
+    } catch (_err) {
+      setError("Nie udało się zweryfikować kodu");
     }
 
     setIsLoading(false);
@@ -118,44 +111,38 @@ export default function VerifyEmailScreen() {
       });
 
       if (result.error) {
-        setError(result.error.message || 'Nie udało się wysłać kodu');
+        setError(result.error.message || "Nie udało się wysłać kodu");
       } else {
         setResendCooldown(RESEND_COOLDOWN);
-        setCode(Array(CODE_LENGTH).fill(''));
+        setCode(Array(CODE_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
       }
-    } catch (err) {
-      setError('Nie udało się wysłać kodu');
+    } catch (_err) {
+      setError("Nie udało się wysłać kodu");
     }
 
     setIsLoading(false);
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
           <IconSend size={32} color={colors.ink} />
         </View>
         <Text style={styles.title}>Wpisz kod</Text>
-        <Text style={styles.message}>
-          Wysłaliśmy 6-cyfrowy kod na adres:
-        </Text>
+        <Text style={styles.message}>Wysłaliśmy 6-cyfrowy kod na adres:</Text>
         <Text style={styles.email}>{newEmail}</Text>
 
         <View style={styles.codeContainer}>
           {code.map((digit, index) => (
             <TextInput
+              // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length OTP inputs
               key={index}
-              ref={(ref) => { inputRefs.current[index] = ref; }}
-              style={[
-                styles.codeInput,
-                digit && styles.codeInputFilled,
-                error && styles.codeInputError,
-              ]}
+              ref={(ref) => {
+                inputRefs.current[index] = ref;
+              }}
+              style={[styles.codeInput, digit && styles.codeInputFilled, error && styles.codeInputError]}
               value={digit}
               onChangeText={(value) => handleCodeChange(value, index)}
               onKeyPress={(e) => handleKeyPress(e, index)}
@@ -169,18 +156,12 @@ export default function VerifyEmailScreen() {
 
         {error && <Text style={styles.error}>{error}</Text>}
 
-        {isLoading && (
-          <Text style={styles.loading}>Weryfikacja...</Text>
-        )}
+        {isLoading && <Text style={styles.loading}>Weryfikacja...</Text>}
 
-        <Text style={styles.hint}>
-          Sprawdź folder spam jeśli nie widzisz maila
-        </Text>
+        <Text style={styles.hint}>Sprawdź folder spam jeśli nie widzisz maila</Text>
 
         <Button
-          title={resendCooldown > 0
-            ? `Wyślij kod ponownie (${resendCooldown}s)`
-            : 'Wyślij kod ponownie'}
+          title={resendCooldown > 0 ? `Wyślij kod ponownie (${resendCooldown}s)` : "Wyślij kod ponownie"}
           variant="ghost"
           onPress={handleResend}
           disabled={resendCooldown > 0 || isLoading}
@@ -197,8 +178,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: spacing.section,
   },
   iconContainer: {
@@ -211,7 +192,7 @@ const styles = StyleSheet.create({
   message: {
     ...typ.body,
     color: colors.muted,
-    textAlign: 'center',
+    textAlign: "center",
   },
   email: {
     ...typ.body,
@@ -221,8 +202,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.block,
   },
   codeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 8,
     marginBottom: spacing.section,
   },
@@ -233,8 +214,8 @@ const styles = StyleSheet.create({
     borderColor: colors.ink,
     fontFamily: fonts.serif,
     fontSize: 20,
-    textAlign: 'center',
-    backgroundColor: 'transparent',
+    textAlign: "center",
+    backgroundColor: "transparent",
     color: colors.ink,
   },
   codeInputFilled: {
@@ -248,7 +229,7 @@ const styles = StyleSheet.create({
     color: colors.status.error.text,
     fontSize: 14,
     marginBottom: spacing.column,
-    textAlign: 'center',
+    textAlign: "center",
   },
   loading: {
     ...typ.body,
@@ -257,7 +238,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...typ.caption,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: spacing.section,
     marginBottom: spacing.column,
   },

@@ -1,5 +1,5 @@
-import { View, Text, TextInput, StyleSheet, type TextInputProps } from 'react-native';
-import { colors, fonts } from '../../theme';
+import { StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native";
+import { colors, fonts } from "../../theme";
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: colors.muted,
     marginBottom: 8,
   },

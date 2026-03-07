@@ -1,7 +1,7 @@
-import { PhoneFrame } from '~/components/PhoneFrame';
-import { Icon } from '~/components/Icons';
-import type { VariantMeta } from '~/variants/types';
-import s from './bauhaus.module.css';
+import { Icon } from "~/components/Icons";
+import { PhoneFrame } from "~/components/PhoneFrame";
+import type { VariantMeta } from "~/variants/types";
+import s from "./bauhaus.module.css";
 
 export default function Bauhaus() {
   return (
@@ -10,9 +10,9 @@ export default function Bauhaus() {
       <div className={s.headerBar}>
         <h1>Blisko</h1>
         <div className={s.legend}>
-          <div className={s.legendBlock} style={{ background: '#E53935' }}></div>
-          <div className={s.legendBlock} style={{ background: '#1565C0' }}></div>
-          <div className={s.legendBlock} style={{ background: '#FDD835' }}></div>
+          <div className={s.legendBlock} style={{ background: "#E53935" }}></div>
+          <div className={s.legendBlock} style={{ background: "#1565C0" }}></div>
+          <div className={s.legendBlock} style={{ background: "#FDD835" }}></div>
         </div>
       </div>
       <div className={s.mapArea}>
@@ -31,14 +31,18 @@ export default function Bauhaus() {
         <div className={s.myLoc}></div>
       </div>
       <div className={s.sheet}>
-        <div className={s.sheetHandleRow}><div className={s.sheetHandle}></div></div>
+        <div className={s.sheetHandleRow}>
+          <div className={s.sheetHandle}></div>
+        </div>
         <div className={s.sheetHead}>
           <div className={s.sheetCount}>8 W POBLIZU</div>
           <button className={s.sheetAction}>FILTR</button>
         </div>
         <div className={s.userList}>
           <div className={s.userCard}>
-            <div className={s.avatar}><img src="https://i.pravatar.cc/80?img=33" alt="" loading="lazy" /></div>
+            <div className={s.avatar}>
+              <img src="https://i.pravatar.cc/80?img=33" alt="" loading="lazy" />
+            </div>
             <div className={s.info}>
               <div className={s.nameRow}>
                 <span className={s.name}>Adam, 28</span>
@@ -55,7 +59,9 @@ export default function Bauhaus() {
             </div>
           </div>
           <div className={s.userCard}>
-            <div className={s.avatar}><img src="https://i.pravatar.cc/80?img=47" alt="" loading="lazy" /></div>
+            <div className={s.avatar}>
+              <img src="https://i.pravatar.cc/80?img=47" alt="" loading="lazy" />
+            </div>
             <div className={s.info}>
               <div className={s.nameRow}>
                 <span className={s.name}>Maja, 25</span>
@@ -71,7 +77,9 @@ export default function Bauhaus() {
             </div>
           </div>
           <div className={s.userCard}>
-            <div className={s.avatar}><img src="https://i.pravatar.cc/80?img=59" alt="" loading="lazy" /></div>
+            <div className={s.avatar}>
+              <img src="https://i.pravatar.cc/80?img=59" alt="" loading="lazy" />
+            </div>
             <div className={s.info}>
               <div className={s.nameRow}>
                 <span className={s.name}>Tomek, 32</span>
@@ -112,17 +120,17 @@ export default function Bauhaus() {
 
 export const meta: VariantMeta = {
   id: 9,
-  name: 'Bauhaus / De Stijl',
-  tagline: '3 kolory, scisly grid, geometryczna rownowaga',
-  inspiration: 'Mondrian, Kandinsky, Swiss Style',
+  name: "Bauhaus / De Stijl",
+  tagline: "3 kolory, scisly grid, geometryczna rownowaga",
+  inspiration: "Mondrian, Kandinsky, Swiss Style",
   features: [
-    '3 kolory primarne + czarny + bialy, Mondrian-grid mapa',
-    'Grube linie, asymetryczna rownowaga, geometryczne ksztalty',
-    'Prostokaty i kwadraty zamiast zaokraglonych rogow',
+    "3 kolory primarne + czarny + bialy, Mondrian-grid mapa",
+    "Grube linie, asymetryczna rownowaga, geometryczne ksztalty",
+    "Prostokaty i kwadraty zamiast zaokraglonych rogow",
   ],
   uxAnalysis: [
-    'Grid idealny dla mapy — 3 kolory = jasna hierarchia',
-    'Art-movement nigdy nie widziany w social appach',
+    "Grid idealny dla mapy — 3 kolory = jasna hierarchia",
+    "Art-movement nigdy nie widziany w social appach",
   ],
-  uxPattern: 'Color=meaning — czerwony=blisko, zolty=zainteresowanie, niebieski=polaczenie.',
+  uxPattern: "Color=meaning — czerwony=blisko, zolty=zainteresowanie, niebieski=polaczenie.",
 };

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // Profile validators
 export const createProfileSchema = z.object({
@@ -7,10 +7,12 @@ export const createProfileSchema = z.object({
   lookingFor: z.string().min(10).max(500),
 });
 
-export const socialLinksSchema = z.object({
-  facebook: z.string().max(100).optional().or(z.literal('')),
-  linkedin: z.string().max(100).optional().or(z.literal('')),
-}).optional();
+export const socialLinksSchema = z
+  .object({
+    facebook: z.string().max(100).optional().or(z.literal("")),
+    linkedin: z.string().max(100).optional().or(z.literal("")),
+  })
+  .optional();
 
 export const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(50).optional(),
@@ -18,7 +20,7 @@ export const updateProfileSchema = z.object({
   lookingFor: z.string().min(10).max(500).optional(),
   avatarUrl: z.string().url().optional(),
   socialLinks: socialLinksSchema,
-  visibilityMode: z.enum(['visible', 'matches_only', 'hidden']).optional(),
+  visibilityMode: z.enum(["visible", "matches_only", "hidden"]).optional(),
 });
 
 export const updateLocationSchema = z.object({
@@ -41,7 +43,7 @@ export const respondToWaveSchema = z.object({
 export const sendMessageSchema = z.object({
   conversationId: z.string().min(1),
   content: z.string().min(1).max(2000),
-  type: z.enum(['text', 'image', 'location']).default('text'),
+  type: z.enum(["text", "image", "location"]).default("text"),
   metadata: z.record(z.string(), z.unknown()).optional(),
   replyToId: z.string().uuid().optional(),
   topicId: z.string().uuid().optional(),
@@ -84,7 +86,7 @@ export const getNearbyUsersForMapSchema = z.object({
 // Status "na teraz" validators
 export const setStatusSchema = z.object({
   text: z.string().min(1).max(150),
-  expiresIn: z.enum(['1h', '6h', '24h', 'never']),
+  expiresIn: z.enum(["1h", "6h", "24h", "never"]),
 });
 
 // Block validator
@@ -121,10 +123,12 @@ export const applyProfilingSchema = z.object({
 
 // New onboarding validators
 export const submitOnboardingSchema = z.object({
-  answers: z.array(z.object({
-    questionId: z.string().min(1),
-    answer: z.string().min(1).max(500),
-  })),
+  answers: z.array(
+    z.object({
+      questionId: z.string().min(1),
+      answer: z.string().min(1).max(500),
+    }),
+  ),
   skipped: z.array(z.string()),
 });
 
@@ -171,7 +175,7 @@ export const groupMemberActionSchema = z.object({
 export const setGroupRoleSchema = z.object({
   conversationId: z.string().uuid(),
   userId: z.string().min(1),
-  role: z.enum(['admin', 'member']),
+  role: z.enum(["admin", "member"]),
 });
 
 export const getDiscoverableGroupsSchema = z.object({

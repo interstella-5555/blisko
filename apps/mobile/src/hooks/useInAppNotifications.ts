@@ -1,9 +1,9 @@
-import { useCallback } from 'react';
-import { router } from 'expo-router';
-import { useWebSocket, type WSMessage } from '../lib/ws';
-import { useAuthStore } from '../stores/authStore';
-import { useConversationsStore } from '../stores/conversationsStore';
-import { useNotification } from '../providers/NotificationProvider';
+import { router } from "expo-router";
+import { useCallback } from "react";
+import { useWebSocket, type WSMessage } from "../lib/ws";
+import { useNotification } from "../providers/NotificationProvider";
+import { useAuthStore } from "../stores/authStore";
+import { useConversationsStore } from "../stores/conversationsStore";
 
 export function useInAppNotifications() {
   const userId = useAuthStore((s) => s.user?.id);
@@ -11,17 +11,17 @@ export function useInAppNotifications() {
 
   const handler = useCallback(
     (msg: WSMessage) => {
-      if (msg.type === 'newWave') {
+      if (msg.type === "newWave") {
         const { fromProfile, wave } = msg;
         showNotification({
           id: `wave-${wave.id}`,
           title: fromProfile.displayName,
-          subtitle: 'Zaczepił(a) Cię!',
+          subtitle: "Zaczepił(a) Cię!",
           avatarUrl: fromProfile.avatarUrl,
           avatarName: fromProfile.displayName,
           onPress: () => {
             router.push({
-              pathname: '/(modals)/user/[userId]',
+              pathname: "/(modals)/user/[userId]",
               params: { userId: wave.fromUserId },
             });
           },
@@ -29,14 +29,14 @@ export function useInAppNotifications() {
         return;
       }
 
-      if (msg.type === 'waveResponded' && msg.accepted && msg.conversationId) {
+      if (msg.type === "waveResponded" && msg.accepted && msg.conversationId) {
         const { responderProfile } = msg;
         showNotification({
           id: `wave-responded-${msg.waveId}`,
-          title: responderProfile.displayName,
-          subtitle: 'Przyjął(a) Twoją zaczepkę!',
-          avatarUrl: responderProfile.avatarUrl,
-          avatarName: responderProfile.displayName,
+          title: responderProfile?.displayName ?? "Ktoś",
+          subtitle: "Przyjął(a) Twoją zaczepkę!",
+          avatarUrl: responderProfile?.avatarUrl ?? null,
+          avatarName: responderProfile?.displayName ?? "?",
           onPress: () => {
             router.push(`/chat/${msg.conversationId}`);
           },
@@ -44,13 +44,13 @@ export function useInAppNotifications() {
         return;
       }
 
-      if (msg.type === 'groupInvited') {
+      if (msg.type === "groupInvited") {
         showNotification({
           id: `group-invited-${msg.conversationId}`,
-          title: msg.groupName ?? 'Grupa',
-          subtitle: 'Nowe zaproszenie do grupy',
+          title: msg.groupName ?? "Grupa",
+          subtitle: "Nowe zaproszenie do grupy",
           avatarUrl: null,
-          avatarName: msg.groupName ?? 'G',
+          avatarName: msg.groupName ?? "G",
           onPress: () => {
             router.push(`/chat/${msg.conversationId}`);
           },
@@ -58,7 +58,7 @@ export function useInAppNotifications() {
         return;
       }
 
-      if (msg.type === 'newMessage') {
+      if (msg.type === "newMessage") {
         // Skip own messages
         if (msg.message.senderId === userId) return;
 
@@ -67,16 +67,11 @@ export function useInAppNotifications() {
         if (convStore.activeConversationId === msg.conversationId) return;
 
         // Look up participant name from conversations store
-        const conv = convStore.conversations.find(
-          (c) => c.id === msg.conversationId
-        );
-        const senderName = conv?.participant?.displayName ?? 'Nowa wiadomość';
+        const conv = convStore.conversations.find((c) => c.id === msg.conversationId);
+        const senderName = conv?.participant?.displayName ?? "Nowa wiadomość";
         const senderAvatar = conv?.participant?.avatarUrl ?? null;
 
-        const preview =
-          msg.message.content.length > 60
-            ? msg.message.content.slice(0, 60) + '…'
-            : msg.message.content;
+        const preview = msg.message.content.length > 60 ? `${msg.message.content.slice(0, 60)}…` : msg.message.content;
 
         showNotification({
           id: `msg-${msg.message.id}`,
@@ -90,7 +85,7 @@ export function useInAppNotifications() {
         });
       }
     },
-    [userId, showNotification]
+    [userId, showNotification],
   );
 
   useWebSocket(handler);

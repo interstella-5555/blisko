@@ -292,9 +292,9 @@ async function load() {
     document.getElementById('doneCount').textContent = done.length;
 
     const pct = Math.round((done.length / tasks.length) * 100);
-    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressFill').style.width = `${pct}%`;
     document.getElementById('progressText').textContent = `${done.length}/${tasks.length} (${pct}%)`;
-  } catch (e) {
+  } catch (_e) {
     document.getElementById('todoCol').innerHTML = '<div class="card-desc">Failed to load tasks.json</div>';
   }
 }

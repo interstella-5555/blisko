@@ -1,4 +1,4 @@
-const API_URL = process.env.API_URL || 'http://localhost:3000';
+const API_URL = process.env.API_URL || "http://localhost:3000";
 
 interface TokenEntry {
   userId: string;
@@ -12,8 +12,8 @@ export async function getToken(email: string): Promise<TokenEntry> {
   if (cached) return cached;
 
   const res = await fetch(`${API_URL}/dev/auto-login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
   });
   const data = await res.json();
@@ -24,18 +24,13 @@ export async function getToken(email: string): Promise<TokenEntry> {
   return entry;
 }
 
-async function trpc(
-  path: string,
-  token: string,
-  input: unknown,
-  method: 'query' | 'mutation' = 'mutation',
-) {
+async function trpc(path: string, token: string, input: unknown, method: "query" | "mutation" = "mutation") {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   };
 
-  if (method === 'query') {
+  if (method === "query") {
     const encoded = encodeURIComponent(JSON.stringify(input));
     const res = await fetch(`${API_URL}/trpc/${path}?input=${encoded}`, { headers });
     const data = await res.json();
@@ -44,7 +39,7 @@ async function trpc(
   }
 
   const res = await fetch(`${API_URL}/trpc/${path}`, {
-    method: 'POST',
+    method: "POST",
     headers,
     body: JSON.stringify(input),
   });
@@ -58,14 +53,10 @@ export async function respondToWave(
   waveId: string,
   accept: boolean,
 ): Promise<{ conversationId: string | null }> {
-  const result = await trpc('waves.respond', token, { waveId, accept });
+  const result = await trpc("waves.respond", token, { waveId, accept });
   return { conversationId: result.conversationId ?? null };
 }
 
-export async function sendMessage(
-  token: string,
-  conversationId: string,
-  content: string,
-): Promise<void> {
-  await trpc('messages.send', token, { conversationId, content, metadata: { source: 'chatbot' } });
+export async function sendMessage(token: string, conversationId: string, content: string): Promise<void> {
+  await trpc("messages.send", token, { conversationId, content, metadata: { source: "chatbot" } });
 }

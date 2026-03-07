@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 export interface EnrichedMessage {
   id: string;
@@ -27,25 +27,15 @@ export interface ChatCache {
 interface MessagesStore {
   chats: Map<string, ChatCache>;
 
-  set(
-    convId: string,
-    messages: EnrichedMessage[],
-    hasMore: boolean,
-    cursor?: string,
-  ): void;
+  set(convId: string, messages: EnrichedMessage[], hasMore: boolean, cursor?: string): void;
   prepend(convId: string, message: EnrichedMessage): void;
-  appendOlder(
-    convId: string,
-    messages: EnrichedMessage[],
-    hasMore: boolean,
-    cursor?: string,
-  ): void;
+  appendOlder(convId: string, messages: EnrichedMessage[], hasMore: boolean, cursor?: string): void;
   updateReaction(
     convId: string,
     messageId: string,
     emoji: string,
     userId: string,
-    action: 'added' | 'removed',
+    action: "added" | "removed",
     currentUserId: string,
   ): void;
   has(convId: string): boolean;
@@ -55,11 +45,7 @@ interface MessagesStore {
 
   // Optimistic
   addOptimistic(convId: string, message: EnrichedMessage): void;
-  replaceOptimistic(
-    convId: string,
-    tempId: string,
-    real: EnrichedMessage,
-  ): void;
+  replaceOptimistic(convId: string, tempId: string, real: EnrichedMessage): void;
   removeOptimistic(convId: string, tempId: string): void;
 }
 
@@ -137,7 +123,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
         const idx = reactions.findIndex((r) => r.emoji === emoji);
         const isMe = userId === currentUserId;
 
-        if (action === 'added') {
+        if (action === "added") {
           if (idx >= 0) {
             reactions[idx] = {
               ...reactions[idx],

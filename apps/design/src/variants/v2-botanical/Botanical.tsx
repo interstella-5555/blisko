@@ -1,24 +1,21 @@
-import s from './botanical.module.css'
-import { PhoneFrame } from '~/components/PhoneFrame'
-import { Icon } from '~/components/Icons'
-import type { VariantMeta } from '~/variants/types'
+import { Icon } from "~/components/Icons";
+import { PhoneFrame } from "~/components/PhoneFrame";
+import type { VariantMeta } from "~/variants/types";
+import s from "./botanical.module.css";
 
 export const meta: VariantMeta = {
   id: 8,
-  name: 'Botanical / Specimen Card',
-  tagline: 'Odkrywanie ludzi = zbieranie okazow',
-  inspiration: 'Naukowa ilustracja, karty gatunkow, Ernst Haeckel',
+  name: "Botanical / Specimen Card",
+  tagline: "Odkrywanie ludzi = zbieranie okazow",
+  inspiration: "Naukowa ilustracja, karty gatunkow, Ernst Haeckel",
   features: [
-    'Drobne rysunki linii, kremowe tlo, zielony tusz',
-    'Uklad kart gatunkow z etykieta, sepia-filtr zdjec',
-    'Tagi jako klasyfikacja taksonomiczna (italic + kursywa)',
+    "Drobne rysunki linii, kremowe tlo, zielony tusz",
+    "Uklad kart gatunkow z etykieta, sepia-filtr zdjec",
+    "Tagi jako klasyfikacja taksonomiczna (italic + kursywa)",
   ],
-  uxAnalysis: [
-    'Eleganckie, unikalne karty — herbarium relacji',
-    'Naukowy ton dodaje powagi odkrywaniu ludzi',
-  ],
-  uxPattern: 'Collection — kazde polaczenie to nowy gatunek w Twojej kolekcji.',
-}
+  uxAnalysis: ["Eleganckie, unikalne karty — herbarium relacji", "Naukowy ton dodaje powagi odkrywaniu ludzi"],
+  uxPattern: "Collection — kazde polaczenie to nowy gatunek w Twojej kolekcji.",
+};
 
 export default function Botanical() {
   return (
@@ -31,13 +28,24 @@ export default function Botanical() {
       <div className={s.mapArea}>
         <div className={s.botanicalBg}>
           <svg viewBox="0 0 336 290" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M40 260 Q60 200 90 180 Q120 160 100 120 Q80 80 110 50" stroke="rgba(45,95,62,0.1)" strokeWidth="1" fill="none"/>
-            <path d="M100 120 Q130 130 150 110" stroke="rgba(45,95,62,0.08)" strokeWidth="1" fill="none"/>
-            <path d="M100 120 Q90 140 70 145" stroke="rgba(45,95,62,0.08)" strokeWidth="1" fill="none"/>
-            <circle cx="110" cy="50" r="8" stroke="rgba(45,95,62,0.06)" fill="none"/>
-            <path d="M250 270 Q240 220 260 180 Q280 140 250 100 Q220 60 240 30" stroke="rgba(45,95,62,0.1)" strokeWidth="1" fill="none"/>
-            <path d="M260 180 Q290 175 300 190" stroke="rgba(45,95,62,0.08)" strokeWidth="1" fill="none"/>
-            <path d="M250 100 Q220 90 215 75" stroke="rgba(45,95,62,0.08)" strokeWidth="1" fill="none"/>
+            <title>Botanical stem illustrations</title>
+            <path
+              d="M40 260 Q60 200 90 180 Q120 160 100 120 Q80 80 110 50"
+              stroke="rgba(45,95,62,0.1)"
+              strokeWidth="1"
+              fill="none"
+            />
+            <path d="M100 120 Q130 130 150 110" stroke="rgba(45,95,62,0.08)" strokeWidth="1" fill="none" />
+            <path d="M100 120 Q90 140 70 145" stroke="rgba(45,95,62,0.08)" strokeWidth="1" fill="none" />
+            <circle cx="110" cy="50" r="8" stroke="rgba(45,95,62,0.06)" fill="none" />
+            <path
+              d="M250 270 Q240 220 260 180 Q280 140 250 100 Q220 60 240 30"
+              stroke="rgba(45,95,62,0.1)"
+              strokeWidth="1"
+              fill="none"
+            />
+            <path d="M260 180 Q290 175 300 190" stroke="rgba(45,95,62,0.08)" strokeWidth="1" fill="none" />
+            <path d="M250 100 Q220 90 215 75" stroke="rgba(45,95,62,0.08)" strokeWidth="1" fill="none" />
           </svg>
         </div>
         <div className={`${s.mapBlock} ${s.mapBlock1}`}></div>
@@ -139,5 +147,5 @@ export default function Botanical() {
         </div>
       </div>
     </PhoneFrame>
-  )
+  );
 }

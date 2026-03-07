@@ -1,7 +1,7 @@
-import { defineWorkspace } from 'vitest/config';
+import { defineWorkspace } from "vitest/config";
 
 export default defineWorkspace([
-  'apps/api/vitest.config.ts',
-  'apps/mobile/vitest.config.ts',
-  'packages/shared/vitest.config.ts',
+  "apps/api/vitest.config.ts",
+  "apps/mobile/vitest.config.ts",
+  "packages/shared/vitest.config.ts",
 ]);

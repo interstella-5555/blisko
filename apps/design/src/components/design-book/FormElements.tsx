@@ -1,5 +1,5 @@
-import s from './form-elements.module.css'
-import { Icon } from '~/components/Icons'
+import { Icon } from "~/components/Icons";
+import s from "./form-elements.module.css";
 
 export function FormElements() {
   return (
@@ -25,7 +25,10 @@ export function FormElements() {
               </button>
             </div>
             <div className={s.stateLabels}>
-              <span>Default</span><span>Hover</span><span>Pressed</span><span>Disabled</span>
+              <span>Default</span>
+              <span>Hover</span>
+              <span>Pressed</span>
+              <span>Disabled</span>
             </div>
           </div>
 
@@ -38,7 +41,10 @@ export function FormElements() {
               <button className={`${s.btnAccent} ${s.btnDisabled}`}>Zaakceptuj</button>
             </div>
             <div className={s.stateLabels}>
-              <span>Default</span><span>Hover</span><span>Pressed</span><span>Disabled</span>
+              <span>Default</span>
+              <span>Hover</span>
+              <span>Pressed</span>
+              <span>Disabled</span>
             </div>
           </div>
 
@@ -51,7 +57,10 @@ export function FormElements() {
               <button className={`${s.btnSecondary} ${s.btnDisabled}`}>Filtruj</button>
             </div>
             <div className={s.stateLabels}>
-              <span>Default</span><span>Hover</span><span>Pressed</span><span>Disabled</span>
+              <span>Default</span>
+              <span>Hover</span>
+              <span>Pressed</span>
+              <span>Disabled</span>
             </div>
           </div>
 
@@ -64,7 +73,10 @@ export function FormElements() {
               <button className={`${s.btnDestructive} ${s.btnDisabled}`}>Odrzuć</button>
             </div>
             <div className={s.stateLabels}>
-              <span>Default</span><span>Hover</span><span>Pressed</span><span>Disabled</span>
+              <span>Default</span>
+              <span>Hover</span>
+              <span>Pressed</span>
+              <span>Disabled</span>
             </div>
           </div>
 
@@ -113,8 +125,8 @@ export function FormElements() {
             <div className={s.inputDemo}>
               <label className={s.fieldLabel}>O mnie</label>
               <div className={s.textareaField}>
-                Lubię długie spacery z psem po parku i kawę speciality w kameralnych miejscach.
-                Szukam ludzi do wspólnych aktywności na świeże powietrze.
+                Lubię długie spacery z psem po parku i kawę speciality w kameralnych miejscach. Szukam ludzi do
+                wspólnych aktywności na świeże powietrze.
               </div>
               <div className={s.charCount}>142 / 500</div>
             </div>
@@ -154,10 +166,18 @@ export function FormElements() {
           <div className={s.badgeItem}>
             <div className={s.badgeLabel}>Interest Tags</div>
             <div className={s.tagRow}>
-              <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> pies</span>
-              <span className={`${s.tag} ${s.tagMatch}`}><Icon name="bullet-rose" className={s.tagMatchIcon} /> kręgle</span>
-              <span className={s.tag}><Icon name="bullet-rose" className={s.tagIcon} /> bieganie</span>
-              <span className={`${s.tag} ${s.tagMatch}`}><Icon name="bullet-rose" className={s.tagMatchIcon} /> kawa</span>
+              <span className={s.tag}>
+                <Icon name="bullet-rose" className={s.tagIcon} /> pies
+              </span>
+              <span className={`${s.tag} ${s.tagMatch}`}>
+                <Icon name="bullet-rose" className={s.tagMatchIcon} /> kręgle
+              </span>
+              <span className={s.tag}>
+                <Icon name="bullet-rose" className={s.tagIcon} /> bieganie
+              </span>
+              <span className={`${s.tag} ${s.tagMatch}`}>
+                <Icon name="bullet-rose" className={s.tagMatchIcon} /> kawa
+              </span>
             </div>
             <p className={s.badgeNote}>Muted = no match, accent red + bold = match</p>
           </div>
@@ -165,9 +185,21 @@ export function FormElements() {
           <div className={s.badgeItem}>
             <div className={s.badgeLabel}>Status Badges</div>
             <div className={s.tagRow}>
-              <span className={s.statusBadge} style={{ background: 'var(--db-warning-bg)', color: 'var(--db-warning)' }}>Oczekuje</span>
-              <span className={s.statusBadge} style={{ background: 'var(--db-success-bg)', color: 'var(--db-success)' }}>Zaakceptowano</span>
-              <span className={s.statusBadge} style={{ background: 'var(--db-error-bg)', color: 'var(--db-error)' }}>Odrzućono</span>
+              <span
+                className={s.statusBadge}
+                style={{ background: "var(--db-warning-bg)", color: "var(--db-warning)" }}
+              >
+                Oczekuje
+              </span>
+              <span
+                className={s.statusBadge}
+                style={{ background: "var(--db-success-bg)", color: "var(--db-success)" }}
+              >
+                Zaakceptowano
+              </span>
+              <span className={s.statusBadge} style={{ background: "var(--db-error-bg)", color: "var(--db-error)" }}>
+                Odrzućono
+              </span>
             </div>
           </div>
 
@@ -191,5 +223,5 @@ export function FormElements() {
         </div>
       </div>
     </>
-  )
+  );
 }

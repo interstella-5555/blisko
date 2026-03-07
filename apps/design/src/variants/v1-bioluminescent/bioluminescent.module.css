@@ -1,18 +1,20 @@
 /* Bioluminescent variant CSS Module */
 
 .phoneFrame {
-  --glow1: #00F0FF;
-  --glow2: #B86EFF;
-  --glow3: #00FF88;
-  --bg: #080B12;
-  --surface: #0F1318;
-  --surfaceLight: #161B22;
-  --text: #E2E8F0;
-  --textMuted: #5A6677;
+  --glow1: #00f0ff;
+  --glow2: #b86eff;
+  --glow3: #00ff88;
+  --bg: #080b12;
+  --surface: #0f1318;
+  --surfaceLight: #161b22;
+  --text: #e2e8f0;
+  --textMuted: #5a6677;
 
   background: var(--bg);
-  border: 1px solid #1A2030;
-  box-shadow: 0 20px 80px rgba(0,0,0,0.6), 0 0 40px rgba(0,240,255,0.03);
+  border: 1px solid #1a2030;
+  box-shadow:
+    0 20px 80px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(0, 240, 255, 0.03);
 }
 
 .statusBar {
@@ -22,7 +24,7 @@
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 4px;
-  font-family: 'Sora', sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: #fff;
@@ -41,17 +43,17 @@
   inset: 0;
   opacity: 0.15;
   background:
-    radial-gradient(circle at 25% 25%, rgba(0,240,255,0.08) 0%, transparent 50%),
-    radial-gradient(circle at 75% 60%, rgba(184,110,255,0.06) 0%, transparent 50%),
-    radial-gradient(circle at 50% 80%, rgba(0,255,136,0.04) 0%, transparent 40%);
+    radial-gradient(circle at 25% 25%, rgba(0, 240, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 75% 60%, rgba(184, 110, 255, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(0, 255, 136, 0.04) 0%, transparent 40%);
 }
 
 .mapLines {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(30,40,60,0.3) 1px, transparent 1px),
-    linear-gradient(rgba(30,40,60,0.3) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(30, 40, 60, 0.3) 1px, transparent 1px),
+    linear-gradient(rgba(30, 40, 60, 0.3) 1px, transparent 1px);
   background-size: 50px 50px;
   opacity: 0.5;
 }
@@ -65,16 +67,16 @@
   width: 250px;
   height: 250px;
   border-radius: 50%;
-  border: 1px solid rgba(0,240,255,0.08);
-  background: radial-gradient(circle, rgba(0,240,255,0.04) 0%, transparent 70%);
+  border: 1px solid rgba(0, 240, 255, 0.08);
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.04) 0%, transparent 70%);
 }
 
 .glowZone::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 30px;
   border-radius: 50%;
-  border: 1px dashed rgba(0,240,255,0.06);
+  border: 1px dashed rgba(0, 240, 255, 0.06);
 }
 
 /* Cluster markers — glowing orbs */
@@ -84,7 +86,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Sora', sans-serif;
+  font-family: "Sora", sans-serif;
   font-weight: 600;
   color: #fff;
 }
@@ -92,25 +94,29 @@
 .markerGroup {
   width: 46px;
   height: 46px;
-  background: rgba(0,240,255,0.15);
-  border: 1.5px solid rgba(0,240,255,0.4);
+  background: rgba(0, 240, 255, 0.15);
+  border: 1.5px solid rgba(0, 240, 255, 0.4);
   backdrop-filter: blur(8px);
   top: 100px;
   left: 200px;
   font-size: 16px;
-  box-shadow: 0 0 20px rgba(0,240,255,0.2), inset 0 0 12px rgba(0,240,255,0.1);
+  box-shadow:
+    0 0 20px rgba(0, 240, 255, 0.2),
+    inset 0 0 12px rgba(0, 240, 255, 0.1);
 }
 
 .markerSmall {
   width: 36px;
   height: 36px;
-  background: rgba(184,110,255,0.15);
-  border: 1.5px solid rgba(184,110,255,0.4);
+  background: rgba(184, 110, 255, 0.15);
+  border: 1.5px solid rgba(184, 110, 255, 0.4);
   backdrop-filter: blur(8px);
   top: 230px;
   left: 100px;
   font-size: 13px;
-  box-shadow: 0 0 16px rgba(184,110,255,0.2), inset 0 0 10px rgba(184,110,255,0.1);
+  box-shadow:
+    0 0 16px rgba(184, 110, 255, 0.2),
+    inset 0 0 10px rgba(184, 110, 255, 0.1);
 }
 
 .markerAvatar {
@@ -118,9 +124,9 @@
   height: 50px;
   top: 160px;
   left: 270px;
-  border: 2px solid rgba(0,255,136,0.4);
+  border: 2px solid rgba(0, 255, 136, 0.4);
   overflow: hidden;
-  box-shadow: 0 0 20px rgba(0,255,136,0.2);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
 }
 
 .markerAvatar img {
@@ -138,20 +144,23 @@
   height: 16px;
   background: var(--glow1);
   border-radius: 50%;
-  box-shadow: 0 0 12px var(--glow1), 0 0 30px rgba(0,240,255,0.3);
+  box-shadow:
+    0 0 12px var(--glow1),
+    0 0 30px rgba(0, 240, 255, 0.3);
 }
 
 .myLoc::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: -8px;
   border-radius: 50%;
-  border: 1px solid rgba(0,240,255,0.3);
+  border: 1px solid rgba(0, 240, 255, 0.3);
   animation: pulse 2s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -165,12 +174,12 @@
   position: absolute;
   top: 14px;
   right: 14px;
-  background: rgba(15,19,24,0.7);
+  background: rgba(15, 19, 24, 0.7);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(0,240,255,0.15);
+  border: 1px solid rgba(0, 240, 255, 0.15);
   border-radius: 20px;
   padding: 6px 14px;
-  font-family: 'Sora', sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 12px;
   font-weight: 500;
   color: var(--glow1);
@@ -222,7 +231,7 @@
 .sheetHandle {
   width: 32px;
   height: 3px;
-  background: #2A3040;
+  background: #2a3040;
   border-radius: 2px;
 }
 
@@ -234,7 +243,7 @@
 }
 
 .sheetCount {
-  font-family: 'Sora', sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
@@ -245,7 +254,7 @@
 }
 
 .sheetAction {
-  font-family: 'Sora', sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 12px;
   color: var(--glow2);
   font-weight: 500;
@@ -269,7 +278,7 @@
   padding: 10px 12px;
   background: var(--surfaceLight);
   border-radius: 16px;
-  border: 1px solid #1E2530;
+  border: 1px solid #1e2530;
 }
 
 .userCard :global(.avatar) {
@@ -282,15 +291,15 @@
 }
 
 .userCard:nth-child(1) :global(.avatar) {
-  border-color: rgba(0,240,255,0.4);
+  border-color: rgba(0, 240, 255, 0.4);
 }
 
 .userCard:nth-child(2) :global(.avatar) {
-  border-color: rgba(184,110,255,0.4);
+  border-color: rgba(184, 110, 255, 0.4);
 }
 
 .userCard:nth-child(3) :global(.avatar) {
-  border-color: rgba(0,255,136,0.4);
+  border-color: rgba(0, 255, 136, 0.4);
 }
 
 .userCard :global(.avatar) img {
@@ -312,14 +321,14 @@
 }
 
 .userCard :global(.name) {
-  font-family: 'Sora', sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
 }
 
 .userCard :global(.dist) {
-  font-family: 'Sora', sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 11px;
   color: var(--textMuted);
   font-weight: 400;
@@ -332,7 +341,7 @@
 }
 
 .userCard :global(.tag) {
-  font-family: 'Sora', sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 10px;
   padding: 2px 8px;
   border-radius: 8px;
@@ -340,35 +349,35 @@
 }
 
 .tagCyan {
-  background: rgba(0,240,255,0.1);
+  background: rgba(0, 240, 255, 0.1);
   color: var(--glow1);
-  border: 1px solid rgba(0,240,255,0.15);
+  border: 1px solid rgba(0, 240, 255, 0.15);
 }
 
 .tagPurple {
-  background: rgba(184,110,255,0.1);
+  background: rgba(184, 110, 255, 0.1);
   color: var(--glow2);
-  border: 1px solid rgba(184,110,255,0.15);
+  border: 1px solid rgba(184, 110, 255, 0.15);
 }
 
 .tagGreen {
-  background: rgba(0,255,136,0.1);
+  background: rgba(0, 255, 136, 0.1);
   color: var(--glow3);
-  border: 1px solid rgba(0,255,136,0.15);
+  border: 1px solid rgba(0, 255, 136, 0.15);
 }
 
 .tagMatch {
-  background: rgba(0,240,255,0.08);
+  background: rgba(0, 240, 255, 0.08);
   color: var(--glow1);
-  border: 1px solid rgba(0,240,255,0.2);
+  border: 1px solid rgba(0, 240, 255, 0.2);
   font-weight: 600;
 }
 
 .userCard :global(.waveBtn) {
   width: 38px;
   height: 38px;
-  background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(184,110,255,0.15));
-  border: 1px solid rgba(0,240,255,0.2);
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(184, 110, 255, 0.15));
+  border: 1px solid rgba(0, 240, 255, 0.2);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -388,9 +397,9 @@
   left: 0;
   right: 0;
   height: 78px;
-  background: rgba(8,11,18,0.9);
+  background: rgba(8, 11, 18, 0.9);
   backdrop-filter: blur(20px);
-  border-top: 1px solid #1A2030;
+  border-top: 1px solid #1a2030;
   display: flex;
   padding-top: 6px;
 }
@@ -411,7 +420,7 @@
 }
 
 .tab span {
-  font-family: 'Sora', sans-serif;
+  font-family: "Sora", sans-serif;
   font-size: 9px;
   font-weight: 500;
   color: var(--textMuted);
@@ -434,7 +443,7 @@
 
 .tab.active::before,
 .active::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 50%;

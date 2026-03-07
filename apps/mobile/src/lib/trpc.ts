@@ -1,10 +1,8 @@
-import { createTRPCReact } from '@trpc/react-query';
-import { httpBatchLink } from '@trpc/client';
-import * as SecureStore from 'expo-secure-store';
-import { authClient } from './auth';
-
-// Import AppRouter type from api package
-import type { AppRouter } from 'api/src/trpc/router';
+import { httpBatchLink } from "@trpc/client";
+import { createTRPCReact } from "@trpc/react-query";
+import type { AppRouter } from "api/src/trpc/router";
+import * as SecureStore from "expo-secure-store";
+import { authClient } from "./auth";
 
 export type { AppRouter };
 
@@ -13,8 +11,8 @@ export const trpc = createTRPCReact<AppRouter>();
 const getApiUrl = () => {
   const url = process.env.EXPO_PUBLIC_API_URL;
   if (!url) {
-    console.warn('EXPO_PUBLIC_API_URL not set, using localhost');
-    return 'http://localhost:3000';
+    console.warn("EXPO_PUBLIC_API_URL not set, using localhost");
+    return "http://localhost:3000";
   }
   return url;
 };
@@ -33,9 +31,9 @@ export const trpcClient = trpc.createClient({
         }
 
         // Fallback to SecureStore (for dev auto-login)
-        const token = await SecureStore.getItemAsync('blisko_session_token');
+        const token = await SecureStore.getItemAsync("blisko_session_token");
         return {
-          authorization: token ? `Bearer ${token}` : '',
+          authorization: token ? `Bearer ${token}` : "",
         };
       },
     }),

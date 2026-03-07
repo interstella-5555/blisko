@@ -1,31 +1,21 @@
-import { useState, useCallback, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Alert,
-  Share,
-  TextInput,
-  Switch,
-} from 'react-native';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { trpc } from '../../../src/lib/trpc';
-import { sendWsMessage } from '../../../src/lib/ws';
-import { useAuthStore } from '../../../src/stores/authStore';
-import { useConversationsStore } from '../../../src/stores/conversationsStore';
-import { useLocationStore } from '../../../src/stores/locationStore';
-import { colors, type as typ, spacing, fonts } from '../../../src/theme';
-import { formatDistance } from '../../../src/lib/format';
-import { Avatar } from '../../../src/components/ui/Avatar';
-import { Button } from '../../../src/components/ui/Button';
-import Svg, { Path } from 'react-native-svg';
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
+import { Avatar } from "../../../src/components/ui/Avatar";
+import { Button } from "../../../src/components/ui/Button";
+import { formatDistance } from "../../../src/lib/format";
+import { trpc } from "../../../src/lib/trpc";
+import { sendWsMessage } from "../../../src/lib/ws";
+import { useAuthStore } from "../../../src/stores/authStore";
+import { useConversationsStore } from "../../../src/stores/conversationsStore";
+import { useLocationStore } from "../../../src/stores/locationStore";
+import { colors, fonts, spacing } from "../../../src/theme";
 
 const ROLE_LABELS: Record<string, string> = {
-  owner: 'Wlasciciel',
-  admin: 'Admin',
-  member: '',
+  owner: "Wlasciciel",
+  admin: "Admin",
+  member: "",
 };
 
 const ROLE_ORDER: Record<string, number> = {
@@ -40,8 +30,8 @@ export default function GroupInfoScreen() {
   const { id: conversationId } = useLocalSearchParams<{ id: string }>();
   const userId = useAuthStore((s) => s.user?.id);
   const [showTopicForm, setShowTopicForm] = useState(false);
-  const [topicName, setTopicName] = useState('');
-  const [topicEmoji, setTopicEmoji] = useState('💬');
+  const [topicName, setTopicName] = useState("");
+  const [topicEmoji, setTopicEmoji] = useState("💬");
   const [showAllNearby, setShowAllNearby] = useState(false);
   const [locationVisible, setLocationVisible] = useState(true);
 
@@ -74,19 +64,19 @@ export default function GroupInfoScreen() {
   const leaveGroup = trpc.groups.leave.useMutation({
     onSuccess: () => {
       router.dismissAll();
-      router.replace('/(tabs)/chats');
+      router.replace("/(tabs)/chats");
     },
     onError: (error) => {
-      Alert.alert('Blad', error.message);
+      Alert.alert("Blad", error.message);
     },
   });
 
   const joinGroup = trpc.groups.joinDiscoverable.useMutation({
     onSuccess: (data) => {
-      sendWsMessage({ type: 'subscribe', conversationId: data.id });
+      sendWsMessage({ type: "subscribe", conversationId: data.id });
       useConversationsStore.getState().addNew({
         id: data.id,
-        type: 'group',
+        type: "group",
         participant: null,
         groupName: data.name,
         groupAvatarUrl: data.avatarUrl,
@@ -99,10 +89,10 @@ export default function GroupInfoScreen() {
       router.replace(`/chat/${data.id}`);
     },
     onError: (error) => {
-      if (error.message === 'Group is full') {
-        Alert.alert('Blad', 'Ta grupa jest pełna');
+      if (error.message === "Group is full") {
+        Alert.alert("Blad", "Ta grupa jest pełna");
       } else {
-        Alert.alert('Blad', 'Nie udalo sie dolaczyc do grupy');
+        Alert.alert("Blad", "Nie udalo sie dolaczyc do grupy");
       }
     },
   });
@@ -110,12 +100,12 @@ export default function GroupInfoScreen() {
   const createTopic = trpc.topics.create.useMutation({
     onSuccess: () => {
       setShowTopicForm(false);
-      setTopicName('');
-      setTopicEmoji('💬');
+      setTopicName("");
+      setTopicEmoji("💬");
       utils.groups.getGroupInfo.invalidate({ conversationId: conversationId! });
     },
     onError: () => {
-      Alert.alert('Blad', 'Nie udalo sie utworzyc watku');
+      Alert.alert("Blad", "Nie udalo sie utworzyc watku");
     },
   });
 
@@ -141,11 +131,11 @@ export default function GroupInfoScreen() {
   );
 
   const handleLeave = useCallback(() => {
-    Alert.alert('Opusc grupe', 'Czy na pewno chcesz opuscic te grupe?', [
-      { text: 'Anuluj', style: 'cancel' },
+    Alert.alert("Opusc grupe", "Czy na pewno chcesz opuscic te grupe?", [
+      { text: "Anuluj", style: "cancel" },
       {
-        text: 'Opusc',
-        style: 'destructive',
+        text: "Opusc",
+        style: "destructive",
         onPress: () => leaveGroup.mutate({ conversationId: conversationId! }),
       },
     ]);
@@ -183,32 +173,26 @@ export default function GroupInfoScreen() {
   }, [conversationId, topicName, topicEmoji, createTopic]);
 
   const myRole = members?.find((m) => m.userId === userId)?.role;
-  const isAdmin = myRole === 'admin' || myRole === 'owner';
+  const isAdmin = myRole === "admin" || myRole === "owner";
 
   const sortedMembers = members
-    ? [...members].sort(
-        (a, b) => (ROLE_ORDER[a.role] ?? 2) - (ROLE_ORDER[b.role] ?? 2),
-      )
+    ? [...members].sort((a, b) => (ROLE_ORDER[a.role] ?? 2) - (ROLE_ORDER[b.role] ?? 2))
     : [];
 
   const visibleMembers = sortedMembers.slice(0, MAX_INLINE_MEMBERS);
   const hasMoreMembers = sortedMembers.length > MAX_INLINE_MEMBERS;
 
   // For inline distance badges when <=5 members
-  const nearbyMap = new Map(
-    nearbyData?.members.map((m) => [m.userId, m.distance]) ?? [],
-  );
+  const nearbyMap = new Map(nearbyData?.members.map((m) => [m.userId, m.distance]) ?? []);
   const isSmallGroup = sortedMembers.length <= MAX_INLINE_MEMBERS;
 
   // For the nearby section when >5 members
-  const nearbyVisible = showAllNearby
-    ? nearbyData?.members ?? []
-    : (nearbyData?.members ?? []).slice(0, 5);
+  const nearbyVisible = showAllNearby ? (nearbyData?.members ?? []) : (nearbyData?.members ?? []).slice(0, 5);
 
   if (isLoading || !groupInfo) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Grupa' }} />
+        <Stack.Screen options={{ title: "Grupa" }} />
         <View style={styles.container} />
       </>
     );
@@ -218,52 +202,31 @@ export default function GroupInfoScreen() {
   if (!isMember) {
     return (
       <>
-        <Stack.Screen options={{ title: '' }} />
+        <Stack.Screen options={{ title: "" }} />
         <View style={styles.container}>
           <View style={styles.previewContent}>
-            <Avatar
-              uri={groupInfo.avatarUrl}
-              name={groupInfo.name ?? 'G'}
-              size={80}
-            />
+            <Avatar uri={groupInfo.avatarUrl} name={groupInfo.name ?? "G"} size={80} />
             <Text style={styles.groupName}>{groupInfo.name}</Text>
-            {groupInfo.description ? (
-              <Text style={styles.groupDescription}>{groupInfo.description}</Text>
-            ) : null}
-            <Text style={styles.memberCountLabel}>
-              {groupInfo.memberCount} czlonkow
-            </Text>
+            {groupInfo.description ? <Text style={styles.groupDescription}>{groupInfo.description}</Text> : null}
+            <Text style={styles.memberCountLabel}>{groupInfo.memberCount} czlonkow</Text>
             {nearbyData && nearbyData.totalNearby > 0 && (
               <View style={styles.nearbySection}>
-                <Text style={[styles.sectionTitle, styles.nearbyTitle]}>
-                  W pobliżu ({nearbyData.totalNearby})
-                </Text>
+                <Text style={[styles.sectionTitle, styles.nearbyTitle]}>W pobliżu ({nearbyData.totalNearby})</Text>
                 <View style={styles.nearbyCard}>
                   {nearbyData.members.slice(0, 5).map((member) => (
                     <View key={member.userId} style={styles.nearbyRow}>
-                      <Avatar
-                        uri={member.avatarUrl}
-                        name={member.displayName}
-                        size={32}
-                      />
+                      <Avatar uri={member.avatarUrl} name={member.displayName} size={32} />
                       <Text style={styles.nearbyName} numberOfLines={1}>
                         {member.displayName}
                       </Text>
-                      <Text style={styles.nearbyDist}>
-                        {formatDistance(member.distance)}
-                      </Text>
+                      <Text style={styles.nearbyDist}>{formatDistance(member.distance)}</Text>
                     </View>
                   ))}
                 </View>
               </View>
             )}
             <View style={styles.joinButtonContainer}>
-              <Button
-                title="Dołącz"
-                variant="fullWidth"
-                onPress={handleJoin}
-                loading={joinGroup.isPending}
-              />
+              <Button title="Dołącz" variant="fullWidth" onPress={handleJoin} loading={joinGroup.isPending} />
             </View>
           </View>
         </View>
@@ -273,25 +236,14 @@ export default function GroupInfoScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: '' }} />
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-      >
+      <Stack.Screen options={{ title: "" }} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Avatar
-            uri={groupInfo.avatarUrl}
-            name={groupInfo.name ?? 'G'}
-            size={80}
-          />
+          <Avatar uri={groupInfo.avatarUrl} name={groupInfo.name ?? "G"} size={80} />
           <Text style={styles.groupName}>{groupInfo.name}</Text>
-          {groupInfo.description ? (
-            <Text style={styles.groupDescription}>{groupInfo.description}</Text>
-          ) : null}
-          <Text style={styles.memberCountLabel}>
-            {groupInfo.memberCount} czlonkow
-          </Text>
+          {groupInfo.description ? <Text style={styles.groupDescription}>{groupInfo.description}</Text> : null}
+          <Text style={styles.memberCountLabel}>{groupInfo.memberCount} czlonkow</Text>
         </View>
 
         {/* Topics */}
@@ -299,22 +251,14 @@ export default function GroupInfoScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Watki</Text>
             {groupInfo.topics.map((topic) => (
-              <Pressable
-                key={topic.id}
-                style={styles.topicRow}
-                onPress={() => handleOpenTopic(topic.id)}
-              >
-                <Text style={styles.topicEmoji}>
-                  {topic.emoji || '💬'}
-                </Text>
+              <Pressable key={topic.id} style={styles.topicRow} onPress={() => handleOpenTopic(topic.id)}>
+                <Text style={styles.topicEmoji}>{topic.emoji || "💬"}</Text>
                 <View style={styles.topicInfo}>
                   <Text style={styles.topicName} numberOfLines={1}>
                     {topic.name}
                   </Text>
                   {(topic.messageCount ?? 0) > 0 && (
-                    <Text style={styles.topicMeta}>
-                      {topic.messageCount} wiadomosci
-                    </Text>
+                    <Text style={styles.topicMeta}>{topic.messageCount} wiadomosci</Text>
                   )}
                 </View>
                 <ChevronRight />
@@ -323,10 +267,7 @@ export default function GroupInfoScreen() {
 
             {/* Topic creation — admin only */}
             {isAdmin && !showTopicForm && (
-              <Pressable
-                style={styles.addTopicRow}
-                onPress={() => setShowTopicForm(true)}
-              >
+              <Pressable style={styles.addTopicRow} onPress={() => setShowTopicForm(true)}>
                 <Text style={styles.addTopicText}>+ Nowy wątek</Text>
               </Pressable>
             )}
@@ -353,10 +294,7 @@ export default function GroupInfoScreen() {
                   autoFocus
                 />
                 <Pressable
-                  style={[
-                    styles.topicFormBtn,
-                    !topicName.trim() && styles.topicFormBtnDisabled,
-                  ]}
+                  style={[styles.topicFormBtn, !topicName.trim() && styles.topicFormBtnDisabled]}
                   onPress={handleCreateTopic}
                   disabled={!topicName.trim() || createTopic.isPending}
                 >
@@ -370,9 +308,7 @@ export default function GroupInfoScreen() {
         {/* Nearby members — only for groups with >5 members */}
         {!isSmallGroup && nearbyData && nearbyData.totalNearby > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, styles.nearbyTitle]}>
-              W pobliżu ({nearbyData.totalNearby})
-            </Text>
+            <Text style={[styles.sectionTitle, styles.nearbyTitle]}>W pobliżu ({nearbyData.totalNearby})</Text>
             <View style={styles.nearbyCard}>
               {nearbyVisible.map((member) => (
                 <Pressable
@@ -380,17 +316,11 @@ export default function GroupInfoScreen() {
                   style={styles.nearbyRow}
                   onPress={() => router.push(`/(modals)/user/${member.userId}`)}
                 >
-                  <Avatar
-                    uri={member.avatarUrl}
-                    name={member.displayName}
-                    size={32}
-                  />
+                  <Avatar uri={member.avatarUrl} name={member.displayName} size={32} />
                   <Text style={styles.nearbyName} numberOfLines={1}>
                     {member.displayName}
                   </Text>
-                  <Text style={styles.nearbyDist}>
-                    {formatDistance(member.distance)}
-                  </Text>
+                  <Text style={styles.nearbyDist}>{formatDistance(member.distance)}</Text>
                 </Pressable>
               ))}
               {nearbyData.totalNearby > 5 && !showAllNearby && (
@@ -404,9 +334,7 @@ export default function GroupInfoScreen() {
                 </Pressable>
               )}
               {nearbyData.totalNearby > 20 && (
-                <Text style={styles.nearbyNote}>
-                  20 najbliższych z {nearbyData.totalNearby}
-                </Text>
+                <Text style={styles.nearbyNote}>20 najbliższych z {nearbyData.totalNearby}</Text>
               )}
             </View>
           </View>
@@ -414,9 +342,7 @@ export default function GroupInfoScreen() {
 
         {/* Members */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            Czlonkowie ({sortedMembers.length})
-          </Text>
+          <Text style={styles.sectionTitle}>Czlonkowie ({sortedMembers.length})</Text>
           {visibleMembers.map((member) => (
             <Pressable
               key={member.userId}
@@ -427,26 +353,18 @@ export default function GroupInfoScreen() {
                 }
               }}
             >
-              <Avatar
-                uri={member.avatarUrl}
-                name={member.displayName}
-                size={36}
-              />
+              <Avatar uri={member.avatarUrl} name={member.displayName} size={36} />
               <View style={styles.memberInfo}>
                 <Text style={styles.memberName} numberOfLines={1}>
                   {member.displayName}
-                  {member.userId === userId ? ' (Ty)' : ''}
+                  {member.userId === userId ? " (Ty)" : ""}
                 </Text>
               </View>
               {isSmallGroup && nearbyMap.has(member.userId) ? (
-                <Text style={styles.inlineDistance}>
-                  {formatDistance(nearbyMap.get(member.userId)!)}
-                </Text>
+                <Text style={styles.inlineDistance}>{formatDistance(nearbyMap.get(member.userId)!)}</Text>
               ) : ROLE_LABELS[member.role] ? (
                 <View style={styles.roleBadge}>
-                  <Text style={styles.roleBadgeText}>
-                    {ROLE_LABELS[member.role]}
-                  </Text>
+                  <Text style={styles.roleBadgeText}>{ROLE_LABELS[member.role]}</Text>
                 </View>
               ) : null}
             </Pressable>
@@ -454,13 +372,9 @@ export default function GroupInfoScreen() {
           {hasMoreMembers && (
             <Pressable
               style={styles.showAllBtn}
-              onPress={() =>
-                router.push(`/(modals)/group/members/${conversationId}`)
-              }
+              onPress={() => router.push(`/(modals)/group/members/${conversationId}`)}
             >
-              <Text style={styles.showAllText}>
-                Pokaż wszystkich ({groupInfo.memberCount}) →
-              </Text>
+              <Text style={styles.showAllText}>Pokaż wszystkich ({groupInfo.memberCount}) →</Text>
             </Pressable>
           )}
         </View>
@@ -475,20 +389,12 @@ export default function GroupInfoScreen() {
           <View style={styles.toggleSection}>
             <View style={styles.toggleLabelRow}>
               <Text style={styles.actionText}>Pokaż moją lokalizację</Text>
-              <Switch
-                value={locationVisible}
-                onValueChange={handleToggleVisibility}
-              />
+              <Switch value={locationVisible} onValueChange={handleToggleVisibility} />
             </View>
-            <Text style={styles.toggleDesc}>
-              Inni członkowie zobaczą, że jesteś w pobliżu
-            </Text>
+            <Text style={styles.toggleDesc}>Inni członkowie zobaczą, że jesteś w pobliżu</Text>
           </View>
 
-          <Pressable
-            style={[styles.actionRow, styles.dangerAction]}
-            onPress={handleLeave}
-          >
+          <Pressable style={[styles.actionRow, styles.dangerAction]} onPress={handleLeave}>
             <Text style={styles.dangerText}>Opusc grupe</Text>
           </Pressable>
         </View>
@@ -500,13 +406,7 @@ export default function GroupInfoScreen() {
 function ChevronRight() {
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M9 5l7 7-7 7"
-        stroke={colors.muted}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <Path d="M9 5l7 7-7 7" stroke={colors.muted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -521,12 +421,12 @@ const styles = StyleSheet.create({
   },
   previewContent: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: spacing.section,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: spacing.section,
     paddingTop: spacing.section,
     paddingBottom: spacing.block,
@@ -536,14 +436,14 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: colors.ink,
     marginTop: spacing.gutter,
-    textAlign: 'center',
+    textAlign: "center",
   },
   groupDescription: {
     fontFamily: fonts.sans,
     fontSize: 14,
     color: colors.muted,
     marginTop: spacing.tight,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: spacing.section,
   },
   memberCountLabel: {
@@ -553,7 +453,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.tight,
   },
   joinButtonContainer: {
-    width: '100%',
+    width: "100%",
     marginTop: spacing.block,
     paddingHorizontal: spacing.section,
   },
@@ -565,20 +465,20 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: colors.muted,
     marginBottom: spacing.gutter,
   },
   topicRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: spacing.compact,
     gap: spacing.gutter,
   },
   topicEmoji: {
     fontSize: 20,
     width: 28,
-    textAlign: 'center',
+    textAlign: "center",
   },
   topicInfo: {
     flex: 1,
@@ -605,8 +505,8 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
   topicForm: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.tight,
     marginTop: spacing.tight,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -620,7 +520,7 @@ const styles = StyleSheet.create({
     borderColor: colors.rule,
     borderRadius: 8,
     fontSize: 20,
-    textAlign: 'center',
+    textAlign: "center",
     backgroundColor: colors.bg,
   },
   topicNameInput: {
@@ -645,11 +545,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 10,
     letterSpacing: 1,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: spacing.compact,
     gap: spacing.gutter,
   },
@@ -671,7 +571,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     fontSize: 10,
     color: colors.muted,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   showAllBtn: {
@@ -683,9 +583,9 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
   actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.rule,
@@ -709,22 +609,22 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
   nearbySection: {
-    width: '100%',
+    width: "100%",
     marginTop: spacing.block,
     paddingHorizontal: spacing.section,
   },
   nearbyTitle: {
-    color: '#22c55e',
+    color: "#22c55e",
   },
   nearbyCard: {
-    backgroundColor: '#EEF2EE',
+    backgroundColor: "#EEF2EE",
     borderRadius: 12,
     padding: spacing.gutter,
     gap: spacing.compact,
   },
   nearbyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.gutter,
   },
   nearbyName: {
@@ -736,25 +636,25 @@ const styles = StyleSheet.create({
   nearbyDist: {
     fontFamily: fonts.sans,
     fontSize: 12,
-    color: '#22c55e',
+    color: "#22c55e",
   },
   expandText: {
     fontFamily: fonts.sansMedium,
     fontSize: 13,
-    color: '#5B7A5E',
+    color: "#5B7A5E",
     paddingTop: spacing.tight,
   },
   nearbyNote: {
     fontFamily: fonts.sans,
     fontSize: 12,
-    color: '#5B7A5E',
-    fontStyle: 'italic',
+    color: "#5B7A5E",
+    fontStyle: "italic",
     paddingTop: spacing.tight,
   },
   inlineDistance: {
     fontFamily: fonts.sans,
     fontSize: 12,
-    color: '#22c55e',
+    color: "#22c55e",
   },
   toggleSection: {
     paddingVertical: 14,
@@ -762,9 +662,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.rule,
   },
   toggleLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   toggleDesc: {
     fontFamily: fonts.sans,

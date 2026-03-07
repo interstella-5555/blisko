@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from "node:events";
 
 // Global event emitter for real-time events
 export const ee = new EventEmitter();
@@ -34,7 +34,7 @@ export interface ReactionEvent {
   messageId: string;
   emoji: string;
   userId: string;
-  action: 'added' | 'removed';
+  action: "added" | "removed";
 }
 
 export interface NewWaveEvent {
@@ -90,7 +90,7 @@ export interface StatusMatchesReadyEvent {
 export interface GroupMemberEvent {
   conversationId: string;
   userId: string;
-  action: 'joined' | 'left' | 'removed' | 'roleChanged';
+  action: "joined" | "left" | "removed" | "roleChanged";
   role?: string;
   displayName?: string;
 }
@@ -107,7 +107,7 @@ export interface GroupUpdatedEvent {
 export interface TopicEvent {
   conversationId: string;
   topic: { id: string; name: string; emoji: string | null };
-  action: 'created' | 'updated' | 'deleted' | 'closed';
+  action: "created" | "updated" | "deleted" | "closed";
 }
 
 export interface GroupInvitedEvent {

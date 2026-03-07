@@ -3,8 +3,22 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+          cache: "pnpm"
+      - run: pnpm install
+      - run: pnpm check
+
   typecheck:
     runs-on: ubuntu-latest
     steps:
@@ -12,8 +26,8 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version-file: '.node-version'
-          cache: 'pnpm'
+          node-version-file: ".node-version"
+          cache: "pnpm"
       - run: pnpm install
       - run: pnpm --filter @repo/api typecheck
       - run: pnpm --filter @repo/shared typecheck
@@ -26,8 +40,8 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version-file: '.node-version'
-          cache: 'pnpm'
+          node-version-file: ".node-version"
+          cache: "pnpm"
       - run: pnpm install
       - run: pnpm --filter @repo/api test
       - run: pnpm --filter @repo/shared test

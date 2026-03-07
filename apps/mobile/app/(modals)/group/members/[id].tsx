@@ -1,23 +1,16 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Pressable,
-  ActivityIndicator,
-} from 'react-native';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { trpc } from '../../../../src/lib/trpc';
-import { useAuthStore } from '../../../../src/stores/authStore';
-import { colors, spacing, fonts } from '../../../../src/theme';
-import { Avatar } from '../../../../src/components/ui/Avatar';
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Avatar } from "../../../../src/components/ui/Avatar";
+import { trpc } from "../../../../src/lib/trpc";
+import { useAuthStore } from "../../../../src/stores/authStore";
+import { colors, fonts, spacing } from "../../../../src/theme";
 
 const PAGE_SIZE = 50;
 
 const ROLE_LABELS: Record<string, string> = {
-  owner: 'Właściciel',
-  admin: 'Admin',
+  owner: "Właściciel",
+  admin: "Admin",
 };
 
 type Member = {
@@ -82,14 +75,12 @@ export default function GroupMembersScreen() {
         <View style={styles.memberInfo}>
           <Text style={styles.memberName} numberOfLines={1}>
             {item.displayName}
-            {item.userId === userId ? ' (Ty)' : ''}
+            {item.userId === userId ? " (Ty)" : ""}
           </Text>
         </View>
         {ROLE_LABELS[item.role] ? (
           <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>
-              {ROLE_LABELS[item.role]}
-            </Text>
+            <Text style={styles.roleBadgeText}>{ROLE_LABELS[item.role]}</Text>
           </View>
         ) : null}
       </Pressable>
@@ -100,7 +91,7 @@ export default function GroupMembersScreen() {
   if (isLoading && allMembers.length === 0) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Członkowie' }} />
+        <Stack.Screen options={{ title: "Członkowie" }} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.muted} />
         </View>
@@ -144,12 +135,12 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     backgroundColor: colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   memberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: spacing.compact,
     gap: spacing.gutter,
   },
@@ -171,11 +162,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     fontSize: 10,
     color: colors.muted,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   footer: {
     paddingVertical: spacing.section,
-    alignItems: 'center',
+    alignItems: "center",
   },
 });

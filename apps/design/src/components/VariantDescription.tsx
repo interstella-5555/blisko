@@ -1,4 +1,4 @@
-import type { VariantMeta } from '~/variants/types'
+import type { VariantMeta } from "~/variants/types";
 
 export function VariantDescription({ meta }: { meta: VariantMeta }) {
   return (
@@ -11,15 +11,15 @@ export function VariantDescription({ meta }: { meta: VariantMeta }) {
 
       <h3>Wyrozniki wizualne</h3>
       <ul>
-        {meta.features.map((f, i) => (
-          <li key={i}>{f}</li>
+        {meta.features.map((f) => (
+          <li key={f}>{f}</li>
         ))}
       </ul>
 
       <h3>Dlaczego dobry UX</h3>
       <ul>
-        {meta.uxAnalysis.map((u, i) => (
-          <li key={i}>{u}</li>
+        {meta.uxAnalysis.map((u) => (
+          <li key={u}>{u}</li>
         ))}
       </ul>
 
@@ -27,5 +27,5 @@ export function VariantDescription({ meta }: { meta: VariantMeta }) {
         <strong>UX Pattern:</strong> {meta.uxPattern}
       </div>
     </div>
-  )
+  );
 }

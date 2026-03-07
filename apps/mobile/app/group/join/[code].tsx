@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useLocalSearchParams, router, Stack } from 'expo-router';
-import { trpc } from '../../../src/lib/trpc';
-import { sendWsMessage } from '../../../src/lib/ws';
-import { useConversationsStore } from '../../../src/stores/conversationsStore';
-import { ThinkingIndicator } from '../../../src/components/ui/ThinkingIndicator';
-import { colors, fonts, spacing } from '../../../src/theme';
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ThinkingIndicator } from "../../../src/components/ui/ThinkingIndicator";
+import { trpc } from "../../../src/lib/trpc";
+import { sendWsMessage } from "../../../src/lib/ws";
+import { useConversationsStore } from "../../../src/stores/conversationsStore";
+import { colors, fonts, spacing } from "../../../src/theme";
 
-const LOADING_MESSAGES = ['Dołączam do grupy…'];
+const LOADING_MESSAGES = ["Dołączam do grupy…"];
 
 export default function JoinGroupScreen() {
   const { code } = useLocalSearchParams<{ code: string }>();
@@ -15,10 +15,10 @@ export default function JoinGroupScreen() {
 
   const joinGroup = trpc.groups.join.useMutation({
     onSuccess: (data) => {
-      sendWsMessage({ type: 'subscribe', conversationId: data.id });
+      sendWsMessage({ type: "subscribe", conversationId: data.id });
       useConversationsStore.getState().addNew({
         id: data.id,
-        type: 'group',
+        type: "group",
         participant: null,
         groupName: data.name,
         groupAvatarUrl: data.avatarUrl,
@@ -31,13 +31,13 @@ export default function JoinGroupScreen() {
       router.replace(`/chat/${data.id}`);
     },
     onError: (err) => {
-      if (err.message === 'Invalid invite code') {
-        setError('Ten link jest nieprawidłowy lub wygasł');
-      } else if (err.message === 'Group is full') {
-        setError('Ta grupa jest pełna');
+      if (err.message === "Invalid invite code") {
+        setError("Ten link jest nieprawidłowy lub wygasł");
+      } else if (err.message === "Group is full") {
+        setError("Ta grupa jest pełna");
       } else {
         // Already a member — the API returns the conversation for this case
-        setError('Nie udało się dołączyć do grupy');
+        setError("Nie udało się dołączyć do grupy");
       }
     },
   });
@@ -46,11 +46,11 @@ export default function JoinGroupScreen() {
     if (code) {
       joinGroup.mutate({ inviteCode: code });
     }
-  }, [code]);
+  }, [code, joinGroup.mutate]);
 
   return (
     <>
-      <Stack.Screen options={{ title: '', headerShown: false }} />
+      <Stack.Screen options={{ title: "", headerShown: false }} />
       <View style={styles.container}>
         {error ? (
           <View style={styles.errorContainer}>
@@ -71,19 +71,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: spacing.section,
   },
   errorContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: spacing.column,
   },
   errorText: {
     fontFamily: fonts.sans,
     fontSize: 15,
     color: colors.muted,
-    textAlign: 'center',
+    textAlign: "center",
   },
   backBtn: {
     paddingHorizontal: spacing.section,

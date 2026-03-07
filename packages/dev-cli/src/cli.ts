@@ -25,12 +25,7 @@ async function resolveUser(email: string) {
 
 // ── HTTP helpers ──────────────────────────────────────────────────────
 
-async function trpc(
-  path: string,
-  token: string,
-  input: unknown,
-  method: "query" | "mutation" = "mutation"
-) {
+async function trpc(path: string, token: string, input: unknown, method: "query" | "mutation" = "mutation") {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
@@ -60,10 +55,7 @@ async function trpc(
 
 const program = new Command();
 
-program
-  .name("blisko-dev")
-  .description("Dev CLI for testing Blisko API")
-  .version("0.1.0");
+program.name("blisko-dev").description("Dev CLI for testing Blisko API").version("0.1.0");
 
 program
   .command("create-user")
@@ -80,7 +72,7 @@ program
         bio: `Czesc! Jestem ${displayName} i szukam nowych znajomosci.`,
         lookingFor: `Szukam ludzi do wspolnych aktywnosci w okolicy.`,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       const msg = String(e);
       if (!msg.includes("CONFLICT") && !msg.includes("already")) throw e;
     }
@@ -123,17 +115,13 @@ program
     console.log(`  Received (${received.length}):`);
     for (const r of received) {
       const from = r.fromProfile?.displayName ?? r.wave?.fromUserId;
-      console.log(
-        `    id=${r.wave.id}  from=${from}  status=${r.wave.status}`
-      );
+      console.log(`    id=${r.wave.id}  from=${from}  status=${r.wave.status}`);
     }
 
     console.log(`  Sent (${sent.length}):`);
     for (const s of sent) {
       const to = s.toProfile?.displayName ?? s.wave?.toUserId;
-      console.log(
-        `    id=${s.wave.id}  to=${to}  status=${s.wave.status}`
-      );
+      console.log(`    id=${s.wave.id}  to=${to}  status=${s.wave.status}`);
     }
   });
 
@@ -160,12 +148,7 @@ program
   .argument("<email>", "user email")
   .action(async (email: string) => {
     const { token } = await resolveUser(email);
-    const convos = await trpc(
-      "messages.getConversations",
-      token,
-      undefined,
-      "query"
-    );
+    const convos = await trpc("messages.getConversations", token, undefined, "query");
 
     if (convos.length === 0) {
       console.log("  No conversations yet.");
@@ -175,9 +158,7 @@ program
     for (const c of convos) {
       const other = c.participant?.displayName ?? "?";
       const last = c.lastMessage?.content ?? "—";
-      console.log(
-        `  convId=${c.conversation.id}  with=${other}  last="${last}"  unread=${c.unreadCount}`
-      );
+      console.log(`  convId=${c.conversation.id}  with=${other}  last="${last}"  unread=${c.unreadCount}`);
     }
   });
 
@@ -188,12 +169,7 @@ program
   .argument("<convId>", "conversation ID")
   .action(async (email: string, convId: string) => {
     const { token } = await resolveUser(email);
-    const result = await trpc(
-      "messages.getMessages",
-      token,
-      { conversationId: convId },
-      "query"
-    );
+    const result = await trpc("messages.getMessages", token, { conversationId: convId }, "query");
 
     const msgs = result.messages ?? result;
     if (!msgs || msgs.length === 0) {

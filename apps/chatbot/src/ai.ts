@@ -1,6 +1,6 @@
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { GPT_MODEL } from '@repo/shared';
+import { openai } from "@ai-sdk/openai";
+import { GPT_MODEL } from "@repo/shared";
+import { generateText } from "ai";
 
 interface SocialLinks {
   facebook?: string;
@@ -29,8 +29,8 @@ interface MessageEntry {
   content: string;
 }
 
-const FALLBACK_OPENING = 'Hej! Milo mi :)';
-const FALLBACK_REPLY = 'Fajnie, opowiedz wiecej!';
+const FALLBACK_OPENING = "Hej! Milo mi :)";
+const FALLBACK_REPLY = "Fajnie, opowiedz wiecej!";
 
 export async function generateBotMessage(
   botProfile: BotProfile,
@@ -43,16 +43,16 @@ export async function generateBotMessage(
   }
 
   const botDesc = botProfile.bio;
-  const botInterests = botProfile.interests?.join(', ') || 'brak danych';
-  const botPortrait = botProfile.portrait || 'brak';
+  const botInterests = botProfile.interests?.join(", ") || "brak danych";
+  const botPortrait = botProfile.portrait || "brak";
   const otherDesc = otherProfile.bio;
 
   const scenario = isOpening
-    ? 'Pierwsza wiadomosc po zaakceptowaniu wave. Przywitaj sie nawiazujac do tego co was laczy.'
+    ? "Pierwsza wiadomosc po zaakceptowaniu wave. Przywitaj sie nawiazujac do tego co was laczy."
     : `Kontynuujesz rozmowe. Odpowiedz na ostatnia wiadomosc.\n\nOstatnie wiadomosci:\n${conversationHistory
         .slice(-50)
-        .map((m) => `${m.senderId === 'bot' ? botProfile.displayName : otherProfile.displayName}: ${m.content}`)
-        .join('\n')}`;
+        .map((m) => `${m.senderId === "bot" ? botProfile.displayName : otherProfile.displayName}: ${m.content}`)
+        .join("\n")}`;
 
   try {
     const { text } = await generateText({
@@ -82,7 +82,7 @@ Zasady:
 
     return text.slice(0, 200) || (isOpening ? FALLBACK_OPENING : FALLBACK_REPLY);
   } catch (error) {
-    console.error('[bot] AI generation error:', error);
+    console.error("[bot] AI generation error:", error);
     return isOpening ? FALLBACK_OPENING : FALLBACK_REPLY;
   }
 }
