@@ -294,6 +294,22 @@ When creating new CLI tools, scripts, or monitors — always add both entries.
 
 Use Bun's built-in `RedisClient` (`import { RedisClient } from 'bun'`) for all direct Redis operations (pub/sub, get/set, etc.). Never add `ioredis` as a direct dependency — BullMQ uses it internally and that's fine, but our code should use Bun's native client.
 
+## Drizzle queries
+
+Always prefer Drizzle's built-in filter functions over raw `sql`\`...\``. Use `between()`, `eq()`, `ne()`, `gt()`, `lt()`, `gte()`, `lte()`, `isNull()`, `isNotNull()`, `inArray()`, `notInArray()`, `like()`, `ilike()`, `and()`, `or()`, `not()` — all from `drizzle-orm`.
+
+Raw `sql` is only acceptable when there's no Drizzle equivalent: Haversine/distance formulas, `CASE WHEN`, `NULLS LAST` ordering, `TRUNCATE`, column arithmetic in `.set()`, or computed column aliases in `ORDER BY`.
+
+## Soft-deleted users (GDPR)
+
+The `user` table has a `deletedAt` column. Soft-deleted users (`deletedAt IS NOT NULL`) must be **invisible everywhere**:
+
+- **Any query that returns user/profile data to other users** must filter out soft-deleted users
+- Standard pattern: `sql\`\${profiles.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)\`` in the WHERE clause
+- This applies to: nearby queries, waves, conversations, group members, status matching, discoverable groups — any place another user's profile is shown
+- **When adding new tables or queries that reference users:** always check if soft-deleted users should be filtered
+- The tRPC `isAuthed` middleware already blocks soft-deleted users from making API calls (throws `FORBIDDEN` / `ACCOUNT_DELETED`)
+
 ## EAS policy
 
 Do NOT suggest using EAS Build or EAS Submit. We use local Xcode builds + manual upload via Xcode Organizer. If EAS is ever needed, the user will say so explicitly.

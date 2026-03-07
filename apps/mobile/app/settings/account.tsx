@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { useState } from 'react';
 import Svg, { Path, Circle, Polyline } from 'react-native-svg';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
@@ -112,24 +113,58 @@ function ConnectedAccountRow({
 export default function AccountScreen() {
   const user = useAuthStore((state) => state.user);
 
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+
   const connectedAccounts = trpc.accounts.listConnected.useQuery();
   const disconnectAccount = trpc.accounts.disconnect.useMutation({
     onSuccess: () => {
       connectedAccounts.refetch();
     },
   });
+  const requestDeletion = trpc.accounts.requestDeletion.useMutation();
 
   const handleDeleteAccount = () => {
     Alert.alert(
       'Usuń konto',
-      'Czy na pewno chcesz trwale usunąć swoje konto? Tej operacji nie można cofnąć.',
+      'Czy na pewno chcesz usunąć swoje konto? Twoje dane zostaną trwale usunięte w ciągu 14 dni.',
       [
         { text: 'Anuluj', style: 'cancel' },
-        { text: 'Usuń', style: 'destructive', onPress: () => {
-          // TODO: call delete account API
-        }},
+        {
+          text: 'Kontynuuj',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await authClient.emailOtp.sendVerificationOtp({
+                email: user!.email,
+                type: 'sign-in',
+              });
+              setOtpStep(true);
+            } catch {
+              Alert.alert('Błąd', 'Nie udało się wysłać kodu weryfikacyjnego.');
+            }
+            setIsDeleting(false);
+          },
+        },
       ]
     );
+  };
+
+  const handleConfirmDeletion = async () => {
+    if (otp.length !== 6) return;
+    setOtpLoading(true);
+    try {
+      await requestDeletion.mutateAsync({ otp });
+      await authClient.signOut();
+      useAuthStore.getState().reset();
+      router.replace('/(auth)/login');
+    } catch {
+      Alert.alert('Błąd', 'Nieprawidłowy kod. Spróbuj ponownie.');
+    }
+    setOtpLoading(false);
   };
 
   return (
@@ -186,12 +221,47 @@ export default function AccountScreen() {
         </>
       )}
 
-      <Pressable style={styles.deleteSection} onPress={handleDeleteAccount}>
-        <Text style={styles.deleteText}>Usuń konto</Text>
-        <Text style={styles.deleteDescription}>
-          Trwale usuwa Twoje konto, profil i wszystkie dane. Tej operacji nie można cofnąć.
-        </Text>
-      </Pressable>
+      {otpStep ? (
+        <View style={styles.deleteSection}>
+          <Text style={styles.deleteText}>Wpisz kod weryfikacyjny</Text>
+          <Text style={styles.deleteDescription}>
+            Wysłaliśmy 6-cyfrowy kod na {user?.email}
+          </Text>
+          <TextInput
+            style={styles.otpInput}
+            value={otp}
+            onChangeText={setOtp}
+            keyboardType="number-pad"
+            maxLength={6}
+            placeholder="000000"
+            autoFocus
+          />
+          <Pressable
+            style={[styles.confirmDeleteButton, otp.length !== 6 && { opacity: 0.5 }]}
+            onPress={handleConfirmDeletion}
+            disabled={otp.length !== 6 || otpLoading}
+          >
+            {otpLoading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.confirmDeleteText}>Usuń konto</Text>
+            )}
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable style={styles.deleteSection} onPress={handleDeleteAccount} disabled={isDeleting}>
+          {isDeleting ? (
+            <ActivityIndicator color={colors.muted} size="small" />
+          ) : (
+            <>
+              <Text style={styles.deleteText}>Usuń konto</Text>
+              <Text style={styles.deleteDescription}>
+                Trwale usuwa Twoje konto, profil i wszystkie dane. Proces trwa do 14 dni.
+              </Text>
+            </>
+          )}
+        </Pressable>
+      )}
     </ScrollView>
   );
 }
@@ -307,5 +377,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.tight,
     lineHeight: 18,
+  },
+  otpInput: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 24,
+    letterSpacing: 8,
+    textAlign: 'center',
+    color: colors.ink,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.rule,
+    paddingVertical: 12,
+    marginVertical: spacing.column,
+    width: 200,
+    alignSelf: 'center',
+  },
+  confirmDeleteButton: {
+    backgroundColor: colors.accent,
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignSelf: 'center',
+    marginTop: spacing.gutter,
+  },
+  confirmDeleteText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 14,
+    color: '#fff',
+    textAlign: 'center',
   },
 });

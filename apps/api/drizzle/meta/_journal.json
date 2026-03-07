@@ -36,6 +36,13 @@
       "when": 1772439011056,
       "tag": "0004_status-na-teraz",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772905000934,
+      "tag": "0005_add-user-deleted-at",
+      "breakpoints": true
     }
   ]
 }

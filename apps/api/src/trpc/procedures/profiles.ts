@@ -151,7 +151,8 @@ export const profilesRouter = router({
             ne(profiles.userId, ctx.userId),
             eq(profiles.visibilityMode, 'visible'),
             sql`${profiles.latitude} BETWEEN ${input.latitude - latDelta} AND ${input.latitude + latDelta}`,
-            sql`${profiles.longitude} BETWEEN ${input.longitude - lonDelta} AND ${input.longitude + lonDelta}`
+            sql`${profiles.longitude} BETWEEN ${input.longitude - lonDelta} AND ${input.longitude + lonDelta}`,
+            sql`${profiles.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
           )
         )
         .then((nearbyUsers) => {
@@ -229,6 +230,7 @@ export const profilesRouter = router({
             sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
             // Exact distance filter
             sql`${distanceFormula} <= ${radiusMeters}`,
+            sql`${profiles.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`,
             ...(input.photoOnly ? [isNotNull(profiles.avatarUrl)] : []),
           )
         )
@@ -294,6 +296,7 @@ export const profilesRouter = router({
         sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
         sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
         sql`${distanceFormula} <= ${radiusMeters}`,
+        sql`${profiles.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`,
         ...(input.photoOnly ? [isNotNull(profiles.avatarUrl)] : []),
       );
 

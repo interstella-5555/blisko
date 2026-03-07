@@ -77,7 +77,8 @@ export const messagesRouter = router({
             .where(
               and(
                 eq(conversationParticipants.conversationId, conversationId),
-                ne(conversationParticipants.userId, ctx.userId)
+                ne(conversationParticipants.userId, ctx.userId),
+                sql`${conversationParticipants.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
               )
             );
           participant = otherParticipant?.profile || null;

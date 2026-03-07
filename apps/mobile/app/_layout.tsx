@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
-import { View, ActivityIndicator, AppState, Platform } from 'react-native';
-import { Stack } from 'expo-router';
+import { View, ActivityIndicator, AppState, Platform, Alert } from 'react-native';
+import { Stack, router } from 'expo-router';
 // Workaround: expo-router 6.0.22 bug — Stack uses useLinkPreviewContext
 // but ExpoRoot's provider doesn't always reach it (pnpm dual-instance issue)
 import { LinkPreviewContextProvider } from 'expo-router/build/link/preview/LinkPreviewContext';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query';
 import { trpc, trpcClient } from '../src/lib/trpc';
 import { useAuthStore } from '../src/stores/authStore';
 import { authClient } from '../src/lib/auth';
@@ -17,7 +17,40 @@ import { ToastProvider } from '../src/providers/ToastProvider';
 import { ToastOverlay } from '../src/components/ui/ToastOverlay';
 import { colors } from '../src/theme';
 
-export const queryClient = new QueryClient();
+let accountDeletedAlertShown = false;
+
+function handleAccountDeleted(error: unknown) {
+  const err = error as any;
+  if (err?.data?.code === 'FORBIDDEN' && err?.message === 'ACCOUNT_DELETED' && !accountDeletedAlertShown) {
+    accountDeletedAlertShown = true;
+    Alert.alert(
+      'Konto usunięte',
+      'Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.',
+      [{
+        text: 'OK',
+        onPress: () => {
+          accountDeletedAlertShown = false;
+          authClient.signOut();
+          useAuthStore.getState().reset();
+          router.replace('/(auth)/login');
+        },
+      }]
+    );
+  }
+}
+
+export const queryClient = new QueryClient({
+  queryCache: new QueryCache({ onError: handleAccountDeleted }),
+  mutationCache: new MutationCache({ onError: handleAccountDeleted }),
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error: any) => {
+        if (error?.data?.code === 'FORBIDDEN' && error?.message === 'ACCOUNT_DELETED') return false;
+        return failureCount < 3;
+      },
+    },
+  },
+});
 
 export default function RootLayout() {
   const setUser = useAuthStore((state) => state.setUser);

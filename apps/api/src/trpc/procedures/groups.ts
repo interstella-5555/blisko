@@ -387,7 +387,10 @@ export const groupsRouter = router({
           eq(conversationParticipants.userId, profiles.userId)
         )
         .where(
-          eq(conversationParticipants.conversationId, input.conversationId)
+          and(
+            eq(conversationParticipants.conversationId, input.conversationId),
+            sql`${conversationParticipants.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
+          )
         )
         .orderBy(
           sql`CASE ${conversationParticipants.role}
@@ -589,8 +592,9 @@ export const groupsRouter = router({
           conversation: conversations,
           distance: distanceSql.as('distance'),
           memberCount: sql<number>`(
-            SELECT count(*) FROM conversation_participants
-            WHERE conversation_id = ${conversations.id}
+            SELECT count(*) FROM conversation_participants cp2
+            WHERE cp2.conversation_id = ${conversations.id}
+              AND cp2.user_id NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)
           )`.as('member_count'),
           nearbyMemberCount: sql<number>`(
             SELECT count(*) FROM conversation_participants cp
@@ -598,6 +602,7 @@ export const groupsRouter = router({
             WHERE cp.conversation_id = ${conversations.id}
               AND cp.location_visible = true
               AND p.latitude IS NOT NULL
+              AND cp.user_id NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)
               AND 6371000 * acos(
                 cos(radians(${latitude})) * cos(radians(p.latitude)) *
                 cos(radians(p.longitude) - radians(${longitude})) +
@@ -829,7 +834,8 @@ export const groupsRouter = router({
         eq(conversationParticipants.locationVisible, true),
         sql`${profiles.latitude} IS NOT NULL`,
         sql`${distanceSql} <= ${radiusMeters}`,
-        sql`${conversationParticipants.userId} != ${ctx.userId}`
+        sql`${conversationParticipants.userId} != ${ctx.userId}`,
+        sql`${conversationParticipants.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
       );
 
       const [countResult] = await db

@@ -1,10 +1,10 @@
 import { Queue, Worker, type Job } from 'bullmq';
 import { createHash } from 'crypto';
-import { eq, and, ne, gte, lte, isNotNull, sql } from 'drizzle-orm';
+import { eq, and, ne, gte, lte, isNotNull, or, sql } from 'drizzle-orm';
 import { RedisClient } from 'bun';
 import { cosineSimilarity } from '@repo/shared';
 import { db } from '../db';
-import { profiles, connectionAnalyses, blocks, profilingSessions, profilingQA, statusMatches } from '../db/schema';
+import { user, profiles, connectionAnalyses, blocks, profilingSessions, profilingQA, statusMatches, session, account, waves, conversations, conversationParticipants, topics, messages, messageReactions, pushTokens } from '../db/schema';
 import {
   analyzeConnection,
   generatePortrait,
@@ -85,13 +85,19 @@ interface StatusMatchingJob {
   userId: string;
 }
 
+interface HardDeleteUserJob {
+  type: 'hard-delete-user';
+  userId: string;
+}
+
 type AIJob =
   | AnalyzePairJob
   | AnalyzeUserPairsJob
   | GenerateProfileAIJob
   | GenerateProfilingQuestionJob
   | GenerateProfileFromQAJob
-  | StatusMatchingJob;
+  | StatusMatchingJob
+  | HardDeleteUserJob;
 
 // --- Queue (lazy init) ---
 
@@ -349,7 +355,8 @@ async function processAnalyzeUserPairs(
         eq(profiles.visibilityMode, 'visible'),
         sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
         sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
-        sql`${distanceFormula} <= ${radiusMeters}`
+        sql`${distanceFormula} <= ${radiusMeters}`,
+        sql`${profiles.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
       )
     )
     .limit(100);
@@ -510,6 +517,7 @@ async function processStatusMatching(userId: string) {
         lte(profiles.latitude, user.latitude + nearbyRadius),
         gte(profiles.longitude, user.longitude - nearbyRadius),
         lte(profiles.longitude, user.longitude + nearbyRadius),
+        sql`${profiles.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
       )
     );
 
@@ -580,6 +588,85 @@ async function processStatusMatching(userId: string) {
   ee.emit('statusMatchesReady', { userId });
 }
 
+// --- Hard delete processor ---
+
+async function processHardDeleteUser(userId: string) {
+  console.log(`[queue] hard-delete-user starting for ${userId}`);
+
+  // 1. Get S3 file keys from profile before deleting
+  const [profile] = await db
+    .select({ avatarUrl: profiles.avatarUrl, portrait: profiles.portrait })
+    .from(profiles)
+    .where(eq(profiles.userId, userId));
+
+  // 2. Delete S3 files
+  if (profile) {
+    const keysToDelete: string[] = [];
+    for (const url of [profile.avatarUrl, profile.portrait]) {
+      if (url) {
+        const match = url.match(/uploads\/[^?]+/);
+        if (match) keysToDelete.push(match[0]);
+      }
+    }
+    if (keysToDelete.length > 0) {
+      const { S3Client } = await import('bun');
+      const s3 = new S3Client({
+        accessKeyId: process.env.BUCKET_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.BUCKET_SECRET_ACCESS_KEY!,
+        endpoint: process.env.BUCKET_ENDPOINT!,
+        bucket: process.env.BUCKET_NAME!,
+      });
+      for (const key of keysToDelete) {
+        try {
+          await s3.delete(key);
+          console.log(`[queue] deleted S3 key: ${key}`);
+        } catch (err) {
+          console.error(`[queue] failed to delete S3 key ${key}:`, err);
+        }
+      }
+    }
+  }
+
+  // 3. Delete non-cascading tables (order matters for FK constraints)
+  await db.delete(connectionAnalyses).where(
+    or(eq(connectionAnalyses.fromUserId, userId), eq(connectionAnalyses.toUserId, userId))
+  );
+  await db.delete(statusMatches).where(
+    or(eq(statusMatches.userId, userId), eq(statusMatches.matchedUserId, userId))
+  );
+  await db.delete(blocks).where(
+    or(eq(blocks.blockerId, userId), eq(blocks.blockedId, userId))
+  );
+  await db.delete(pushTokens).where(eq(pushTokens.userId, userId));
+
+  // Messages & reactions
+  const userMessages = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(eq(messages.senderId, userId));
+  if (userMessages.length > 0) {
+    for (const msg of userMessages) {
+      await db.delete(messageReactions).where(eq(messageReactions.messageId, msg.id));
+    }
+  }
+  await db.delete(messageReactions).where(eq(messageReactions.userId, userId));
+  await db.delete(messages).where(eq(messages.senderId, userId));
+
+  await db.delete(conversationParticipants).where(eq(conversationParticipants.userId, userId));
+  await db.delete(waves).where(
+    or(eq(waves.fromUserId, userId), eq(waves.toUserId, userId))
+  );
+
+  // Set creatorId to null on conversations/topics (nullable FK)
+  await db.update(conversations).set({ creatorId: null }).where(eq(conversations.creatorId, userId));
+  await db.update(topics).set({ creatorId: null }).where(eq(topics.creatorId, userId));
+
+  // 4. Delete user row — cascades to: session, account, profiles, profilingSessions
+  await db.delete(user).where(eq(user.id, userId));
+
+  console.log(`[queue] hard-delete-user completed for ${userId}`);
+}
+
 // --- Main job processor ---
 
 async function processJob(job: Job<AIJob>) {
@@ -610,6 +697,9 @@ async function processJob(job: Job<AIJob>) {
       break;
     case 'status-matching':
       await processStatusMatching(data.userId);
+      break;
+    case 'hard-delete-user':
+      await processHardDeleteUser(data.userId);
       break;
   }
 }
@@ -802,4 +892,30 @@ export async function enqueueStatusMatching(userId: string) {
     { type: 'status-matching', userId },
     { jobId: `status-matching-${userId}`, removeOnComplete: true }
   );
+}
+
+export async function enqueueHardDeleteUser(userId: string) {
+  if (!process.env.REDIS_URL) return;
+
+  const queue = getQueue();
+  const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
+  await queue.add(
+    'hard-delete-user',
+    { type: 'hard-delete-user', userId },
+    {
+      jobId: `hard-delete-${userId}`,
+      delay: FOURTEEN_DAYS_MS,
+      removeOnComplete: true,
+    }
+  );
+}
+
+export async function cancelHardDeleteUser(userId: string) {
+  if (!process.env.REDIS_URL) return;
+
+  const queue = getQueue();
+  const job = await queue.getJob(`hard-delete-${userId}`);
+  if (job) {
+    try { await job.remove(); } catch { /* job may have already run */ }
+  }
 }

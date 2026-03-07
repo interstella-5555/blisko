@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eq, and, or, desc, inArray } from 'drizzle-orm';
+import { eq, and, or, desc, inArray, sql } from 'drizzle-orm';
 import { router, protectedProcedure } from '../trpc';
 import { db } from '../../db';
 import {
@@ -22,11 +22,16 @@ export const wavesRouter = router({
     .mutation(async ({ ctx, input }) => {
       console.log(`[waves.send] from=${ctx.userId} to=${input.toUserId}`);
 
-      // Check if target user exists
+      // Check if target user exists and is not soft-deleted
       const [targetProfile] = await db
         .select()
         .from(profiles)
-        .where(eq(profiles.userId, input.toUserId));
+        .where(
+          and(
+            eq(profiles.userId, input.toUserId),
+            sql`${profiles.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
+          )
+        );
 
       if (!targetProfile) {
         console.log(`[waves.send] Target profile not found for userId=${input.toUserId}`);
@@ -126,7 +131,8 @@ export const wavesRouter = router({
       .where(
         and(
           eq(waves.toUserId, ctx.userId),
-          inArray(waves.status, ['pending', 'accepted'])
+          inArray(waves.status, ['pending', 'accepted']),
+          sql`${waves.fromUserId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
         )
       )
       .orderBy(desc(waves.createdAt));
@@ -143,7 +149,12 @@ export const wavesRouter = router({
       })
       .from(waves)
       .innerJoin(profiles, eq(waves.toUserId, profiles.userId))
-      .where(eq(waves.fromUserId, ctx.userId))
+      .where(
+        and(
+          eq(waves.fromUserId, ctx.userId),
+          sql`${waves.toUserId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
+        )
+      )
       .orderBy(desc(waves.createdAt));
 
     return sentWaves;
@@ -334,7 +345,12 @@ export const wavesRouter = router({
       })
       .from(blocks)
       .innerJoin(profiles, eq(blocks.blockedId, profiles.userId))
-      .where(eq(blocks.blockerId, ctx.userId));
+      .where(
+        and(
+          eq(blocks.blockerId, ctx.userId),
+          sql`${blocks.blockedId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
+        )
+      );
 
     return blockedUsers;
   }),
