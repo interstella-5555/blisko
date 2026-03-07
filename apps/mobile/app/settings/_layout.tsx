@@ -27,7 +27,6 @@ export default function SettingsLayout() {
       <Stack.Screen name="edit-profile" options={{ title: 'Edytuj profil' }} />
       <Stack.Screen name="profiling" options={{ title: 'Profilowanie' }} />
       <Stack.Screen name="profiling-result" options={{ title: 'Wynik profilowania' }} />
-      <Stack.Screen name="set-status" options={{ title: 'Ustaw status' }} />
       <Stack.Screen name="account" options={{ title: 'Konto' }} />
       <Stack.Screen name="privacy" options={{ title: 'Prywatność' }} />
       <Stack.Screen name="notifications" options={{ title: 'Powiadomienia' }} />

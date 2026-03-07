@@ -4,17 +4,14 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   Alert,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useAuthStore } from '../../src/stores/authStore';
-import { trpc } from '../../src/lib/trpc';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { Button } from '../../src/components/ui/Button';
+import { useAuthStore } from '@/stores/authStore';
+import { trpc } from '@/lib/trpc';
+import { colors, type as typ, spacing, fonts } from '@/theme';
+import { Button } from '@/components/ui/Button';
 import ms from 'ms';
 
 type Duration = '1h' | '6h' | '24h' | 'never';
@@ -102,87 +99,72 @@ export default function SetStatusScreen() {
   const canSubmit = text.trim().length > 0;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.title}>Co teraz?</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Co teraz?</Text>
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={text}
-            onChangeText={setText}
-            placeholder="Czego szukasz lub co możesz dać?"
-            placeholderTextColor={colors.muted}
-            spellCheck={false}
-            autoCorrect={false}
-            multiline
-            maxLength={150}
-            autoFocus
-          />
-          <Text style={styles.charCount}>{text.length} / 150</Text>
-        </View>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          value={text}
+          onChangeText={setText}
+          placeholder="Czego szukasz lub co możesz dać?"
+          placeholderTextColor={colors.muted}
+          spellCheck={false}
+          autoCorrect={false}
+          multiline
+          maxLength={150}
+          autoFocus
+        />
+        <Text style={styles.charCount}>{text.length} / 150</Text>
+      </View>
 
-        <Text style={styles.durationLabel}>CZAS TRWANIA</Text>
-        <View style={styles.durationRow}>
-          {DURATION_OPTIONS.map((opt) => (
-            <Pressable
-              key={opt.value}
+      <Text style={styles.durationLabel}>CZAS TRWANIA</Text>
+      <View style={styles.durationRow}>
+        {DURATION_OPTIONS.map((opt) => (
+          <Pressable
+            key={opt.value}
+            style={[
+              styles.durationChip,
+              duration === opt.value && styles.durationChipSelected,
+            ]}
+            onPress={() => setDuration(opt.value)}
+          >
+            <Text
               style={[
-                styles.durationChip,
-                duration === opt.value && styles.durationChipSelected,
+                styles.durationChipText,
+                duration === opt.value && styles.durationChipTextSelected,
               ]}
-              onPress={() => setDuration(opt.value)}
             >
-              <Text
-                style={[
-                  styles.durationChipText,
-                  duration === opt.value && styles.durationChipTextSelected,
-                ]}
-              >
-                {opt.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+              {opt.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
 
-        <View style={styles.submitContainer}>
-          <Button
-            title="Ustaw status"
-            variant="accent"
-            onPress={handleSubmit}
-            disabled={!canSubmit}
-            loading={setStatus.isPending}
-          />
-          {isEditing && (
-            <Pressable onPress={handleClear} style={styles.clearButton} hitSlop={8}>
-              <Text style={styles.clearText}>Wyczyść status</Text>
-            </Pressable>
-          )}
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <View style={styles.submitContainer}>
+        <Button
+          title="Ustaw status"
+          variant="accent"
+          onPress={handleSubmit}
+          disabled={!canSubmit}
+          loading={setStatus.isPending}
+        />
+        {isEditing && (
+          <Pressable onPress={handleClear} style={styles.clearButton} hitSlop={8}>
+            <Text style={styles.clearText}>Wyczyść status</Text>
+          </Pressable>
+        )}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: colors.bg,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
     paddingHorizontal: spacing.section,
     paddingTop: spacing.section,
-    paddingBottom: 60,
+    paddingBottom: spacing.block,
   },
   title: {
     fontFamily: fonts.serif,

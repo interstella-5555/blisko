@@ -46,26 +46,28 @@ export default function ProfileScreen() {
         <Text style={styles.email}>{user?.email}</Text>
 
         {activeStatus ? (
-          <Pressable
-            style={styles.statusPill}
-            onPress={() =>
-              router.push({
-                pathname: '/settings/set-status' as any,
-                params: { prefill: profile!.currentStatus! },
-              })
-            }
-          >
-            <Text style={styles.statusText} numberOfLines={2}>
-              {profile!.currentStatus}
-            </Text>
+          <View style={styles.statusContainer}>
+            <Pressable
+              style={styles.statusPill}
+              onPress={() =>
+                router.push({
+                  pathname: '/set-status' as any,
+                  params: { prefill: profile!.currentStatus! },
+                })
+              }
+            >
+              <Text style={styles.statusText} numberOfLines={2}>
+                {profile!.currentStatus}
+              </Text>
+            </Pressable>
             <Text style={styles.statusExpiry}>
               wygasa za {formatTimeLeft(profile!.statusExpiresAt)}
             </Text>
-          </Pressable>
+          </View>
         ) : (
           <Pressable
             style={styles.setStatusButton}
-            onPress={() => router.push('/settings/set-status' as any)}
+            onPress={() => router.push('/set-status' as any)}
           >
             <Text style={styles.setStatusText}>+ Ustaw status na teraz</Text>
           </Pressable>
@@ -126,9 +128,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderStyle: 'dashed',
     borderColor: colors.rule,
-    borderRadius: 20,
+    borderRadius: 999,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     marginTop: 14,
   },
   setStatusText: {
@@ -136,16 +138,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.muted,
   },
+  statusContainer: {
+    marginTop: 14,
+    alignItems: 'center',
+  },
   statusPill: {
     backgroundColor: '#FDF5EC',
     borderWidth: 1.5,
     borderColor: '#E8C9A0',
-    borderRadius: 14,
-    marginTop: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
     maxWidth: 260,
-    alignSelf: 'center',
     alignItems: 'center',
   },
   statusText: {

@@ -21,6 +21,7 @@ import { useLocationStore } from '../../src/stores/locationStore';
 import { usePreferencesStore } from '../../src/stores/preferencesStore';
 import { useProfilesStore } from '../../src/stores/profilesStore';
 import { useWavesStore } from '../../src/stores/wavesStore';
+import { useAuthStore } from '../../src/stores/authStore';
 import { trpc } from '../../src/lib/trpc';
 import {
   NearbyMapView,
@@ -146,7 +147,18 @@ export default function NearbyScreen() {
 
   const mapUsers = mapData?.users;
   const totalCount = listData?.pages[0]?.totalCount ?? 0;
-  const myStatus = listData?.pages[0]?.myStatus ?? null;
+  // Derive status from auth store (optimistic) with query fallback
+  const profile = useAuthStore((s) => s.profile);
+  const myStatus = useMemo(() => {
+    if (profile?.currentStatus && profile?.statusExpiresAt) {
+      const expires = new Date(profile.statusExpiresAt);
+      if (expires > new Date()) {
+        return { text: profile.currentStatus, expiresAt: profile.statusExpiresAt };
+      }
+      return null;
+    }
+    return listData?.pages[0]?.myStatus ?? null;
+  }, [profile?.currentStatus, profile?.statusExpiresAt, listData]);
 
   // Wave status from store (populated by _layout.tsx hydration + WS)
   const waveStatusByUserId = useWavesStore((s) => s.waveStatusByUserId);
@@ -510,6 +522,29 @@ export default function NearbyScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Status bar — above map */}
+      {myStatus ? (
+        <Pressable
+          style={styles.statusBar}
+          onPress={() =>
+            router.push({
+              pathname: '/set-status' as any,
+              params: { prefill: myStatus.text },
+            })
+          }
+        >
+          <Text style={styles.statusBarText} numberOfLines={1}>{myStatus.text}</Text>
+          <Text style={styles.statusBarTime}>{formatTimeLeft(myStatus.expiresAt)}</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          style={styles.statusBarEmpty}
+          onPress={() => router.push('/set-status' as any)}
+        >
+          <Text style={styles.statusBarEmptyText}>+ Ustaw status na teraz</Text>
+        </Pressable>
+      )}
+
       {/* Collapsible map */}
       <Animated.View style={{ height: mapHeight, overflow: 'hidden' }}>
         <View style={{ height: MAP_EXPANDED_HEIGHT }}>
@@ -533,14 +568,6 @@ export default function NearbyScreen() {
           {mapExpanded ? 'UKRYJ MAPĘ' : 'POKAŻ MAPĘ'}
         </Text>
       </Pressable>
-
-      {/* Status bar — sticky above list when user has active status */}
-      {myStatus && (
-        <View style={styles.statusBar}>
-          <Text style={styles.statusBarText} numberOfLines={1}>{myStatus.text}</Text>
-          <Text style={styles.statusBarTime}>{formatTimeLeft(myStatus.expiresAt)}</Text>
-        </View>
-      )}
 
       {/* Filter chips + funnel */}
       <View style={styles.filterRow}>
@@ -699,7 +726,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDF5EC',
     borderBottomWidth: 1.5,
     borderBottomColor: '#E8C9A0',
-    paddingVertical: 10,
+    paddingVertical: spacing.gutter,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -715,6 +742,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: fonts.sansSemiBold,
     color: '#D4851C',
+  },
+  statusBarEmpty: {
+    backgroundColor: colors.mapBg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+    paddingVertical: spacing.gutter,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  statusBarEmptyText: {
+    fontSize: 12,
+    fontFamily: fonts.sans,
+    color: colors.muted,
   },
   mapToggle: {
     backgroundColor: colors.mapBg,

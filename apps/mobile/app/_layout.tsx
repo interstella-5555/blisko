@@ -84,6 +84,17 @@ export default function RootLayout() {
                 <Stack.Screen name="onboarding" />
                 <Stack.Screen name="(modals)" options={{ presentation: 'modal' }} />
                 <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
+                <Stack.Screen
+                  name="set-status"
+                  options={{
+                    presentation: 'formSheet',
+                    headerShown: false,
+                    sheetAllowedDetents: 'fitToContents',
+                    sheetGrabberVisible: true,
+                    sheetCornerRadius: 20,
+                    contentStyle: { backgroundColor: colors.bg },
+                  }}
+                />
               </Stack>
             </LinkPreviewContextProvider>
             <NotificationOverlay />
