@@ -1,5 +1,7 @@
 # Blisko — Project Notes
 
+Social proximity app — connects nearby people in Warsaw based on location, interests, and AI-generated compatibility analysis. Monorepo: API (Bun/Hono/tRPC), Mobile (Expo/React Native), Design Book (TanStack Start), Chatbot (seed user AI responder).
+
 ## Railway
 
 Project **blisko** on Railway (ID: `62599e90-30e8-47dd-af34-4e3f73c2261a`). Use the `mcp__railway__*` tools for managing deployments, logs, variables, etc. Workspace path: `/Users/karol/code/blisko`.
