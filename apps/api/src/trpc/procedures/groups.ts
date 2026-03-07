@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { eq, and, sql, ne, isNotNull, notInArray, lte } from "drizzle-orm";
-import { router, protectedProcedure } from "@/trpc/trpc";
-import { db, schema } from "@/db";
+import { router, protectedProcedure } from "~/trpc/trpc";
+import { db, schema } from "~/db";
 import {
   createGroupSchema,
   updateGroupSchema,
@@ -11,8 +11,8 @@ import {
   getDiscoverableGroupsSchema,
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { ee } from "@/ws/events";
-import { sendPushToUser } from "@/services/push";
+import { ee } from "~/ws/events";
+import { sendPushToUser } from "~/services/push";
 
 function generateInviteCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";

@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { eq, and, desc, isNull, ne, sql, ilike, gt, lt, inArray, isNotNull, notInArray } from "drizzle-orm";
-import { router, protectedProcedure } from "@/trpc/trpc";
-import { db, schema } from "@/db";
+import { router, protectedProcedure } from "~/trpc/trpc";
+import { db, schema } from "~/db";
 import { sendMessageSchema, deleteMessageSchema, reactToMessageSchema, searchMessagesSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { ee } from "@/ws/events";
-import { ensureTypingListener } from "@/ws/handler";
-import { sendPushToUser } from "@/services/push";
+import { ee } from "~/ws/events";
+import { ensureTypingListener } from "~/ws/handler";
+import { sendPushToUser } from "~/services/push";
 
 export const messagesRouter = router({
   // Get all conversations for current user

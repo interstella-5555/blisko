@@ -1,7 +1,7 @@
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { eq, and, gt } from "drizzle-orm";
-import { auth } from "@/auth";
-import { db, schema } from "@/db";
+import { auth } from "~/auth";
+import { db, schema } from "~/db";
 
 export interface TRPCContext {
   userId: string | null;

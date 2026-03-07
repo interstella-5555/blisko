@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { eq, and, asc, desc, sql, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "@/trpc/trpc";
-import { db, schema } from "@/db";
+import { router, protectedProcedure } from "~/trpc/trpc";
+import { db, schema } from "~/db";
 import {
   startProfilingSchema,
   answerQuestionSchema,
@@ -14,9 +14,9 @@ import {
   createGhostProfileSchema,
   ONBOARDING_QUESTIONS,
 } from "@repo/shared";
-import { enqueueProfilingQuestion, enqueueProfileFromQA, enqueueProfileAI } from "@/services/queue";
-import { moderateContent } from "@/services/moderation";
-import { generateFollowUpQuestions } from "@/services/profiling-ai";
+import { enqueueProfilingQuestion, enqueueProfileFromQA, enqueueProfileAI } from "~/services/queue";
+import { moderateContent } from "~/services/moderation";
+import { generateFollowUpQuestions } from "~/services/profiling-ai";
 
 // --- Helpers ---
 

@@ -306,24 +306,24 @@ Raw `sql` is only acceptable when there's no Drizzle equivalent: Haversine/dista
 
 ```ts
 // ✅ Correct
-import { db, schema } from '@/db';
+import { db, schema } from '~/db';
 // then use: schema.profiles, schema.user, schema.waves, etc.
 
 // ❌ Wrong — never import individual tables from db/schema.ts
-import { profiles, user, waves, blocks, ... } from '@/db/schema';
+import { profiles, user, waves, blocks, ... } from '~/db/schema';
 ```
 
 The only exception is `apps/api/src/db/index.ts` itself, which must import from `schema.ts` to set up Drizzle.
 
 ## Import aliases (API)
 
-In `apps/api/`, use the `@/` path alias (`@/*` → `src/*`) instead of `..` relative imports. Relative `./` (same directory) imports are fine.
+In `apps/api/`, use the `~/` path alias (`~/*` → `src/*`) instead of `..` relative imports. Relative `./` (same directory) imports are fine.
 
 ```ts
 // ✅ Correct
-import { db, schema } from '@/db';
-import { ee } from '@/ws/events';
-import { sendPushToUser } from '@/services/push';
+import { db, schema } from '~/db';
+import { ee } from '~/ws/events';
+import { sendPushToUser } from '~/services/push';
 
 // ❌ Wrong — don't navigate up with ..
 import { db, schema } from '../../db';
