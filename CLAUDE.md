@@ -222,6 +222,7 @@ npx drizzle-kit migrate                            # applies to database
 - Review generated SQL before running `migrate` — drizzle-kit can't handle every alteration (e.g. `text → jsonb` needs manual `USING` clause).
 - For custom/manual SQL (extensions, data migrations, casts with USING), use `npx drizzle-kit generate --custom --name=describe-change` and write the SQL yourself.
 - Migration files are committed to git. The `drizzle/meta/` snapshots are also committed — they're how drizzle-kit diffs against previous state.
+- **After any schema change:** check if `apps/api/src/services/data-export.ts` needs updating. This service exports all user data as JSON for GDPR/RODO compliance (Art. 15, 20). If you add, rename, or remove columns/tables that hold user data, update the export to include the new fields or remove old ones.
 
 ## Layout: aligning controls with labels
 
