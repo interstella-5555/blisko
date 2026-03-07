@@ -14,6 +14,7 @@ import {
 import Svg, { Path, Polyline } from "react-native-svg";
 import { authClient } from "@/lib/auth";
 import { trpc } from "@/lib/trpc";
+import { useToast } from "@/providers/ToastProvider";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
@@ -168,6 +169,24 @@ export default function AccountScreen() {
   });
   const requestDeletion = trpc.accounts.requestDeletion.useMutation();
 
+  const { showToast } = useToast();
+  const requestExport = trpc.accounts.requestDataExport.useMutation({
+    onSuccess: (data) => {
+      if (data.status === "already_requested") {
+        showToast({ type: "info", title: "Eksport danych", message: "Eksport jest już w trakcie przygotowywania." });
+      } else {
+        showToast({
+          type: "success",
+          title: "Eksport danych",
+          message: "Eksport został zlecony. Sprawdź swój e-mail.",
+        });
+      }
+    },
+    onError: () => {
+      showToast({ type: "error", title: "Błąd", message: "Nie udało się zlecić eksportu. Spróbuj ponownie." });
+    },
+  });
+
   const handleDeleteAccount = () => {
     Alert.alert(
       "Usuń konto",
@@ -262,6 +281,19 @@ export default function AccountScreen() {
           />
         </>
       )}
+
+      <View style={styles.divider} />
+      <Text style={styles.sectionLabel}>EKSPORT DANYCH</Text>
+      <Text style={styles.exportDescription}>
+        Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania zostanie wysłany na Twój adres e-mail.
+      </Text>
+      <Pressable style={styles.exportButton} onPress={() => requestExport.mutate()} disabled={requestExport.isPending}>
+        {requestExport.isPending ? (
+          <ActivityIndicator color={colors.ink} size="small" />
+        ) : (
+          <Text style={styles.exportButtonText}>POBIERZ MOJE DANE</Text>
+        )}
+      </Pressable>
 
       {otpStep ? (
         <View style={styles.deleteSection}>
@@ -399,6 +431,29 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: "uppercase",
     color: colors.muted,
+  },
+  exportDescription: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    color: colors.muted,
+    lineHeight: 18,
+    marginBottom: spacing.column,
+  },
+  exportButton: {
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    height: 44,
+  },
+  exportButtonText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    color: colors.ink,
   },
   deleteSection: {
     paddingTop: 40,

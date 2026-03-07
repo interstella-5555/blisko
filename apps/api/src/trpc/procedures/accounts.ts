@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db, schema } from "@/db";
-import { enqueueHardDeleteUser } from "@/services/queue";
+import { enqueueDataExport, enqueueHardDeleteUser } from "@/services/queue";
 import { protectedProcedure, router } from "@/trpc/trpc";
 
 export const accountsRouter = router({
@@ -104,4 +104,47 @@ export const accountsRouter = router({
 
       return { ok: true };
     }),
+
+  requestDataExport: protectedProcedure.mutation(async ({ ctx }) => {
+    // Get user email
+    const [userData] = await db
+      .select({ email: schema.user.email })
+      .from(schema.user)
+      .where(eq(schema.user.id, ctx.userId));
+
+    if (!userData) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+    }
+
+    // Rate limit: check for recent export jobs (24h cooldown)
+    const { Queue } = await import("bullmq");
+    const url = new URL(process.env.REDIS_URL!);
+    const queue = new Queue("ai-jobs", {
+      connection: {
+        host: url.hostname,
+        port: Number(url.port) || 6379,
+        password: url.password || undefined,
+        maxRetriesPerRequest: null as null,
+      },
+    });
+
+    try {
+      const jobs = await queue.getJobs(["completed", "active", "waiting", "delayed"]);
+      const recentExport = jobs.find(
+        (j) =>
+          j.data.type === "export-user-data" &&
+          j.data.userId === ctx.userId &&
+          j.timestamp > Date.now() - 24 * 60 * 60 * 1000,
+      );
+
+      if (recentExport) {
+        return { status: "already_requested" as const };
+      }
+    } finally {
+      await queue.close();
+    }
+
+    await enqueueDataExport(ctx.userId, userData.email);
+    return { status: "queued" as const };
+  }),
 });
