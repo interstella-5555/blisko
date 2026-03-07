@@ -142,13 +142,6 @@ export default function AccountScreen() {
         <ActivityIndicator color={colors.muted} style={{ marginVertical: spacing.gutter }} />
       ) : (
         <>
-          <ConnectedAccountRow
-            provider="google"
-            username={connectedAccounts.data?.find((a) => a.providerId === 'google')?.username}
-            onConnect={() => authClient.signIn.social({ provider: 'google', callbackURL: '/settings/account' })}
-            onDisconnect={() => disconnectAccount.mutate({ providerId: 'google' })}
-            disconnecting={disconnectAccount.isPending}
-          />
           {Platform.OS === 'ios' && (
             <ConnectedAccountRow
               provider="apple"
@@ -158,6 +151,13 @@ export default function AccountScreen() {
               disconnecting={disconnectAccount.isPending}
             />
           )}
+          <ConnectedAccountRow
+            provider="google"
+            username={connectedAccounts.data?.find((a) => a.providerId === 'google')?.username}
+            onConnect={() => authClient.signIn.social({ provider: 'google', callbackURL: '/settings/account' })}
+            onDisconnect={() => disconnectAccount.mutate({ providerId: 'google' })}
+            disconnecting={disconnectAccount.isPending}
+          />
           <ConnectedAccountRow
             provider="facebook"
             username={connectedAccounts.data?.find((a) => a.providerId === 'facebook')?.username}

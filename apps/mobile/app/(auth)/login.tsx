@@ -1,23 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
-  Pressable,
 } from 'react-native';
 import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import Svg, { Path } from 'react-native-svg';
 import { authClient } from '../../src/lib/auth';
 import { useAuthStore } from '../../src/stores/authStore';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
-import { Input } from '../../src/components/ui/Input';
 import { Button } from '../../src/components/ui/Button';
 import { useToast } from '../../src/providers/ToastProvider';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 const authErrorMessages: Record<string, string> = {
   'Too many requests. Please try again later.': 'Zbyt wiele prób. Spróbuj ponownie za chwilę.',
@@ -29,9 +23,7 @@ function translateAuthError(message?: string): string {
 }
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const { setUser, setSession, setProfile, setHasCheckedProfile } = useAuthStore();
   const { showToast } = useToast();
 
@@ -69,97 +61,8 @@ export default function LoginScreen() {
     setLoadingAction(null);
   };
 
-  const seedUserNumber = useMemo(() => Math.floor(Math.random() * 250), []);
-
-  const handleSendMagicLink = async (emailOverride?: string) => {
-    const target = (emailOverride || email).trim();
-    if (!target) {
-      setError('Podaj adres email');
-      return;
-    }
-
-    setLoadingAction('magic-link');
-    setError(null);
-
-    // Dev auto-login for @example.com emails
-    if (target.endsWith('@example.com')) {
-      try {
-        const response = await fetch(`${API_URL}/dev/auto-login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: target }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          setError(data.error || 'Auto-login failed');
-          setLoadingAction(null);
-          return;
-        }
-
-        const data = await response.json();
-
-        // Save session to SecureStore so authClient.getSession() can read it
-        // Better Auth expo client uses this format
-        await SecureStore.setItemAsync(
-          'blisko_session_token',
-          data.session.token
-        );
-        await SecureStore.setItemAsync(
-          'blisko_session_data',
-          JSON.stringify({
-            session: data.session,
-            user: data.user,
-          })
-        );
-
-        // Reset profile state so query runs fresh
-        setProfile(null);
-        setHasCheckedProfile(false);
-
-        setUser(data.user);
-        setSession({
-          ...data.session,
-          expiresAt: new Date(data.session.expiresAt),
-        });
-
-        router.replace('/(tabs)');
-        return;
-      } catch (err) {
-        setError('Dev auto-login failed');
-        setLoadingAction(null);
-        return;
-      }
-    }
-
-    try {
-      const result = await authClient.emailOtp.sendVerificationOtp({
-        email: target,
-        type: 'sign-in',
-      });
-
-      if (result.error) {
-        setError(translateAuthError(result.error.message));
-        setLoadingAction(null);
-        return;
-      }
-
-      router.push({
-        pathname: '/(auth)/verify',
-        params: { email: target },
-      });
-    } catch (err) {
-      setError('Nie udało się wysłać kodu');
-    }
-
-    setLoadingAction(null);
-  };
-
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <View style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>BLISKO</Text>
         <Text style={styles.subtitle}>
@@ -168,36 +71,16 @@ export default function LoginScreen() {
         </Text>
 
         <View style={styles.form}>
-          <Input
-            testID="email-input"
-            label="Email"
-            placeholder="twoj@email.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!isLoading}
-          />
-
-          {error && <Text style={styles.error}>{error}</Text>}
-
-          <View style={{ marginTop: spacing.column }}>
-            <Button
-              testID="send-link-button"
-              title={loadingAction === 'magic-link' ? 'Wysyłanie...' : 'Wyślij link'}
-              variant="accent"
-              onPress={() => handleSendMagicLink()}
-              disabled={isLoading}
-              loading={loadingAction === 'magic-link'}
-            />
-          </View>
-
-          <View style={styles.separator}>
-            <View style={styles.separatorLine} />
-            <Text style={styles.separatorText}>lub</Text>
-            <View style={styles.separatorLine} />
-          </View>
+          {Platform.OS === 'ios' && (
+            <Button variant="outline" onPress={() => handleSocialLogin('apple')} disabled={isLoading} loading={loadingAction === 'apple'}>
+              <View style={styles.oauthContent}>
+                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                  <Path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.913 1.183-4.961 3.014-2.117 3.675-.54 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" fill={colors.ink} />
+                </Svg>
+                <Text style={styles.oauthButtonText}>Kontynuuj z Apple</Text>
+              </View>
+            </Button>
+          )}
 
           <Button variant="outline" onPress={() => handleSocialLogin('google')} disabled={isLoading} loading={loadingAction === 'google'}>
             <View style={styles.oauthContent}>
@@ -210,17 +93,6 @@ export default function LoginScreen() {
               <Text style={styles.oauthButtonText}>Kontynuuj z Google</Text>
             </View>
           </Button>
-
-          {Platform.OS === 'ios' && (
-            <Button variant="outline" onPress={() => handleSocialLogin('apple')} disabled={isLoading} loading={loadingAction === 'apple'}>
-              <View style={styles.oauthContent}>
-                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-                  <Path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.913 1.183-4.961 3.014-2.117 3.675-.54 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" fill={colors.ink} />
-                </Svg>
-                <Text style={styles.oauthButtonText}>Kontynuuj z Apple</Text>
-              </View>
-            </Button>
-          )}
 
           <Button variant="outline" onPress={() => handleSocialLogin('facebook')} disabled={isLoading} loading={loadingAction === 'facebook'}>
             <View style={styles.oauthContent}>
@@ -242,23 +114,26 @@ export default function LoginScreen() {
             </View>
           </Button>
 
-          {__DEV__ && (
-            <Pressable
-              onPress={() => handleSendMagicLink(`user${seedUserNumber}@example.com`)}
-              disabled={isLoading}
-              style={styles.devLogin}
-            >
-              <Text style={styles.devLoginText}>
-                Użyj testowego konta user{seedUserNumber}@example.com
-              </Text>
-            </Pressable>
-          )}
+          <View style={styles.separator}>
+            <View style={styles.separatorLine} />
+            <Text style={styles.separatorText}>lub</Text>
+            <View style={styles.separatorLine} />
+          </View>
+
+          <Button variant="outline" onPress={() => router.push('/(auth)/email')} disabled={isLoading}>
+            <View style={styles.oauthContent}>
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                <Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+                <Path d="m22 6-10 7L2 6" stroke={colors.ink} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+              </Svg>
+              <Text style={styles.oauthButtonText}>Kontynuuj z Email</Text>
+            </View>
+          </Button>
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -284,11 +159,6 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: spacing.column,
-  },
-  error: {
-    fontFamily: fonts.sans,
-    color: colors.status.error.text,
-    fontSize: 14,
   },
   separator: {
     flexDirection: 'row',
@@ -317,15 +187,5 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: colors.ink,
-  },
-  devLogin: {
-    alignSelf: 'center',
-    marginTop: spacing.column,
-  },
-  devLoginText: {
-    fontFamily: fonts.sans,
-    fontSize: 13,
-    color: colors.muted,
-    textDecorationLine: 'underline',
   },
 });
