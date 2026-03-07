@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { authClient } from "../../src/lib/auth";
 import { useAuthStore } from "../../src/stores/authStore";
@@ -218,6 +218,17 @@ export default function LoginScreen() {
             </Pressable>
           )}
         </View>
+        <Text style={styles.legalText}>
+          Rejestrując się akceptujesz{" "}
+          <Text style={styles.legalLink} onPress={() => Linking.openURL("https://blisko.app/terms")}>
+            Regulamin
+          </Text>{" "}
+          i{" "}
+          <Text style={styles.legalLink} onPress={() => Linking.openURL("https://blisko.app/privacy")}>
+            Politykę Prywatności
+          </Text>
+          .
+        </Text>
       </View>
     </View>
   );
@@ -284,6 +295,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 13,
     color: colors.muted,
+    textDecorationLine: "underline",
+  },
+  legalText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.muted,
+    textAlign: "center",
+    marginTop: spacing.column,
+    lineHeight: 18,
+  },
+  legalLink: {
+    color: colors.ink,
     textDecorationLine: "underline",
   },
 });
