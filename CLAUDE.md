@@ -305,11 +305,11 @@ Raw `sql` is only acceptable when there's no Drizzle equivalent: Haversine/dista
 **NEVER** import individual tables from `apps/api/src/db/schema.ts` directly. Instead, import the `schema` namespace from `apps/api/src/db/index.ts` and access tables as `schema.profiles`, `schema.user`, `schema.waves`, etc.
 
 ```ts
-// ✅ Correct
+// ✅ Correct — import schema namespace from db/index.ts (relative path varies)
 import { db, schema } from '../../db';
 // then use: schema.profiles, schema.user, schema.waves, etc.
 
-// ❌ Wrong — never do this
+// ❌ Wrong — never import individual tables from db/schema.ts
 import { profiles, user, waves, blocks, ... } from '../../db/schema';
 ```
 
