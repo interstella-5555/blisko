@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Platform,
+  Pressable,
 } from 'react-native';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import Svg, { Path } from 'react-native-svg';
 import { authClient } from '../../src/lib/auth';
 import { useAuthStore } from '../../src/stores/authStore';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Button } from '../../src/components/ui/Button';
 import { useToast } from '../../src/providers/ToastProvider';
@@ -28,6 +32,35 @@ export default function LoginScreen() {
   const { showToast } = useToast();
 
   const isLoading = loadingAction !== null;
+  const seedUserNumber = useMemo(() => Math.floor(Math.random() * 250), []);
+
+  const handleDevLogin = async () => {
+    const email = `user${seedUserNumber}@example.com`;
+    setLoadingAction('dev');
+    try {
+      const response = await fetch(`${API_URL}/dev/auto-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) {
+        showToast({ type: 'error', title: 'Błąd', message: 'Auto-login failed' });
+        setLoadingAction(null);
+        return;
+      }
+      const data = await response.json();
+      await SecureStore.setItemAsync('blisko_session_token', data.session.token);
+      await SecureStore.setItemAsync('blisko_session_data', JSON.stringify({ session: data.session, user: data.user }));
+      setProfile(null);
+      setHasCheckedProfile(false);
+      setUser(data.user);
+      setSession({ ...data.session, expiresAt: new Date(data.session.expiresAt) });
+      router.replace('/(tabs)');
+    } catch {
+      showToast({ type: 'error', title: 'Błąd', message: 'Auto-login failed' });
+    }
+    setLoadingAction(null);
+  };
 
   const handleSocialLogin = async (provider: 'google' | 'apple' | 'facebook' | 'linkedin') => {
     setLoadingAction(provider);
@@ -129,6 +162,18 @@ export default function LoginScreen() {
               <Text style={styles.oauthButtonText}>Kontynuuj z Email</Text>
             </View>
           </Button>
+
+          {__DEV__ && (
+            <Pressable
+              onPress={handleDevLogin}
+              disabled={isLoading}
+              style={styles.devLogin}
+            >
+              <Text style={styles.devLoginText}>
+                Użyj testowego konta user{seedUserNumber}@example.com
+              </Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </View>
@@ -187,5 +232,15 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     color: colors.ink,
+  },
+  devLogin: {
+    alignSelf: 'center',
+    marginTop: spacing.column,
+  },
+  devLoginText: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    color: colors.muted,
+    textDecorationLine: 'underline',
   },
 });

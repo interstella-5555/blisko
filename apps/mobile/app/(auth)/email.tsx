@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
+
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { authClient } from '../../src/lib/auth';
@@ -33,8 +34,6 @@ export default function EmailLoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const { setUser, setSession, setProfile, setHasCheckedProfile } = useAuthStore();
   const { showToast } = useToast();
-
-  const seedUserNumber = useMemo(() => Math.floor(Math.random() * 250), []);
 
   const handleSendMagicLink = async (emailOverride?: string) => {
     const target = (emailOverride || email).trim();
@@ -152,17 +151,9 @@ export default function EmailLoginScreen() {
             loading={isLoading}
           />
 
-          {__DEV__ && (
-            <Pressable
-              onPress={() => handleSendMagicLink(`user${seedUserNumber}@example.com`)}
-              disabled={isLoading}
-              style={styles.devLogin}
-            >
-              <Text style={styles.devLoginText}>
-                Użyj testowego konta user{seedUserNumber}@example.com
-              </Text>
-            </Pressable>
-          )}
+          <Pressable onPress={() => router.back()} style={styles.backLink} hitSlop={8}>
+            <Text style={styles.backLinkText}>Spróbuj innej metody logowania</Text>
+          </Pressable>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -199,11 +190,11 @@ const styles = StyleSheet.create({
     color: colors.status.error.text,
     fontSize: 14,
   },
-  devLogin: {
+  backLink: {
     alignSelf: 'center',
     marginTop: spacing.column,
   },
-  devLoginText: {
+  backLinkText: {
     fontFamily: fonts.sans,
     fontSize: 13,
     color: colors.muted,

@@ -95,6 +95,17 @@ export default function RootLayout() {
                     contentStyle: { backgroundColor: colors.bg },
                   }}
                 />
+                <Stack.Screen
+                  name="filters"
+                  options={{
+                    presentation: 'formSheet',
+                    headerShown: false,
+                    sheetAllowedDetents: 'fitToContents',
+                    sheetGrabberVisible: true,
+                    sheetCornerRadius: 20,
+                    contentStyle: { backgroundColor: colors.bg },
+                  }}
+                />
               </Stack>
             </LinkPreviewContextProvider>
             <NotificationOverlay />

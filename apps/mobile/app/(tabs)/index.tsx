@@ -8,8 +8,6 @@ import {
   Animated,
   Easing,
   Pressable,
-  Modal,
-  Switch,
 } from 'react-native';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useWebSocket } from '../../src/lib/ws';
@@ -63,15 +61,12 @@ export default function NearbyScreen() {
   const [nearbyFilter, setNearbyFilter] = useState<NearbyFilter>('all');
   const { latitude, longitude, permissionStatus, setLocation, setPermissionStatus } =
     useLocationStore();
-  const { nearbyRadiusMeters, loadPreferences } = usePreferencesStore();
+  const { nearbyRadiusMeters, loadPreferences, photoOnly, nearbyOnly } = usePreferencesStore();
 
   const [mapExpanded, setMapExpanded] = useState(true);
   const mapHeight = useRef(new Animated.Value(MAP_EXPANDED_HEIGHT)).current;
   const mapRef = useRef<NearbyMapRef>(null);
 
-  const [photoOnly, setPhotoOnly] = useState(false);
-  const [nearbyOnly, setNearbyOnly] = useState(false);
-  const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [mapRegion, setMapRegion] = useState<Region | null>(null);
   const hasActiveFilters = photoOnly || nearbyOnly;
 
@@ -598,7 +593,7 @@ export default function NearbyScreen() {
         </View>
         <Pressable
           style={[styles.filterFunnel, hasActiveFilters && styles.filterFunnelActive]}
-          onPress={() => setShowFilterSheet(true)}
+          onPress={() => router.push('/filters' as any)}
         >
           <IconSettings size={16} color={hasActiveFilters ? colors.accent : colors.muted} />
           {hasActiveFilters && <View style={styles.filterDot} />}
@@ -652,44 +647,6 @@ export default function NearbyScreen() {
         }
       />
 
-      {/* Filter bottom sheet */}
-      <Modal
-        visible={showFilterSheet}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowFilterSheet(false)}
-      >
-        <Pressable style={styles.sheetOverlay} onPress={() => setShowFilterSheet(false)}>
-          <View style={styles.sheetContent} onStartShouldSetResponder={() => true}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Filtry</Text>
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleInfo}>
-                <Text style={styles.toggleLabel}>Tylko ze zdjęciem</Text>
-                <Text style={styles.toggleDesc}>Pokazuj osoby, które mają zdjęcie profilowe</Text>
-              </View>
-              <Switch
-                value={photoOnly}
-                onValueChange={setPhotoOnly}
-                trackColor={{ false: '#C0BAA8', true: colors.ink }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-            <View style={[styles.toggleRow, styles.toggleRowBorder]}>
-              <View style={styles.toggleInfo}>
-                <Text style={styles.toggleLabel}>Tylko w widocznym obszarze</Text>
-                <Text style={styles.toggleDesc}>Ogranicz wyniki do aktualnego widoku mapy</Text>
-              </View>
-              <Switch
-                value={nearbyOnly}
-                onValueChange={setNearbyOnly}
-                trackColor={{ false: '#C0BAA8', true: colors.ink }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-          </View>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
@@ -860,56 +817,5 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: colors.accent,
-  },
-  sheetOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'flex-end',
-  },
-  sheetContent: {
-    backgroundColor: colors.bg,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingHorizontal: spacing.section,
-    paddingBottom: 40,
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.rule,
-    alignSelf: 'center',
-    marginTop: spacing.gutter,
-    marginBottom: spacing.column,
-  },
-  sheetTitle: {
-    fontFamily: fonts.serif,
-    fontSize: 22,
-    color: colors.ink,
-    marginBottom: spacing.column,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.column,
-  },
-  toggleRowBorder: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.rule,
-  },
-  toggleInfo: {
-    flex: 1,
-    marginRight: spacing.column,
-  },
-  toggleLabel: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 15,
-    color: colors.ink,
-  },
-  toggleDesc: {
-    fontFamily: fonts.sans,
-    fontSize: 12,
-    color: colors.muted,
-    marginTop: 2,
   },
 });

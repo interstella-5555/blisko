@@ -1,0 +1,79 @@
+import { View, Text, StyleSheet, Switch } from 'react-native';
+import { usePreferencesStore } from '../src/stores/preferencesStore';
+import { colors, type as typ, spacing, fonts } from '../src/theme';
+
+export default function FiltersScreen() {
+  const photoOnly = usePreferencesStore((s) => s.photoOnly);
+  const nearbyOnly = usePreferencesStore((s) => s.nearbyOnly);
+  const setPhotoOnly = usePreferencesStore((s) => s.setPhotoOnly);
+  const setNearbyOnly = usePreferencesStore((s) => s.setNearbyOnly);
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Filtry</Text>
+      <View style={styles.toggleRow}>
+        <View style={styles.toggleInfo}>
+          <Text style={styles.toggleLabel}>Tylko ze zdjęciem</Text>
+          <Text style={styles.toggleDesc}>Pokazuj osoby, które mają zdjęcie profilowe</Text>
+        </View>
+        <Switch
+          value={photoOnly}
+          onValueChange={setPhotoOnly}
+          trackColor={{ false: '#C0BAA8', true: colors.ink }}
+          thumbColor="#FFFFFF"
+        />
+      </View>
+      <View style={[styles.toggleRow, styles.toggleRowBorder]}>
+        <View style={styles.toggleInfo}>
+          <Text style={styles.toggleLabel}>Tylko w widocznym obszarze</Text>
+          <Text style={styles.toggleDesc}>Ogranicz wyniki do aktualnego widoku mapy</Text>
+        </View>
+        <Switch
+          value={nearbyOnly}
+          onValueChange={setNearbyOnly}
+          trackColor={{ false: '#C0BAA8', true: colors.ink }}
+          thumbColor="#FFFFFF"
+        />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: spacing.section,
+    paddingTop: spacing.column,
+    paddingBottom: spacing.block,
+  },
+  title: {
+    fontFamily: fonts.serif,
+    fontSize: 18,
+    color: colors.ink,
+    marginBottom: spacing.section,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.gutter,
+  },
+  toggleRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: colors.rule,
+  },
+  toggleInfo: {
+    flex: 1,
+    marginRight: spacing.column,
+  },
+  toggleLabel: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
+    color: colors.ink,
+  },
+  toggleDesc: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+  },
+});
