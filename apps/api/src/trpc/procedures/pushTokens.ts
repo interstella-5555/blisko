@@ -1,27 +1,26 @@
-import { z } from 'zod';
-import { eq, and } from 'drizzle-orm';
-import { router, protectedProcedure } from '../trpc';
-import { db } from '../../db';
-import { pushTokens } from '../../db/schema';
+import { z } from "zod";
+import { eq, and } from "drizzle-orm";
+import { router, protectedProcedure } from "../trpc";
+import { db, schema } from "../../db";
 
 export const pushTokensRouter = router({
   register: protectedProcedure
     .input(
       z.object({
         token: z.string(),
-        platform: z.enum(['ios', 'android']),
-      })
+        platform: z.enum(["ios", "android"]),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       await db
-        .insert(pushTokens)
+        .insert(schema.pushTokens)
         .values({
           userId: ctx.userId,
           token: input.token,
           platform: input.platform,
         })
         .onConflictDoUpdate({
-          target: pushTokens.token,
+          target: schema.pushTokens.token,
           set: { userId: ctx.userId },
         });
     }),
@@ -30,16 +29,11 @@ export const pushTokensRouter = router({
     .input(
       z.object({
         token: z.string(),
-      })
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       await db
-        .delete(pushTokens)
-        .where(
-          and(
-            eq(pushTokens.userId, ctx.userId),
-            eq(pushTokens.token, input.token)
-          )
-        );
+        .delete(schema.pushTokens)
+        .where(and(eq(schema.pushTokens.userId, ctx.userId), eq(schema.pushTokens.token, input.token)));
     }),
 });

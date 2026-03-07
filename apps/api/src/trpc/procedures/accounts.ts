@@ -1,33 +1,32 @@
-import { z } from 'zod';
-import { TRPCError } from '@trpc/server';
-import { eq, and } from 'drizzle-orm';
-import { router, protectedProcedure } from '../trpc';
-import { db } from '../../db';
-import { account, profiles, user, session, pushTokens } from '../../db/schema';
-import { auth } from '../../auth';
-import { enqueueHardDeleteUser } from '../../services/queue';
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { eq, and } from "drizzle-orm";
+import { router, protectedProcedure } from "../trpc";
+import { db, schema } from "../../db";
+import { auth } from "../../auth";
+import { enqueueHardDeleteUser } from "../../services/queue";
 
 export const accountsRouter = router({
   listConnected: protectedProcedure.query(async ({ ctx }) => {
     const accounts = await db
       .select({
-        providerId: account.providerId,
+        providerId: schema.account.providerId,
       })
-      .from(account)
-      .where(eq(account.userId, ctx.userId));
+      .from(schema.account)
+      .where(eq(schema.account.userId, ctx.userId));
 
     const oauthAccounts = accounts.filter(
       (a) =>
-        a.providerId === 'facebook' ||
-        a.providerId === 'linkedin' ||
-        a.providerId === 'google' ||
-        a.providerId === 'apple'
+        a.providerId === "facebook" ||
+        a.providerId === "linkedin" ||
+        a.providerId === "google" ||
+        a.providerId === "apple",
     );
 
     const [profile] = await db
-      .select({ socialLinks: profiles.socialLinks })
-      .from(profiles)
-      .where(eq(profiles.userId, ctx.userId));
+      .select({ socialLinks: schema.profiles.socialLinks })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.userId, ctx.userId));
 
     const socialLinks = (profile?.socialLinks ?? {}) as Record<string, string>;
 
@@ -40,38 +39,30 @@ export const accountsRouter = router({
   disconnect: protectedProcedure
     .input(
       z.object({
-        providerId: z.enum(['facebook', 'linkedin', 'google', 'apple']),
-      })
+        providerId: z.enum(["facebook", "linkedin", "google", "apple"]),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       await db
-        .delete(account)
-        .where(
-          and(
-            eq(account.userId, ctx.userId),
-            eq(account.providerId, input.providerId)
-          )
-        );
+        .delete(schema.account)
+        .where(and(eq(schema.account.userId, ctx.userId), eq(schema.account.providerId, input.providerId)));
 
       const [profile] = await db
-        .select({ socialLinks: profiles.socialLinks })
-        .from(profiles)
-        .where(eq(profiles.userId, ctx.userId));
+        .select({ socialLinks: schema.profiles.socialLinks })
+        .from(schema.profiles)
+        .where(eq(schema.profiles.userId, ctx.userId));
 
       if (profile?.socialLinks) {
-        const links = { ...profile.socialLinks } as Record<
-          string,
-          string | undefined
-        >;
+        const links = { ...profile.socialLinks } as Record<string, string | undefined>;
         delete links[input.providerId];
         const hasAny = Object.values(links).some(Boolean);
         await db
-          .update(profiles)
+          .update(schema.profiles)
           .set({
             socialLinks: hasAny ? links : null,
             updatedAt: new Date(),
           })
-          .where(eq(profiles.userId, ctx.userId));
+          .where(eq(schema.profiles.userId, ctx.userId));
       }
 
       return { ok: true };
@@ -82,12 +73,12 @@ export const accountsRouter = router({
     .mutation(async ({ ctx, input }) => {
       // 1. Get user email for OTP verification
       const [userData] = await db
-        .select({ email: user.email })
-        .from(user)
-        .where(eq(user.id, ctx.userId));
+        .select({ email: schema.user.email })
+        .from(schema.user)
+        .where(eq(schema.user.id, ctx.userId));
 
       if (!userData) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
 
       // 2. Verify OTP
@@ -96,20 +87,17 @@ export const accountsRouter = router({
       });
 
       if (!verified) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid OTP' });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid OTP" });
       }
 
       // 3. Soft delete — set deletedAt
-      await db
-        .update(user)
-        .set({ deletedAt: new Date() })
-        .where(eq(user.id, ctx.userId));
+      await db.update(schema.user).set({ deletedAt: new Date() }).where(eq(schema.user.id, ctx.userId));
 
       // 4. Delete all sessions (logs out everywhere)
-      await db.delete(session).where(eq(session.userId, ctx.userId));
+      await db.delete(schema.session).where(eq(schema.session.userId, ctx.userId));
 
       // 5. Remove push tokens (stop notifications)
-      await db.delete(pushTokens).where(eq(pushTokens.userId, ctx.userId));
+      await db.delete(schema.pushTokens).where(eq(schema.pushTokens.userId, ctx.userId));
 
       // 6. Schedule hard delete in 14 days
       await enqueueHardDeleteUser(ctx.userId);

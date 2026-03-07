@@ -1,8 +1,7 @@
-import { initTRPC, TRPCError } from '@trpc/server';
-import { eq } from 'drizzle-orm';
-import type { TRPCContext } from './context';
-import { db } from '../db';
-import { user } from '../db/schema';
+import { initTRPC, TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import type { TRPCContext } from "./context";
+import { db, schema } from "../db";
 
 const t = initTRPC.context<TRPCContext>().create();
 
@@ -13,21 +12,21 @@ export const publicProcedure = t.procedure;
 const isAuthed = t.middleware(async ({ ctx, next }) => {
   if (!ctx.userId) {
     throw new TRPCError({
-      code: 'UNAUTHORIZED',
-      message: 'You must be logged in to perform this action',
+      code: "UNAUTHORIZED",
+      message: "You must be logged in to perform this action",
     });
   }
 
   // Check if user is soft-deleted
   const [userData] = await db
-    .select({ deletedAt: user.deletedAt })
-    .from(user)
-    .where(eq(user.id, ctx.userId));
+    .select({ deletedAt: schema.user.deletedAt })
+    .from(schema.user)
+    .where(eq(schema.user.id, ctx.userId));
 
   if (userData?.deletedAt) {
     throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'ACCOUNT_DELETED',
+      code: "FORBIDDEN",
+      message: "ACCOUNT_DELETED",
     });
   }
 

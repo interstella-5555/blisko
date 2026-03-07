@@ -1,31 +1,26 @@
-import { z } from 'zod';
-import { eq, and, desc, sql } from 'drizzle-orm';
-import { router, protectedProcedure } from '../trpc';
-import { db } from '../../db';
-import {
-  topics,
-  conversations,
-  conversationParticipants,
-} from '../../db/schema';
-import { createTopicSchema, updateTopicSchema } from '@repo/shared';
-import { TRPCError } from '@trpc/server';
-import { ee } from '../../ws/events';
+import { z } from "zod";
+import { eq, and, desc, sql } from "drizzle-orm";
+import { router, protectedProcedure } from "../trpc";
+import { db, schema } from "../../db";
+import { createTopicSchema, updateTopicSchema } from "@repo/shared";
+import { TRPCError } from "@trpc/server";
+import { ee } from "../../ws/events";
 
 async function requireGroupMember(conversationId: string, userId: string) {
   const [participant] = await db
     .select()
-    .from(conversationParticipants)
+    .from(schema.conversationParticipants)
     .where(
       and(
-        eq(conversationParticipants.conversationId, conversationId),
-        eq(conversationParticipants.userId, userId)
-      )
+        eq(schema.conversationParticipants.conversationId, conversationId),
+        eq(schema.conversationParticipants.userId, userId),
+      ),
     );
 
   if (!participant) {
     throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'You are not a member of this group',
+      code: "FORBIDDEN",
+      message: "You are not a member of this group",
     });
   }
 
@@ -35,10 +30,10 @@ async function requireGroupMember(conversationId: string, userId: string) {
 async function requireAdmin(conversationId: string, userId: string) {
   const participant = await requireGroupMember(conversationId, userId);
 
-  if (participant.role !== 'admin' && participant.role !== 'owner') {
+  if (participant.role !== "admin" && participant.role !== "owner") {
     throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'Only admins can perform this action',
+      code: "FORBIDDEN",
+      message: "Only admins can perform this action",
     });
   }
 
@@ -46,128 +41,105 @@ async function requireAdmin(conversationId: string, userId: string) {
 }
 
 export const topicsRouter = router({
-  create: protectedProcedure
-    .input(createTopicSchema)
-    .mutation(async ({ ctx, input }) => {
-      // Verify this is a group conversation
-      const [conv] = await db
-        .select()
-        .from(conversations)
-        .where(
-          and(
-            eq(conversations.id, input.conversationId),
-            eq(conversations.type, 'group')
-          )
-        );
+  create: protectedProcedure.input(createTopicSchema).mutation(async ({ ctx, input }) => {
+    // Verify this is a group conversation
+    const [conv] = await db
+      .select()
+      .from(schema.conversations)
+      .where(and(eq(schema.conversations.id, input.conversationId), eq(schema.conversations.type, "group")));
 
-      if (!conv) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Group not found',
-        });
-      }
+    if (!conv) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Group not found",
+      });
+    }
 
-      await requireGroupMember(input.conversationId, ctx.userId);
+    await requireGroupMember(input.conversationId, ctx.userId);
 
-      const [topic] = await db
-        .insert(topics)
-        .values({
-          conversationId: input.conversationId,
-          name: input.name,
-          emoji: input.emoji ?? null,
-          creatorId: ctx.userId,
-        })
-        .returning();
-
-      ee.emit('topicEvent', {
+    const [topic] = await db
+      .insert(schema.topics)
+      .values({
         conversationId: input.conversationId,
-        topic: { id: topic.id, name: topic.name, emoji: topic.emoji },
-        action: 'created',
+        name: input.name,
+        emoji: input.emoji ?? null,
+        creatorId: ctx.userId,
+      })
+      .returning();
+
+    ee.emit("topicEvent", {
+      conversationId: input.conversationId,
+      topic: { id: topic.id, name: topic.name, emoji: topic.emoji },
+      action: "created",
+    });
+
+    return topic;
+  }),
+
+  update: protectedProcedure.input(updateTopicSchema).mutation(async ({ ctx, input }) => {
+    const [topic] = await db.select().from(schema.topics).where(eq(schema.topics.id, input.topicId));
+
+    if (!topic) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Topic not found",
       });
+    }
 
-      return topic;
-    }),
+    await requireAdmin(topic.conversationId, ctx.userId);
 
-  update: protectedProcedure
-    .input(updateTopicSchema)
-    .mutation(async ({ ctx, input }) => {
-      const [topic] = await db
-        .select()
-        .from(topics)
-        .where(eq(topics.id, input.topicId));
+    const { topicId, ...updates } = input;
+    const setValues: Record<string, unknown> = {};
+    if (updates.name !== undefined) setValues.name = updates.name;
+    if (updates.emoji !== undefined) setValues.emoji = updates.emoji;
+    if (updates.isPinned !== undefined) setValues.isPinned = updates.isPinned;
+    if (updates.isClosed !== undefined) setValues.isClosed = updates.isClosed;
 
-      if (!topic) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Topic not found',
-        });
-      }
+    const [updated] = await db.update(schema.topics).set(setValues).where(eq(schema.topics.id, topicId)).returning();
 
-      await requireAdmin(topic.conversationId, ctx.userId);
+    ee.emit("topicEvent", {
+      conversationId: topic.conversationId,
+      topic: { id: updated.id, name: updated.name, emoji: updated.emoji },
+      action: updates.isClosed ? "closed" : "updated",
+    });
 
-      const { topicId, ...updates } = input;
-      const setValues: Record<string, unknown> = {};
-      if (updates.name !== undefined) setValues.name = updates.name;
-      if (updates.emoji !== undefined) setValues.emoji = updates.emoji;
-      if (updates.isPinned !== undefined) setValues.isPinned = updates.isPinned;
-      if (updates.isClosed !== undefined) setValues.isClosed = updates.isClosed;
+    return updated;
+  }),
 
-      const [updated] = await db
-        .update(topics)
-        .set(setValues)
-        .where(eq(topics.id, topicId))
-        .returning();
+  delete: protectedProcedure.input(z.object({ topicId: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    const [topic] = await db.select().from(schema.topics).where(eq(schema.topics.id, input.topicId));
 
-      ee.emit('topicEvent', {
-        conversationId: topic.conversationId,
-        topic: { id: updated.id, name: updated.name, emoji: updated.emoji },
-        action: updates.isClosed ? 'closed' : 'updated',
+    if (!topic) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Topic not found",
       });
+    }
 
-      return updated;
-    }),
+    await requireAdmin(topic.conversationId, ctx.userId);
 
-  delete: protectedProcedure
-    .input(z.object({ topicId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const [topic] = await db
-        .select()
-        .from(topics)
-        .where(eq(topics.id, input.topicId));
+    await db.delete(schema.topics).where(eq(schema.topics.id, input.topicId));
 
-      if (!topic) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Topic not found',
-        });
-      }
+    ee.emit("topicEvent", {
+      conversationId: topic.conversationId,
+      topic: { id: topic.id, name: topic.name, emoji: topic.emoji },
+      action: "deleted",
+    });
 
-      await requireAdmin(topic.conversationId, ctx.userId);
+    return { success: true };
+  }),
 
-      await db.delete(topics).where(eq(topics.id, input.topicId));
+  list: protectedProcedure.input(z.object({ conversationId: z.string().uuid() })).query(async ({ ctx, input }) => {
+    await requireGroupMember(input.conversationId, ctx.userId);
 
-      ee.emit('topicEvent', {
-        conversationId: topic.conversationId,
-        topic: { id: topic.id, name: topic.name, emoji: topic.emoji },
-        action: 'deleted',
-      });
+    const result = await db
+      .select()
+      .from(schema.topics)
+      .where(eq(schema.topics.conversationId, input.conversationId))
+      .orderBy(
+        sql`${schema.topics.isPinned} DESC, ${schema.topics.sortOrder} ASC, ${schema.topics.lastMessageAt} DESC NULLS LAST`,
+      );
 
-      return { success: true };
-    }),
-
-  list: protectedProcedure
-    .input(z.object({ conversationId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      await requireGroupMember(input.conversationId, ctx.userId);
-
-      const result = await db
-        .select()
-        .from(topics)
-        .where(eq(topics.conversationId, input.conversationId))
-        .orderBy(
-          sql`${topics.isPinned} DESC, ${topics.sortOrder} ASC, ${topics.lastMessageAt} DESC NULLS LAST`
-        );
-
-      return result;
-    }),
+    return result;
+  }),
 });

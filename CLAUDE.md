@@ -300,12 +300,27 @@ Always prefer Drizzle's built-in filter functions over raw `sql`\`...\``. Use `b
 
 Raw `sql` is only acceptable when there's no Drizzle equivalent: Haversine/distance formulas, `CASE WHEN`, `NULLS LAST` ordering, `TRUNCATE`, column arithmetic in `.set()`, or computed column aliases in `ORDER BY`.
 
+## Schema imports
+
+**NEVER** import individual tables from `apps/api/src/db/schema.ts` directly. Instead, import the `schema` namespace from `apps/api/src/db/index.ts` and access tables as `schema.profiles`, `schema.user`, `schema.waves`, etc.
+
+```ts
+// ✅ Correct
+import { db, schema } from '../../db';
+// then use: schema.profiles, schema.user, schema.waves, etc.
+
+// ❌ Wrong — never do this
+import { profiles, user, waves, blocks, ... } from '../../db/schema';
+```
+
+The only exception is `apps/api/src/db/index.ts` itself, which must import from `schema.ts` to set up Drizzle.
+
 ## Soft-deleted users (GDPR)
 
 The `user` table has a `deletedAt` column. Soft-deleted users (`deletedAt IS NOT NULL`) must be **invisible everywhere**:
 
 - **Any query that returns user/profile data to other users** must filter out soft-deleted users
-- Standard pattern: `sql\`\${profiles.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)\`` in the WHERE clause
+- Standard pattern: `notInArray(schema.profiles.userId, db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)))` in the WHERE clause
 - This applies to: nearby queries, waves, conversations, group members, status matching, discoverable groups — any place another user's profile is shown
 - **When adding new tables or queries that reference users:** always check if soft-deleted users should be filtered
 - The tRPC `isAuthed` middleware already blocks soft-deleted users from making API calls (throws `FORBIDDEN` / `ACCOUNT_DELETED`)

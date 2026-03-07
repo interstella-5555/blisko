@@ -1,9 +1,24 @@
-import type { ServerWebSocket } from 'bun';
-import { eq, and, gt } from 'drizzle-orm';
-import { db } from '../db';
-import { session as sessionTable, conversationParticipants } from '../db/schema';
-import { ee } from './events';
-import type { NewMessageEvent, TypingEvent, ReactionEvent, NewWaveEvent, WaveRespondedEvent, AnalysisReadyEvent, NearbyChangedEvent, ProfileReadyEvent, QuestionReadyEvent, ProfilingCompleteEvent, StatusMatchesReadyEvent, GroupMemberEvent, GroupUpdatedEvent, TopicEvent, GroupInvitedEvent } from './events';
+import type { ServerWebSocket } from "bun";
+import { eq, and, gt } from "drizzle-orm";
+import { db, schema } from "../db";
+import { ee } from "./events";
+import type {
+  NewMessageEvent,
+  TypingEvent,
+  ReactionEvent,
+  NewWaveEvent,
+  WaveRespondedEvent,
+  AnalysisReadyEvent,
+  NearbyChangedEvent,
+  ProfileReadyEvent,
+  QuestionReadyEvent,
+  ProfilingCompleteEvent,
+  StatusMatchesReadyEvent,
+  GroupMemberEvent,
+  GroupUpdatedEvent,
+  TopicEvent,
+  GroupInvitedEvent,
+} from "./events";
 
 export interface WSData {
   userId: string | null;
@@ -17,13 +32,8 @@ async function authenticateToken(token: string): Promise<string | null> {
   try {
     const [session] = await db
       .select()
-      .from(sessionTable)
-      .where(
-        and(
-          eq(sessionTable.token, token),
-          gt(sessionTable.expiresAt, new Date())
-        )
-      )
+      .from(schema.session)
+      .where(and(eq(schema.session.token, token), gt(schema.session.expiresAt, new Date())))
       .limit(1);
     return session?.userId ?? null;
   } catch {
@@ -33,9 +43,9 @@ async function authenticateToken(token: string): Promise<string | null> {
 
 async function getUserConversations(userId: string): Promise<string[]> {
   const rows = await db
-    .select({ conversationId: conversationParticipants.conversationId })
-    .from(conversationParticipants)
-    .where(eq(conversationParticipants.userId, userId));
+    .select({ conversationId: schema.conversationParticipants.conversationId })
+    .from(schema.conversationParticipants)
+    .where(eq(schema.conversationParticipants.userId, userId));
   return rows.map((r) => r.conversationId);
 }
 
@@ -46,10 +56,10 @@ export const wsHandler = {
 
   async message(ws: ServerWebSocket<WSData>, message: string | Buffer) {
     try {
-      const data = JSON.parse(typeof message === 'string' ? message : message.toString());
+      const data = JSON.parse(typeof message === "string" ? message : message.toString());
 
       // Auth message: { type: 'auth', token: '...' }
-      if (data.type === 'auth' && data.token) {
+      if (data.type === "auth" && data.token) {
         const userId = await authenticateToken(data.token);
         if (userId) {
           ws.data.userId = userId;
@@ -58,15 +68,15 @@ export const wsHandler = {
           const convIds = await getUserConversations(userId);
           ws.data.subscriptions = new Set(convIds);
 
-          ws.send(JSON.stringify({ type: 'auth', status: 'ok', conversationIds: convIds }));
+          ws.send(JSON.stringify({ type: "auth", status: "ok", conversationIds: convIds }));
         } else {
-          ws.send(JSON.stringify({ type: 'auth', status: 'error', message: 'Invalid token' }));
+          ws.send(JSON.stringify({ type: "auth", status: "error", message: "Invalid token" }));
         }
         return;
       }
 
       // Typing indicator: { type: 'typing', conversationId: '...', isTyping: true/false }
-      if (data.type === 'typing' && ws.data.userId && data.conversationId) {
+      if (data.type === "typing" && ws.data.userId && data.conversationId) {
         ee.emit(`typing:${data.conversationId}`, {
           conversationId: data.conversationId,
           userId: ws.data.userId,
@@ -76,7 +86,7 @@ export const wsHandler = {
       }
 
       // Subscribe to a specific conversation
-      if (data.type === 'subscribe' && data.conversationId) {
+      if (data.type === "subscribe" && data.conversationId) {
         ws.data.subscriptions.add(data.conversationId);
         return;
       }
@@ -119,31 +129,31 @@ function broadcastToConversation(conversationId: string, payload: unknown) {
 }
 
 // Listen for events from tRPC mutations
-ee.on('newMessage', (event: NewMessageEvent) => {
+ee.on("newMessage", (event: NewMessageEvent) => {
   broadcastToConversation(event.conversationId, {
-    type: 'newMessage',
+    type: "newMessage",
     ...event,
   });
 });
 
-ee.on('reaction', (event: ReactionEvent) => {
+ee.on("reaction", (event: ReactionEvent) => {
   broadcastToConversation(event.conversationId, {
-    type: 'reaction',
+    type: "reaction",
     ...event,
   });
 });
 
-ee.on('newWave', (event: NewWaveEvent) => {
+ee.on("newWave", (event: NewWaveEvent) => {
   broadcastToUser(event.toUserId, {
-    type: 'newWave',
+    type: "newWave",
     wave: event.wave,
     fromProfile: event.fromProfile,
   });
 });
 
-ee.on('waveResponded', (event: WaveRespondedEvent) => {
+ee.on("waveResponded", (event: WaveRespondedEvent) => {
   broadcastToUser(event.fromUserId, {
-    type: 'waveResponded',
+    type: "waveResponded",
     waveId: event.waveId,
     accepted: event.accepted,
     conversationId: event.conversationId,
@@ -151,73 +161,73 @@ ee.on('waveResponded', (event: WaveRespondedEvent) => {
   });
 });
 
-ee.on('analysisReady', (event: AnalysisReadyEvent) => {
+ee.on("analysisReady", (event: AnalysisReadyEvent) => {
   broadcastToUser(event.forUserId, {
-    type: 'analysisReady',
+    type: "analysisReady",
     aboutUserId: event.aboutUserId,
     shortSnippet: event.shortSnippet,
   });
 });
 
-ee.on('nearbyChanged', (event: NearbyChangedEvent) => {
-  broadcastToUser(event.forUserId, { type: 'nearbyChanged' });
+ee.on("nearbyChanged", (event: NearbyChangedEvent) => {
+  broadcastToUser(event.forUserId, { type: "nearbyChanged" });
 });
 
-ee.on('profileReady', (event: ProfileReadyEvent) => {
-  broadcastToUser(event.userId, { type: 'profileReady' });
+ee.on("profileReady", (event: ProfileReadyEvent) => {
+  broadcastToUser(event.userId, { type: "profileReady" });
 });
 
-ee.on('statusMatchesReady', (event: StatusMatchesReadyEvent) => {
-  broadcastToUser(event.userId, { type: 'statusMatchesReady' });
+ee.on("statusMatchesReady", (event: StatusMatchesReadyEvent) => {
+  broadcastToUser(event.userId, { type: "statusMatchesReady" });
 });
 
-ee.on('questionReady', (event: QuestionReadyEvent) => {
+ee.on("questionReady", (event: QuestionReadyEvent) => {
   broadcastToUser(event.userId, {
-    type: 'questionReady',
+    type: "questionReady",
     sessionId: event.sessionId,
     questionNumber: event.questionNumber,
   });
 });
 
-ee.on('profilingComplete', (event: ProfilingCompleteEvent) => {
+ee.on("profilingComplete", (event: ProfilingCompleteEvent) => {
   broadcastToUser(event.userId, {
-    type: 'profilingComplete',
+    type: "profilingComplete",
     sessionId: event.sessionId,
   });
 });
 
 // Group events
-ee.on('groupMember', (event: GroupMemberEvent) => {
+ee.on("groupMember", (event: GroupMemberEvent) => {
   broadcastToConversation(event.conversationId, {
-    type: 'groupMember',
+    type: "groupMember",
     ...event,
   });
 });
 
-ee.on('groupUpdated', (event: GroupUpdatedEvent) => {
+ee.on("groupUpdated", (event: GroupUpdatedEvent) => {
   broadcastToConversation(event.conversationId, {
-    type: 'groupUpdated',
+    type: "groupUpdated",
     ...event,
   });
 });
 
-ee.on('topicEvent', (event: TopicEvent) => {
+ee.on("topicEvent", (event: TopicEvent) => {
   broadcastToConversation(event.conversationId, {
-    type: 'topicEvent',
+    type: "topicEvent",
     ...event,
   });
 });
 
-ee.on('groupInvited', (event: GroupInvitedEvent) => {
+ee.on("groupInvited", (event: GroupInvitedEvent) => {
   broadcastToUser(event.userId, {
-    type: 'groupInvited',
+    type: "groupInvited",
     conversationId: event.conversationId,
     groupName: event.groupName,
   });
 });
 
 // Forward per-conversation typing events
-ee.on('typing', (event: TypingEvent) => {
+ee.on("typing", (event: TypingEvent) => {
   // Use a wildcard pattern — typing events come as typing:<id>
 });
 
@@ -230,7 +240,7 @@ export function ensureTypingListener(conversationId: string) {
 
   ee.on(`typing:${conversationId}`, (event: TypingEvent) => {
     broadcastToConversation(conversationId, {
-      type: 'typing',
+      type: "typing",
       ...event,
     });
   });

@@ -1,57 +1,46 @@
-import { betterAuth } from 'better-auth';
-import { emailOTP } from 'better-auth/plugins';
-import { expo } from '@better-auth/expo';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { eq } from 'drizzle-orm';
-import { Resend } from 'resend';
-import { db } from './db';
-import { profiles } from './db/schema';
+import { betterAuth } from "better-auth";
+import { emailOTP } from "better-auth/plugins";
+import { expo } from "@better-auth/expo";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { eq } from "drizzle-orm";
+import { Resend } from "resend";
+import { db, schema } from "./db";
 
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null;
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
-    provider: 'pg',
+    provider: "pg",
   }),
   account: {
     accountLinking: {
       enabled: true,
-      trustedProviders: ['apple', 'google', 'facebook', 'linkedin'],
+      trustedProviders: ["apple", "google", "facebook", "linkedin"],
       allowDifferentEmails: true,
       updateUserInfoOnLink: true,
     },
   },
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
-  trustedOrigins: [
-    'blisko://',
-    'exp://',
-    'http://localhost:8081',
-    'http://localhost:19000',
-    'http://localhost:19006',
-  ],
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  trustedOrigins: ["blisko://", "exp://", "http://localhost:8081", "http://localhost:19000", "http://localhost:19006"],
   databaseHooks: {
     account: {
       create: {
         after: async (account) => {
           const { providerId, accessToken, userId } = account;
-          if (!accessToken || (providerId !== 'facebook' && providerId !== 'linkedin')) return;
+          if (!accessToken || (providerId !== "facebook" && providerId !== "linkedin")) return;
 
           let username: string | null = null;
 
           try {
-            if (providerId === 'facebook') {
-              const res = await fetch(
-                `https://graph.facebook.com/me?fields=name&access_token=${accessToken}`
-              );
+            if (providerId === "facebook") {
+              const res = await fetch(`https://graph.facebook.com/me?fields=name&access_token=${accessToken}`);
               if (res.ok) {
                 const data = await res.json();
                 username = data.name ?? null;
               }
-            } else if (providerId === 'linkedin') {
-              const res = await fetch('https://api.linkedin.com/v2/userinfo', {
+            } else if (providerId === "linkedin") {
+              const res = await fetch("https://api.linkedin.com/v2/userinfo", {
                 headers: { Authorization: `Bearer ${accessToken}` },
               });
               if (res.ok) {
@@ -65,15 +54,15 @@ export const auth = betterAuth({
 
           if (username) {
             const [profile] = await db
-              .select({ socialLinks: profiles.socialLinks })
-              .from(profiles)
-              .where(eq(profiles.userId, userId));
+              .select({ socialLinks: schema.profiles.socialLinks })
+              .from(schema.profiles)
+              .where(eq(schema.profiles.userId, userId));
             if (profile) {
               const links = { ...(profile.socialLinks ?? {}), [providerId]: username };
               await db
-                .update(profiles)
+                .update(schema.profiles)
                 .set({ socialLinks: links, updatedAt: new Date() })
-                .where(eq(profiles.userId, userId));
+                .where(eq(schema.profiles.userId, userId));
             }
           }
         },
@@ -110,7 +99,7 @@ export const auth = betterAuth({
       // causing OAuth state mismatch. Use "none" + secure to fix.
       state: {
         attributes: {
-          sameSite: 'none' as const,
+          sameSite: "none" as const,
           secure: true,
         },
       },
@@ -120,18 +109,18 @@ export const auth = betterAuth({
     expo(),
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
-        if (type !== 'sign-in' && type !== 'change-email') return;
+        if (type !== "sign-in" && type !== "change-email") return;
 
         console.log(`OTP for ${email}: ${otp}`);
 
-        if (type === 'sign-in') {
+        if (type === "sign-in") {
           const deepLink = `blisko://auth/verify?otp=${otp}&email=${encodeURIComponent(email)}`;
           console.log(`Deep link: ${deepLink}`);
 
           if (resend) {
             try {
               const result = await resend.emails.send({
-                from: process.env.EMAIL_FROM || 'Blisko <noreply@blisko.app>',
+                from: process.env.EMAIL_FROM || "Blisko <noreply@blisko.app>",
                 to: email,
                 subject: `${otp} - Twój kod do Blisko`,
                 html: `
@@ -155,18 +144,18 @@ export const auth = betterAuth({
                   </div>
                 `,
               });
-              console.log('Email sent:', result);
+              console.log("Email sent:", result);
             } catch (err) {
-              console.error('Failed to send email:', err);
+              console.error("Failed to send email:", err);
             }
           } else {
-            console.log('Resend not configured - email not sent');
+            console.log("Resend not configured - email not sent");
           }
-        } else if (type === 'change-email') {
+        } else if (type === "change-email") {
           if (resend) {
             try {
               await resend.emails.send({
-                from: process.env.EMAIL_FROM || 'Blisko <noreply@blisko.app>',
+                from: process.env.EMAIL_FROM || "Blisko <noreply@blisko.app>",
                 to: email,
                 subject: `${otp} - Zmiana adresu email w Blisko`,
                 html: `
@@ -184,10 +173,10 @@ export const auth = betterAuth({
                 `,
               });
             } catch (err) {
-              console.error('Failed to send change-email OTP:', err);
+              console.error("Failed to send change-email OTP:", err);
             }
           } else {
-            console.log('Resend not configured - email not sent');
+            console.log("Resend not configured - email not sent");
           }
         }
       },
@@ -201,7 +190,7 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       displayName: {
-        type: 'string',
+        type: "string",
         required: false,
       },
     },

@@ -1,8 +1,7 @@
-import Expo, { type ExpoPushMessage, type ExpoPushTicket } from 'expo-server-sdk';
-import { eq } from 'drizzle-orm';
-import { db } from '../db';
-import { pushTokens } from '../db/schema';
-import { clients } from '../ws/handler';
+import Expo, { type ExpoPushMessage, type ExpoPushTicket } from "expo-server-sdk";
+import { eq } from "drizzle-orm";
+import { db, schema } from "../db";
+import { clients } from "../ws/handler";
 
 const expo = new Expo();
 
@@ -22,9 +21,9 @@ export async function sendPushToUser(
     if (isUserConnected(userId)) return;
 
     const tokens = await db
-      .select({ id: pushTokens.id, token: pushTokens.token })
-      .from(pushTokens)
-      .where(eq(pushTokens.userId, userId));
+      .select({ id: schema.pushTokens.id, token: schema.pushTokens.token })
+      .from(schema.pushTokens)
+      .where(eq(schema.pushTokens.userId, userId));
 
     if (tokens.length === 0) return;
 
@@ -32,7 +31,7 @@ export async function sendPushToUser(
       .filter((t) => Expo.isExpoPushToken(t.token))
       .map((t) => ({
         to: t.token,
-        sound: 'default' as const,
+        sound: "default" as const,
         title: payload.title,
         body: payload.body,
         data: payload.data,
@@ -48,15 +47,15 @@ export async function sendPushToUser(
       // Clean up invalid tokens
       for (let i = 0; i < tickets.length; i++) {
         const ticket = tickets[i];
-        if (ticket.status === 'error' && ticket.details?.error === 'DeviceNotRegistered') {
+        if (ticket.status === "error" && ticket.details?.error === "DeviceNotRegistered") {
           const invalidToken = tokens[i];
           if (invalidToken) {
-            await db.delete(pushTokens).where(eq(pushTokens.id, invalidToken.id));
+            await db.delete(schema.pushTokens).where(eq(schema.pushTokens.id, invalidToken.id));
           }
         }
       }
     }
   } catch (err) {
-    console.error('Push send error:', err);
+    console.error("Push send error:", err);
   }
 }

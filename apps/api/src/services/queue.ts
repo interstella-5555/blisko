@@ -1,19 +1,12 @@
-import { Queue, Worker, type Job } from 'bullmq';
-import { createHash } from 'crypto';
-import { eq, and, ne, gte, lte, isNotNull, or, sql } from 'drizzle-orm';
-import { RedisClient } from 'bun';
-import { cosineSimilarity } from '@repo/shared';
-import { db } from '../db';
-import { user, profiles, connectionAnalyses, blocks, profilingSessions, profilingQA, statusMatches, session, account, waves, conversations, conversationParticipants, topics, messages, messageReactions, pushTokens } from '../db/schema';
-import {
-  analyzeConnection,
-  generatePortrait,
-  generateEmbedding,
-  extractInterests,
-  evaluateStatusMatch,
-} from './ai';
-import { generateNextQuestion, generateProfileFromQA } from './profiling-ai';
-import { ee } from '../ws/events';
+import { Queue, Worker, type Job } from "bullmq";
+import { createHash } from "crypto";
+import { eq, and, ne, gte, lte, isNotNull, or, sql, between, notInArray } from "drizzle-orm";
+import { RedisClient } from "bun";
+import { cosineSimilarity } from "@repo/shared";
+import { db, schema } from "../db";
+import { analyzeConnection, generatePortrait, generateEmbedding, extractInterests, evaluateStatusMatch } from "./ai";
+import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
+import { ee } from "../ws/events";
 
 function getConnectionConfig() {
   const url = new URL(process.env.REDIS_URL!);
@@ -38,7 +31,7 @@ function getRedisPub(): RedisClient | null {
 // --- Job types ---
 
 interface AnalyzePairJob {
-  type: 'analyze-pair';
+  type: "analyze-pair";
   userAId: string;
   userBId: string;
   nameA?: string;
@@ -46,7 +39,7 @@ interface AnalyzePairJob {
 }
 
 interface AnalyzeUserPairsJob {
-  type: 'analyze-user-pairs';
+  type: "analyze-user-pairs";
   userId: string;
   latitude: number;
   longitude: number;
@@ -54,14 +47,14 @@ interface AnalyzeUserPairsJob {
 }
 
 interface GenerateProfileAIJob {
-  type: 'generate-profile-ai';
+  type: "generate-profile-ai";
   userId: string;
   bio: string;
   lookingFor: string;
 }
 
 interface GenerateProfilingQuestionJob {
-  type: 'generate-profiling-question';
+  type: "generate-profiling-question";
   sessionId: string;
   userId: string;
   displayName: string;
@@ -72,7 +65,7 @@ interface GenerateProfilingQuestionJob {
 }
 
 interface GenerateProfileFromQAJob {
-  type: 'generate-profile-from-qa';
+  type: "generate-profile-from-qa";
   sessionId: string;
   userId: string;
   displayName: string;
@@ -81,12 +74,12 @@ interface GenerateProfileFromQAJob {
 }
 
 interface StatusMatchingJob {
-  type: 'status-matching';
+  type: "status-matching";
   userId: string;
 }
 
 interface HardDeleteUserJob {
-  type: 'hard-delete-user';
+  type: "hard-delete-user";
   userId: string;
 }
 
@@ -105,13 +98,13 @@ let _queue: Queue | null = null;
 
 function getQueue(): Queue {
   if (!_queue) {
-    _queue = new Queue('ai-jobs', {
+    _queue = new Queue("ai-jobs", {
       connection: getConnectionConfig(),
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: { count: 100 },
         attempts: 3,
-        backoff: { type: 'exponential', delay: 5000 },
+        backoff: { type: "exponential", delay: 5000 },
       },
     });
   }
@@ -121,10 +114,7 @@ function getQueue(): Queue {
 // --- Helpers ---
 
 function profileHash(bio: string, lookingFor: string): string {
-  return createHash('sha256')
-    .update(`${bio}|${lookingFor}`)
-    .digest('hex')
-    .slice(0, 8);
+  return createHash("sha256").update(`${bio}|${lookingFor}`).digest("hex").slice(0, 8);
 }
 
 // --- Connection analysis processors (unchanged) ---
@@ -133,20 +123,16 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
   const t0 = performance.now();
 
   // --- db-fetch phase ---
-  const [profileA] = await db
-    .select()
-    .from(profiles)
-    .where(eq(profiles.userId, userAId));
-  const [profileB] = await db
-    .select()
-    .from(profiles)
-    .where(eq(profiles.userId, userBId));
+  const [profileA] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, userAId));
+  const [profileB] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, userBId));
 
   const nameA = job.data.nameA ?? profileA?.displayName ?? userAId.slice(0, 8);
   const nameB = job.data.nameB ?? profileB?.displayName ?? userBId.slice(0, 8);
 
   if (!profileA?.portrait || !profileB?.portrait) {
-    console.log(`[queue] analyze-pair skip (no profile) | db-fetch: ${(performance.now() - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB}`);
+    console.log(
+      `[queue] analyze-pair skip (no profile) | db-fetch: ${(performance.now() - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB}`,
+    );
     return;
   }
 
@@ -155,22 +141,15 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
 
   const [existingAB] = await db
     .select()
-    .from(connectionAnalyses)
-    .where(
-      and(
-        eq(connectionAnalyses.fromUserId, userAId),
-        eq(connectionAnalyses.toUserId, userBId)
-      )
-    );
+    .from(schema.connectionAnalyses)
+    .where(and(eq(schema.connectionAnalyses.fromUserId, userAId), eq(schema.connectionAnalyses.toUserId, userBId)));
 
   const tFetch = performance.now();
 
-  if (
-    existingAB &&
-    existingAB.fromProfileHash === hashA &&
-    existingAB.toProfileHash === hashB
-  ) {
-    console.log(`[queue] analyze-pair done | db-fetch: ${(tFetch - t0).toFixed(0)}ms | total: ${(tFetch - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB} | skipped: true`);
+  if (existingAB && existingAB.fromProfileHash === hashA && existingAB.toProfileHash === hashB) {
+    console.log(
+      `[queue] analyze-pair done | db-fetch: ${(tFetch - t0).toFixed(0)}ms | total: ${(tFetch - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB} | skipped: true`,
+    );
     return;
   }
 
@@ -186,7 +165,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       portrait: profileB.portrait,
       displayName: profileB.displayName,
       lookingFor: profileB.lookingFor,
-    }
+    },
   );
   const tAi = performance.now();
 
@@ -196,7 +175,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
 
   if (existingAB) {
     await db
-      .update(connectionAnalyses)
+      .update(schema.connectionAnalyses)
       .set({
         shortSnippet: result.snippetForA,
         longDescription: result.descriptionForA,
@@ -205,9 +184,9 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
         toProfileHash: hashB,
         updatedAt: now,
       })
-      .where(eq(connectionAnalyses.id, existingAB.id));
+      .where(eq(schema.connectionAnalyses.id, existingAB.id));
   } else {
-    await db.insert(connectionAnalyses).values({
+    await db.insert(schema.connectionAnalyses).values({
       fromUserId: userAId,
       toUserId: userBId,
       shortSnippet: result.snippetForA,
@@ -220,30 +199,28 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
     });
   }
 
-  ee.emit('analysisReady', {
+  ee.emit("analysisReady", {
     forUserId: userAId,
     aboutUserId: userBId,
     shortSnippet: result.snippetForA,
   });
 
-  getRedisPub()?.publish('analysis:ready', JSON.stringify({
-    forUserId: userAId,
-    aboutUserId: userBId,
-  }));
+  getRedisPub()?.publish(
+    "analysis:ready",
+    JSON.stringify({
+      forUserId: userAId,
+      aboutUserId: userBId,
+    }),
+  );
 
   const [existingBA] = await db
     .select()
-    .from(connectionAnalyses)
-    .where(
-      and(
-        eq(connectionAnalyses.fromUserId, userBId),
-        eq(connectionAnalyses.toUserId, userAId)
-      )
-    );
+    .from(schema.connectionAnalyses)
+    .where(and(eq(schema.connectionAnalyses.fromUserId, userBId), eq(schema.connectionAnalyses.toUserId, userAId)));
 
   if (existingBA) {
     await db
-      .update(connectionAnalyses)
+      .update(schema.connectionAnalyses)
       .set({
         shortSnippet: result.snippetForB,
         longDescription: result.descriptionForB,
@@ -252,9 +229,9 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
         toProfileHash: hashA,
         updatedAt: now,
       })
-      .where(eq(connectionAnalyses.id, existingBA.id));
+      .where(eq(schema.connectionAnalyses.id, existingBA.id));
   } else {
-    await db.insert(connectionAnalyses).values({
+    await db.insert(schema.connectionAnalyses).values({
       fromUserId: userBId,
       toUserId: userAId,
       shortSnippet: result.snippetForB,
@@ -267,33 +244,32 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
     });
   }
 
-  ee.emit('analysisReady', {
+  ee.emit("analysisReady", {
     forUserId: userBId,
     aboutUserId: userAId,
     shortSnippet: result.snippetForB,
   });
 
-  getRedisPub()?.publish('analysis:ready', JSON.stringify({
-    forUserId: userBId,
-    aboutUserId: userAId,
-  }));
+  getRedisPub()?.publish(
+    "analysis:ready",
+    JSON.stringify({
+      forUserId: userBId,
+      aboutUserId: userAId,
+    }),
+  );
 
   const tWrite = performance.now();
 
-  console.log(`[queue] analyze-pair done | db-fetch: ${(tFetch - t0).toFixed(0)}ms | ai: ${(tAi - tAi0).toFixed(0)}ms | db-write: ${(tWrite - tWrite0).toFixed(0)}ms | total: ${(tWrite - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB} | skipped: false`);
+  console.log(
+    `[queue] analyze-pair done | db-fetch: ${(tFetch - t0).toFixed(0)}ms | ai: ${(tAi - tAi0).toFixed(0)}ms | db-write: ${(tWrite - tWrite0).toFixed(0)}ms | total: ${(tWrite - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB} | skipped: false`,
+  );
 }
 
-async function processAnalyzeUserPairs(
-  userId: string,
-  latitude: number,
-  longitude: number,
-  radiusMeters: number
-) {
+async function processAnalyzeUserPairs(userId: string, latitude: number, longitude: number, radiusMeters: number) {
   const queue = getQueue();
 
   const latDelta = radiusMeters / 111000;
-  const lonDelta =
-    radiusMeters / (111000 * Math.cos((latitude * Math.PI) / 180));
+  const lonDelta = radiusMeters / (111000 * Math.cos((latitude * Math.PI) / 180));
 
   const minLat = latitude - latDelta;
   const maxLat = latitude + latDelta;
@@ -301,30 +277,21 @@ async function processAnalyzeUserPairs(
   const maxLon = longitude + lonDelta;
 
   const [blockedUsers, blockedByUsers] = await Promise.all([
-    db
-      .select({ blockedId: blocks.blockedId })
-      .from(blocks)
-      .where(eq(blocks.blockerId, userId)),
-    db
-      .select({ blockerId: blocks.blockerId })
-      .from(blocks)
-      .where(eq(blocks.blockedId, userId)),
+    db.select({ blockedId: schema.blocks.blockedId }).from(schema.blocks).where(eq(schema.blocks.blockerId, userId)),
+    db.select({ blockerId: schema.blocks.blockerId }).from(schema.blocks).where(eq(schema.blocks.blockedId, userId)),
   ]);
 
-  const allBlockedIds = new Set([
-    ...blockedUsers.map((b) => b.blockedId),
-    ...blockedByUsers.map((b) => b.blockerId),
-  ]);
+  const allBlockedIds = new Set([...blockedUsers.map((b) => b.blockedId), ...blockedByUsers.map((b) => b.blockerId)]);
 
   // Fetch current user's embedding & interests for ranking
   const [myProfile] = await db
     .select({
-      displayName: profiles.displayName,
-      embedding: profiles.embedding,
-      interests: profiles.interests,
+      displayName: schema.profiles.displayName,
+      embedding: schema.profiles.embedding,
+      interests: schema.profiles.interests,
     })
-    .from(profiles)
-    .where(eq(profiles.userId, userId));
+    .from(schema.profiles)
+    .where(eq(schema.profiles.userId, userId));
 
   const myEmbedding = myProfile?.embedding ?? [];
   const myInterests = new Set(myProfile?.interests ?? []);
@@ -333,31 +300,34 @@ async function processAnalyzeUserPairs(
   const distanceFormula = sql<number>`
     6371000 * acos(
       LEAST(1.0, GREATEST(-1.0,
-        cos(radians(${latitude})) * cos(radians(${profiles.latitude})) *
-        cos(radians(${profiles.longitude}) - radians(${longitude})) +
-        sin(radians(${latitude})) * sin(radians(${profiles.latitude}))
+        cos(radians(${latitude})) * cos(radians(${schema.profiles.latitude})) *
+        cos(radians(${schema.profiles.longitude}) - radians(${longitude})) +
+        sin(radians(${latitude})) * sin(radians(${schema.profiles.latitude}))
       ))
     )
   `;
 
   const nearbyUsers = await db
     .select({
-      userId: profiles.userId,
-      displayName: profiles.displayName,
-      embedding: profiles.embedding,
-      interests: profiles.interests,
+      userId: schema.profiles.userId,
+      displayName: schema.profiles.displayName,
+      embedding: schema.profiles.embedding,
+      interests: schema.profiles.interests,
       distance: distanceFormula,
     })
-    .from(profiles)
+    .from(schema.profiles)
     .where(
       and(
-        ne(profiles.userId, userId),
-        eq(profiles.visibilityMode, 'visible'),
-        sql`${profiles.latitude} BETWEEN ${minLat} AND ${maxLat}`,
-        sql`${profiles.longitude} BETWEEN ${minLon} AND ${maxLon}`,
-        sql`${distanceFormula} <= ${radiusMeters}`,
-        sql`${profiles.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
-      )
+        ne(schema.profiles.userId, userId),
+        eq(schema.profiles.visibilityMode, "visible"),
+        between(schema.profiles.latitude, minLat, maxLat),
+        between(schema.profiles.longitude, minLon, maxLon),
+        lte(distanceFormula, radiusMeters),
+        notInArray(
+          schema.profiles.userId,
+          db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
+        ),
+      ),
     )
     .limit(100);
 
@@ -373,9 +343,7 @@ async function processAnalyzeUserPairs(
       const common = theirInterests.filter((i) => myInterests.has(i)).length;
       const interestScore = myInterests.size > 0 ? common / myInterests.size : 0;
 
-      const matchScore = similarity > 0
-        ? 0.7 * similarity + 0.3 * interestScore
-        : interestScore;
+      const matchScore = similarity > 0 ? 0.7 * similarity + 0.3 * interestScore : interestScore;
       const proximity = 1 - Math.min(u.distance, radiusMeters) / radiusMeters;
       const rankScore = 0.6 * matchScore + 0.4 * proximity;
 
@@ -393,33 +361,29 @@ async function processAnalyzeUserPairs(
     const nameB = b === userId ? myName : other.displayName;
     await safeEnqueuePairJob(
       queue,
-      { type: 'analyze-pair', userAId: a, userBId: b, nameA, nameB, requestedBy: myName },
-      { priority: i + 1 }
+      { type: "analyze-pair", userAId: a, userBId: b, nameA, nameB, requestedBy: myName },
+      { priority: i + 1 },
     );
   }
 }
-
 
 // --- Profile AI processor (refactored from sync) ---
 
 async function processGenerateProfileAI(userId: string, bio: string, lookingFor: string) {
   const portrait = await generatePortrait(bio, lookingFor);
-  const [embedding, interests] = await Promise.all([
-    generateEmbedding(portrait),
-    extractInterests(portrait),
-  ]);
+  const [embedding, interests] = await Promise.all([generateEmbedding(portrait), extractInterests(portrait)]);
 
   await db
-    .update(profiles)
+    .update(schema.profiles)
     .set({
       portrait,
       embedding,
       interests,
       updatedAt: new Date(),
     })
-    .where(eq(profiles.userId, userId));
+    .where(eq(schema.profiles.userId, userId));
 
-  ee.emit('profileReady', { userId });
+  ee.emit("profileReady", { userId });
 }
 
 // --- Profiling question processor ---
@@ -435,7 +399,7 @@ async function processGenerateProfilingQuestion(job: GenerateProfilingQuestionJo
     directionHint,
   });
 
-  await db.insert(profilingQA).values({
+  await db.insert(schema.profilingQA).values({
     sessionId,
     questionNumber,
     question: result.question,
@@ -443,7 +407,7 @@ async function processGenerateProfilingQuestion(job: GenerateProfilingQuestionJo
     sufficient: result.sufficient,
   });
 
-  ee.emit('questionReady', {
+  ee.emit("questionReady", {
     userId: job.userId,
     sessionId,
     questionNumber,
@@ -458,17 +422,17 @@ async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
   const result = await generateProfileFromQA(displayName, qaHistory, previousSessionQA);
 
   await db
-    .update(profilingSessions)
+    .update(schema.profilingSessions)
     .set({
       generatedBio: result.bio,
       generatedLookingFor: result.lookingFor,
       generatedPortrait: result.portrait,
-      status: 'completed',
+      status: "completed",
       completedAt: new Date(),
     })
-    .where(eq(profilingSessions.id, sessionId));
+    .where(eq(schema.profilingSessions.id, sessionId));
 
-  ee.emit('profilingComplete', {
+  ee.emit("profilingComplete", {
     userId: job.userId,
     sessionId,
   });
@@ -477,28 +441,28 @@ async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
 // --- Status matching processor ---
 
 async function processStatusMatching(userId: string) {
-  const [user] = await db
-    .select()
-    .from(profiles)
-    .where(eq(profiles.userId, userId));
+  const [user] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, userId));
 
   if (!user?.currentStatus) return;
 
   // Check if status expired — clean up and return
   if (user.statusExpiresAt && user.statusExpiresAt < new Date()) {
-    await db.update(profiles).set({
-      currentStatus: null,
-      statusExpiresAt: null,
-      statusEmbedding: null,
-      statusSetAt: null,
-    }).where(eq(profiles.userId, userId));
-    await db.delete(statusMatches).where(eq(statusMatches.userId, userId));
+    await db
+      .update(schema.profiles)
+      .set({
+        currentStatus: null,
+        statusExpiresAt: null,
+        statusEmbedding: null,
+        statusSetAt: null,
+      })
+      .where(eq(schema.profiles.userId, userId));
+    await db.delete(schema.statusMatches).where(eq(schema.statusMatches.userId, userId));
     return;
   }
 
   // Generate embedding for status text
   const statusEmb = await generateEmbedding(user.currentStatus);
-  await db.update(profiles).set({ statusEmbedding: statusEmb }).where(eq(profiles.userId, userId));
+  await db.update(schema.profiles).set({ statusEmbedding: statusEmb }).where(eq(schema.profiles.userId, userId));
 
   if (!statusEmb.length || !user.latitude || !user.longitude) return;
 
@@ -506,26 +470,28 @@ async function processStatusMatching(userId: string) {
   const nearbyRadius = 0.05;
   const nearbyUsers = await db
     .select()
-    .from(profiles)
+    .from(schema.profiles)
     .where(
       and(
-        ne(profiles.userId, userId),
-        eq(profiles.visibilityMode, 'visible'),
-        isNotNull(profiles.latitude),
-        isNotNull(profiles.longitude),
-        gte(profiles.latitude, user.latitude - nearbyRadius),
-        lte(profiles.latitude, user.latitude + nearbyRadius),
-        gte(profiles.longitude, user.longitude - nearbyRadius),
-        lte(profiles.longitude, user.longitude + nearbyRadius),
-        sql`${profiles.userId} NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)`
-      )
+        ne(schema.profiles.userId, userId),
+        eq(schema.profiles.visibilityMode, "visible"),
+        isNotNull(schema.profiles.latitude),
+        isNotNull(schema.profiles.longitude),
+        gte(schema.profiles.latitude, user.latitude - nearbyRadius),
+        lte(schema.profiles.latitude, user.latitude + nearbyRadius),
+        gte(schema.profiles.longitude, user.longitude - nearbyRadius),
+        lte(schema.profiles.longitude, user.longitude + nearbyRadius),
+        notInArray(
+          schema.profiles.userId,
+          db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
+        ),
+      ),
     );
 
   // Pre-filter by cosine similarity — top 20
   const scored = nearbyUsers
     .map((u) => {
-      const hasActiveStatus = u.currentStatus &&
-        (!u.statusExpiresAt || u.statusExpiresAt > new Date());
+      const hasActiveStatus = u.currentStatus && (!u.statusExpiresAt || u.statusExpiresAt > new Date());
 
       let similarity = 0;
       if (hasActiveStatus && u.statusEmbedding?.length) {
@@ -545,20 +511,16 @@ async function processStatusMatching(userId: string) {
     .slice(0, 20);
 
   // LLM evaluation for top candidates
-  const matches: { matchedUserId: string; reason: string; matchedVia: 'status' | 'profile' }[] = [];
+  const matches: { matchedUserId: string; reason: string; matchedVia: "status" | "profile" }[] = [];
 
   await Promise.all(
     scored.map(async ({ user: otherUser, hasActiveStatus }) => {
-      const matchType = hasActiveStatus ? 'status' : 'profile';
+      const matchType = hasActiveStatus ? "status" : "profile";
       const otherContext = hasActiveStatus
         ? otherUser.currentStatus!
         : `${otherUser.bio}. Szuka: ${otherUser.lookingFor}`;
 
-      const result = await evaluateStatusMatch(
-        user.currentStatus!,
-        otherContext,
-        matchType,
-      );
+      const result = await evaluateStatusMatch(user.currentStatus!, otherContext, matchType);
 
       if (result.isMatch) {
         matches.push({
@@ -567,25 +529,25 @@ async function processStatusMatching(userId: string) {
           matchedVia: matchType,
         });
       }
-    })
+    }),
   );
 
   // Replace old matches with new ones
-  await db.delete(statusMatches).where(eq(statusMatches.userId, userId));
+  await db.delete(schema.statusMatches).where(eq(schema.statusMatches.userId, userId));
 
   if (matches.length > 0) {
-    await db.insert(statusMatches).values(
+    await db.insert(schema.statusMatches).values(
       matches.map((m) => ({
         userId,
         matchedUserId: m.matchedUserId,
         reason: m.reason,
         matchedVia: m.matchedVia,
-      }))
+      })),
     );
   }
 
   // Emit WS event
-  ee.emit('statusMatchesReady', { userId });
+  ee.emit("statusMatchesReady", { userId });
 }
 
 // --- Hard delete processor ---
@@ -595,9 +557,9 @@ async function processHardDeleteUser(userId: string) {
 
   // 1. Get S3 file keys from profile before deleting
   const [profile] = await db
-    .select({ avatarUrl: profiles.avatarUrl, portrait: profiles.portrait })
-    .from(profiles)
-    .where(eq(profiles.userId, userId));
+    .select({ avatarUrl: schema.profiles.avatarUrl, portrait: schema.profiles.portrait })
+    .from(schema.profiles)
+    .where(eq(schema.profiles.userId, userId));
 
   // 2. Delete S3 files
   if (profile) {
@@ -609,7 +571,7 @@ async function processHardDeleteUser(userId: string) {
       }
     }
     if (keysToDelete.length > 0) {
-      const { S3Client } = await import('bun');
+      const { S3Client } = await import("bun");
       const s3 = new S3Client({
         accessKeyId: process.env.BUCKET_ACCESS_KEY_ID!,
         secretAccessKey: process.env.BUCKET_SECRET_ACCESS_KEY!,
@@ -628,41 +590,37 @@ async function processHardDeleteUser(userId: string) {
   }
 
   // 3. Delete non-cascading tables (order matters for FK constraints)
-  await db.delete(connectionAnalyses).where(
-    or(eq(connectionAnalyses.fromUserId, userId), eq(connectionAnalyses.toUserId, userId))
-  );
-  await db.delete(statusMatches).where(
-    or(eq(statusMatches.userId, userId), eq(statusMatches.matchedUserId, userId))
-  );
-  await db.delete(blocks).where(
-    or(eq(blocks.blockerId, userId), eq(blocks.blockedId, userId))
-  );
-  await db.delete(pushTokens).where(eq(pushTokens.userId, userId));
+  await db
+    .delete(schema.connectionAnalyses)
+    .where(or(eq(schema.connectionAnalyses.fromUserId, userId), eq(schema.connectionAnalyses.toUserId, userId)));
+  await db
+    .delete(schema.statusMatches)
+    .where(or(eq(schema.statusMatches.userId, userId), eq(schema.statusMatches.matchedUserId, userId)));
+  await db.delete(schema.blocks).where(or(eq(schema.blocks.blockerId, userId), eq(schema.blocks.blockedId, userId)));
+  await db.delete(schema.pushTokens).where(eq(schema.pushTokens.userId, userId));
 
   // Messages & reactions
   const userMessages = await db
-    .select({ id: messages.id })
-    .from(messages)
-    .where(eq(messages.senderId, userId));
+    .select({ id: schema.messages.id })
+    .from(schema.messages)
+    .where(eq(schema.messages.senderId, userId));
   if (userMessages.length > 0) {
     for (const msg of userMessages) {
-      await db.delete(messageReactions).where(eq(messageReactions.messageId, msg.id));
+      await db.delete(schema.messageReactions).where(eq(schema.messageReactions.messageId, msg.id));
     }
   }
-  await db.delete(messageReactions).where(eq(messageReactions.userId, userId));
-  await db.delete(messages).where(eq(messages.senderId, userId));
+  await db.delete(schema.messageReactions).where(eq(schema.messageReactions.userId, userId));
+  await db.delete(schema.messages).where(eq(schema.messages.senderId, userId));
 
-  await db.delete(conversationParticipants).where(eq(conversationParticipants.userId, userId));
-  await db.delete(waves).where(
-    or(eq(waves.fromUserId, userId), eq(waves.toUserId, userId))
-  );
+  await db.delete(schema.conversationParticipants).where(eq(schema.conversationParticipants.userId, userId));
+  await db.delete(schema.waves).where(or(eq(schema.waves.fromUserId, userId), eq(schema.waves.toUserId, userId)));
 
   // Set creatorId to null on conversations/topics (nullable FK)
-  await db.update(conversations).set({ creatorId: null }).where(eq(conversations.creatorId, userId));
-  await db.update(topics).set({ creatorId: null }).where(eq(topics.creatorId, userId));
+  await db.update(schema.conversations).set({ creatorId: null }).where(eq(schema.conversations.creatorId, userId));
+  await db.update(schema.topics).set({ creatorId: null }).where(eq(schema.topics.creatorId, userId));
 
   // 4. Delete user row — cascades to: session, account, profiles, profilingSessions
-  await db.delete(user).where(eq(user.id, userId));
+  await db.delete(schema.user).where(eq(schema.user.id, userId));
 
   console.log(`[queue] hard-delete-user completed for ${userId}`);
 }
@@ -675,30 +633,25 @@ async function processJob(job: Job<AIJob>) {
   console.log(`[queue] processing ${data.type} | jobId: ${job.id} | wait: ${(queueWait / 1000).toFixed(1)}s`);
 
   switch (data.type) {
-    case 'analyze-pair':
+    case "analyze-pair":
       await processAnalyzePair(job as Job<AnalyzePairJob>, data.userAId, data.userBId);
       break;
-    case 'analyze-user-pairs':
-      await processAnalyzeUserPairs(
-        data.userId,
-        data.latitude,
-        data.longitude,
-        data.radiusMeters
-      );
+    case "analyze-user-pairs":
+      await processAnalyzeUserPairs(data.userId, data.latitude, data.longitude, data.radiusMeters);
       break;
-    case 'generate-profile-ai':
+    case "generate-profile-ai":
       await processGenerateProfileAI(data.userId, data.bio, data.lookingFor);
       break;
-    case 'generate-profiling-question':
+    case "generate-profiling-question":
       await processGenerateProfilingQuestion(data);
       break;
-    case 'generate-profile-from-qa':
+    case "generate-profile-from-qa":
       await processGenerateProfileFromQA(data);
       break;
-    case 'status-matching':
+    case "status-matching":
       await processStatusMatching(data.userId);
       break;
-    case 'hard-delete-user':
+    case "hard-delete-user":
       await processHardDeleteUser(data.userId);
       break;
   }
@@ -710,44 +663,55 @@ let _worker: Worker | null = null;
 
 export function startWorker() {
   if (!process.env.REDIS_URL) {
-    console.warn('REDIS_URL not set, skipping queue worker');
+    console.warn("REDIS_URL not set, skipping queue worker");
     return;
   }
 
-  _worker = new Worker('ai-jobs', processJob, {
+  _worker = new Worker("ai-jobs", processJob, {
     connection: getConnectionConfig(),
     concurrency: 5,
     limiter: { max: 20, duration: 60_000 },
   });
 
-  _worker.on('completed', (job) => {
+  _worker.on("completed", (job) => {
     console.log(`[queue] Job ${job.id} completed (${job.data.type})`);
   });
 
-  _worker.on('failed', (job, err) => {
+  _worker.on("failed", (job, err) => {
     console.error(`[queue] Job ${job?.id} failed:`, err.message);
   });
 
-  console.log('[queue] AI jobs worker started');
+  console.log("[queue] AI jobs worker started");
 }
 
 // --- Helpers for safe job enqueue ---
 
 async function safeEnqueuePairJob(
   queue: Queue,
-  data: { type: 'analyze-pair'; userAId: string; userBId: string; nameA?: string; nameB?: string; requestedBy?: string },
-  opts?: { priority?: number }
+  data: {
+    type: "analyze-pair";
+    userAId: string;
+    userBId: string;
+    nameA?: string;
+    nameB?: string;
+    requestedBy?: string;
+  },
+  opts?: { priority?: number },
 ) {
   const jobId = `pair-${data.userAId}-${data.userBId}`;
   const existing = await queue.getJob(jobId);
   if (existing) {
     const state = await existing.getState();
-    if (state === 'active' || state === 'completed') return;
-    if ((state === 'waiting' || state === 'delayed') && !opts?.priority) return;
+    if (state === "active" || state === "completed") return;
+    if ((state === "waiting" || state === "delayed") && !opts?.priority) return;
     // Remove failed/stale job before re-adding (try-catch for TOCTOU race)
-    try { await existing.remove(); } catch { return; }
+    try {
+      await existing.remove();
+    } catch {
+      return;
+    }
   }
-  await queue.add('analyze-pair', data, { jobId, ...opts });
+  await queue.add("analyze-pair", data, { jobId, ...opts });
 }
 
 // --- Enqueue functions ---
@@ -756,28 +720,28 @@ export async function enqueueUserPairAnalysis(
   userId: string,
   latitude: number,
   longitude: number,
-  radiusMeters: number = 5000
+  radiusMeters: number = 5000,
 ) {
   if (!process.env.REDIS_URL) return;
 
   const queue = getQueue();
   await queue.add(
-    'analyze-user-pairs',
+    "analyze-user-pairs",
     {
-      type: 'analyze-user-pairs',
+      type: "analyze-user-pairs",
       userId,
       latitude,
       longitude,
       radiusMeters,
     },
-    { jobId: `user-pairs-${userId}-${Date.now()}` }
+    { jobId: `user-pairs-${userId}-${Date.now()}` },
   );
 }
 
 export async function enqueuePairAnalysis(
   userAId: string,
   userBId: string,
-  opts?: { nameA?: string; nameB?: string; requestedBy?: string }
+  opts?: { nameA?: string; nameB?: string; requestedBy?: string },
 ) {
   if (!process.env.REDIS_URL) return;
 
@@ -787,7 +751,12 @@ export async function enqueuePairAnalysis(
   const nameB = b === userAId ? opts?.nameA : opts?.nameB;
   const queue = getQueue();
   await safeEnqueuePairJob(queue, {
-    type: 'analyze-pair', userAId: a, userBId: b, nameA, nameB, requestedBy: opts?.requestedBy,
+    type: "analyze-pair",
+    userAId: a,
+    userBId: b,
+    nameA,
+    nameB,
+    requestedBy: opts?.requestedBy,
   });
 }
 
@@ -802,30 +771,22 @@ export async function promotePairAnalysis(userAId: string, userBId: string) {
   const existing = await queue.getJob(jobId);
   if (existing) {
     const state = await existing.getState();
-    if (state === 'active' || state === 'completed') return; // already processing or done
+    if (state === "active" || state === "completed") return; // already processing or done
     await existing.remove();
   }
 
   // Add without priority → FIFO queue, processed before all prioritized jobs
-  await queue.add(
-    'analyze-pair',
-    { type: 'analyze-pair', userAId: a, userBId: b },
-    { jobId }
-  );
+  await queue.add("analyze-pair", { type: "analyze-pair", userAId: a, userBId: b }, { jobId });
 }
 
-export async function enqueueProfileAI(
-  userId: string,
-  bio: string,
-  lookingFor: string
-) {
+export async function enqueueProfileAI(userId: string, bio: string, lookingFor: string) {
   if (!process.env.REDIS_URL) return;
 
   const queue = getQueue();
   await queue.add(
-    'generate-profile-ai',
-    { type: 'generate-profile-ai', userId, bio, lookingFor },
-    { jobId: `profile-ai-${userId}-${Date.now()}` }
+    "generate-profile-ai",
+    { type: "generate-profile-ai", userId, bio, lookingFor },
+    { jobId: `profile-ai-${userId}-${Date.now()}` },
   );
 }
 
@@ -838,15 +799,15 @@ export async function enqueueProfilingQuestion(
     previousSessionQA?: { question: string; answer: string }[];
     userRequestedMore?: boolean;
     directionHint?: string;
-  }
+  },
 ) {
   if (!process.env.REDIS_URL) return;
 
   const queue = getQueue();
   await queue.add(
-    'generate-profiling-question',
+    "generate-profiling-question",
     {
-      type: 'generate-profiling-question',
+      type: "generate-profiling-question",
       sessionId,
       userId,
       displayName,
@@ -855,7 +816,7 @@ export async function enqueueProfilingQuestion(
       userRequestedMore: options?.userRequestedMore,
       directionHint: options?.directionHint,
     },
-    { jobId: `profiling-q-${sessionId}-${qaHistory.length + 1}` }
+    { jobId: `profiling-q-${sessionId}-${qaHistory.length + 1}` },
   );
 }
 
@@ -864,22 +825,22 @@ export async function enqueueProfileFromQA(
   userId: string,
   displayName: string,
   qaHistory: { question: string; answer: string }[],
-  previousSessionQA?: { question: string; answer: string }[]
+  previousSessionQA?: { question: string; answer: string }[],
 ) {
   if (!process.env.REDIS_URL) return;
 
   const queue = getQueue();
   await queue.add(
-    'generate-profile-from-qa',
+    "generate-profile-from-qa",
     {
-      type: 'generate-profile-from-qa',
+      type: "generate-profile-from-qa",
       sessionId,
       userId,
       displayName,
       qaHistory,
       previousSessionQA,
     },
-    { jobId: `profile-from-qa-${sessionId}` }
+    { jobId: `profile-from-qa-${sessionId}` },
   );
 }
 
@@ -888,9 +849,9 @@ export async function enqueueStatusMatching(userId: string) {
 
   const queue = getQueue();
   await queue.add(
-    'status-matching',
-    { type: 'status-matching', userId },
-    { jobId: `status-matching-${userId}`, removeOnComplete: true }
+    "status-matching",
+    { type: "status-matching", userId },
+    { jobId: `status-matching-${userId}`, removeOnComplete: true },
   );
 }
 
@@ -900,13 +861,13 @@ export async function enqueueHardDeleteUser(userId: string) {
   const queue = getQueue();
   const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
   await queue.add(
-    'hard-delete-user',
-    { type: 'hard-delete-user', userId },
+    "hard-delete-user",
+    { type: "hard-delete-user", userId },
     {
       jobId: `hard-delete-${userId}`,
       delay: FOURTEEN_DAYS_MS,
       removeOnComplete: true,
-    }
+    },
   );
 }
 
@@ -916,6 +877,10 @@ export async function cancelHardDeleteUser(userId: string) {
   const queue = getQueue();
   const job = await queue.getJob(`hard-delete-${userId}`);
   if (job) {
-    try { await job.remove(); } catch { /* job may have already run */ }
+    try {
+      await job.remove();
+    } catch {
+      /* job may have already run */
+    }
   }
 }
