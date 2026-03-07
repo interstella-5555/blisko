@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { eq, and, ne, sql, isNotNull, between, notInArray, lte } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "../trpc";
-import { db, schema } from "../../db";
+import { router, protectedProcedure } from "@/trpc/trpc";
+import { db, schema } from "@/db";
 import {
   createProfileSchema,
   updateProfileSchema,
@@ -12,15 +12,15 @@ import {
   setStatusSchema,
   cosineSimilarity,
 } from "@repo/shared";
-import { toGridCenter, roundDistance } from "../../lib/grid";
+import { toGridCenter, roundDistance } from "@/lib/grid";
 import {
   enqueueUserPairAnalysis,
   enqueuePairAnalysis,
   enqueueProfileAI,
   enqueueStatusMatching,
-} from "../../services/queue";
-import { moderateContent } from "../../services/moderation";
-import { ee } from "../../ws/events";
+} from "@/services/queue";
+import { moderateContent } from "@/services/moderation";
+import { ee } from "@/ws/events";
 
 export const profilesRouter = router({
   // Get current user's profile

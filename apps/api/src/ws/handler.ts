@@ -1,6 +1,6 @@
 import type { ServerWebSocket } from "bun";
 import { eq, and, gt } from "drizzle-orm";
-import { db, schema } from "../db";
+import { db, schema } from "@/db";
 import { ee } from "./events";
 import type {
   NewMessageEvent,

@@ -3,10 +3,10 @@ import { createHash } from "crypto";
 import { eq, and, ne, gte, lte, isNotNull, or, sql, between, notInArray } from "drizzle-orm";
 import { RedisClient } from "bun";
 import { cosineSimilarity } from "@repo/shared";
-import { db, schema } from "../db";
+import { db, schema } from "@/db";
 import { analyzeConnection, generatePortrait, generateEmbedding, extractInterests, evaluateStatusMatch } from "./ai";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
-import { ee } from "../ws/events";
+import { ee } from "@/ws/events";
 
 function getConnectionConfig() {
   const url = new URL(process.env.REDIS_URL!);

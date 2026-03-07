@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { router, protectedProcedure } from "../trpc";
-import { db, schema } from "../../db";
+import { router, protectedProcedure } from "@/trpc/trpc";
+import { db, schema } from "@/db";
 import { createTopicSchema, updateTopicSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { ee } from "../../ws/events";
+import { ee } from "@/ws/events";
 
 async function requireGroupMember(conversationId: string, userId: string) {
   const [participant] = await db

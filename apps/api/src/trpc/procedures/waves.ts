@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { eq, and, or, desc, inArray, sql, isNotNull, notInArray } from "drizzle-orm";
-import { router, protectedProcedure } from "../trpc";
-import { db, schema } from "../../db";
+import { router, protectedProcedure } from "@/trpc/trpc";
+import { db, schema } from "@/db";
 import { sendWaveSchema, respondToWaveSchema, blockUserSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { ee } from "../../ws/events";
-import { promotePairAnalysis } from "../../services/queue";
-import { sendPushToUser } from "../../services/push";
+import { ee } from "@/ws/events";
+import { promotePairAnalysis } from "@/services/queue";
+import { sendPushToUser } from "@/services/push";
 
 export const wavesRouter = router({
   // Send a wave to someone

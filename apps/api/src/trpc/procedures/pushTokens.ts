@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
-import { router, protectedProcedure } from "../trpc";
-import { db, schema } from "../../db";
+import { router, protectedProcedure } from "@/trpc/trpc";
+import { db, schema } from "@/db";
 
 export const pushTokensRouter = router({
   register: protectedProcedure
