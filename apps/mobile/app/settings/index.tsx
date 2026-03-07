@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { router } from 'expo-router';
+import { router, Redirect } from 'expo-router';
 import Svg, { Path, Circle, Line, Polyline, Rect } from 'react-native-svg';
 import * as SecureStore from 'expo-secure-store';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -135,7 +135,12 @@ export default function SettingsHubScreen() {
     useConversationsStore.getState().reset();
     useMessagesStore.getState().reset();
     useWavesStore.getState().reset();
+    router.replace('/(auth)/login');
   };
+
+  if (!user) {
+    return <Redirect href="/(auth)/login" />;
+  }
 
   return (
     <ScrollView style={styles.container}>

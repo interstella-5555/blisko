@@ -78,6 +78,14 @@ export function IconClock({ size = defaultSize, color = defaultColor }: IconProp
   );
 }
 
+export function IconChevronLeft({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M15 19l-7-7 7-7" />
+    </Svg>
+  );
+}
+
 export function IconArrowLeft({ size = defaultSize, color = defaultColor }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

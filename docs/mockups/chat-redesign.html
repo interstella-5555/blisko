@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blisko Chat — A / B</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ink: #1A1A1A;
+    --bg: #FAF7F2;
+    --accent: #C0392B;
+    --rule: #D5D0C4;
+    --muted: #8B8680;
+    --mapBg: #F0ECE3;
+    --serif: 'Instrument Serif', serif;
+    --sans: 'DM Sans', sans-serif;
+    --phone-w: 375px;
+    --phone-h: 760px;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: #E8E4DC;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: 32px;
+    color: var(--ink);
+    text-align: center;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    text-align: center;
+    max-width: 600px;
+    margin-bottom: 16px;
+  }
+
+  .variants {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .variant {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .variant-label {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .variant-label span {
+    color: var(--ink);
+  }
+  .variant-desc {
+    font-size: 12px;
+    color: var(--muted);
+    max-width: var(--phone-w);
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: var(--phone-w);
+    height: var(--phone-h);
+    background: var(--bg);
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 54px;
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    height: 52px;
+    border-bottom: 1px solid var(--rule);
+    flex-shrink: 0;
+    gap: 8px;
+  }
+  .header-back {
+    color: var(--ink);
+    margin-right: 4px;
+    flex-shrink: 0;
+  }
+  .header-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #D4A574 0%, #B8866E 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .header-avatar.large {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+  }
+  .header-name {
+    font-family: var(--serif);
+    font-size: 16px;
+    color: var(--ink);
+  }
+  .header-name.sans-bold {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  /* Messages area */
+  .messages {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 12px 16px;
+    overflow: hidden;
+  }
+
+  /* Bubble shared */
+  .bubble {
+    max-width: 75%;
+    padding: 10px 14px;
+    font-size: 15px;
+    line-height: 21px;
+    color: var(--ink);
+    position: relative;
+    word-wrap: break-word;
+  }
+  .bubble.mine {
+    align-self: flex-end;
+    color: var(--bg);
+  }
+  .bubble.theirs {
+    align-self: flex-start;
+    background: var(--mapBg);
+  }
+
+  /* Message row with avatar */
+  .msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .msg-row .bubble { align-self: auto; }
+  .msg-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #D4A574 0%, #B8866E 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .msg-avatar.hidden { visibility: hidden; }
+
+  /* Timestamp under bubble (current / variant A style) */
+  .time-under {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    padding: 0 2px;
+  }
+  .time-under.mine { justify-content: flex-end; }
+  .time-under.theirs { justify-content: flex-start; margin-left: 34px; }
+  .time-text {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* Timestamp inline */
+  .time-inline {
+    font-size: 10px;
+    float: right;
+    margin-left: 12px;
+    margin-top: 6px;
+    line-height: 1;
+    opacity: 0.5;
+  }
+  .bubble.mine .time-inline { color: var(--bg); }
+  .bubble.theirs .time-inline { color: var(--muted); opacity: 0.7; }
+
+  /* Input bar */
+  .input-bar {
+    display: flex;
+    align-items: flex-end;
+    padding: 8px 12px 28px 12px;
+    border-top: 1px solid var(--rule);
+    gap: 6px;
+    flex-shrink: 0;
+    background: var(--bg);
+  }
+  .media-btn {
+    color: var(--muted);
+    font-size: 18px;
+    padding: 8px 2px;
+  }
+  .input-field {
+    flex: 1;
+    border: 1px solid var(--rule);
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-family: var(--sans);
+    font-size: 15px;
+    color: var(--muted);
+    background: var(--bg);
+  }
+  .send-btn {
+    background: var(--accent);
+    padding: 8px 14px;
+    border-radius: 16px;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: white;
+    white-space: nowrap;
+  }
+  .send-btn-icon {
+    background: var(--accent);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .send-btn-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: white;
+  }
+
+  /* ---------- VARIANT-SPECIFIC ---------- */
+
+  /* Variant A: minimal + accent bubbles */
+  .va .bubble.mine { background: var(--accent); border-radius: 16px; }
+  .va .bubble.theirs { border-radius: 16px; }
+  .va .bubble.mine.first { border-bottom-right-radius: 4px; }
+  .va .bubble.mine.mid   { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+  .va .bubble.mine.last  { border-top-right-radius: 4px; }
+  .va .bubble.theirs.first { border-bottom-left-radius: 4px; }
+  .va .bubble.theirs.mid   { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+  .va .bubble.theirs.last  { border-top-left-radius: 4px; }
+  .va .msg-group { display: flex; flex-direction: column; gap: 2px; }
+  .va .msg-group.mine { align-items: flex-end; }
+  .va .msg-group.theirs { align-items: flex-start; }
+  .va .group-gap { margin-top: 12px; }
+
+  /* Variant B: full refresh — accent bubbles, sans-bold header, icon send */
+  .vb .bubble.mine { background: var(--accent); border-radius: 16px; }
+  .vb .bubble.theirs { border-radius: 16px; }
+  .vb .bubble.mine.first { border-bottom-right-radius: 4px; }
+  .vb .bubble.mine.mid   { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+  .vb .bubble.mine.last  { border-top-right-radius: 4px; }
+  .vb .bubble.theirs.first { border-bottom-left-radius: 4px; }
+  .vb .bubble.theirs.mid   { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+  .vb .bubble.theirs.last  { border-top-left-radius: 4px; }
+  .vb .msg-group { display: flex; flex-direction: column; gap: 2px; }
+  .vb .msg-group.mine { align-items: flex-end; }
+  .vb .msg-group.theirs { align-items: flex-start; }
+  .vb .group-gap { margin-top: 12px; }
+
+  /* Changes highlight */
+  .changes {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+  }
+  .change-tag {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #E8E4DC;
+    color: var(--muted);
+  }
+  .change-tag.added { background: #EEF2EE; color: #5B7A5E; }
+  .change-tag.removed { background: #F2EEEE; color: #9B3B3B; }
+  .change-tag.changed { background: #F5F0E6; color: #B8863E; }
+
+  /* Comparison table */
+  .comparison {
+    border-collapse: collapse;
+    font-size: 13px;
+    max-width: 900px;
+    width: 100%;
+    margin-bottom: 24px;
+    background: var(--bg);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .comparison th {
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 2px solid var(--rule);
+    background: var(--bg);
+  }
+  .comparison th:first-child { width: 160px; }
+  .comparison td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+    line-height: 1.4;
+  }
+  .comparison tr:last-child td { border-bottom: none; }
+  .comparison td:first-child {
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .comparison td.current { color: var(--muted); }
+  .comparison td.kept { color: #5B7A5E; background: #f7faf7; }
+  .comparison td.changed { color: #B8863E; background: #fdfaf3; }
+  .comparison td.removed { color: #9B3B3B; background: #fdf6f6; }
+</style>
+</head>
+<body>
+
+<h1>Chat redesign</h1>
+<p class="subtitle">DM z Izabela — porownanie dwoch wariantow. Identyczna konwersacja, rozny styl.</p>
+
+<table class="comparison">
+  <thead>
+    <tr>
+      <th>Element</th>
+      <th>Teraz</th>
+      <th>A — Minimalne + accent</th>
+      <th>B — Pelny refresh</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Avatar w DM</td>
+      <td class="current">Przy kazdej wiadomosci</td>
+      <td class="removed">Usuniety</td>
+      <td class="removed">Usuniety</td>
+    </tr>
+    <tr>
+      <td>Timestamp</td>
+      <td class="current">Pod babelkiem, osobna linia</td>
+      <td class="changed">Inline w babelku</td>
+      <td class="changed">Inline w babelku</td>
+    </tr>
+    <tr>
+      <td>Gapy miedzy wiadomosciami</td>
+      <td class="current">Duze (marginVertical: 1 + timestamp row)</td>
+      <td class="changed">2px w serii, 12px miedzy nadawcami</td>
+      <td class="changed">2px w serii, 12px miedzy nadawcami</td>
+    </tr>
+    <tr>
+      <td>Babelki "moje" kolor</td>
+      <td class="current">ink (#1A1A1A) — ciemne</td>
+      <td class="changed">accent (#C0392B) — czerwone</td>
+      <td class="changed">accent (#C0392B) — czerwone</td>
+    </tr>
+    <tr>
+      <td>Header — nazwa</td>
+      <td class="current">Instrument Serif 16px</td>
+      <td class="kept">Bez zmian</td>
+      <td class="changed">DM Sans SemiBold 15px</td>
+    </tr>
+    <tr>
+      <td>Header — avatar</td>
+      <td class="current">32px</td>
+      <td class="kept">Bez zmian</td>
+      <td class="changed">40px</td>
+    </tr>
+    <tr>
+      <td>Przycisk wyslij</td>
+      <td class="current">Tekst "WYSLIJ" (uppercase)</td>
+      <td class="kept">Bez zmian</td>
+      <td class="changed">Ikona strzalki (okragly btn)</td>
+    </tr>
+    <tr>
+      <td>Ilosc zmian</td>
+      <td></td>
+      <td><strong>4</strong></td>
+      <td><strong>7</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="variants">
+
+<!-- ==================== VARIANT A ==================== -->
+<div class="variant">
+  <div class="variant-label"><span>A</span> — Minimalne + accent babelki</div>
+  <div class="phone va">
+    <div class="status-bar"></div>
+    <!-- Header: same as current -->
+    <div class="header">
+      <svg class="header-back" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="header-avatar">I</div>
+      <span class="header-name">Izabela</span>
+    </div>
+    <div class="messages">
+      <!-- Their group -->
+      <div class="msg-group theirs">
+        <div class="bubble theirs first">Hej! Widzialam Twoje zdjecia z Kazimierza, super miejsce<span class="time-inline">20:31</span></div>
+        <div class="bubble theirs last">Tez tam bylam w zeszlym roku, pamietasz te kawiarnike przy rynku?<span class="time-inline">20:31</span></div>
+      </div>
+
+      <div class="group-gap"></div>
+
+      <!-- My group -->
+      <div class="msg-group mine">
+        <div class="bubble mine first">Tak! Ta z tarasem na gorze?<span class="time-inline">20:33</span></div>
+        <div class="bubble mine last">Mieli genialne szarlotke<span class="time-inline">20:33</span></div>
+      </div>
+
+      <div class="group-gap"></div>
+
+      <!-- Their -->
+      <div class="msg-group theirs">
+        <div class="bubble theirs solo">Dokladnie ta! Musze tam wrocic w maju, chcesz sie wybrac?<span class="time-inline">20:35</span></div>
+      </div>
+
+      <div class="group-gap"></div>
+
+      <!-- My -->
+      <div class="msg-group mine">
+        <div class="bubble mine solo">Czemu nie, brzmi jak plan<span class="time-inline">20:36</span></div>
+      </div>
+
+      <div class="group-gap"></div>
+
+      <!-- Their long -->
+      <div class="msg-group theirs">
+        <div class="bubble theirs solo">Super! Znam tez fajne szlaki w okolicy — jest taki nad Wisla co mozna przejsc w 2h i sa przepiekne widoki<span class="time-inline">20:38</span></div>
+      </div>
+    </div>
+    <!-- Input: same as current -->
+    <div class="input-bar">
+      <span class="media-btn">&#128247;</span>
+      <span class="media-btn">&#128205;</span>
+      <div class="input-field">Wpisz wiadomosc...</div>
+      <div class="send-btn">Wyslij</div>
+    </div>
+  </div>
+  <div class="changes">
+    <span class="change-tag removed">- avatar w DM</span>
+    <span class="change-tag changed">timestamp inline</span>
+    <span class="change-tag changed">mniejsze gapy</span>
+    <span class="change-tag changed">accent babelki (czerwone)</span>
+  </div>
+  <p class="variant-desc">Minimalne zmiany + czerwone babelki. Serif header i WYSLIJ zachowane — charakter Blisko zostaje.</p>
+</div>
+
+<!-- ==================== VARIANT B ==================== -->
+<div class="variant">
+  <div class="variant-label"><span>B</span> — Pelny refresh</div>
+  <div class="phone vb">
+    <div class="status-bar"></div>
+    <!-- Header: larger avatar, sans-bold name -->
+    <div class="header">
+      <svg class="header-back" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="header-avatar large">I</div>
+      <span class="header-name sans-bold">Izabela</span>
+    </div>
+    <div class="messages">
+      <div class="msg-group theirs">
+        <div class="bubble theirs first">Hej! Widzialam Twoje zdjecia z Kazimierza, super miejsce<span class="time-inline">20:31</span></div>
+        <div class="bubble theirs last">Tez tam bylam w zeszlym roku, pamietasz te kawiarnike przy rynku?<span class="time-inline">20:31</span></div>
+      </div>
+
+      <div class="group-gap"></div>
+
+      <div class="msg-group mine">
+        <div class="bubble mine first">Tak! Ta z tarasem na gorze?<span class="time-inline">20:33</span></div>
+        <div class="bubble mine last">Mieli genialne szarlotke<span class="time-inline">20:33</span></div>
+      </div>
+
+      <div class="group-gap"></div>
+
+      <div class="msg-group theirs">
+        <div class="bubble theirs solo">Dokladnie ta! Musze tam wrocic w maju, chcesz sie wybrac?<span class="time-inline">20:35</span></div>
+      </div>
+
+      <div class="group-gap"></div>
+
+      <div class="msg-group mine">
+        <div class="bubble mine solo">Czemu nie, brzmi jak plan<span class="time-inline">20:36</span></div>
+      </div>
+
+      <div class="group-gap"></div>
+
+      <div class="msg-group theirs">
+        <div class="bubble theirs solo">Super! Znam tez fajne szlaki w okolicy — jest taki nad Wisla co mozna przejsc w 2h i sa przepiekne widoki<span class="time-inline">20:38</span></div>
+      </div>
+    </div>
+    <!-- Input: icon send button -->
+    <div class="input-bar">
+      <span class="media-btn">&#128247;</span>
+      <span class="media-btn">&#128205;</span>
+      <div class="input-field">Wpisz wiadomosc...</div>
+      <div class="send-btn-icon">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </div>
+    </div>
+  </div>
+  <div class="changes">
+    <span class="change-tag removed">- avatar w DM</span>
+    <span class="change-tag changed">timestamp inline</span>
+    <span class="change-tag changed">mniejsze gapy</span>
+    <span class="change-tag changed">wiekszy avatar header</span>
+    <span class="change-tag changed">sans-bold nazwa</span>
+    <span class="change-tag changed">accent babelki (czerwone)</span>
+    <span class="change-tag changed">ikona wyslij</span>
+  </div>
+  <p class="variant-desc">Pelna zmiana stylu. Czerwone babelki "moje", wiekszy avatar, sans-bold, ikona wyslij. Blizej WhatsApp/Messenger.</p>
+</div>
+
+
+</div><!-- /variants -->
+
+</body>
+</html>

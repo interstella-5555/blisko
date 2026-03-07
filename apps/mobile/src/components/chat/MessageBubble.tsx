@@ -22,6 +22,9 @@ export interface MessageBubbleProps {
   showAvatar?: boolean;
   avatarUrl?: string;
   senderName?: string;
+  showAvatarColumn?: boolean;
+  timestamp?: string | null;
+  receipt?: 'sent' | 'read' | null;
   hidden?: boolean;
   onLongPress?: () => void;
   onReactionPress?: (emoji: string) => void;
@@ -57,6 +60,9 @@ export const MessageBubble = forwardRef<View, MessageBubbleProps>(function Messa
   showAvatar,
   avatarUrl,
   senderName,
+  showAvatarColumn = true,
+  timestamp,
+  receipt,
   hidden,
   onLongPress,
   onReactionPress,
@@ -108,12 +114,22 @@ export const MessageBubble = forwardRef<View, MessageBubbleProps>(function Messa
           {content}
         </Text>
       )}
+      {timestamp && (
+        <View style={styles.timestampRow}>
+          <Text style={[styles.timestampText, isMine ? styles.timestampMine : styles.timestampTheirs]}>{timestamp}</Text>
+          {receipt && (
+            <Text style={[styles.receiptMark, receipt === 'read' ? styles.receiptRead : styles.receiptSent]}>
+              {receipt === 'read' ? '✓✓' : '✓'}
+            </Text>
+          )}
+        </View>
+      )}
     </Pressable>
   );
 
   return (
     <View ref={ref} style={[styles.wrapper, isMine ? styles.wrapperMine : styles.wrapperTheirs, hidden && styles.hidden]} testID="message-bubble">
-      {!isMine ? (
+      {!isMine && showAvatarColumn ? (
         <View style={styles.messageRow}>
           {showAvatar ? (
             <Avatar uri={avatarUrl} name={senderName || '?'} size={28} />
@@ -128,7 +144,7 @@ export const MessageBubble = forwardRef<View, MessageBubbleProps>(function Messa
         bubbleContent
       )}
       {reactions && reactions.length > 0 && (
-        <View style={[styles.reactions, isMine ? styles.reactionsMine : styles.reactionsTheirs]}>
+        <View style={[styles.reactions, isMine ? styles.reactionsMine : styles.reactionsTheirs, !isMine && !showAvatarColumn && { marginLeft: 0 }]}>
           {reactions.map((r) => (
             <Pressable
               key={r.emoji}
@@ -176,7 +192,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS,
   },
   bubbleMine: {
-    backgroundColor: colors.ink,
+    backgroundColor: colors.accent,
   },
   bubbleTheirs: {
     backgroundColor: colors.mapBg,
@@ -247,6 +263,36 @@ const styles = StyleSheet.create({
   },
   contentTheirs: {
     color: colors.ink,
+  },
+  timestampRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  timestampText: {
+    fontFamily: fonts.sans,
+    fontSize: 10,
+  },
+  timestampMine: {
+    color: colors.bg,
+    opacity: 0.7,
+  },
+  timestampTheirs: {
+    color: colors.muted,
+  },
+  receiptMark: {
+    fontSize: 10,
+    fontFamily: fonts.sans,
+  },
+  receiptRead: {
+    color: colors.bg,
+    opacity: 0.9,
+  },
+  receiptSent: {
+    color: colors.bg,
+    opacity: 0.5,
   },
   reactions: {
     flexDirection: 'row',

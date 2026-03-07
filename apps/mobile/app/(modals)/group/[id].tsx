@@ -96,7 +96,7 @@ export default function GroupInfoScreen() {
         createdAt: String(data.createdAt),
         updatedAt: String(data.updatedAt),
       });
-      router.replace(`/(modals)/chat/${data.id}`);
+      router.replace(`/chat/${data.id}`);
     },
     onError: (error) => {
       if (error.message === 'Group is full') {
@@ -164,7 +164,7 @@ export default function GroupInfoScreen() {
 
   const handleOpenTopic = useCallback(
     (topicId: string) => {
-      router.push(`/(modals)/chat/${conversationId}?topicId=${topicId}`);
+      router.push(`/chat/${conversationId}?topicId=${topicId}`);
     },
     [conversationId],
   );

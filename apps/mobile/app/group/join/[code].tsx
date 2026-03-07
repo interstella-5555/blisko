@@ -28,7 +28,7 @@ export default function JoinGroupScreen() {
         createdAt: String(data.createdAt),
         updatedAt: String(data.updatedAt),
       });
-      router.replace(`/(modals)/chat/${data.id}`);
+      router.replace(`/chat/${data.id}`);
     },
     onError: (err) => {
       if (err.message === 'Invalid invite code') {

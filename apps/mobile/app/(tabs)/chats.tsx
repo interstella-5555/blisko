@@ -104,7 +104,7 @@ export default function ChatsScreen() {
             lastMessageTime={item.lastMessage?.createdAt ?? null}
             memberCount={item.memberCount ?? undefined}
             unreadCount={item.unreadCount}
-            onPress={() => router.push(`/(modals)/chat/${item.id}`)}
+            onPress={() => router.push(`/chat/${item.id}`)}
           />
         )}
         ListEmptyComponent={

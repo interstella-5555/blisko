@@ -38,7 +38,7 @@ export function useInAppNotifications() {
           avatarUrl: responderProfile.avatarUrl,
           avatarName: responderProfile.displayName,
           onPress: () => {
-            router.push(`/(modals)/chat/${msg.conversationId}`);
+            router.push(`/chat/${msg.conversationId}`);
           },
         });
         return;
@@ -52,7 +52,7 @@ export function useInAppNotifications() {
           avatarUrl: null,
           avatarName: msg.groupName ?? 'G',
           onPress: () => {
-            router.push(`/(modals)/chat/${msg.conversationId}`);
+            router.push(`/chat/${msg.conversationId}`);
           },
         });
         return;
@@ -85,7 +85,7 @@ export function useInAppNotifications() {
           avatarUrl: senderAvatar,
           avatarName: senderName,
           onPress: () => {
-            router.push(`/(modals)/chat/${msg.conversationId}`);
+            router.push(`/chat/${msg.conversationId}`);
           },
         });
       }

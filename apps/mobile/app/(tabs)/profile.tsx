@@ -4,11 +4,9 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
-import { trpc } from '../../src/lib/trpc';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Avatar } from '../../src/components/ui/Avatar';
 import { IconSparkles } from '../../src/components/ui/icons';
@@ -32,25 +30,6 @@ function hasActiveStatus(profile: { currentStatus?: string | null; statusExpires
 export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
-  const setProfile = useAuthStore((state) => state.setProfile);
-  const utils = trpc.useUtils();
-  const clearStatus = trpc.profiles.clearStatus.useMutation({
-    onSuccess: (data) => {
-      if (data) setProfile(data);
-      utils.profiles.me.invalidate();
-    },
-    onError: () => {
-      Alert.alert('Błąd', 'Nie udało się usunąć statusu');
-    },
-  });
-
-  const handleClearStatus = () => {
-    Alert.alert('Usuń status', 'Na pewno chcesz usunąć status?', [
-      { text: 'Anuluj', style: 'cancel' },
-      { text: 'Usuń', style: 'destructive', onPress: () => clearStatus.mutate() },
-    ]);
-  };
-
   const activeStatus = hasActiveStatus(profile);
 
   return (
@@ -67,31 +46,22 @@ export default function ProfileScreen() {
         <Text style={styles.email}>{user?.email}</Text>
 
         {activeStatus ? (
-          <View style={styles.statusPill}>
+          <Pressable
+            style={styles.statusPill}
+            onPress={() =>
+              router.push({
+                pathname: '/settings/set-status' as any,
+                params: { prefill: profile!.currentStatus! },
+              })
+            }
+          >
             <Text style={styles.statusText} numberOfLines={2}>
               {profile!.currentStatus}
             </Text>
             <Text style={styles.statusExpiry}>
               wygasa za {formatTimeLeft(profile!.statusExpiresAt)}
             </Text>
-            <View style={styles.statusActions}>
-              <Pressable
-                onPress={() =>
-                  router.push({
-                    pathname: '/settings/set-status' as any,
-                    params: { prefill: profile!.currentStatus! },
-                  })
-                }
-              >
-                <Text style={styles.statusActionText}>Edytuj</Text>
-              </Pressable>
-              <Pressable onPress={handleClearStatus}>
-                <Text style={[styles.statusActionText, styles.statusActionDelete]}>
-                  Usuń
-                </Text>
-              </Pressable>
-            </View>
-          </View>
+          </Pressable>
         ) : (
           <Pressable
             style={styles.setStatusButton}
@@ -189,19 +159,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#D4851C',
     marginTop: 4,
-  },
-  statusActions: {
-    flexDirection: 'row',
-    gap: 16,
-    marginTop: 8,
-  },
-  statusActionText: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 11,
-    color: '#D4851C',
-  },
-  statusActionDelete: {
-    color: colors.muted,
   },
   section: {
     padding: spacing.section,

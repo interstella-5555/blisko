@@ -13,21 +13,21 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { trpc } from '../../../src/lib/trpc';
-import { useAuthStore } from '../../../src/stores/authStore';
-import { MessageBubble, type BubblePosition } from '../../../src/components/chat/MessageBubble';
-import { ChatInput } from '../../../src/components/chat/ChatInput';
-import { MessageContextMenu, type ContextMenuData } from '../../../src/components/chat/MessageContextMenu';
-import { useTypingIndicator } from '../../../src/lib/ws';
-import { useConversationsStore } from '../../../src/stores/conversationsStore';
-import { useMessagesStore, type EnrichedMessage } from '../../../src/stores/messagesStore';
-import { useProfilesStore } from '../../../src/stores/profilesStore';
+import { trpc } from '@/lib/trpc';
+import { useAuthStore } from '@/stores/authStore';
+import { MessageBubble, type BubblePosition } from '@/components/chat/MessageBubble';
+import { ChatInput } from '@/components/chat/ChatInput';
+import { MessageContextMenu, type ContextMenuData } from '@/components/chat/MessageContextMenu';
+import { useTypingIndicator } from '@/lib/ws';
+import { useConversationsStore } from '@/stores/conversationsStore';
+import { useMessagesStore, type EnrichedMessage } from '@/stores/messagesStore';
+import { useProfilesStore } from '@/stores/profilesStore';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import { Avatar } from '../../../src/components/ui/Avatar';
+import { Avatar } from '@/components/ui/Avatar';
+import { IconChevronLeft } from '@/components/ui/icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
-import { colors, fonts, spacing } from '../../../src/theme';
+import { colors, fonts, spacing } from '@/theme';
 
 // Deterministic color from userId hash for group sender labels
 const SENDER_COLORS = [
@@ -409,9 +409,7 @@ export default function ChatScreen() {
                   style={styles.headerBack}
                   hitSlop={8}
                 >
-                  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-                    <Path d="M15 19l-7-7 7-7" stroke={colors.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                  </Svg>
+                  <IconChevronLeft size={24} color={colors.ink} />
                 </Pressable>
                 <Pressable
                   style={styles.headerLeft}
@@ -472,6 +470,13 @@ export default function ChatScreen() {
           const above = allMessages[index + 1];
           const senderSwitch = above && above.senderId !== item.senderId;
 
+          const formattedTime = isLastInGroup
+            ? new Date(item.createdAt as unknown as string).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
+            : undefined;
+          const receipt = isLastInGroup && isMine && !isGroup
+            ? (item.readAt ? 'read' as const : 'sent' as const)
+            : undefined;
+
           return (
             <View style={senderSwitch ? styles.groupGap : undefined}>
               {showSenderLabel && (
@@ -500,8 +505,11 @@ export default function ChatScreen() {
                 reactions={item.reactions}
                 position={position}
                 showAvatar={!isMine && (position === 'last' || position === 'solo')}
+                showAvatarColumn={isGroup}
                 avatarUrl={avatarUrl}
                 senderName={senderName}
+                timestamp={formattedTime}
+                receipt={receipt}
                 hidden={contextMenu?.messageId === item.id}
                 onLongPress={
                   item.deletedAt
@@ -519,24 +527,15 @@ export default function ChatScreen() {
                           reactions: item.reactions,
                           position,
                           showAvatar: !isMine && (position === 'last' || position === 'solo'),
+                          showAvatarColumn: isGroup,
                           avatarUrl,
                           senderName,
+                          timestamp: formattedTime,
+                          receipt,
                         })
                 }
                 onReactionPress={(emoji) => handleReactionPress(item.id, emoji)}
               />
-              {isLastInGroup && (
-                <View style={[styles.groupTime, isMine ? styles.groupTimeMine : styles.groupTimeTheirs]}>
-                  <Text style={styles.groupTimeText}>
-                    {new Date(item.createdAt as unknown as string).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
-                  </Text>
-                  {isMine && !isGroup && (
-                    <Text style={[styles.receipt, item.readAt ? styles.receiptRead : styles.receiptSent]}>
-                      {item.readAt ? '✓✓' : '✓'}
-                    </Text>
-                  )}
-                </View>
-              )}
             </View>
           );
         }}
@@ -671,35 +670,6 @@ const styles = StyleSheet.create({
   },
   groupGap: {
     marginTop: spacing.tight,
-  },
-  groupTime: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
-    paddingHorizontal: 2,
-  },
-  groupTimeMine: {
-    justifyContent: 'flex-end',
-  },
-  groupTimeTheirs: {
-    justifyContent: 'flex-start',
-    marginLeft: 34,
-  },
-  groupTimeText: {
-    fontFamily: fonts.sans,
-    fontSize: 10,
-    color: colors.muted,
-  },
-  receipt: {
-    fontSize: 10,
-    fontFamily: fonts.sans,
-  },
-  receiptSent: {
-    color: colors.muted,
-  },
-  receiptRead: {
-    color: colors.accent,
   },
   typingBar: {
     paddingHorizontal: spacing.section,

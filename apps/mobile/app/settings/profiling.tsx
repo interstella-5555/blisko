@@ -16,6 +16,7 @@ import { trpc } from '../../src/lib/trpc';
 import { useOnboardingStore } from '../../src/stores/onboardingStore';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Button } from '../../src/components/ui/Button';
+import { IconChevronLeft } from '@/components/ui/icons';
 import { ThinkingIndicator } from '../../src/components/ui/ThinkingIndicator';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -312,8 +313,8 @@ export default function ProfilingModal() {
         style={[styles.content, { transform: [{ translateX: slideAnim }] }]}
       >
         <View style={styles.header}>
-          <Pressable onPress={handleBack} hitSlop={16}>
-            <Text style={styles.backArrow}>←</Text>
+          <Pressable onPress={handleBack} hitSlop={8}>
+            <IconChevronLeft size={24} color={colors.ink} />
           </Pressable>
           <Text style={styles.counter}>
             {questionIndex + 1} / {totalQuestions}
@@ -385,10 +386,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.block,
-  },
-  backArrow: {
-    fontSize: 24,
-    color: colors.ink,
   },
   counter: {
     ...typ.caption,

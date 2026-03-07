@@ -88,7 +88,7 @@ export default function CreateGroupScreen() {
         createdAt: String(data.createdAt),
         updatedAt: String(data.updatedAt),
       });
-      router.replace(`/(modals)/chat/${data.id}`);
+      router.replace(`/chat/${data.id}`);
     },
     onError: () => {
       Alert.alert('Blad', 'Nie udalo sie utworzyc grupy');

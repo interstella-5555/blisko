@@ -225,6 +225,54 @@ npx drizzle-kit migrate                            # applies to database
 
 When placing a Switch/toggle next to a label + description block, don't wrap both texts in one View and use `alignItems: 'center'` — the control will center against the whole block (label + description), not just the label. Instead, put only the label and the control in a flex row with `alignItems: 'center'`, and render the description as a separate element below the row. Same principle applies to any row where a control should align with the first line of text.
 
+## Navigation headers: fully custom, no native chrome
+
+**NEVER** use React Navigation's native header (`headerLeft`, `headerRight`, `headerBackImage`, `headerStyle`, etc.) for stack navigators in this app. The native header on iOS wraps components in `UIBarButtonItem`, which adds an ugly capsule/rounded-rect background that we can't style away.
+
+**Always** use `header: () => (...)` in `screenOptions` (or per-screen `options`) to render a fully custom header. This bypasses the native header entirely and gives us full control.
+
+**Standard header pattern** (used in settings, modals, and similar stack layouts):
+
+```tsx
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Stack, router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, fonts } from '@/theme';
+import { IconChevronLeft } from '@/components/ui/icons';
+
+// In screenOptions:
+header: ({ options }) => (
+  <SafeAreaView edges={['top']} style={{ backgroundColor: colors.bg }}>
+    <View style={{
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: spacing.section, height: 58,
+    }}>
+      <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
+        <IconChevronLeft size={24} color={colors.ink} />
+      </Pressable>
+      <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>
+        {options.title}
+      </Text>
+      <View style={{ width: 24 }} />
+    </View>
+  </SafeAreaView>
+),
+contentStyle: { backgroundColor: colors.bg },
+```
+
+**Back button rules:**
+- Always `IconChevronLeft` (from `@/components/ui/icons`), size 24, color `colors.ink`
+- Always `hitSlop={8}` on the Pressable
+- No text next to the chevron (no "Wróć", no "Back")
+- No native back button elements (`headerBackVisible: false` is irrelevant when using custom `header`)
+
+**Screen-specific headers** (like chat with avatar + name) still use `header: () => (...)` but with a custom layout inside the SafeAreaView. The back chevron Pressable must remain identical (same icon, size, hitSlop).
+
+**Files currently using this pattern:**
+- `apps/mobile/app/settings/_layout.tsx` — standard centered title
+- `apps/mobile/app/(modals)/_layout.tsx` — standard centered title
+- `apps/mobile/app/chat/[id].tsx` — custom with avatar + participant name
+
 ## Scripts convention
 
 All runnable tools must have a `scripts` entry in their own `package.json` AND a corresponding entry in the root `package.json` using the `pnpm --filter` pattern. Always run from the root directory using the root script.

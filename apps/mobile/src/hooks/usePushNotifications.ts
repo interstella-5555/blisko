@@ -90,7 +90,7 @@ export function usePushNotifications() {
           (data.type === 'chat' || data.type === 'group') &&
           data.conversationId
         ) {
-          router.push(`/(modals)/chat/${data.conversationId}` as any);
+          router.push(`/chat/${data.conversationId}` as any);
         }
       },
     );

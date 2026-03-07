@@ -15,6 +15,7 @@ import { useAuthStore } from '../../src/stores/authStore';
 import { trpc } from '../../src/lib/trpc';
 import { colors, type as typ, spacing, fonts } from '../../src/theme';
 import { Button } from '../../src/components/ui/Button';
+import ms from 'ms';
 
 type Duration = '1h' | '6h' | '24h' | 'never';
 
@@ -28,26 +29,74 @@ const DURATION_OPTIONS: { value: Duration; label: string }[] = [
 export default function SetStatusScreen() {
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
   const setProfile = useAuthStore((state) => state.setProfile);
-
   const [text, setText] = useState(prefill || '');
   const [duration, setDuration] = useState<Duration>('6h');
 
+  const isEditing = !!prefill;
+
   const utils = trpc.useUtils();
+  const invalidateAfterStatusChange = () => {
+    utils.profiles.me.invalidate();
+    utils.profiles.getNearbyUsersForMap.invalidate();
+  };
+
   const setStatus = trpc.profiles.setStatus.useMutation({
     onSuccess: (data) => {
       if (data) setProfile(data);
-      utils.profiles.me.invalidate();
-      router.back();
+      invalidateAfterStatusChange();
+    },
+  });
+  const clearStatus = trpc.profiles.clearStatus.useMutation({
+    onSuccess: (data) => {
+      if (data) setProfile(data);
+      invalidateAfterStatusChange();
     },
     onError: () => {
-      Alert.alert('Błąd', 'Nie udało się ustawić statusu');
+      Alert.alert('Błąd', 'Nie udało się wyczyścić statusu');
     },
   });
 
   const handleSubmit = () => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    setStatus.mutate({ text: trimmed, expiresIn: duration });
+
+    // Optimistic: update profile store + navigate back immediately
+    const previousProfile = useAuthStore.getState().profile;
+    if (previousProfile) {
+      setProfile({
+        ...previousProfile,
+        currentStatus: trimmed,
+        statusExpiresAt: duration === 'never'
+          ? null
+          : new Date(Date.now() + ms(duration)).toISOString(),
+        statusSetAt: new Date().toISOString(),
+      });
+    }
+    router.back();
+
+    setStatus.mutate(
+      { text: trimmed, expiresIn: duration },
+      {
+        onError: () => {
+    
+          if (previousProfile) setProfile(previousProfile);
+          Alert.alert('Błąd', 'Nie udało się ustawić statusu');
+        },
+      },
+    );
+  };
+
+  const handleClear = () => {
+    const previousProfile = useAuthStore.getState().profile;
+    if (previousProfile) {
+      setProfile({ ...previousProfile, currentStatus: null, statusExpiresAt: null, statusSetAt: null });
+    }
+    router.back();
+    clearStatus.mutate(undefined, {
+      onError: () => {
+        if (previousProfile) setProfile(previousProfile);
+      },
+    });
   };
 
   const canSubmit = text.trim().length > 0;
@@ -111,6 +160,11 @@ export default function SetStatusScreen() {
             disabled={!canSubmit}
             loading={setStatus.isPending}
           />
+          {isEditing && (
+            <Pressable onPress={handleClear} style={styles.clearButton} hitSlop={8}>
+              <Text style={styles.clearText}>Wyczyść status</Text>
+            </Pressable>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -185,5 +239,15 @@ const styles = StyleSheet.create({
   },
   submitContainer: {
     marginTop: spacing.column,
+    gap: spacing.column,
+    alignItems: 'center',
+  },
+  clearButton: {
+    paddingVertical: spacing.tight,
+  },
+  clearText: {
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    color: colors.muted,
   },
 });

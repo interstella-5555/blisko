@@ -203,7 +203,7 @@ export default function UserProfileScreen() {
 
   const handleOpenChat = () => {
     if (conversationId) {
-      router.push(`/(modals)/chat/${conversationId}`);
+      router.push(`/chat/${conversationId}`);
     }
   };
 

@@ -1,9 +1,9 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, Alert } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
-import { useAuthStore } from '../../src/stores/authStore';
-import { authClient } from '../../src/lib/auth';
-import { trpc } from '../../src/lib/trpc';
-import { colors, type as typ, spacing, fonts } from '../../src/theme';
+import Svg, { Path, Circle, Polyline } from 'react-native-svg';
+import { useAuthStore } from '@/stores/authStore';
+import { authClient } from '@/lib/auth';
+import { trpc } from '@/lib/trpc';
+import { colors, type as typ, spacing, fonts } from '@/theme';
 
 function FacebookIcon() {
   return (
@@ -42,6 +42,14 @@ function AppleIcon() {
   );
 }
 
+function CheckIcon() {
+  return (
+    <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={colors.status.success.text} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+      <Polyline points="20 6 9 17 4 12" />
+    </Svg>
+  );
+}
+
 const providerConfig = {
   google: { label: 'Google', Icon: GoogleIcon },
   apple: { label: 'Apple', Icon: AppleIcon },
@@ -69,20 +77,30 @@ function ConnectedAccountRow({
   const hasUsername = provider === 'facebook' || provider === 'linkedin';
 
   return (
-    <View style={styles.accountRow}>
-      <Icon />
+    <View style={styles.providerRow}>
+      <View style={styles.providerIcon}>
+        <Icon />
+      </View>
+      <View style={styles.providerInfo}>
+        <Text style={styles.providerName}>{label}</Text>
+        {connected ? (
+          <View style={styles.connectedBadge}>
+            <CheckIcon />
+            <Text style={styles.connectedText}>
+              {hasUsername && username ? `@${username}` : 'Połączono'}
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.providerStatus}>Nie połączono</Text>
+        )}
+      </View>
       {connected ? (
-        <>
-          <Text style={styles.accountHandle}>
-            {hasUsername ? `@${username}` : 'Polaczono'}
-          </Text>
-          <Pressable onPress={onDisconnect} disabled={disconnecting}>
-            <Text style={styles.disconnectText}>Odlacz</Text>
-          </Pressable>
-        </>
+        <Pressable onPress={onDisconnect} disabled={disconnecting} hitSlop={8}>
+          <Text style={styles.disconnectText}>ODŁĄCZ</Text>
+        </Pressable>
       ) : (
         <Pressable style={styles.connectButton} onPress={onConnect}>
-          <Text style={styles.connectText}>Polacz {label}</Text>
+          <Text style={styles.connectText}>POŁĄCZ</Text>
         </Pressable>
       )}
     </View>
@@ -101,11 +119,11 @@ export default function AccountScreen() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Usun konto',
-      'Czy na pewno chcesz trwale usunac swoje konto? Tej operacji nie mozna cofnac.',
+      'Usuń konto',
+      'Czy na pewno chcesz trwale usunąć swoje konto? Tej operacji nie można cofnąć.',
       [
         { text: 'Anuluj', style: 'cancel' },
-        { text: 'Usun', style: 'destructive', onPress: () => {
+        { text: 'Usuń', style: 'destructive', onPress: () => {
           // TODO: call delete account API
         }},
       ]
@@ -114,13 +132,11 @@ export default function AccountScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Email section */}
       <Text style={styles.sectionLabel}>EMAIL</Text>
       <Text style={styles.emailText}>{user?.email}</Text>
 
-      {/* Connected accounts section */}
       <View style={styles.divider} />
-      <Text style={styles.sectionLabel}>POLACZONE KONTA</Text>
+      <Text style={styles.sectionLabel}>POŁĄCZONE KONTA</Text>
 
       {connectedAccounts.isLoading ? (
         <ActivityIndicator color={colors.muted} style={{ marginVertical: spacing.gutter }} />
@@ -159,11 +175,10 @@ export default function AccountScreen() {
         </>
       )}
 
-      {/* Delete account section */}
       <Pressable style={styles.deleteSection} onPress={handleDeleteAccount}>
-        <Text style={styles.deleteText}>Usun konto</Text>
+        <Text style={styles.deleteText}>Usuń konto</Text>
         <Text style={styles.deleteDescription}>
-          Trwale usuwa Twoje konto, profil i wszystkie dane. Tej operacji nie mozna cofnac.
+          Trwale usuwa Twoje konto, profil i wszystkie dane. Tej operacji nie można cofnąć.
         </Text>
       </Pressable>
     </ScrollView>
@@ -192,20 +207,51 @@ const styles = StyleSheet.create({
     backgroundColor: colors.rule,
     marginVertical: spacing.section,
   },
-  accountRow: {
+  providerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.gutter,
-    marginBottom: spacing.gutter,
+    gap: spacing.column,
+    paddingVertical: spacing.gutter,
   },
-  accountHandle: {
+  providerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: colors.mapBg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  providerInfo: {
     flex: 1,
-    fontFamily: fonts.sans,
-    fontSize: 16,
+  },
+  providerName: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 15,
     color: colors.ink,
   },
+  providerStatus: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  connectedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  connectedText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.status.success.text,
+  },
   connectButton: {
-    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
   },
   connectText: {
     fontFamily: fonts.sansSemiBold,
