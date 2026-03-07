@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { eq, inArray, or } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 interface ExportData {
@@ -64,20 +64,10 @@ function shortHash(id: string): string {
   return createHash("sha256").update(id).digest("hex").slice(0, 6);
 }
 
-async function buildUserLabelMap(userIds: string[]): Promise<Map<string, string>> {
+function buildUserLabelMap(userIds: string[]): Map<string, string> {
   const map = new Map<string, string>();
-  if (userIds.length === 0) return map;
-
-  const profiles = await db
-    .select({ userId: schema.profiles.userId, displayName: schema.profiles.displayName })
-    .from(schema.profiles)
-    .where(inArray(schema.profiles.userId, userIds));
-
-  const nameMap = new Map(profiles.map((p) => [p.userId, p.displayName]));
-
   for (const id of userIds) {
-    const name = nameMap.get(id) ?? "Użytkownik";
-    map.set(id, `${name} (${shortHash(id)})`);
+    map.set(id, `Użytkownik (${shortHash(id)})`);
   }
   return map;
 }
@@ -186,7 +176,7 @@ export async function collectAndExportUserData(userId: string, email: string) {
   for (const m of statusMatches) otherUserIds.add(m.matchedUserId);
 
   // Build label map: "Ania (a3f8c2)" format
-  const labelMap = await buildUserLabelMap([...otherUserIds]);
+  const labelMap = buildUserLabelMap([...otherUserIds]);
   const label = (id: string) => labelMap.get(id) ?? `Użytkownik (${shortHash(id)})`;
 
   // Assemble export
