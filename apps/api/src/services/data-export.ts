@@ -1,4 +1,5 @@
-import { eq, or } from "drizzle-orm";
+import { createHash } from "node:crypto";
+import { eq, inArray, or } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 interface ExportData {
@@ -59,21 +60,29 @@ interface ExportData {
   }[];
 }
 
-function buildAnonymizer() {
+function shortHash(id: string): string {
+  return createHash("sha256").update(id).digest("hex").slice(0, 6);
+}
+
+async function buildUserLabelMap(userIds: string[]): Promise<Map<string, string>> {
   const map = new Map<string, string>();
-  let counter = 0;
-  return (userId: string): string => {
-    if (!map.has(userId)) {
-      counter++;
-      map.set(userId, `Anonymized User #${counter}`);
-    }
-    return map.get(userId)!;
-  };
+  if (userIds.length === 0) return map;
+
+  const profiles = await db
+    .select({ userId: schema.profiles.userId, displayName: schema.profiles.displayName })
+    .from(schema.profiles)
+    .where(inArray(schema.profiles.userId, userIds));
+
+  const nameMap = new Map(profiles.map((p) => [p.userId, p.displayName]));
+
+  for (const id of userIds) {
+    const name = nameMap.get(id) ?? "Użytkownik";
+    map.set(id, `${name} (${shortHash(id)})`);
+  }
+  return map;
 }
 
 export async function collectAndExportUserData(userId: string, email: string) {
-  const anon = buildAnonymizer();
-
   // 1. User
   const [userData] = await db
     .select({
@@ -102,7 +111,6 @@ export async function collectAndExportUserData(userId: string, email: string) {
 
   // 4. Waves
   const sentWaves = await db.select().from(schema.waves).where(eq(schema.waves.fromUserId, userId));
-
   const receivedWaves = await db.select().from(schema.waves).where(eq(schema.waves.toUserId, userId));
 
   // 5. Conversations & messages
@@ -112,30 +120,32 @@ export async function collectAndExportUserData(userId: string, email: string) {
     .where(eq(schema.conversationParticipants.userId, userId));
 
   const conversationsExport = [];
+  const otherUserIds = new Set<string>();
+
+  // Collect all other user IDs first
+  for (const w of sentWaves) otherUserIds.add(w.toUserId);
+  for (const w of receivedWaves) otherUserIds.add(w.fromUserId);
+
   for (const p of participations) {
     const allParticipants = await db
       .select({ userId: schema.conversationParticipants.userId })
       .from(schema.conversationParticipants)
       .where(eq(schema.conversationParticipants.conversationId, p.conversationId));
 
-    const otherParticipants = allParticipants.filter((pp) => pp.userId !== userId).map((pp) => anon(pp.userId));
+    for (const pp of allParticipants) {
+      if (pp.userId !== userId) otherUserIds.add(pp.userId);
+    }
 
     const messages = await db
       .select()
       .from(schema.messages)
       .where(eq(schema.messages.conversationId, p.conversationId));
 
-    conversationsExport.push({
-      id: p.conversationId,
-      participants: otherParticipants,
-      messages: messages.map((m) => ({
-        content: m.content,
-        type: m.type,
-        sentByMe: m.senderId === userId,
-        senderName: m.senderId === userId ? null : anon(m.senderId),
-        createdAt: m.createdAt.toISOString(),
-      })),
-    });
+    for (const m of messages) {
+      if (m.senderId !== userId) otherUserIds.add(m.senderId);
+    }
+
+    conversationsExport.push({ conversationId: p.conversationId, allParticipants, messages });
   }
 
   // 6. Reactions
@@ -146,6 +156,10 @@ export async function collectAndExportUserData(userId: string, email: string) {
     .select()
     .from(schema.connectionAnalyses)
     .where(or(eq(schema.connectionAnalyses.fromUserId, userId), eq(schema.connectionAnalyses.toUserId, userId)));
+
+  for (const a of analyses) {
+    otherUserIds.add(a.fromUserId === userId ? a.toUserId : a.fromUserId);
+  }
 
   // 8. Profiling sessions & QA
   const sessions = await db.select().from(schema.profilingSessions).where(eq(schema.profilingSessions.userId, userId));
@@ -165,9 +179,15 @@ export async function collectAndExportUserData(userId: string, email: string) {
 
   // 9. Blocks
   const blocks = await db.select().from(schema.blocks).where(eq(schema.blocks.blockerId, userId));
+  for (const b of blocks) otherUserIds.add(b.blockedId);
 
   // 10. Status matches
   const statusMatches = await db.select().from(schema.statusMatches).where(eq(schema.statusMatches.userId, userId));
+  for (const m of statusMatches) otherUserIds.add(m.matchedUserId);
+
+  // Build label map: "Ania (a3f8c2)" format
+  const labelMap = await buildUserLabelMap([...otherUserIds]);
+  const label = (id: string) => labelMap.get(id) ?? `Użytkownik (${shortHash(id)})`;
 
   // Assemble export
   const exportData: ExportData = {
@@ -200,35 +220,45 @@ export async function collectAndExportUserData(userId: string, email: string) {
       .map((a) => ({ provider: a.providerId, scope: a.scope })),
     waves: {
       sent: sentWaves.map((w) => ({
-        toUser: anon(w.toUserId),
+        toUser: label(w.toUserId),
         status: w.status,
         createdAt: w.createdAt.toISOString(),
       })),
       received: receivedWaves.map((w) => ({
-        fromUser: anon(w.fromUserId),
+        fromUser: label(w.fromUserId),
         status: w.status,
         createdAt: w.createdAt.toISOString(),
       })),
     },
-    conversations: conversationsExport,
+    conversations: conversationsExport.map((c) => ({
+      id: c.conversationId,
+      participants: c.allParticipants.filter((pp) => pp.userId !== userId).map((pp) => label(pp.userId)),
+      messages: c.messages.map((m) => ({
+        content: m.content,
+        type: m.type,
+        sentByMe: m.senderId === userId,
+        senderName: m.senderId === userId ? null : label(m.senderId),
+        createdAt: m.createdAt.toISOString(),
+      })),
+    })),
     reactions: reactions.map((r) => ({
       messageId: r.messageId,
       reaction: r.emoji,
       createdAt: r.createdAt.toISOString(),
     })),
     connectionAnalyses: analyses.map((a) => ({
-      otherUser: anon(a.fromUserId === userId ? a.toUserId : a.fromUserId),
+      otherUser: label(a.fromUserId === userId ? a.toUserId : a.fromUserId),
       matchScore: a.aiMatchScore,
       description: a.longDescription,
       createdAt: a.createdAt.toISOString(),
     })),
     profilingSessions: sessionsExport,
     blocks: blocks.map((b) => ({
-      blockedUser: anon(b.blockedId),
+      blockedUser: label(b.blockedId),
       createdAt: b.createdAt.toISOString(),
     })),
     statusMatches: statusMatches.map((m) => ({
-      otherUser: anon(m.matchedUserId),
+      otherUser: label(m.matchedUserId),
       status: m.reason,
       createdAt: m.createdAt.toISOString(),
     })),
