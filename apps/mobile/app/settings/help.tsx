@@ -41,20 +41,8 @@ export default function HelpScreen() {
         label="Zglos problem"
         onPress={() => Linking.openURL("mailto:support@blisko.app?subject=Zgloszenie problemu")}
       />
-      <Row
-        label="Regulamin"
-        onPress={() => {
-          // TODO: link to terms of service URL
-          Linking.openURL("https://blisko.app/regulamin");
-        }}
-      />
-      <Row
-        label="Polityka prywatnosci"
-        onPress={() => {
-          // TODO: link to privacy policy URL
-          Linking.openURL("https://blisko.app/prywatnosc");
-        }}
-      />
+      <Row label="Regulamin" onPress={() => Linking.openURL("https://blisko.app/terms")} />
+      <Row label="Polityka prywatnosci" onPress={() => Linking.openURL("https://blisko.app/privacy")} />
     </View>
   );
 }
