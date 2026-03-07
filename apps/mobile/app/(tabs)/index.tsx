@@ -8,6 +8,7 @@ import {
   Animated,
   Easing,
   Pressable,
+  PanResponder,
 } from 'react-native';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useWebSocket } from '../../src/lib/ws';
@@ -65,6 +66,8 @@ export default function NearbyScreen() {
 
   const [mapExpanded, setMapExpanded] = useState(true);
   const mapHeight = useRef(new Animated.Value(MAP_EXPANDED_HEIGHT)).current;
+  const mapExpandedRef = useRef(mapExpanded);
+  mapExpandedRef.current = mapExpanded;
   const mapRef = useRef<NearbyMapRef>(null);
 
   const [mapRegion, setMapRegion] = useState<Region | null>(null);
@@ -347,22 +350,49 @@ export default function NearbyScreen() {
     ]).finally(() => setIsManualRefresh(false));
   }, [utils]);
 
-  const toggleMap = useCallback(() => {
-    const toValue = mapExpanded ? 0 : MAP_EXPANDED_HEIGHT;
-    const animation = mapExpanded
-      ? Animated.timing(mapHeight, {
-          toValue,
-          duration: 300,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: false,
-        })
-      : Animated.spring(mapHeight, {
-          toValue,
-          useNativeDriver: false,
-        });
-    animation.start();
-    setMapExpanded((v) => !v);
-  }, [mapExpanded, mapHeight]);
+  const mapPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, { dy }) => Math.abs(dy) > 5,
+      onPanResponderMove: (_, { dy }) => {
+        const base = mapExpandedRef.current ? MAP_EXPANDED_HEIGHT : 0;
+        mapHeight.setValue(Math.max(0, Math.min(MAP_EXPANDED_HEIGHT, base + dy)));
+      },
+      onPanResponderRelease: (_, { dy, vy }) => {
+        const expanded = mapExpandedRef.current;
+
+        // Tap — toggle
+        if (Math.abs(dy) < 5) {
+          const toValue = expanded ? 0 : MAP_EXPANDED_HEIGHT;
+          if (expanded) {
+            Animated.timing(mapHeight, { toValue, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+          } else {
+            Animated.spring(mapHeight, { toValue, useNativeDriver: false }).start();
+          }
+          setMapExpanded(!expanded);
+          return;
+        }
+
+        const threshold = MAP_EXPANDED_HEIGHT * 0.3;
+
+        // Swipe up to collapse
+        if (expanded && (dy < -threshold || vy < -0.5)) {
+          Animated.timing(mapHeight, { toValue: 0, duration: 200, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+          setMapExpanded(false);
+        }
+        // Swipe down to expand
+        else if (!expanded && (dy > threshold || vy > 0.5)) {
+          Animated.spring(mapHeight, { toValue: MAP_EXPANDED_HEIGHT, useNativeDriver: false }).start();
+          setMapExpanded(true);
+        }
+        // Snap back
+        else {
+          const toValue = expanded ? MAP_EXPANDED_HEIGHT : 0;
+          Animated.spring(mapHeight, { toValue, useNativeDriver: false }).start();
+        }
+      },
+    })
+  ).current;
 
   const displayCount = displayUsers.length;
 
@@ -557,12 +587,13 @@ export default function NearbyScreen() {
         </View>
       </Animated.View>
 
-      {/* Map toggle bar */}
-      <Pressable onPress={toggleMap} style={styles.mapToggle}>
+      {/* Map toggle bar — tap or swipe to show/hide */}
+      <View {...mapPanResponder.panHandlers} style={styles.mapToggle}>
+        <View style={styles.dragHandle} />
         <Text style={styles.mapToggleText}>
           {mapExpanded ? 'UKRYJ MAPĘ' : 'POKAŻ MAPĘ'}
         </Text>
-      </Pressable>
+      </View>
 
       {/* Filter chips + funnel */}
       <View style={styles.filterRow}>
@@ -715,10 +746,19 @@ const styles = StyleSheet.create({
   },
   mapToggle: {
     backgroundColor: colors.mapBg,
-    paddingVertical: spacing.gutter,
+    paddingTop: 6,
+    paddingBottom: spacing.gutter,
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.rule,
+  },
+  dragHandle: {
+    width: 28,
+    height: 2.5,
+    borderRadius: 1.25,
+    backgroundColor: colors.rule,
+    opacity: 0.5,
+    marginBottom: 4,
   },
   mapToggleText: {
     fontFamily: fonts.sansSemiBold,
