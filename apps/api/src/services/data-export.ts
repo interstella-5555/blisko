@@ -75,21 +75,23 @@ function buildUserLabelMap(userIds: string[]): Map<string, string> {
 
 export async function collectAndExportUserData(userId: string, email: string) {
   // 1. User
-  const [userData] = await db
-    .select({
-      id: schema.user.id,
-      name: schema.user.name,
-      email: schema.user.email,
-      createdAt: schema.user.createdAt,
-      updatedAt: schema.user.updatedAt,
-    })
-    .from(schema.user)
-    .where(eq(schema.user.id, userId));
+  const userData = await db.query.user.findFirst({
+    where: eq(schema.user.id, userId),
+    columns: {
+      id: true,
+      name: true,
+      email: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
 
   if (!userData) throw new Error(`User ${userId} not found`);
 
   // 2. Profile
-  const [profile] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, userId));
+  const profile = await db.query.profiles.findFirst({
+    where: eq(schema.profiles.userId, userId),
+  });
 
   // 3. Connected accounts (no tokens!)
   const accounts = await db

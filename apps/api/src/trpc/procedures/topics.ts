@@ -7,15 +7,12 @@ import { protectedProcedure, router } from "@/trpc/trpc";
 import { ee } from "@/ws/events";
 
 async function requireGroupMember(conversationId: string, userId: string) {
-  const [participant] = await db
-    .select()
-    .from(schema.conversationParticipants)
-    .where(
-      and(
-        eq(schema.conversationParticipants.conversationId, conversationId),
-        eq(schema.conversationParticipants.userId, userId),
-      ),
-    );
+  const participant = await db.query.conversationParticipants.findFirst({
+    where: and(
+      eq(schema.conversationParticipants.conversationId, conversationId),
+      eq(schema.conversationParticipants.userId, userId),
+    ),
+  });
 
   if (!participant) {
     throw new TRPCError({
@@ -43,10 +40,9 @@ async function requireAdmin(conversationId: string, userId: string) {
 export const topicsRouter = router({
   create: protectedProcedure.input(createTopicSchema).mutation(async ({ ctx, input }) => {
     // Verify this is a group conversation
-    const [conv] = await db
-      .select()
-      .from(schema.conversations)
-      .where(and(eq(schema.conversations.id, input.conversationId), eq(schema.conversations.type, "group")));
+    const conv = await db.query.conversations.findFirst({
+      where: and(eq(schema.conversations.id, input.conversationId), eq(schema.conversations.type, "group")),
+    });
 
     if (!conv) {
       throw new TRPCError({
@@ -77,7 +73,9 @@ export const topicsRouter = router({
   }),
 
   update: protectedProcedure.input(updateTopicSchema).mutation(async ({ ctx, input }) => {
-    const [topic] = await db.select().from(schema.topics).where(eq(schema.topics.id, input.topicId));
+    const topic = await db.query.topics.findFirst({
+      where: eq(schema.topics.id, input.topicId),
+    });
 
     if (!topic) {
       throw new TRPCError({
@@ -107,7 +105,9 @@ export const topicsRouter = router({
   }),
 
   delete: protectedProcedure.input(z.object({ topicId: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    const [topic] = await db.select().from(schema.topics).where(eq(schema.topics.id, input.topicId));
+    const topic = await db.query.topics.findFirst({
+      where: eq(schema.topics.id, input.topicId),
+    });
 
     if (!topic) {
       throw new TRPCError({

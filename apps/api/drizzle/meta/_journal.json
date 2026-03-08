@@ -57,6 +57,13 @@
       "when": 1772929683880,
       "tag": "0007_add-missing-indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772976332922,
+      "tag": "0008_add-connection-analyses-unique-pair",
+      "breakpoints": true
     }
   ]
 }

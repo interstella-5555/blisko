@@ -130,8 +130,12 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
   const t0 = performance.now();
 
   // --- db-fetch phase ---
-  const [profileA] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, userAId));
-  const [profileB] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, userBId));
+  const profileA = await db.query.profiles.findFirst({
+    where: eq(schema.profiles.userId, userAId),
+  });
+  const profileB = await db.query.profiles.findFirst({
+    where: eq(schema.profiles.userId, userBId),
+  });
 
   const nameA = job.data.nameA ?? profileA?.displayName ?? userAId.slice(0, 8);
   const nameB = job.data.nameB ?? profileB?.displayName ?? userBId.slice(0, 8);
@@ -180,20 +184,9 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
   const tWrite0 = performance.now();
   const now = new Date();
 
-  if (existingAB) {
-    await db
-      .update(schema.connectionAnalyses)
-      .set({
-        shortSnippet: result.snippetForA,
-        longDescription: result.descriptionForA,
-        aiMatchScore: result.matchScoreForA,
-        fromProfileHash: hashA,
-        toProfileHash: hashB,
-        updatedAt: now,
-      })
-      .where(eq(schema.connectionAnalyses.id, existingAB.id));
-  } else {
-    await db.insert(schema.connectionAnalyses).values({
+  await db
+    .insert(schema.connectionAnalyses)
+    .values({
       fromUserId: userAId,
       toUserId: userBId,
       shortSnippet: result.snippetForA,
@@ -203,8 +196,18 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       toProfileHash: hashB,
       createdAt: now,
       updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: [schema.connectionAnalyses.fromUserId, schema.connectionAnalyses.toUserId],
+      set: {
+        shortSnippet: result.snippetForA,
+        longDescription: result.descriptionForA,
+        aiMatchScore: result.matchScoreForA,
+        fromProfileHash: hashA,
+        toProfileHash: hashB,
+        updatedAt: now,
+      },
     });
-  }
 
   ee.emit("analysisReady", {
     forUserId: userAId,
@@ -220,25 +223,9 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
     }),
   );
 
-  const [existingBA] = await db
-    .select()
-    .from(schema.connectionAnalyses)
-    .where(and(eq(schema.connectionAnalyses.fromUserId, userBId), eq(schema.connectionAnalyses.toUserId, userAId)));
-
-  if (existingBA) {
-    await db
-      .update(schema.connectionAnalyses)
-      .set({
-        shortSnippet: result.snippetForB,
-        longDescription: result.descriptionForB,
-        aiMatchScore: result.matchScoreForB,
-        fromProfileHash: hashB,
-        toProfileHash: hashA,
-        updatedAt: now,
-      })
-      .where(eq(schema.connectionAnalyses.id, existingBA.id));
-  } else {
-    await db.insert(schema.connectionAnalyses).values({
+  await db
+    .insert(schema.connectionAnalyses)
+    .values({
       fromUserId: userBId,
       toUserId: userAId,
       shortSnippet: result.snippetForB,
@@ -248,8 +235,18 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       toProfileHash: hashA,
       createdAt: now,
       updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: [schema.connectionAnalyses.fromUserId, schema.connectionAnalyses.toUserId],
+      set: {
+        shortSnippet: result.snippetForB,
+        longDescription: result.descriptionForB,
+        aiMatchScore: result.matchScoreForB,
+        fromProfileHash: hashB,
+        toProfileHash: hashA,
+        updatedAt: now,
+      },
     });
-  }
 
   ee.emit("analysisReady", {
     forUserId: userBId,
@@ -291,14 +288,14 @@ async function processAnalyzeUserPairs(userId: string, latitude: number, longitu
   const allBlockedIds = new Set([...blockedUsers.map((b) => b.blockedId), ...blockedByUsers.map((b) => b.blockerId)]);
 
   // Fetch current user's embedding & interests for ranking
-  const [myProfile] = await db
-    .select({
-      displayName: schema.profiles.displayName,
-      embedding: schema.profiles.embedding,
-      interests: schema.profiles.interests,
-    })
-    .from(schema.profiles)
-    .where(eq(schema.profiles.userId, userId));
+  const myProfile = await db.query.profiles.findFirst({
+    where: eq(schema.profiles.userId, userId),
+    columns: {
+      displayName: true,
+      embedding: true,
+      interests: true,
+    },
+  });
 
   const myEmbedding = myProfile?.embedding ?? [];
   const myInterests = new Set(myProfile?.interests ?? []);
@@ -449,7 +446,9 @@ async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
 // --- Status matching processor ---
 
 async function processStatusMatching(userId: string) {
-  const [user] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, userId));
+  const user = await db.query.profiles.findFirst({
+    where: eq(schema.profiles.userId, userId),
+  });
 
   if (!user?.currentStatus) return;
   if (!user.isComplete) return;
@@ -566,10 +565,13 @@ async function processHardDeleteUser(userId: string) {
   console.log(`[queue] hard-delete-user starting for ${userId}`);
 
   // 1. Get S3 file keys from profile before deleting
-  const [profile] = await db
-    .select({ avatarUrl: schema.profiles.avatarUrl, portrait: schema.profiles.portrait })
-    .from(schema.profiles)
-    .where(eq(schema.profiles.userId, userId));
+  const profile = await db.query.profiles.findFirst({
+    where: eq(schema.profiles.userId, userId),
+    columns: {
+      avatarUrl: true,
+      portrait: true,
+    },
+  });
 
   // 2. Delete S3 files
   if (profile) {

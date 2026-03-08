@@ -25,15 +25,12 @@ function generateInviteCode(): string {
 }
 
 async function requireGroupParticipant(conversationId: string, userId: string, minRole?: "admin" | "owner") {
-  const [participant] = await db
-    .select()
-    .from(schema.conversationParticipants)
-    .where(
-      and(
-        eq(schema.conversationParticipants.conversationId, conversationId),
-        eq(schema.conversationParticipants.userId, userId),
-      ),
-    );
+  const participant = await db.query.conversationParticipants.findFirst({
+    where: and(
+      eq(schema.conversationParticipants.conversationId, conversationId),
+      eq(schema.conversationParticipants.userId, userId),
+    ),
+  });
 
   if (!participant) {
     throw new TRPCError({
@@ -60,10 +57,9 @@ async function requireGroupParticipant(conversationId: string, userId: string, m
 }
 
 async function requireGroup(conversationId: string) {
-  const [conv] = await db
-    .select()
-    .from(schema.conversations)
-    .where(and(eq(schema.conversations.id, conversationId), eq(schema.conversations.type, "group")));
+  const conv = await db.query.conversations.findFirst({
+    where: and(eq(schema.conversations.id, conversationId), eq(schema.conversations.type, "group")),
+  });
 
   if (!conv) {
     throw new TRPCError({
@@ -175,10 +171,9 @@ export const groupsRouter = router({
   }),
 
   join: protectedProcedure.input(joinGroupSchema).mutation(async ({ ctx, input }) => {
-    const [conv] = await db
-      .select()
-      .from(schema.conversations)
-      .where(and(eq(schema.conversations.inviteCode, input.inviteCode), eq(schema.conversations.type, "group")));
+    const conv = await db.query.conversations.findFirst({
+      where: and(eq(schema.conversations.inviteCode, input.inviteCode), eq(schema.conversations.type, "group")),
+    });
 
     if (!conv) {
       throw new TRPCError({
@@ -188,15 +183,12 @@ export const groupsRouter = router({
     }
 
     // Check if already a member
-    const [existing] = await db
-      .select()
-      .from(schema.conversationParticipants)
-      .where(
-        and(
-          eq(schema.conversationParticipants.conversationId, conv.id),
-          eq(schema.conversationParticipants.userId, ctx.userId),
-        ),
-      );
+    const existing = await db.query.conversationParticipants.findFirst({
+      where: and(
+        eq(schema.conversationParticipants.conversationId, conv.id),
+        eq(schema.conversationParticipants.userId, ctx.userId),
+      ),
+    });
 
     if (existing) {
       return conv;
@@ -221,10 +213,10 @@ export const groupsRouter = router({
       role: "member",
     });
 
-    const [profile] = await db
-      .select({ displayName: schema.profiles.displayName })
-      .from(schema.profiles)
-      .where(eq(schema.profiles.userId, ctx.userId));
+    const profile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+      columns: { displayName: true },
+    });
 
     ee.emit("groupMember", {
       conversationId: conv.id,
@@ -250,15 +242,12 @@ export const groupsRouter = router({
       }
 
       // Check if already a member
-      const [existing] = await db
-        .select()
-        .from(schema.conversationParticipants)
-        .where(
-          and(
-            eq(schema.conversationParticipants.conversationId, conv.id),
-            eq(schema.conversationParticipants.userId, ctx.userId),
-          ),
-        );
+      const existing = await db.query.conversationParticipants.findFirst({
+        where: and(
+          eq(schema.conversationParticipants.conversationId, conv.id),
+          eq(schema.conversationParticipants.userId, ctx.userId),
+        ),
+      });
 
       if (existing) {
         return conv;
@@ -283,10 +272,10 @@ export const groupsRouter = router({
         role: "member",
       });
 
-      const [profile] = await db
-        .select({ displayName: schema.profiles.displayName })
-        .from(schema.profiles)
-        .where(eq(schema.profiles.userId, ctx.userId));
+      const profile = await db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, ctx.userId),
+        columns: { displayName: true },
+      });
 
       ee.emit("groupMember", {
         conversationId: conv.id,
@@ -372,15 +361,12 @@ export const groupsRouter = router({
     await requireGroupParticipant(input.conversationId, ctx.userId, "admin");
 
     // Check if already a member
-    const [existing] = await db
-      .select()
-      .from(schema.conversationParticipants)
-      .where(
-        and(
-          eq(schema.conversationParticipants.conversationId, input.conversationId),
-          eq(schema.conversationParticipants.userId, input.userId),
-        ),
-      );
+    const existing = await db.query.conversationParticipants.findFirst({
+      where: and(
+        eq(schema.conversationParticipants.conversationId, input.conversationId),
+        eq(schema.conversationParticipants.userId, input.userId),
+      ),
+    });
 
     if (existing) {
       throw new TRPCError({
@@ -409,10 +395,10 @@ export const groupsRouter = router({
       role: "member",
     });
 
-    const [profile] = await db
-      .select({ displayName: schema.profiles.displayName })
-      .from(schema.profiles)
-      .where(eq(schema.profiles.userId, input.userId));
+    const profile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, input.userId),
+      columns: { displayName: true },
+    });
 
     ee.emit("groupMember", {
       conversationId: input.conversationId,
@@ -441,15 +427,12 @@ export const groupsRouter = router({
     await requireGroupParticipant(input.conversationId, ctx.userId, "admin");
 
     // Can't remove the owner
-    const [target] = await db
-      .select()
-      .from(schema.conversationParticipants)
-      .where(
-        and(
-          eq(schema.conversationParticipants.conversationId, input.conversationId),
-          eq(schema.conversationParticipants.userId, input.userId),
-        ),
-      );
+    const target = await db.query.conversationParticipants.findFirst({
+      where: and(
+        eq(schema.conversationParticipants.conversationId, input.conversationId),
+        eq(schema.conversationParticipants.userId, input.userId),
+      ),
+    });
 
     if (!target) {
       throw new TRPCError({
@@ -487,15 +470,12 @@ export const groupsRouter = router({
     await requireGroup(input.conversationId);
     await requireGroupParticipant(input.conversationId, ctx.userId, "owner");
 
-    const [target] = await db
-      .select()
-      .from(schema.conversationParticipants)
-      .where(
-        and(
-          eq(schema.conversationParticipants.conversationId, input.conversationId),
-          eq(schema.conversationParticipants.userId, input.userId),
-        ),
-      );
+    const target = await db.query.conversationParticipants.findFirst({
+      where: and(
+        eq(schema.conversationParticipants.conversationId, input.conversationId),
+        eq(schema.conversationParticipants.userId, input.userId),
+      ),
+    });
 
     if (!target) {
       throw new TRPCError({
@@ -606,15 +586,12 @@ export const groupsRouter = router({
     await requireGroupParticipant(input.conversationId, ctx.userId, "owner");
 
     // Verify target is a member
-    const [target] = await db
-      .select()
-      .from(schema.conversationParticipants)
-      .where(
-        and(
-          eq(schema.conversationParticipants.conversationId, input.conversationId),
-          eq(schema.conversationParticipants.userId, input.userId),
-        ),
-      );
+    const target = await db.query.conversationParticipants.findFirst({
+      where: and(
+        eq(schema.conversationParticipants.conversationId, input.conversationId),
+        eq(schema.conversationParticipants.userId, input.userId),
+      ),
+    });
 
     if (!target) {
       throw new TRPCError({
@@ -674,15 +651,12 @@ export const groupsRouter = router({
       const conv = await requireGroup(input.conversationId);
 
       // Check if user is a member
-      const [participant] = await db
-        .select()
-        .from(schema.conversationParticipants)
-        .where(
-          and(
-            eq(schema.conversationParticipants.conversationId, input.conversationId),
-            eq(schema.conversationParticipants.userId, ctx.userId),
-          ),
-        );
+      const participant = await db.query.conversationParticipants.findFirst({
+        where: and(
+          eq(schema.conversationParticipants.conversationId, input.conversationId),
+          eq(schema.conversationParticipants.userId, ctx.userId),
+        ),
+      });
 
       const isMember = !!participant;
 

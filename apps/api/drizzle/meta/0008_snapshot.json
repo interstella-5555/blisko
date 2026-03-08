@@ -1,6 +1,6 @@
 {
-  "id": "fce88eb5-ff83-4c99-b9bf-c73019b81b5a",
-  "prevId": "7af75fd6-7b8b-46a8-8e94-ecf4f579ecc2",
+  "id": "afb58d2b-ca2f-4c99-88dc-1d2be7b10344",
+  "prevId": "fce88eb5-ff83-4c99-b9bf-c73019b81b5a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -277,8 +277,8 @@
         }
       },
       "indexes": {
-        "ca_pair_idx": {
-          "name": "ca_pair_idx",
+        "ca_pair_uniq": {
+          "name": "ca_pair_uniq",
           "columns": [
             {
               "expression": "from_user_id",
@@ -293,7 +293,7 @@
               "nulls": "last"
             }
           ],
-          "isUnique": false,
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}

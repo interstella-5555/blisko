@@ -38,10 +38,10 @@ async function loadPreviousSessionQA(session: {
 }
 
 async function getDisplayName(userId: string): Promise<string> {
-  const [profile] = await db
-    .select({ displayName: schema.profiles.displayName })
-    .from(schema.profiles)
-    .where(eq(schema.profiles.userId, userId));
+  const profile = await db.query.profiles.findFirst({
+    where: eq(schema.profiles.userId, userId),
+    columns: { displayName: true },
+  });
   return profile?.displayName ?? "Uzytkownik";
 }
 
@@ -58,12 +58,13 @@ export const profilingRouter = router({
 
     // Validate basedOnSessionId ownership
     if (input.basedOnSessionId) {
-      const [prevSession] = await db
-        .select({ id: schema.profilingSessions.id })
-        .from(schema.profilingSessions)
-        .where(
-          and(eq(schema.profilingSessions.id, input.basedOnSessionId), eq(schema.profilingSessions.userId, ctx.userId)),
-        );
+      const prevSession = await db.query.profilingSessions.findFirst({
+        where: and(
+          eq(schema.profilingSessions.id, input.basedOnSessionId),
+          eq(schema.profilingSessions.userId, ctx.userId),
+        ),
+        columns: { id: true },
+      });
       if (!prevSession) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Previous session not found" });
       }
@@ -89,28 +90,23 @@ export const profilingRouter = router({
 
   // Answer the current question
   answerQuestion: protectedProcedure.input(answerQuestionSchema).mutation(async ({ ctx, input }) => {
-    const [session] = await db
-      .select()
-      .from(schema.profilingSessions)
-      .where(
-        and(
-          eq(schema.profilingSessions.id, input.sessionId),
-          eq(schema.profilingSessions.userId, ctx.userId),
-          eq(schema.profilingSessions.status, "active"),
-        ),
-      );
+    const session = await db.query.profilingSessions.findFirst({
+      where: and(
+        eq(schema.profilingSessions.id, input.sessionId),
+        eq(schema.profilingSessions.userId, ctx.userId),
+        eq(schema.profilingSessions.status, "active"),
+      ),
+    });
 
     if (!session) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Session not found or not active" });
     }
 
     // Get latest unanswered question
-    const [latestQ] = await db
-      .select()
-      .from(schema.profilingQA)
-      .where(eq(schema.profilingQA.sessionId, input.sessionId))
-      .orderBy(desc(schema.profilingQA.questionNumber))
-      .limit(1);
+    const latestQ = await db.query.profilingQA.findFirst({
+      where: eq(schema.profilingQA.sessionId, input.sessionId),
+      orderBy: [desc(schema.profilingQA.questionNumber)],
+    });
 
     if (!latestQ || latestQ.answer != null) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "No unanswered question" });
@@ -140,28 +136,24 @@ export const profilingRouter = router({
 
   // Request more questions after AI said sufficient
   requestMoreQuestions: protectedProcedure.input(requestMoreQuestionsSchema).mutation(async ({ ctx, input }) => {
-    const [session] = await db
-      .select()
-      .from(schema.profilingSessions)
-      .where(
-        and(
-          eq(schema.profilingSessions.id, input.sessionId),
-          eq(schema.profilingSessions.userId, ctx.userId),
-          eq(schema.profilingSessions.status, "active"),
-        ),
-      );
+    const session = await db.query.profilingSessions.findFirst({
+      where: and(
+        eq(schema.profilingSessions.id, input.sessionId),
+        eq(schema.profilingSessions.userId, ctx.userId),
+        eq(schema.profilingSessions.status, "active"),
+      ),
+    });
 
     if (!session) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Session not found or not active" });
     }
 
     // Ensure latest question is answered before requesting more
-    const [latestQ] = await db
-      .select({ answer: schema.profilingQA.answer })
-      .from(schema.profilingQA)
-      .where(eq(schema.profilingQA.sessionId, input.sessionId))
-      .orderBy(desc(schema.profilingQA.questionNumber))
-      .limit(1);
+    const latestQ = await db.query.profilingQA.findFirst({
+      where: eq(schema.profilingQA.sessionId, input.sessionId),
+      orderBy: [desc(schema.profilingQA.questionNumber)],
+      columns: { answer: true },
+    });
 
     if (latestQ && latestQ.answer == null) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Answer the current question first" });
@@ -214,16 +206,13 @@ export const profilingRouter = router({
 
   // Complete session and generate profile
   completeSession: protectedProcedure.input(completeProfilingSchema).mutation(async ({ ctx, input }) => {
-    const [session] = await db
-      .select()
-      .from(schema.profilingSessions)
-      .where(
-        and(
-          eq(schema.profilingSessions.id, input.sessionId),
-          eq(schema.profilingSessions.userId, ctx.userId),
-          eq(schema.profilingSessions.status, "active"),
-        ),
-      );
+    const session = await db.query.profilingSessions.findFirst({
+      where: and(
+        eq(schema.profilingSessions.id, input.sessionId),
+        eq(schema.profilingSessions.userId, ctx.userId),
+        eq(schema.profilingSessions.status, "active"),
+      ),
+    });
 
     if (!session) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Session not found or not active" });
@@ -259,10 +248,9 @@ export const profilingRouter = router({
   getSessionState: protectedProcedure
     .input(z.object({ sessionId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const [session] = await db
-        .select()
-        .from(schema.profilingSessions)
-        .where(and(eq(schema.profilingSessions.id, input.sessionId), eq(schema.profilingSessions.userId, ctx.userId)));
+      const session = await db.query.profilingSessions.findFirst({
+        where: and(eq(schema.profilingSessions.id, input.sessionId), eq(schema.profilingSessions.userId, ctx.userId)),
+      });
 
       if (!session) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
@@ -279,16 +267,13 @@ export const profilingRouter = router({
 
   // Apply generated profile from a completed session
   applyProfile: protectedProcedure.input(applyProfilingSchema).mutation(async ({ ctx, input }) => {
-    const [session] = await db
-      .select()
-      .from(schema.profilingSessions)
-      .where(
-        and(
-          eq(schema.profilingSessions.id, input.sessionId),
-          eq(schema.profilingSessions.userId, ctx.userId),
-          eq(schema.profilingSessions.status, "completed"),
-        ),
-      );
+    const session = await db.query.profilingSessions.findFirst({
+      where: and(
+        eq(schema.profilingSessions.id, input.sessionId),
+        eq(schema.profilingSessions.userId, ctx.userId),
+        eq(schema.profilingSessions.status, "completed"),
+      ),
+    });
 
     if (!session) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Completed session not found" });
@@ -304,14 +289,28 @@ export const profilingRouter = router({
 
     await moderateContent([input.displayName, bio, lookingFor].join("\n\n"));
 
-    // Check if profile exists — create or update
-    const [existing] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId));
+    // Fetch auth user image for initial profile creation
+    const authUser = await db.query.user.findFirst({
+      where: eq(schema.user.id, ctx.userId),
+      columns: { image: true },
+    });
 
-    let profile: typeof schema.profiles.$inferSelect;
-    if (existing) {
-      [profile] = await db
-        .update(schema.profiles)
-        .set({
+    // Upsert profile — insert if new, update if exists
+    const [profile] = await db
+      .insert(schema.profiles)
+      .values({
+        userId: ctx.userId,
+        displayName: input.displayName,
+        bio,
+        lookingFor,
+        portrait: session.generatedPortrait,
+        portraitSharedForMatching: input.portraitSharedForMatching,
+        isComplete: true,
+        ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
+      })
+      .onConflictDoUpdate({
+        target: schema.profiles.userId,
+        set: {
           displayName: input.displayName,
           bio,
           lookingFor,
@@ -319,29 +318,9 @@ export const profilingRouter = router({
           portraitSharedForMatching: input.portraitSharedForMatching,
           isComplete: true,
           updatedAt: new Date(),
-        })
-        .where(eq(schema.profiles.userId, ctx.userId))
-        .returning();
-    } else {
-      const [authUser] = await db
-        .select({ image: schema.user.image })
-        .from(schema.user)
-        .where(eq(schema.user.id, ctx.userId));
-
-      [profile] = await db
-        .insert(schema.profiles)
-        .values({
-          userId: ctx.userId,
-          displayName: input.displayName,
-          bio,
-          lookingFor,
-          portrait: session.generatedPortrait,
-          portraitSharedForMatching: input.portraitSharedForMatching,
-          isComplete: true,
-          ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
-        })
-        .returning();
-    }
+        },
+      })
+      .returning();
 
     // Enqueue AI pipeline (portrait + embedding + interests)
     enqueueProfileAI(ctx.userId, profile.bio, profile.lookingFor).catch((err) => {
@@ -438,16 +417,13 @@ export const profilingRouter = router({
 
   // Answer a follow-up question
   answerFollowUp: protectedProcedure.input(answerFollowUpSchema).mutation(async ({ ctx, input }) => {
-    const [session] = await db
-      .select()
-      .from(schema.profilingSessions)
-      .where(
-        and(
-          eq(schema.profilingSessions.id, input.sessionId),
-          eq(schema.profilingSessions.userId, ctx.userId),
-          eq(schema.profilingSessions.status, "active"),
-        ),
-      );
+    const session = await db.query.profilingSessions.findFirst({
+      where: and(
+        eq(schema.profilingSessions.id, input.sessionId),
+        eq(schema.profilingSessions.userId, ctx.userId),
+        eq(schema.profilingSessions.status, "active"),
+      ),
+    });
 
     if (!session) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Session not found or not active" });
@@ -479,16 +455,18 @@ export const profilingRouter = router({
   createGhostProfile: protectedProcedure.input(createGhostProfileSchema).mutation(async ({ ctx, input }) => {
     await moderateContent(input.displayName);
 
-    const [existing] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId));
+    const existing = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+    });
 
     if (existing) {
       throw new TRPCError({ code: "CONFLICT", message: "Profile already exists" });
     }
 
-    const [authUser] = await db
-      .select({ image: schema.user.image })
-      .from(schema.user)
-      .where(eq(schema.user.id, ctx.userId));
+    const authUser = await db.query.user.findFirst({
+      where: eq(schema.user.id, ctx.userId),
+      columns: { image: true },
+    });
 
     const [profile] = await db
       .insert(schema.profiles)

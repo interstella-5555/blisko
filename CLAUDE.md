@@ -405,13 +405,15 @@ await db.transaction(async (tx) => {
 
 **Upsert with `onConflictDoUpdate`.** When the logic is "insert if not exists, update if exists", use `.onConflictDoUpdate()` instead of select → if exists → update else insert. Atomic, single query, no race conditions.
 
-**Prepared statements for hot paths.** Use `.prepare("name")` for queries executed on every request (auth middleware, session lookup). Drizzle compiles the SQL once and reuses the precompiled query plan. Use `placeholder("param")` for dynamic values.
+**Prepared statements for hot paths.** Use `.prepare(preparedName("name"))` for queries executed on every request (auth middleware, session lookup). Drizzle compiles the SQL once and reuses the precompiled query plan. Use `placeholder("param")` for dynamic values. Always wrap the name in `preparedName()` from `@/db` — it validates uniqueness at startup and throws if a duplicate name is registered.
 
 ```ts
+import { db, preparedName, schema } from "@/db";
+
 const getSession = db.query.session.findFirst({
   where: eq(schema.session.token, placeholder("token")),
   with: { user: true },
-}).prepare("session_by_token");
+}).prepare(preparedName("session_by_token"));
 
 // Execute — reuses compiled query
 const session = await getSession.execute({ token: bearerToken });

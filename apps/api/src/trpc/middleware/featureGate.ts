@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { eq, placeholder } from "drizzle-orm";
-import { db, schema } from "@/db";
+import { db, preparedName, schema } from "@/db";
 import { middleware } from "@/trpc/trpc";
 
 interface Gate {
@@ -29,7 +29,7 @@ const profileIsComplete = db
   .select({ isComplete: schema.profiles.isComplete })
   .from(schema.profiles)
   .where(eq(schema.profiles.userId, placeholder("userId")))
-  .prepare("profile_is_complete");
+  .prepare(preparedName("profile_is_complete"));
 
 export function featureGate(featureName: string) {
   return middleware(async ({ ctx, next }) => {

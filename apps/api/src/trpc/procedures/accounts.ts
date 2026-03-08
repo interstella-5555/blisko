@@ -24,10 +24,10 @@ export const accountsRouter = router({
         a.providerId === "apple",
     );
 
-    const [profile] = await db
-      .select({ socialLinks: schema.profiles.socialLinks })
-      .from(schema.profiles)
-      .where(eq(schema.profiles.userId, ctx.userId));
+    const profile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+      columns: { socialLinks: true },
+    });
 
     const socialLinks = (profile?.socialLinks ?? {}) as Record<string, string>;
 
@@ -48,10 +48,10 @@ export const accountsRouter = router({
         .delete(schema.account)
         .where(and(eq(schema.account.userId, ctx.userId), eq(schema.account.providerId, input.providerId)));
 
-      const [profile] = await db
-        .select({ socialLinks: schema.profiles.socialLinks })
-        .from(schema.profiles)
-        .where(eq(schema.profiles.userId, ctx.userId));
+      const profile = await db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, ctx.userId),
+        columns: { socialLinks: true },
+      });
 
       if (profile?.socialLinks) {
         const links = { ...profile.socialLinks } as Record<string, string | undefined>;
@@ -73,10 +73,10 @@ export const accountsRouter = router({
     .input(z.object({ otp: z.string().length(6) }))
     .mutation(async ({ ctx, input }) => {
       // 1. Get user email for OTP verification
-      const [userData] = await db
-        .select({ email: schema.user.email })
-        .from(schema.user)
-        .where(eq(schema.user.id, ctx.userId));
+      const userData = await db.query.user.findFirst({
+        where: eq(schema.user.id, ctx.userId),
+        columns: { email: true },
+      });
 
       if (!userData) {
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
@@ -109,10 +109,10 @@ export const accountsRouter = router({
 
   requestDataExport: protectedProcedure.use(rateLimit("dataExport")).mutation(async ({ ctx }) => {
     // Get user email
-    const [userData] = await db
-      .select({ email: schema.user.email })
-      .from(schema.user)
-      .where(eq(schema.user.id, ctx.userId));
+    const userData = await db.query.user.findFirst({
+      where: eq(schema.user.id, ctx.userId),
+      columns: { email: true },
+    });
 
     if (!userData) {
       throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });

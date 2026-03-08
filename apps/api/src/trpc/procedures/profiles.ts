@@ -10,7 +10,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { and, between, eq, isNotNull, isNull, lte, ne, notInArray, placeholder, sql } from "drizzle-orm";
 import { z } from "zod";
-import { db, schema } from "@/db";
+import { db, preparedName, schema } from "@/db";
 import { roundDistance, toGridCenter } from "@/lib/grid";
 import { moderateContent } from "@/services/moderation";
 import {
@@ -28,7 +28,7 @@ const profileByUserId = db
   .select()
   .from(schema.profiles)
   .where(eq(schema.profiles.userId, placeholder("userId")))
-  .prepare("profile_by_user_id");
+  .prepare(preparedName("profile_by_user_id"));
 
 export const profilesRouter = router({
   // Get current user's profile
@@ -40,7 +40,9 @@ export const profilesRouter = router({
 
   // Create profile (async — AI fields populate via queue worker)
   create: protectedProcedure.input(createProfileSchema).mutation(async ({ ctx, input }) => {
-    const [existing] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId));
+    const existing = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+    });
 
     if (existing) {
       throw new TRPCError({ code: "CONFLICT", message: "Profile already exists" });
@@ -49,10 +51,10 @@ export const profilesRouter = router({
     await moderateContent([input.displayName, input.bio, input.lookingFor].join("\n\n"));
 
     // Pull avatar from user.image (set by OAuth provider on signup)
-    const [authUser] = await db
-      .select({ image: schema.user.image })
-      .from(schema.user)
-      .where(eq(schema.user.id, ctx.userId));
+    const authUser = await db.query.user.findFirst({
+      where: eq(schema.user.id, ctx.userId),
+      columns: { image: true },
+    });
 
     const [profile] = await db
       .insert(schema.profiles)
@@ -175,7 +177,7 @@ export const profilesRouter = router({
       const maxLon = longitude + lonDelta;
 
       // Get blocked users and current profile in parallel
-      const [blockedUsers, blockedByUsers, currentProfileResult] = await Promise.all([
+      const [blockedUsers, blockedByUsers, currentProfile] = await Promise.all([
         db
           .select({ blockedId: schema.blocks.blockedId })
           .from(schema.blocks)
@@ -184,15 +186,15 @@ export const profilesRouter = router({
           .select({ blockerId: schema.blocks.blockerId })
           .from(schema.blocks)
           .where(eq(schema.blocks.blockedId, ctx.userId)),
-        db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId)),
+        db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, ctx.userId),
+        }),
       ]);
 
       const allBlockedIds = new Set([
         ...blockedUsers.map((b) => b.blockedId),
         ...blockedByUsers.map((b) => b.blockerId),
       ]);
-
-      const currentProfile = currentProfileResult[0];
 
       // Query with bounding box filter first (fast, uses index)
       // Then calculate exact Haversine distance
@@ -295,7 +297,7 @@ export const profilesRouter = router({
       );
 
       // Get blocked users + current profile + analyses + status matches + totalCount in parallel
-      const [blockedUsers, blockedByUsers, currentProfileResult, analyses, myStatusMatchRows, countResult] =
+      const [blockedUsers, blockedByUsers, currentProfile, analyses, myStatusMatchRows, countResult] =
         await Promise.all([
           db
             .select({ blockedId: schema.blocks.blockedId })
@@ -305,7 +307,9 @@ export const profilesRouter = router({
             .select({ blockerId: schema.blocks.blockerId })
             .from(schema.blocks)
             .where(eq(schema.blocks.blockedId, ctx.userId)),
-          db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId)),
+          db.query.profiles.findFirst({
+            where: eq(schema.profiles.userId, ctx.userId),
+          }),
           db.select().from(schema.connectionAnalyses).where(eq(schema.connectionAnalyses.fromUserId, ctx.userId)),
           db.select().from(schema.statusMatches).where(eq(schema.statusMatches.userId, ctx.userId)),
           db.select({ count: sql<number>`count(*)` }).from(schema.profiles).where(baseWhere),
@@ -319,8 +323,6 @@ export const profilesRouter = router({
       const rawCount = Number(countResult[0]?.count ?? 0);
       // Subtract blocked users from count (approximate — blocked users may not all be in range)
       const totalCount = Math.max(0, rawCount - allBlockedIds.size);
-
-      const currentProfile = currentProfileResult[0];
 
       const analysisMap = new Map(analyses.map((a) => [a.toUserId, a]));
 
@@ -429,12 +431,13 @@ export const profilesRouter = router({
 
   // Ensure analysis exists — lightweight "poke" to re-enqueue if stuck/failed
   ensureAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ ctx, input }) => {
-    const [existing] = await db
-      .select({ id: schema.connectionAnalyses.id })
-      .from(schema.connectionAnalyses)
-      .where(
-        and(eq(schema.connectionAnalyses.fromUserId, ctx.userId), eq(schema.connectionAnalyses.toUserId, input.userId)),
-      );
+    const existing = await db.query.connectionAnalyses.findFirst({
+      where: and(
+        eq(schema.connectionAnalyses.fromUserId, ctx.userId),
+        eq(schema.connectionAnalyses.toUserId, input.userId),
+      ),
+      columns: { id: true },
+    });
     if (existing) return { status: "ready" as const };
 
     await enqueuePairAnalysis(ctx.userId, input.userId);
@@ -444,24 +447,24 @@ export const profilesRouter = router({
   // Get AI connection analysis for a specific user
   getConnectionAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).query(async ({ ctx, input }) => {
     // Return null if either user has incomplete profile
-    const [myProfile] = await db
-      .select({ isComplete: schema.profiles.isComplete })
-      .from(schema.profiles)
-      .where(eq(schema.profiles.userId, ctx.userId));
+    const myProfile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+      columns: { isComplete: true },
+    });
     if (!myProfile?.isComplete) return null;
 
-    const [theirProfile] = await db
-      .select({ isComplete: schema.profiles.isComplete })
-      .from(schema.profiles)
-      .where(eq(schema.profiles.userId, input.userId));
+    const theirProfile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, input.userId),
+      columns: { isComplete: true },
+    });
     if (!theirProfile?.isComplete) return null;
 
-    const [analysis] = await db
-      .select()
-      .from(schema.connectionAnalyses)
-      .where(
-        and(eq(schema.connectionAnalyses.fromUserId, ctx.userId), eq(schema.connectionAnalyses.toUserId, input.userId)),
-      );
+    const analysis = await db.query.connectionAnalyses.findFirst({
+      where: and(
+        eq(schema.connectionAnalyses.fromUserId, ctx.userId),
+        eq(schema.connectionAnalyses.toUserId, input.userId),
+      ),
+    });
 
     return analysis
       ? {
@@ -504,7 +507,9 @@ export const profilesRouter = router({
 
   // Dev: re-trigger connection analyses for current user
   reanalyze: protectedProcedure.mutation(async ({ ctx }) => {
-    const [profile] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId));
+    const profile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+    });
 
     if (!profile?.latitude || !profile?.longitude) {
       throw new TRPCError({

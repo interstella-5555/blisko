@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { eq, placeholder } from "drizzle-orm";
 import { DEFAULT_RATE_LIMIT_MESSAGE, rateLimitMessages, rateLimits } from "@/config/rateLimits";
-import { db, schema } from "@/db";
+import { db, preparedName, schema } from "@/db";
 import { checkRateLimit } from "@/services/rate-limiter";
 import type { TRPCContext } from "./context";
 
@@ -15,7 +15,7 @@ const userDeletedAt = db
   .select({ deletedAt: schema.user.deletedAt })
   .from(schema.user)
   .where(eq(schema.user.id, placeholder("userId")))
-  .prepare("user_deleted_at");
+  .prepare(preparedName("user_deleted_at"));
 
 // Middleware that requires authentication
 const isAuthed = t.middleware(async ({ ctx, next }) => {

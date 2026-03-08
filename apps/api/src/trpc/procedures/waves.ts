@@ -19,18 +19,15 @@ export const wavesRouter = router({
       console.log(`[waves.send] from=${ctx.userId} to=${input.toUserId}`);
 
       // Check if target user exists and is not soft-deleted
-      const [targetProfile] = await db
-        .select()
-        .from(schema.profiles)
-        .where(
-          and(
-            eq(schema.profiles.userId, input.toUserId),
-            notInArray(
-              schema.profiles.userId,
-              db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-            ),
+      const targetProfile = await db.query.profiles.findFirst({
+        where: and(
+          eq(schema.profiles.userId, input.toUserId),
+          notInArray(
+            schema.profiles.userId,
+            db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
           ),
-        );
+        ),
+      });
 
       if (!targetProfile) {
         console.log(`[waves.send] Target profile not found for userId=${input.toUserId}`);
@@ -41,15 +38,12 @@ export const wavesRouter = router({
       }
 
       // Check if blocked
-      const [blocked] = await db
-        .select()
-        .from(schema.blocks)
-        .where(
-          or(
-            and(eq(schema.blocks.blockerId, ctx.userId), eq(schema.blocks.blockedId, input.toUserId)),
-            and(eq(schema.blocks.blockerId, input.toUserId), eq(schema.blocks.blockedId, ctx.userId)),
-          ),
-        );
+      const blocked = await db.query.blocks.findFirst({
+        where: or(
+          and(eq(schema.blocks.blockerId, ctx.userId), eq(schema.blocks.blockedId, input.toUserId)),
+          and(eq(schema.blocks.blockerId, input.toUserId), eq(schema.blocks.blockedId, ctx.userId)),
+        ),
+      });
 
       if (blocked) {
         console.log(`[waves.send] Blocked: from=${ctx.userId} to=${input.toUserId}`);
@@ -94,10 +88,10 @@ export const wavesRouter = router({
       await promotePairAnalysis(ctx.userId, input.toUserId);
 
       // Query sender profile for notification display
-      const [senderProfile] = await db
-        .select({ displayName: schema.profiles.displayName, avatarUrl: schema.profiles.avatarUrl })
-        .from(schema.profiles)
-        .where(eq(schema.profiles.userId, ctx.userId));
+      const senderProfile = await db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, ctx.userId),
+        columns: { displayName: true, avatarUrl: true },
+      });
 
       void sendPushToUser(input.toUserId, {
         title: "Blisko",
@@ -169,10 +163,9 @@ export const wavesRouter = router({
     .use(rateLimit("waves.respond"))
     .input(respondToWaveSchema)
     .mutation(async ({ ctx, input }) => {
-      const [wave] = await db
-        .select()
-        .from(schema.waves)
-        .where(and(eq(schema.waves.id, input.waveId), eq(schema.waves.toUserId, ctx.userId)));
+      const wave = await db.query.waves.findFirst({
+        where: and(eq(schema.waves.id, input.waveId), eq(schema.waves.toUserId, ctx.userId)),
+      });
 
       if (!wave) {
         throw new TRPCError({
@@ -207,10 +200,10 @@ export const wavesRouter = router({
         });
 
         // Side effects (push, WS) outside transaction — they don't need atomicity
-        const [responderProfile] = await db
-          .select({ displayName: schema.profiles.displayName, avatarUrl: schema.profiles.avatarUrl })
-          .from(schema.profiles)
-          .where(eq(schema.profiles.userId, ctx.userId));
+        const responderProfile = await db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, ctx.userId),
+          columns: { displayName: true, avatarUrl: true },
+        });
 
         void sendPushToUser(wave.fromUserId, {
           title: "Blisko",
@@ -252,10 +245,9 @@ export const wavesRouter = router({
   // Block a user
   block: protectedProcedure.input(blockUserSchema).mutation(async ({ ctx, input }) => {
     // Check if already blocked
-    const [existingBlock] = await db
-      .select()
-      .from(schema.blocks)
-      .where(and(eq(schema.blocks.blockerId, ctx.userId), eq(schema.blocks.blockedId, input.userId)));
+    const existingBlock = await db.query.blocks.findFirst({
+      where: and(eq(schema.blocks.blockerId, ctx.userId), eq(schema.blocks.blockedId, input.userId)),
+    });
 
     if (existingBlock) {
       throw new TRPCError({

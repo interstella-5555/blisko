@@ -1,7 +1,7 @@
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { and, eq, gt, placeholder } from "drizzle-orm";
 import { auth } from "@/auth";
-import { db, schema } from "@/db";
+import { db, preparedName, schema } from "@/db";
 
 // Prepared statement — compiled once, reused on every authenticated request
 export const sessionByToken = db
@@ -9,7 +9,7 @@ export const sessionByToken = db
   .from(schema.session)
   .where(and(eq(schema.session.token, placeholder("token")), gt(schema.session.expiresAt, placeholder("now"))))
   .limit(1)
-  .prepare("session_by_token");
+  .prepare(preparedName("session_by_token"));
 
 export interface TRPCContext {
   userId: string | null;

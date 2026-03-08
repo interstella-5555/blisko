@@ -9,6 +9,7 @@ import {
   real,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -323,7 +324,7 @@ export const connectionAnalyses = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    pairIdx: index("ca_pair_idx").on(table.fromUserId, table.toUserId),
+    pairUniq: uniqueIndex("ca_pair_uniq").on(table.fromUserId, table.toUserId),
     toUserIdx: index("ca_to_user_idx").on(table.toUserId),
   }),
 );

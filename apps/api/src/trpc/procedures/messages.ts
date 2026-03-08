@@ -227,15 +227,12 @@ export const messagesRouter = router({
     )
     .query(async ({ ctx, input }) => {
       // Verify user is participant
-      const [participant] = await db
-        .select()
-        .from(schema.conversationParticipants)
-        .where(
-          and(
-            eq(schema.conversationParticipants.conversationId, input.conversationId),
-            eq(schema.conversationParticipants.userId, ctx.userId),
-          ),
-        );
+      const participant = await db.query.conversationParticipants.findFirst({
+        where: and(
+          eq(schema.conversationParticipants.conversationId, input.conversationId),
+          eq(schema.conversationParticipants.userId, ctx.userId),
+        ),
+      });
 
       if (!participant) {
         throw new TRPCError({
@@ -245,10 +242,10 @@ export const messagesRouter = router({
       }
 
       // Check if group conversation for sender enrichment
-      const [conversation] = await db
-        .select({ type: schema.conversations.type })
-        .from(schema.conversations)
-        .where(eq(schema.conversations.id, input.conversationId));
+      const conversation = await db.query.conversations.findFirst({
+        where: eq(schema.conversations.id, input.conversationId),
+        columns: { type: true },
+      });
 
       const isGroup = conversation?.type === "group";
 
@@ -269,7 +266,9 @@ export const messagesRouter = router({
         .limit(input.limit + 1);
 
       if (input.cursor) {
-        const [cursorMessage] = await db.select().from(schema.messages).where(eq(schema.messages.id, input.cursor));
+        const cursorMessage = await db.query.messages.findFirst({
+          where: eq(schema.messages.id, input.cursor),
+        });
 
         if (cursorMessage) {
           query = db
@@ -423,15 +422,12 @@ export const messagesRouter = router({
     .input(sendMessageSchema)
     .mutation(async ({ ctx, input }) => {
       // Verify user is participant
-      const [participant] = await db
-        .select()
-        .from(schema.conversationParticipants)
-        .where(
-          and(
-            eq(schema.conversationParticipants.conversationId, input.conversationId),
-            eq(schema.conversationParticipants.userId, ctx.userId),
-          ),
-        );
+      const participant = await db.query.conversationParticipants.findFirst({
+        where: and(
+          eq(schema.conversationParticipants.conversationId, input.conversationId),
+          eq(schema.conversationParticipants.userId, ctx.userId),
+        ),
+      });
 
       if (!participant) {
         throw new TRPCError({
@@ -494,13 +490,10 @@ export const messagesRouter = router({
       }
 
       // Get sender profile for WS event enrichment
-      const [senderProfile] = await db
-        .select({
-          displayName: schema.profiles.displayName,
-          avatarUrl: schema.profiles.avatarUrl,
-        })
-        .from(schema.profiles)
-        .where(eq(schema.profiles.userId, ctx.userId));
+      const senderProfile = await db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, ctx.userId),
+        columns: { displayName: true, avatarUrl: true },
+      });
 
       // Push notifications to other participants
       const participants = await db
@@ -511,10 +504,10 @@ export const messagesRouter = router({
       const messagePreview = message.content.length > 100 ? `${message.content.slice(0, 97)}...` : message.content;
 
       // Get conversation type for push strategy
-      const [conversation] = await db
-        .select({ type: schema.conversations.type, name: schema.conversations.name })
-        .from(schema.conversations)
-        .where(eq(schema.conversations.id, input.conversationId));
+      const conversation = await db.query.conversations.findFirst({
+        where: eq(schema.conversations.id, input.conversationId),
+        columns: { type: true, name: true },
+      });
 
       const isGroup = conversation?.type === "group";
 
@@ -523,15 +516,13 @@ export const messagesRouter = router({
 
         if (isGroup) {
           // Group: check if recipient has unread messages (unread suppression)
-          const [recipientParticipant] = await db
-            .select({ lastReadAt: schema.conversationParticipants.lastReadAt })
-            .from(schema.conversationParticipants)
-            .where(
-              and(
-                eq(schema.conversationParticipants.conversationId, input.conversationId),
-                eq(schema.conversationParticipants.userId, p.userId),
-              ),
-            );
+          const recipientParticipant = await db.query.conversationParticipants.findFirst({
+            where: and(
+              eq(schema.conversationParticipants.conversationId, input.conversationId),
+              eq(schema.conversationParticipants.userId, p.userId),
+            ),
+            columns: { lastReadAt: true },
+          });
 
           // Count unread messages for this recipient
           const lastRead = recipientParticipant?.lastReadAt;
@@ -590,10 +581,10 @@ export const messagesRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       // Check if this is a group conversation
-      const [conv] = await db
-        .select({ type: schema.conversations.type })
-        .from(schema.conversations)
-        .where(eq(schema.conversations.id, input.conversationId));
+      const conv = await db.query.conversations.findFirst({
+        where: eq(schema.conversations.id, input.conversationId),
+        columns: { type: true },
+      });
 
       if (conv?.type === "group") {
         // Groups: update lastReadAt on participant row
@@ -625,7 +616,9 @@ export const messagesRouter = router({
 
   // Delete a message (soft delete)
   deleteMessage: protectedProcedure.input(deleteMessageSchema).mutation(async ({ ctx, input }) => {
-    const [msg] = await db.select().from(schema.messages).where(eq(schema.messages.id, input.messageId));
+    const msg = await db.query.messages.findFirst({
+      where: eq(schema.messages.id, input.messageId),
+    });
 
     if (!msg) {
       throw new TRPCError({
@@ -637,21 +630,19 @@ export const messagesRouter = router({
     // Check if user can delete: own message OR group admin
     if (msg.senderId !== ctx.userId) {
       // Check if this is a group and user is admin/owner
-      const [conv] = await db
-        .select({ type: schema.conversations.type })
-        .from(schema.conversations)
-        .where(eq(schema.conversations.id, msg.conversationId));
+      const conv = await db.query.conversations.findFirst({
+        where: eq(schema.conversations.id, msg.conversationId),
+        columns: { type: true },
+      });
 
       if (conv?.type === "group") {
-        const [participant] = await db
-          .select({ role: schema.conversationParticipants.role })
-          .from(schema.conversationParticipants)
-          .where(
-            and(
-              eq(schema.conversationParticipants.conversationId, msg.conversationId),
-              eq(schema.conversationParticipants.userId, ctx.userId),
-            ),
-          );
+        const participant = await db.query.conversationParticipants.findFirst({
+          where: and(
+            eq(schema.conversationParticipants.conversationId, msg.conversationId),
+            eq(schema.conversationParticipants.userId, ctx.userId),
+          ),
+          columns: { role: true },
+        });
 
         if (!participant || (participant.role !== "admin" && participant.role !== "owner")) {
           throw new TRPCError({
@@ -675,7 +666,9 @@ export const messagesRouter = router({
   // React to a message (toggle)
   react: protectedProcedure.input(reactToMessageSchema).mutation(async ({ ctx, input }) => {
     // Verify message exists
-    const [msg] = await db.select().from(schema.messages).where(eq(schema.messages.id, input.messageId));
+    const msg = await db.query.messages.findFirst({
+      where: eq(schema.messages.id, input.messageId),
+    });
 
     if (!msg) {
       throw new TRPCError({
@@ -685,15 +678,12 @@ export const messagesRouter = router({
     }
 
     // Verify user is participant in this conversation
-    const [participant] = await db
-      .select()
-      .from(schema.conversationParticipants)
-      .where(
-        and(
-          eq(schema.conversationParticipants.conversationId, msg.conversationId),
-          eq(schema.conversationParticipants.userId, ctx.userId),
-        ),
-      );
+    const participant = await db.query.conversationParticipants.findFirst({
+      where: and(
+        eq(schema.conversationParticipants.conversationId, msg.conversationId),
+        eq(schema.conversationParticipants.userId, ctx.userId),
+      ),
+    });
 
     if (!participant) {
       throw new TRPCError({
@@ -703,16 +693,13 @@ export const messagesRouter = router({
     }
 
     // Check if reaction already exists (toggle)
-    const [existing] = await db
-      .select()
-      .from(schema.messageReactions)
-      .where(
-        and(
-          eq(schema.messageReactions.messageId, input.messageId),
-          eq(schema.messageReactions.userId, ctx.userId),
-          eq(schema.messageReactions.emoji, input.emoji),
-        ),
-      );
+    const existing = await db.query.messageReactions.findFirst({
+      where: and(
+        eq(schema.messageReactions.messageId, input.messageId),
+        eq(schema.messageReactions.userId, ctx.userId),
+        eq(schema.messageReactions.emoji, input.emoji),
+      ),
+    });
 
     if (existing) {
       // Remove reaction
@@ -768,15 +755,12 @@ export const messagesRouter = router({
   // Search messages in a conversation
   search: protectedProcedure.input(searchMessagesSchema).query(async ({ ctx, input }) => {
     // Verify user is participant
-    const [participant] = await db
-      .select()
-      .from(schema.conversationParticipants)
-      .where(
-        and(
-          eq(schema.conversationParticipants.conversationId, input.conversationId),
-          eq(schema.conversationParticipants.userId, ctx.userId),
-        ),
-      );
+    const participant = await db.query.conversationParticipants.findFirst({
+      where: and(
+        eq(schema.conversationParticipants.conversationId, input.conversationId),
+        eq(schema.conversationParticipants.userId, ctx.userId),
+      ),
+    });
 
     if (!participant) {
       throw new TRPCError({

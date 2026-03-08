@@ -3,8 +3,8 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
+import { db, schema } from "@/db";
 import { changeEmailOtp, sendEmail, signInOtp } from "@/services/email";
-import { db, schema } from "./db";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -51,10 +51,10 @@ export const auth = betterAuth({
           }
 
           if (username) {
-            const [profile] = await db
-              .select({ socialLinks: schema.profiles.socialLinks })
-              .from(schema.profiles)
-              .where(eq(schema.profiles.userId, userId));
+            const profile = await db.query.profiles.findFirst({
+              where: eq(schema.profiles.userId, userId),
+              columns: { socialLinks: true },
+            });
             if (profile) {
               const links = { ...(profile.socialLinks ?? {}), [providerId]: username };
               await db
