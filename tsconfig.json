@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "apps/api" },
+    { "path": "apps/chatbot" },
+    { "path": "apps/design" },
+    { "path": "apps/mobile" },
+    { "path": "apps/website" },
+    { "path": "packages/shared" },
+    { "path": "packages/dev-cli" }
+  ]
+}
