@@ -1,5 +1,5 @@
 # ── Stage 1: Dependencies ────────────────────
-FROM node:24-alpine AS deps
+FROM oven/bun:1-alpine AS deps
 
 RUN corepack enable && corepack prepare pnpm@10 --activate
 
@@ -11,7 +11,7 @@ COPY apps/admin/package.json apps/admin/package.json
 RUN pnpm install --frozen-lockfile --prefer-offline
 
 # ── Stage 2: Build ───────────────────────────
-FROM node:24-alpine AS build
+FROM oven/bun:1-alpine AS build
 
 RUN corepack enable && corepack prepare pnpm@10 --activate
 
@@ -25,7 +25,7 @@ COPY apps/admin/ apps/admin/
 RUN pnpm --filter @repo/admin build
 
 # ── Stage 3: Production ─────────────────────
-FROM node:24-alpine AS runtime
+FROM oven/bun:1-alpine AS runtime
 
 WORKDIR /app
 
@@ -36,4 +36,4 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-CMD ["node", ".output/server/index.mjs"]
+CMD ["bun", "--bun", "run", ".output/server/index.mjs"]
