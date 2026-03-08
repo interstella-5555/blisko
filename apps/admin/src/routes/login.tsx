@@ -1,10 +1,11 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
-import { getRequestHeader } from "@tanstack/react-start/server";
 import { useState } from "react";
-import { getSession } from "~/lib/auth";
 
 export const Route = createFileRoute("/login")({
-  beforeLoad: () => {
+  beforeLoad: async () => {
+    if (typeof window !== "undefined") return;
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const { getSession } = await import("~/lib/auth");
     const cookie = getRequestHeader("cookie") || "";
     const match = cookie.match(/admin-session=([^;]+)/);
     const token = match ? match[1] : null;
