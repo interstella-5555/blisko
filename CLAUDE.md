@@ -315,6 +315,22 @@ Custom sliding window counter on Redis (Lua scripts). No external rate limiting 
 
 **Waves are irreversible** — no cancel. This is by design (prevents wave/unwave notification spam).
 
+## Email (Resend)
+
+All emails go through `apps/api/src/services/email.ts`. Never send emails directly via `resend.emails.send()` — always use the `sendEmail()` helper and template functions from this module.
+
+**Module:** `apps/api/src/services/email.ts`
+- `sendEmail(to, template)` — sends via Resend, falls back to console.log when `RESEND_API_KEY` is not set
+- `layout(content)` — shared wrapper with BLISKO header + "Pozdrawiamy" footer
+- `otpBlock(otp)` / `button(label, href)` — reusable HTML blocks
+
+**Existing templates:** `signInOtp(otp, deepLink)`, `changeEmailOtp(otp)`, `dataExportReady(downloadUrl)`
+
+**Adding a new email:**
+1. Add a new exported function in `email.ts` that returns `{ subject: string; html: string }`
+2. Use `layout()` to wrap the content for consistent branding
+3. Call `sendEmail(to, yourTemplate(...))` from the sending location
+
 ## Redis
 
 Use Bun's built-in `RedisClient` (`import { RedisClient } from 'bun'`) for all direct Redis operations (pub/sub, get/set, etc.). Never add `ioredis` as a direct dependency — BullMQ uses it internally and that's fine, but our code should use Bun's native client.
