@@ -109,6 +109,12 @@ Request → Hono middleware (start timer)
 - `bullmq_jobs_total` counter (labels: queue, status)
 - `bullmq_job_duration_ms` histogram (labels: queue)
 - `bullmq_queue_depth` gauge (labels: queue, state)
+- `ws_connections_active` gauge
+- `ws_subscriptions_active` gauge
+- `ws_auth_total` counter (labels: result)
+- `ws_events_inbound_total` counter (labels: type)
+- `ws_events_outbound_total` counter (labels: event_type)
+- `ws_rate_limit_hits_total` counter (labels: limit)
 
 ### Mobile Error Reporting
 
@@ -138,10 +144,13 @@ Mobile app extracts `X-Request-Id` from response headers and displays it on erro
 - BullMQ queue metrics: in-memory stats + Prometheus counters/histograms/gauges
 - Queue summary in `/api/metrics/summary` endpoint
 
-### Milestone 2b — Intelligent monitoring
-- WebSocket monitoring (connections, throughput, auth failures)
-- Dependency health pings (DB, Redis, S3 latency)
-- Anomaly detection (rate of change, not just thresholds)
+### Milestone 2b — WebSocket monitoring ✅
+- `ws-metrics.ts` module: in-memory counters for connections, subscriptions, auth, throughput, rate limit hits
+- Prometheus: `ws_connections_active`, `ws_subscriptions_active`, `ws_auth_total`, `ws_events_inbound_total`, `ws_events_outbound_total`, `ws_rate_limit_hits_total`
+- `websocket` section in `/api/metrics/summary` endpoint
+- Hooks in `handler.ts`: open/close, auth success/failure, inbound messages, outbound broadcasts, rate limit drops
+- Dependency health pings → BLI-91
+- Anomaly detection → BLI-92
 
 ### Milestone 2c — Automation + dashboard
 - Retention cron: raw → daily_summaries after 30 days
