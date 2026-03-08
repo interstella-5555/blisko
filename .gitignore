@@ -57,5 +57,3 @@ scripts/ralph-queue/
 # Worktrees
 .worktrees/
 
-# Implementation plans (temporary, local-only)
-docs/plans/

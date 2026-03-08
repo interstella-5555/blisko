@@ -173,7 +173,7 @@ Rules: `.claude/rules/drizzle.md`. Decision hierarchy (in order of preference):
 - **Refined idea** (clear what to build) → label **Feature** / **Improvement** / **Bug** as appropriate.
 - **Priority**: set when user expresses urgency, otherwise leave unset.
 - **Sub-issues**: create with `parentId` when distinct parts emerge naturally. Don't force upfront decomposition.
-- **Specs**: `docs/plans/` (gitignored, temporary plans) or `docs/architecture/` (tracked, permanent design docs with rationale). Linear Document for plans saved for later via `create_document` with `issue` param.
+- **Specs**: `docs/plans/` (committed to git, shared across worktrees) or `docs/architecture/` (permanent design docs with rationale). Linear Document for plans saved for later via `create_document` with `issue` param.
 - **External feedback**: separate Idea issue per point, tagged with who gave it ("Feedback od Jarka:").
 - **Mid-conversation**: if something worth tracking comes up, create the issue immediately.
 
@@ -183,11 +183,12 @@ Rules: `.claude/rules/drizzle.md`. Decision hierarchy (in order of preference):
 2. **Status → In Progress** — immediately, don't ask
 3. **Create branch** — use Linear's `gitBranchName` (format: `kwypchlo/bli-X-slug`)
 4. **Brainstorm if needed** — `brainstorming` skill for non-trivial work, then `writing-plans`
-5. **Implement** — `test-driven-development` skill. Bugs → `systematic-debugging` skill
-6. **Commit** — `Fix map default state (BLI-6)` — imperative, verb-first, issue ID at end
-7. **Verify** — `verification-before-completion` skill before claiming done
-8. **Finish** — merge to main, status → Done. No PR (solo dev). If CI added later, use In Review + PR
-9. **Sub-tasks** — each sub-issue gets own branch (`gitBranchName`), merged to main independently. Parent → Done when all children done
+5. **Commit plan** — commit `docs/plans/` file immediately so other worktrees can see it: `Add implementation plan (BLI-X)`
+6. **Implement** — `test-driven-development` skill. Bugs → `systematic-debugging` skill
+7. **Commit** — `Fix map default state (BLI-6)` — imperative, verb-first, issue ID at end
+8. **Verify** — `verification-before-completion` skill before claiming done
+9. **Finish** — merge to main, status → Done. No PR (solo dev). If CI added later, use In Review + PR
+10. **Sub-tasks** — each sub-issue gets own branch (`gitBranchName`), merged to main independently. Parent → Done when all children done
 
 Technical notes: add as comments on the Linear issue.
 
@@ -198,7 +199,7 @@ Skills are **mandatory** at each stage, not optional:
 | Stage | Skill | When |
 |-------|-------|------|
 | New idea / feature design | `brainstorming` | Before any Backlog→Todo, before non-trivial implementation |
-| Implementation plan | `writing-plans` | After brainstorming, for tickets with 3+ acceptance criteria. Ask where to save: `docs/plans/` for immediate work, Linear Document for later |
+| Implementation plan | `writing-plans` | After brainstorming, for tickets with 3+ acceptance criteria. Save to `docs/plans/` (committed, visible in worktrees) or Linear Document for later |
 | Executing plan with sub-tasks | `executing-plans` | Working through sub-issues or multi-step plans |
 | Parallel independent tasks | `dispatching-parallel-agents` | 2+ tasks with no shared state |
 | Writing code | `test-driven-development` | Any feature or bugfix — test before code |
@@ -207,6 +208,18 @@ Skills are **mandatory** at each stage, not optional:
 | After implementation | `requesting-code-review` | Before merge, after all tests pass |
 | Receiving feedback | `receiving-code-review` | When getting review comments — verify before implementing |
 | Branch complete | `finishing-a-development-branch` | Deciding merge/PR/cleanup |
+
+**Plans (`docs/plans/`) — overrides for `writing-plans` skill:**
+
+The `writing-plans` skill is always used for plans. These project-specific overrides take precedence:
+
+| Skill default | Our override | Why |
+|---------------|-------------|-----|
+| Filename: `YYYY-MM-DD-<feature>.md` | `YYYY-MM-DD-HHmm-<feature>.md` | Multiple plans per day are common |
+| Plans are gitignored, local-only | Plans are **committed to git** | Must be visible across worktrees/sessions |
+| Saved at end with implementation | Committed **immediately after writing** (step 5), before implementation | Other worktrees need the plan before code starts |
+
+**Using old plans:** Old plans are **implementation history only**. Never treat them as a source of truth for current state. Code and schema are the source of truth — if a plan contradicts the code, the code wins. When searching for context, read the actual code, not old plans.
 
 **Architecture docs checkpoint:** After `writing-plans` — extract design decisions to `docs/architecture/<topic>.md`. After `finishing-a-development-branch` — update existing docs if approach changed during implementation.
 
