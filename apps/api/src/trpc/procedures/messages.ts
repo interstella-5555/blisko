@@ -4,6 +4,7 @@ import { RedisClient } from "bun";
 import { and, desc, eq, gt, ilike, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
+import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
@@ -510,6 +511,13 @@ export const messagesRouter = router({
       });
 
       const isGroup = conversation?.type === "group";
+
+      if (isGroup) {
+        setTargetGroupId(ctx.req, input.conversationId);
+      } else {
+        const recipient = participants.find((p) => p.userId !== ctx.userId);
+        if (recipient) setTargetUserId(ctx.req, recipient.userId);
+      }
 
       for (const p of participants) {
         if (p.userId === ctx.userId) continue;

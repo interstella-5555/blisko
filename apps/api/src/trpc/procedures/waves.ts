@@ -2,6 +2,7 @@ import { blockUserSchema, respondToWaveSchema, sendWaveSchema } from "@repo/shar
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
 import { promotePairAnalysis } from "@/services/queue";
 import { featureGate } from "@/trpc/middleware/featureGate";
@@ -16,6 +17,7 @@ export const wavesRouter = router({
     .use(rateLimit("waves.send"))
     .input(sendWaveSchema)
     .mutation(async ({ ctx, input }) => {
+      setTargetUserId(ctx.req, input.toUserId);
       console.log(`[waves.send] from=${ctx.userId} to=${input.toUserId}`);
 
       // Check if target user exists and is not soft-deleted
@@ -162,6 +164,8 @@ export const wavesRouter = router({
           message: "Wave not found",
         });
       }
+
+      setTargetUserId(ctx.req, wave.fromUserId);
 
       if (wave.status !== "pending") {
         throw new TRPCError({

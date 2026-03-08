@@ -12,6 +12,7 @@ import { and, between, eq, isNotNull, isNull, lte, ne, placeholder, sql } from "
 import { z } from "zod";
 import { db, preparedName, schema } from "@/db";
 import { roundDistance, toGridCenter } from "@/lib/grid";
+import { setTargetUserId } from "@/services/metrics";
 import { moderateContent } from "@/services/moderation";
 import {
   enqueuePairAnalysis,
@@ -474,7 +475,8 @@ export const profilesRouter = router({
   }),
 
   // Get profile by user ID
-  getById: protectedProcedure.input(z.object({ userId: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ userId: z.string() })).query(async ({ ctx, input }) => {
+    setTargetUserId(ctx.req, input.userId);
     const [result] = await db
       .select({ profile: schema.profiles })
       .from(schema.profiles)

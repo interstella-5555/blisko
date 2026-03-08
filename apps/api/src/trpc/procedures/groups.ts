@@ -10,6 +10,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
+import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
 import { featureGate } from "@/trpc/middleware/featureGate";
 import { protectedProcedure, router } from "@/trpc/trpc";
@@ -91,6 +92,8 @@ export const groupsRouter = router({
           isDiscoverable: input.isDiscoverable,
         })
         .returning();
+
+      setTargetGroupId(ctx.req, conversation.id);
 
       // Add creator as owner
       await db.insert(schema.conversationParticipants).values({
@@ -181,6 +184,8 @@ export const groupsRouter = router({
         message: "Invalid invite code",
       });
     }
+
+    setTargetGroupId(ctx.req, conv.id);
 
     // Check if already a member
     const existing = await db.query.conversationParticipants.findFirst({
@@ -352,6 +357,8 @@ export const groupsRouter = router({
     }),
 
   addMember: protectedProcedure.input(groupMemberActionSchema).mutation(async ({ ctx, input }) => {
+    setTargetUserId(ctx.req, input.userId);
+    setTargetGroupId(ctx.req, input.conversationId);
     await requireGroup(input.conversationId);
     await requireGroupParticipant(input.conversationId, ctx.userId, "admin");
 
@@ -418,6 +425,8 @@ export const groupsRouter = router({
   }),
 
   removeMember: protectedProcedure.input(groupMemberActionSchema).mutation(async ({ ctx, input }) => {
+    setTargetUserId(ctx.req, input.userId);
+    setTargetGroupId(ctx.req, input.conversationId);
     await requireGroup(input.conversationId);
     await requireGroupParticipant(input.conversationId, ctx.userId, "admin");
 
