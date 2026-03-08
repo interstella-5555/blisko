@@ -373,12 +373,33 @@ const result = await db.execute(sql`SELECT ... FROM ... JOIN ... WHERE ...`);
 
 **Filters:** Always use Drizzle's built-in filter functions over raw `sql`\`...\``: `between()`, `eq()`, `ne()`, `gt()`, `lt()`, `gte()`, `lte()`, `isNull()`, `isNotNull()`, `inArray()`, `notInArray()`, `like()`, `ilike()`, `and()`, `or()`, `not()` — all from `drizzle-orm`.
 
+**Select only the columns you need.** Never fetch `SELECT *` — always specify `columns` (relational API) or explicit fields (query builder / `.returning()`). Fetching unused columns wastes bandwidth, memory, and can leak sensitive data.
+
+```ts
+// ✅ Correct — only fetch what you use
+const profile = await db.query.profiles.findFirst({
+  where: eq(schema.profiles.userId, userId),
+  columns: { displayName: true, avatarUrl: true },
+});
+
+const [wave] = await db
+  .insert(schema.waves)
+  .values({ ... })
+  .returning({ id: schema.waves.id, status: schema.waves.status });
+
+// ❌ Don't fetch entire rows when you only need a few fields
+const profile = await db.query.profiles.findFirst({
+  where: eq(schema.profiles.userId, userId),
+});
+```
+
 **Single-row fetch → `findFirst()`, not destructured array.** Don't write `const [item] = await db.select().from(...).where(...)` — use `db.query.*.findFirst()` instead. It adds `LIMIT 1` automatically and returns the object directly (no array destructuring).
 
 ```ts
 // ✅ Correct
 const profile = await db.query.profiles.findFirst({
   where: eq(schema.profiles.userId, userId),
+  columns: { displayName: true, avatarUrl: true },
 });
 
 // ❌ Don't do this for single-row lookups
@@ -405,15 +426,13 @@ await db.transaction(async (tx) => {
 
 **Upsert with `onConflictDoUpdate`.** When the logic is "insert if not exists, update if exists", use `.onConflictDoUpdate()` instead of select → if exists → update else insert. Atomic, single query, no race conditions.
 
-**Prepared statements for hot paths.** Use `.prepare(preparedName("name"))` for queries executed on every request (auth middleware, session lookup). Drizzle compiles the SQL once and reuses the precompiled query plan. Use `placeholder("param")` for dynamic values. Always wrap the name in `preparedName()` from `@/db` — it validates uniqueness at startup and throws if a duplicate name is registered.
+**Prepared statements for hot paths.** Use `.prepare("name")` for queries executed on every request (auth middleware, session lookup). Drizzle compiles the SQL once and reuses the precompiled query plan. Use `placeholder("param")` for dynamic values.
 
 ```ts
-import { db, preparedName, schema } from "@/db";
-
 const getSession = db.query.session.findFirst({
   where: eq(schema.session.token, placeholder("token")),
   with: { user: true },
-}).prepare(preparedName("session_by_token"));
+}).prepare("session_by_token");
 
 // Execute — reuses compiled query
 const session = await getSession.execute({ token: bearerToken });
