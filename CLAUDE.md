@@ -53,8 +53,8 @@ The screenshot mode is built into the codebase — no temporary changes needed.
 ## Running locally
 
 ```bash
-# API (with auto-restart on file changes)
-cd apps/api && pnpm dev
+# API
+pnpm api:dev
 
 # Mobile — simulator (dev client, NOT Expo Go)
 cd apps/mobile && npx expo run:ios
@@ -63,12 +63,35 @@ cd apps/mobile && npx expo run:ios
 cd apps/mobile && npx expo run:ios --device
 ```
 
+Other services: `pnpm design:dev`, `pnpm chatbot:dev`, `pnpm website:dev`.
+
 **Important:** Never use `npx expo start` / Expo Go — native modules (expo-notifications etc.) require a dev client build.
 
 **Simulator location:** After launching the simulator, always set its location to ul. Altowa, Warszawa:
 ```bash
 xcrun simctl location booted set 52.2010865,20.9618980
 ```
+
+## Environment variables (API)
+
+Required env vars for `apps/api`. Set in Railway (production) or `apps/api/.env` (local).
+
+| Var | Purpose |
+|-----|---------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_URL` | BullMQ queue + rate limiter |
+| `BETTER_AUTH_SECRET` | Auth encryption key |
+| `BETTER_AUTH_URL` | API base URL for auth |
+| `OPENAI_API_KEY` | AI analysis & embeddings |
+| `RESEND_API_KEY` | Email (optional — falls back to console.log) |
+| `BUCKET_ACCESS_KEY_ID` | Tigris/S3 object storage |
+| `BUCKET_SECRET_ACCESS_KEY` | Tigris/S3 object storage |
+| `BUCKET_ENDPOINT` | Tigris/S3 endpoint URL |
+| `BUCKET_NAME` | Tigris/S3 bucket name |
+| `IP_HASH_SALT` | Hashing IPs for rate limiting |
+| `ENABLE_DEV_LOGIN` | Allow test login (`"true"` — dev only) |
+
+OAuth providers (Apple, Facebook, Google, LinkedIn): `*_CLIENT_ID` + `*_CLIENT_SECRET`.
 
 ## Dev CLI
 
@@ -557,6 +580,31 @@ We use [Biome](https://biomejs.dev/) for formatting and linting. Config: `biome.
 
 **Auto-formatting hook:** `.claude/settings.json` runs `biome format --write` after every Edit/Write tool call.
 
+## Testing
+
+**Framework:** Vitest 2.0 (runs on Bun via `bun --bun vitest`).
+
+**Commands:**
+- `pnpm api:test` — run API tests
+- `pnpm --filter @repo/shared test` — run shared package tests
+
+**API tests:** `apps/api/__tests__/**/*.test.ts`. Config: `apps/api/vitest.config.ts`.
+
+**Mobile E2E:** Maestro — flows in `apps/mobile/maestro/`. Run: `pnpm --filter @repo/mobile test:e2e`.
+
+**Pattern:**
+```ts
+import { describe, expect, it } from "vitest";
+import { app } from "../src/index";
+
+describe("endpoint", () => {
+  it("works", async () => {
+    const res = await app.request("/health");
+    expect(res.status).toBe(200);
+  });
+});
+```
+
 ## Schema imports
 
 **NEVER** import individual tables from `apps/api/src/db/schema.ts` directly. Instead, import the `schema` namespace from `apps/api/src/db/index.ts` and access tables as `schema.profiles`, `schema.user`, `schema.waves`, etc.
@@ -571,6 +619,17 @@ import { profiles, user, waves, blocks, ... } from '@/db/schema';
 ```
 
 The only exception is `apps/api/src/db/index.ts` itself, which must import from `schema.ts` to set up Drizzle.
+
+## Shared package (`packages/shared`)
+
+Workspace package `@repo/shared` — shared types, validators, and utils used by API and Mobile.
+
+- `types.ts` — TypeScript interfaces: User, Profile, Wave, Conversation, WaveStatus
+- `validators.ts` — Zod schemas: profile creation/update, location, visibility
+- `models.ts` — enums and type helpers
+- `math.ts` — haversine distance calculation
+
+Typecheck: `pnpm --filter @repo/shared typecheck`
 
 ## Import aliases
 
