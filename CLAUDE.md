@@ -313,6 +313,7 @@ npx drizzle-kit generate --custom --name=add-extension-name
 
 ### Rules
 
+- **Use underscores in migration names**, not dashes: `--name=add_metrics_schema` (not `--name=add-metrics-schema`).
 - **Never use `db:push`** — it's been removed from package.json. All changes go through migrations.
 - **Migrations run on production automatically** via Railway post-deploy hook on the API service (`drizzle-kit migrate`). Don't run migrations against production manually.
 - **Review generated SQL before committing.** Always read the generated `.sql` file. Drizzle-kit can produce unexpected DDL for complex changes.
