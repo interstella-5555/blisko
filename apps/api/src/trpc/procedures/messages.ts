@@ -428,13 +428,64 @@ export const messagesRouter = router({
 
       const messagePreview = message.content.length > 100 ? `${message.content.slice(0, 97)}...` : message.content;
 
+      // Get conversation type for push strategy
+      const [conversation] = await db
+        .select({ type: schema.conversations.type, name: schema.conversations.name })
+        .from(schema.conversations)
+        .where(eq(schema.conversations.id, input.conversationId));
+
+      const isGroup = conversation?.type === "group";
+
       for (const p of participants) {
         if (p.userId === ctx.userId) continue;
-        void sendPushToUser(p.userId, {
-          title: senderProfile?.displayName ?? "Ktoś",
-          body: messagePreview,
-          data: { type: "chat", conversationId: input.conversationId },
-        });
+
+        if (isGroup) {
+          // Group: check if recipient has unread messages (unread suppression)
+          const [recipientParticipant] = await db
+            .select({ lastReadAt: schema.conversationParticipants.lastReadAt })
+            .from(schema.conversationParticipants)
+            .where(
+              and(
+                eq(schema.conversationParticipants.conversationId, input.conversationId),
+                eq(schema.conversationParticipants.userId, p.userId),
+              ),
+            );
+
+          // Count unread messages for this recipient
+          const lastRead = recipientParticipant?.lastReadAt;
+          const whereConditions = [
+            eq(schema.messages.conversationId, input.conversationId),
+            ne(schema.messages.senderId, p.userId),
+            isNull(schema.messages.deletedAt),
+          ];
+          if (lastRead) {
+            whereConditions.push(gt(schema.messages.createdAt, lastRead));
+          }
+
+          const [unreadResult] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(schema.messages)
+            .where(and(...whereConditions));
+
+          const unreadCount = Number(unreadResult?.count || 0);
+          const hasUnread = unreadCount > 1; // >1 because current message is already inserted
+
+          void sendPushToUser(p.userId, {
+            title: conversation?.name ?? senderProfile?.displayName ?? "Blisko",
+            body: hasUnread
+              ? `${unreadCount} nowych wiadomości`
+              : `${senderProfile?.displayName ?? "Ktoś"}: ${messagePreview}`,
+            data: { type: "chat", conversationId: input.conversationId },
+            collapseId: hasUnread ? `group:${input.conversationId}` : undefined,
+          });
+        } else {
+          // DM: push every message (like iMessage)
+          void sendPushToUser(p.userId, {
+            title: senderProfile?.displayName ?? "Ktoś",
+            body: messagePreview,
+            data: { type: "chat", conversationId: input.conversationId },
+          });
+        }
       }
 
       // Emit real-time event
