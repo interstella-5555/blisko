@@ -88,6 +88,12 @@ describe("endpoint", () => {
 
 **Rate limiting:** Design doc at `docs/architecture/rate-limiting.md`. Engine: `apps/api/src/services/rate-limiter.ts`. Middleware: `apps/api/src/middleware/rateLimit.ts` (pre-auth, IP key), `apps/api/src/trpc/middleware/rateLimit.ts` (post-auth, userId key).
 
+**Monitoring production performance:** Two endpoints on `https://api.blisko.app`:
+- `GET /api/metrics/summary?window=24` — JSON: overview (totalRequests, errorRate, p50/p95/p99), slowest endpoints, top errors, SLO breaches. `window` = hours (default 24).
+- `GET /metrics` — Prometheus format (histogram `http_request_duration_ms`, counter `http_requests_total`).
+- SLO targets: global p95 < 500ms, error_rate < 5%; per-endpoint in `metrics.slo_targets` table. Seed: `bun run apps/api/scripts/seed-slo-targets.ts`.
+- Design doc: `docs/architecture/instrumentation.md`. Code: `apps/api/src/services/metrics.ts`, `prometheus.ts`, `metrics-summary.ts`.
+
 **Schema inspection:** `npx drizzle-kit export --sql` — see what SQL the full schema would produce from scratch.
 
 ## Database migrations (Drizzle)
