@@ -32,8 +32,12 @@ Separate `metrics` PostgreSQL schema — isolated from application data, ready f
 | `ipHash` | text \| null | SHA256(ip + salt), not raw IP |
 | `userAgent` | text \| null | shortened |
 | `errorMessage` | text \| null | truncated ~200 chars, errors only |
+| `targetUserId` | text \| null | who was acted upon (GDPR audit) |
+| `targetGroupId` | text \| null | which group was acted upon |
+| `dbQueryCount` | integer \| null | DB queries executed in this request |
+| `dbDurationMs` | integer \| null | total DB time in this request |
 
-**Indexes:** `(timestamp)`, `(endpoint, timestamp)`, `(userId, timestamp)`
+**Indexes:** `(timestamp)`, `(endpoint, timestamp)`, `(userId, timestamp)`, `(targetUserId, timestamp)`, `(targetGroupId)`
 
 **`metrics.daily_summaries`** — aggregated data, kept forever:
 
@@ -102,8 +106,9 @@ Request → Hono middleware (start timer)
 **`GET /metrics`** — Prometheus text format (prom-client):
 - `http_request_duration_ms` histogram (buckets: 10, 50, 100, 250, 500, 1000, 2500, 5000)
 - `http_requests_total` counter (labels: endpoint, status, method)
-- `http_errors_total` counter
-- Default Node.js metrics (memory, event loop)
+- `bullmq_jobs_total` counter (labels: queue, status)
+- `bullmq_job_duration_ms` histogram (labels: queue)
+- `bullmq_queue_depth` gauge (labels: queue, state)
 
 ### Mobile Error Reporting
 
@@ -126,10 +131,12 @@ Mobile app extracts `X-Request-Id` from response headers and displays it on erro
 - Mobile extracts `requestId` from response header
 - Shows it on error screen for bug reports
 
-### Milestone 2a — Deeper insight
-- Fields: `targetUserId`, `actionType`, `dbQueryCount`
-- Drizzle query timing (logger/wrapper)
-- BullMQ queue metrics (job duration, queue depth, failure rate)
+### Milestone 2a — Deeper insight ✅
+- `targetUserId`, `targetGroupId`, `dbQueryCount`, `dbDurationMs` columns on `request_events`
+- AsyncLocalStorage + postgres.js `client.unsafe()` monkey-patch for per-request DB query tracking
+- tRPC procedure enrichment: waves, messages, profiles, groups set target user/group
+- BullMQ queue metrics: in-memory stats + Prometheus counters/histograms/gauges
+- Queue summary in `/api/metrics/summary` endpoint
 
 ### Milestone 2b — Intelligent monitoring
 - WebSocket monitoring (connections, throughput, auth failures)
@@ -146,5 +153,5 @@ Mobile app extracts `X-Request-Id` from response headers and displays it on erro
 - 30-day raw event retention satisfies GDPR Art. 32/33 audit trail requirements
 - IP addresses stored as SHA256 hash (not raw) for privacy
 - `userId + timestamp + endpoint` enables Art. 15 data access auditing
-- Future `targetUserId` field enables "who accessed my data" queries
+- `targetUserId` field enables "who accessed my data" queries
 - Verify retention policy with lawyer
