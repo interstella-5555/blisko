@@ -1,0 +1,62 @@
+const OTP_TTL_MS = 5 * 60 * 1000;
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+
+const otpStore = new Map<string, { otp: string; expiresAt: number }>();
+const sessionStore = new Map<string, { email: string; expiresAt: number }>();
+
+function getAllowedEmails(): string[] {
+  const raw = process.env.ADMIN_EMAILS || "";
+  return raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isAllowedEmail(email: string): boolean {
+  return getAllowedEmails().includes(email.toLowerCase().trim());
+}
+
+export function generateOtp(email: string): string {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  otpStore.set(email.toLowerCase(), {
+    otp,
+    expiresAt: Date.now() + OTP_TTL_MS,
+  });
+  return otp;
+}
+
+export function verifyOtp(email: string, otp: string): boolean {
+  const key = email.toLowerCase();
+  const entry = otpStore.get(key);
+  if (!entry) return false;
+  if (Date.now() > entry.expiresAt) {
+    otpStore.delete(key);
+    return false;
+  }
+  if (entry.otp !== otp) return false;
+  otpStore.delete(key);
+  return true;
+}
+
+export function createSession(email: string): string {
+  const token = crypto.randomUUID();
+  sessionStore.set(token, {
+    email: email.toLowerCase(),
+    expiresAt: Date.now() + SESSION_TTL_MS,
+  });
+  return token;
+}
+
+export function getSession(token: string): { email: string } | null {
+  const entry = sessionStore.get(token);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    sessionStore.delete(token);
+    return null;
+  }
+  return { email: entry.email };
+}
+
+export function deleteSession(token: string): void {
+  sessionStore.delete(token);
+}
