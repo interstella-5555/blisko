@@ -1,7 +1,6 @@
 import { blockUserSchema, respondToWaveSchema, sendWaveSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, isNotNull, notInArray, or } from "drizzle-orm";
-import { z } from "zod";
 import { db, schema } from "@/db";
 import { sendPushToUser } from "@/services/push";
 import { promotePairAnalysis } from "@/services/queue";
@@ -158,32 +157,6 @@ export const wavesRouter = router({
       .orderBy(desc(schema.waves.createdAt));
 
     return sentWaves;
-  }),
-
-  // Cancel a sent wave
-  cancel: protectedProcedure.input(z.object({ waveId: z.string().min(1) })).mutation(async ({ ctx, input }) => {
-    const [wave] = await db
-      .select()
-      .from(schema.waves)
-      .where(and(eq(schema.waves.id, input.waveId), eq(schema.waves.fromUserId, ctx.userId)));
-
-    if (!wave) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Wave not found",
-      });
-    }
-
-    if (wave.status !== "pending") {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Can only cancel pending waves",
-      });
-    }
-
-    const [deleted] = await db.delete(schema.waves).where(eq(schema.waves.id, input.waveId)).returning();
-
-    return deleted;
   }),
 
   // Respond to a wave (accept or decline)
