@@ -1,6 +1,15 @@
 import type { ServerWebSocket } from "bun";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
+import {
+  wsAuthResult,
+  wsConnected,
+  wsDisconnected,
+  wsInbound,
+  wsOutbound,
+  wsRateLimitHit,
+  wsSubscribed,
+} from "@/services/ws-metrics";
 import { sessionByToken } from "@/trpc/context";
 import type {
   AnalysisReadyEvent,
@@ -66,6 +75,7 @@ async function getUserConversations(userId: string): Promise<string[]> {
 export const wsHandler = {
   async open(ws: ServerWebSocket<WSData>) {
     clients.add(ws);
+    wsConnected();
   },
 
   async message(ws: ServerWebSocket<WSData>, message: string | Buffer) {
@@ -82,20 +92,34 @@ export const wsHandler = {
           const convIds = await getUserConversations(userId);
           ws.data.subscriptions = new Set(convIds);
 
+          wsAuthResult(true);
+          wsInbound("auth");
+          // Track initial subscriptions from auth
+          for (let i = 0; i < convIds.length; i++) wsSubscribed();
+
           ws.send(JSON.stringify({ type: "auth", status: "ok", conversationIds: convIds }));
         } else {
+          wsAuthResult(false);
+          wsInbound("auth");
           ws.send(JSON.stringify({ type: "auth", status: "error", message: "Invalid token" }));
         }
         return;
       }
 
       // Global WS rate limit: 30 messages per minute (silent drop)
-      if (ws.data.userId && checkWsRateLimit(ws.data.userId, "ws", 30, 60_000)) return;
+      if (ws.data.userId && checkWsRateLimit(ws.data.userId, "ws", 30, 60_000)) {
+        wsRateLimitHit("global");
+        return;
+      }
 
       // Typing indicator: { type: 'typing', conversationId: '...', isTyping: true/false }
       if (data.type === "typing" && ws.data.userId && data.conversationId) {
         // Rate limit typing indicators: 10 per 10 seconds (silent drop)
-        if (checkWsRateLimit(ws.data.userId, "typing", 10, 10_000)) return;
+        if (checkWsRateLimit(ws.data.userId, "typing", 10, 10_000)) {
+          wsRateLimitHit("typing");
+          return;
+        }
+        wsInbound("typing");
         ee.emit(`typing:${data.conversationId}`, {
           conversationId: data.conversationId,
           userId: ws.data.userId,
@@ -107,6 +131,8 @@ export const wsHandler = {
       // Subscribe to a specific conversation
       if (data.type === "subscribe" && data.conversationId) {
         ws.data.subscriptions.add(data.conversationId);
+        wsInbound("subscribe");
+        wsSubscribed();
         return;
       }
     } catch {
@@ -116,6 +142,7 @@ export const wsHandler = {
 
   close(ws: ServerWebSocket<WSData>) {
     clients.delete(ws);
+    wsDisconnected(ws.data.subscriptions?.size ?? 0);
   },
 };
 
@@ -133,29 +160,37 @@ setInterval(
 // Broadcast events to a specific user (all their connected clients)
 function broadcastToUser(userId: string, payload: unknown) {
   const msg = JSON.stringify(payload);
+  const eventType = (payload as { type?: string })?.type ?? "unknown";
+  let sent = 0;
   for (const ws of clients) {
     if (ws.data.userId === userId) {
       try {
         ws.send(msg);
+        sent++;
       } catch {
         // Client disconnected
       }
     }
   }
+  if (sent > 0) wsOutbound(eventType, sent);
 }
 
 // Broadcast events to subscribed WebSocket clients
 function broadcastToConversation(conversationId: string, payload: unknown) {
   const msg = JSON.stringify(payload);
+  const eventType = (payload as { type?: string })?.type ?? "unknown";
+  let sent = 0;
   for (const ws of clients) {
     if (ws.data.subscriptions?.has(conversationId)) {
       try {
         ws.send(msg);
+        sent++;
       } catch {
         // Client disconnected
       }
     }
   }
+  if (sent > 0) wsOutbound(eventType, sent);
 }
 
 // Listen for events from tRPC mutations
