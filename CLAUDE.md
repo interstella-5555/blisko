@@ -74,7 +74,9 @@ xcrun simctl location booted set 52.2010865,20.9618980
 
 ## Environment variables (API)
 
-Required env vars for `apps/api`. Set in Railway (production) or `apps/api/.env` (local).
+Two env files in `apps/api/`:
+- **`.env`** — local development defaults (localhost DB/Redis, dev keys). Loaded automatically by Bun.
+- **`.env.production`** — production Railway credentials. **Never loaded automatically.** To run a script against prod: `bun --env-file=apps/api/.env.production run <script>`.
 
 | Var | Purpose |
 |-----|---------|
@@ -695,7 +697,6 @@ pnpm mobile:testflight
 4. Build appears in TestFlight within ~5-15 minutes
 
 **Important:**
-- Before building, copy production env: `cp apps/api/.env.production apps/api/.env` (restore local `.env` after)
 - Make sure `apps/mobile/.env.local` points to production API (`https://api.blisko.app`) before building
 - First upload requires creating the app in App Store Connect (Apps → + New App → bundle ID `com.blisko.app`)
 - TestFlight internal testers get builds instantly; external testers need one Beta App Review first
