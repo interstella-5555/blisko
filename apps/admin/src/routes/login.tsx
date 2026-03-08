@@ -1,37 +1,7 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeader, setResponseHeader } from "@tanstack/react-start/server";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { useState } from "react";
-import { createSession, generateOtp, getSession, isAllowedEmail, verifyOtp } from "~/lib/auth";
-import { adminOtp, sendEmail } from "~/lib/email";
-
-const requestOtp = createServerFn({ method: "POST" })
-  .inputValidator((data: { email: string }) => data)
-  .handler(async ({ data }) => {
-    const email = data.email.trim().toLowerCase();
-    if (!isAllowedEmail(email)) {
-      return { ok: false as const, error: "Nieautoryzowany adres email." };
-    }
-    const otp = generateOtp(email);
-    await sendEmail(email, adminOtp(otp));
-    return { ok: true as const };
-  });
-
-const verifyOtpFn = createServerFn({ method: "POST" })
-  .inputValidator((data: { email: string; otp: string }) => data)
-  .handler(async ({ data }) => {
-    const email = data.email.trim().toLowerCase();
-    const valid = verifyOtp(email, data.otp.trim());
-    if (!valid) {
-      return { ok: false as const, error: "Nieprawidłowy lub wygasły kod." };
-    }
-    const token = createSession(email);
-    setResponseHeader(
-      "Set-Cookie",
-      `admin-session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
-    );
-    return { ok: true as const };
-  });
+import { getSession } from "~/lib/auth";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: () => {
@@ -58,7 +28,12 @@ function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const result = await requestOtp({ data: { email } });
+      const res = await fetch("/api/request-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const result = await res.json();
       if (result.ok) {
         setStep("otp");
       } else {
@@ -76,7 +51,12 @@ function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const result = await verifyOtpFn({ data: { email, otp } });
+      const res = await fetch("/api/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+      const result = await res.json();
       if (result.ok) {
         router.navigate({ to: "/dashboard" });
       } else {
@@ -90,64 +70,64 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-6 text-center text-xl font-semibold tracking-wide">BLISKO ADMIN</h1>
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-header">
+          <h1 className="login-logo">BLISKO</h1>
+          <p className="login-subtitle">Panel administracyjny</p>
+        </div>
 
         {step === "email" ? (
           <form onSubmit={handleEmailSubmit}>
-            <label className="mb-1 block text-sm text-gray-600">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mb-4 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
-              placeholder="admin@example.com"
-            />
-            {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-            >
+            <div className="form-group">
+              <label htmlFor="email">Adres email</label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@blisko.app"
+              />
+            </div>
+            {error && <p className="form-error">{error}</p>}
+            <button type="submit" className="btn" disabled={loading}>
               {loading ? "Wysyłanie..." : "Wyślij kod"}
             </button>
           </form>
         ) : (
           <form onSubmit={handleOtpSubmit}>
-            <p className="mb-4 text-sm text-gray-600">
+            <p className="otp-info">
               Kod wysłany na <strong>{email}</strong>
             </p>
-            <label className="mb-1 block text-sm text-gray-600">Kod OTP</label>
-            <input
-              type="text"
-              required
-              inputMode="numeric"
-              maxLength={6}
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="mb-4 w-full rounded border border-gray-300 px-3 py-2 text-center text-lg tracking-widest focus:border-gray-500 focus:outline-none"
-              placeholder="000000"
-            />
-            {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-            >
+            <div className="form-group">
+              <label htmlFor="otp">Kod weryfikacyjny</label>
+              <input
+                id="otp"
+                type="text"
+                required
+                inputMode="numeric"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="000000"
+                className="otp-input"
+              />
+            </div>
+            {error && <p className="form-error">{error}</p>}
+            <button type="submit" className="btn" disabled={loading}>
               {loading ? "Weryfikacja..." : "Zaloguj się"}
             </button>
             <button
               type="button"
+              className="btn-link"
               onClick={() => {
                 setStep("email");
                 setOtp("");
                 setError("");
               }}
-              className="mt-2 w-full text-sm text-gray-500 hover:text-gray-700"
             >
-              Zmień email
+              Zmień adres email
             </button>
           </form>
         )}
