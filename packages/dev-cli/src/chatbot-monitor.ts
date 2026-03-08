@@ -1,3 +1,16 @@
+/**
+ * Live dashboard showing what the chatbot sees.
+ *
+ * Shows stats (bot vs human messages, accepted/declined waves in last
+ * hour), pending waves waiting for seed user response, recent wave
+ * decisions with match scores, and active conversations with last 3
+ * messages.
+ *
+ * Reads DATABASE_URL from env or `apps/api/.env`. Refreshes every 3s.
+ * Does NOT require the chatbot to be running — reads DB directly.
+ *
+ * Run: `pnpm dev-cli:chatbot-monitor`
+ */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 

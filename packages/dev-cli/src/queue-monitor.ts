@@ -1,3 +1,14 @@
+/**
+ * Live dashboard for the `ai-jobs` BullMQ queue.
+ *
+ * Shows queue counts (waiting, active, delayed, failed, completed),
+ * recent completed jobs with wait/process/total times, averages by
+ * job type, and active + waiting jobs with user pair names.
+ *
+ * Reads REDIS_URL from env or `apps/api/.env`. Refreshes every 2s.
+ *
+ * Run: `pnpm dev-cli:queue-monitor`
+ */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Queue } from "bullmq";

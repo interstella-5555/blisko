@@ -124,3 +124,12 @@ Triggered by "ralph report" / "co się stało w nocy".
 ### Git activity
 [N] commits, [summary]
 ```
+
+## Review (for Karol)
+
+After Ralph runs, review what happened:
+
+1. `pnpm ralph:dry` — see queue state without executing
+2. `git log --oneline -20` — see what was merged to main
+3. Blocked files: `ls scripts/ralph-queue/*.blocked` — check logs for why
+4. Unblock: fix the issue, rename `.blocked` back to `.md`

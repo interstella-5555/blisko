@@ -25,7 +25,18 @@ echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:300
 
 **Env vars:** Two env files in `apps/api/`: `.env` (local dev, loaded by Bun automatically), `.env.production` (Railway credentials, never loaded automatically — use `bun --env-file=apps/api/.env.production run <script>` for scripts needing prod access or simulator/device testing). OAuth providers: `*_CLIENT_ID` + `*_CLIENT_SECRET` for Apple, Facebook, Google, LinkedIn.
 
-**Dev CLI:** `pnpm dev-cli -- <command>`. See `packages/dev-cli/`.
+**Dev CLI:** `pnpm dev-cli -- <command>` (calls API via HTTP so WebSocket events fire). `API_URL` env var overrides default `http://localhost:3000`. Users referenced by email, resolved to userId/token from in-memory cache.
+
+| Command | Example |
+|---------|---------|
+| `create-user <name>` | Create user + profile + location (auto-login) |
+| `send-wave --from <email> --to <email>` | Send a wave between users |
+| `respond-wave <name> <waveId> accept\|decline` | Accept or decline a wave |
+| `waves <name>` | Show received & sent waves |
+| `chats <name>` | List conversations |
+| `messages <name> <convId>` | Show messages in a conversation |
+| `send-message <name> <convId> <text>` | Send a message |
+| `reanalyze <email> [--clear-all]` | Clear analyses + re-trigger AI |
 
 **Monitors:** `pnpm dev-cli:queue-monitor` (BullMQ jobs), `pnpm dev-cli:chatbot-monitor` (bot activity).
 
@@ -78,6 +89,79 @@ describe("endpoint", () => {
 **Rate limiting:** Design doc at `docs/architecture/rate-limiting.md`. Engine: `apps/api/src/services/rate-limiter.ts`. Middleware: `apps/api/src/middleware/rateLimit.ts` (pre-auth, IP key), `apps/api/src/trpc/middleware/rateLimit.ts` (post-auth, userId key).
 
 **Schema inspection:** `npx drizzle-kit export --sql` — see what SQL the full schema would produce from scratch.
+
+## Database migrations (Drizzle)
+
+Schema: `apps/api/src/db/schema.ts`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`. Rules: `.claude/rules/migrations.md`.
+
+### Workflow by scenario
+
+**Adding tables, columns, indexes (most common):**
+
+```bash
+# 1. Edit schema.ts
+# 2. Generate migration
+pnpm --filter @repo/api db:generate -- --name=describe_change
+# 3. Review the generated SQL in drizzle/NNNN_describe_change.sql
+# 4. Apply locally
+pnpm --filter @repo/api db:migrate
+# 5. Test, then commit migration + schema + app code together
+```
+
+`drizzle-kit generate` is non-interactive for additive changes — safe to run from Claude Code.
+
+**Renaming a column or table (two-step, non-interactive):**
+
+`generate` becomes interactive on renames (asks "Is X renamed from Y?"). Split into two migrations:
+
+```bash
+# Step 1: Add new column + copy data
+npx drizzle-kit generate --custom --name=rename_col_step1
+# Write SQL: ALTER TABLE ADD new_col; UPDATE SET new_col = old_col;
+
+# Step 2: After deploying step 1, remove old column from schema
+npx drizzle-kit generate --name=rename_col_step2
+```
+
+**Changing column types (e.g. `text → jsonb`):**
+
+Drizzle can't auto-generate type casts. Use custom migration:
+
+```bash
+npx drizzle-kit generate --custom --name=describe_change
+```
+
+```sql
+-- Custom migration: change column type with explicit cast
+ALTER TABLE "my_table" ALTER COLUMN "my_col" TYPE jsonb USING "my_col"::jsonb;
+```
+
+**Data migrations (backfill):**
+
+Use custom migration — never mix DDL and DML in the same file:
+
+```bash
+npx drizzle-kit generate --custom --name=backfill_describe_what
+```
+
+```sql
+-- Backfill: set default value for new column
+UPDATE "profiles" SET "visibility" = 'public' WHERE "visibility" IS NULL;
+```
+
+**Dropping tables/columns:** Remove from `schema.ts`, then `generate`. Non-interactive.
+
+**PostgreSQL extensions, functions, triggers:** Always `--custom`.
+
+## Drizzle query approach
+
+Rules: `.claude/rules/drizzle.md`. Decision hierarchy (in order of preference):
+
+1. **Relational queries** (default) — `db.query.*.findMany()` / `findFirst()` with `with`, `where`, `columns`, `orderBy`, `limit`
+2. **Query builder** (joins, aggregates, subqueries, performance-critical) — `db.select().from().where().leftJoin()...`
+3. **Raw `sql`** (last resort) — only inside a query builder call when no Drizzle equivalent exists
+
+**Rule of thumb:** Pick the approach that produces the simplest, most efficient code. `findMany`/`findFirst` should be short and obvious — if it's growing past ~15 lines, over-fetching data, or fighting the relational API, switch to query builder. Before choosing, think about what SQL Drizzle will generate.
 
 ---
 

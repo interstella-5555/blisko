@@ -1,3 +1,24 @@
+/**
+ * Email module — all outbound emails go through this file.
+ *
+ * Core:
+ * - `sendEmail(to, template)` — sends via Resend, falls back to console.log when RESEND_API_KEY is not set.
+ * - `layout(content)` — shared HTML wrapper with BLISKO header + "Pozdrawiamy, Zespół Blisko" footer.
+ *
+ * Reusable blocks:
+ * - `otpBlock(otp)` — styled centered OTP code display (large monospace digits).
+ * - `button(label, href)` — red CTA button for deep links and download URLs.
+ *
+ * Templates:
+ * - `signInOtp(otp, deepLink)` — sign-in email with deep link button + OTP fallback.
+ * - `changeEmailOtp(otp)` — verification code for email address change.
+ * - `dataExportReady(downloadUrl)` — GDPR data export download link.
+ *
+ * Adding a new template:
+ * 1. Export a function returning `{ subject: string; html: string }`.
+ * 2. Wrap content with `layout()` for consistent branding.
+ * 3. Call `sendEmail(to, yourTemplate(...))` from the sending location.
+ */
 import { Resend } from "resend";
 
 let resendInstance: Resend | null = null;
