@@ -1,7 +1,9 @@
 const OTP_TTL_MS = 5 * 60 * 1000;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
-const otpStore = new Map<string, { otp: string; expiresAt: number }>();
+const MAX_OTP_ATTEMPTS = 5;
+
+const otpStore = new Map<string, { otp: string; expiresAt: number; attempts: number }>();
 const sessionStore = new Map<string, { email: string; expiresAt: number }>();
 
 function getAllowedEmails(): string[] {
@@ -17,10 +19,13 @@ export function isAllowedEmail(email: string): boolean {
 }
 
 export function generateOtp(email: string): string {
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  const otp = (100000 + (array[0] % 900000)).toString();
   otpStore.set(email.toLowerCase(), {
     otp,
     expiresAt: Date.now() + OTP_TTL_MS,
+    attempts: 0,
   });
   return otp;
 }
@@ -29,10 +34,11 @@ export function verifyOtp(email: string, otp: string): boolean {
   const key = email.toLowerCase();
   const entry = otpStore.get(key);
   if (!entry) return false;
-  if (Date.now() > entry.expiresAt) {
+  if (Date.now() > entry.expiresAt || entry.attempts >= MAX_OTP_ATTEMPTS) {
     otpStore.delete(key);
     return false;
   }
+  entry.attempts++;
   if (entry.otp !== otp) return false;
   otpStore.delete(key);
   return true;
