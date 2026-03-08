@@ -107,7 +107,7 @@ function LoginPage() {
                 type="text"
                 required
                 inputMode="numeric"
-                maxLength={6}
+                maxLength={8}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="000000"

@@ -34,7 +34,7 @@ export function isAllowedEmail(email: string): boolean {
 export function generateOtp(email: string): string {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
-  const otp = (100000 + (array[0] % 900000)).toString();
+  const otp = (10000000 + (array[0] % 90000000)).toString();
   otpStore.set(email.toLowerCase(), {
     otp,
     expiresAt: Date.now() + OTP_TTL_MS,
