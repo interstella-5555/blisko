@@ -48,7 +48,10 @@ export const messagesRouter = router({
       db.execute(sql`
         SELECT DISTINCT ON (conversation_id) *
         FROM messages
-        WHERE conversation_id = ANY(${conversationIds})
+        WHERE conversation_id IN (${sql.join(
+          conversationIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})
           AND deleted_at IS NULL
         ORDER BY conversation_id, created_at DESC
       `),
@@ -62,7 +65,10 @@ export const messagesRouter = router({
         JOIN conversations c ON c.id = m.conversation_id
         JOIN conversation_participants cp
           ON cp.conversation_id = m.conversation_id AND cp.user_id = ${ctx.userId}
-        WHERE m.conversation_id = ANY(${conversationIds})
+        WHERE m.conversation_id IN (${sql.join(
+          conversationIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})
           AND m.sender_id != ${ctx.userId}
           AND m.deleted_at IS NULL
           AND (
