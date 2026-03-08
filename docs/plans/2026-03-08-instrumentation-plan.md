@@ -498,72 +498,85 @@ Add SLO targets seed script with default thresholds (BLI-69)
 
 **Step 1: Create summary query module**
 
+Uses Drizzle query builder with `sql` fragments for `percentile_cont` (no Drizzle equivalent).
+Never use standalone `db.execute(sql\`...\`)` — always go through the query builder.
+
 ```ts
 // apps/api/src/services/metrics-summary.ts
-import { sql } from "drizzle-orm";
+import { and, count, desc, gte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { requestEvents, sloTargets } from "@/db/metrics-schema";
 
 export async function getMetricsSummary(periodMinutes = 60) {
-  const since = new Date(Date.now() - periodMinutes * 60 * 1000).toISOString();
+  const since = new Date(Date.now() - periodMinutes * 60 * 1000);
 
   // Overview: total, error rate, percentiles
-  const [overview] = await db.execute(sql`
-    SELECT
-      count(*)::int AS "totalRequests",
-      round(count(*) FILTER (WHERE status_code >= 400)::numeric / GREATEST(count(*), 1) * 100, 2) AS "errorRate",
-      coalesce(percentile_cont(0.5) WITHIN GROUP (ORDER BY duration_ms)::int, 0) AS p50,
-      coalesce(percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms)::int, 0) AS p95,
-      coalesce(percentile_cont(0.99) WITHIN GROUP (ORDER BY duration_ms)::int, 0) AS p99
-    FROM metrics.request_events
-    WHERE timestamp > ${since}::timestamptz
-  `);
+  const [overview] = await db
+    .select({
+      totalRequests: count().as("totalRequests"),
+      errorRate: sql<number>`round(count(*) FILTER (WHERE ${requestEvents.statusCode} >= 400)::numeric / GREATEST(count(*), 1) * 100, 2)`.as("errorRate"),
+      p50: sql<number>`coalesce(percentile_cont(0.5) WITHIN GROUP (ORDER BY ${requestEvents.durationMs})::int, 0)`.as("p50"),
+      p95: sql<number>`coalesce(percentile_cont(0.95) WITHIN GROUP (ORDER BY ${requestEvents.durationMs})::int, 0)`.as("p95"),
+      p99: sql<number>`coalesce(percentile_cont(0.99) WITHIN GROUP (ORDER BY ${requestEvents.durationMs})::int, 0)`.as("p99"),
+    })
+    .from(requestEvents)
+    .where(gte(requestEvents.timestamp, since));
 
   // Slowest endpoints by p95
-  const slowest = await db.execute(sql`
-    SELECT
-      endpoint,
-      count(*)::int AS count,
-      percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms)::int AS p95
-    FROM metrics.request_events
-    WHERE timestamp > ${since}::timestamptz
-    GROUP BY endpoint
-    ORDER BY p95 DESC
-    LIMIT 10
-  `);
+  const slowest = await db
+    .select({
+      endpoint: requestEvents.endpoint,
+      count: count().as("count"),
+      p95: sql<number>`percentile_cont(0.95) WITHIN GROUP (ORDER BY ${requestEvents.durationMs})::int`.as("p95"),
+    })
+    .from(requestEvents)
+    .where(gte(requestEvents.timestamp, since))
+    .groupBy(requestEvents.endpoint)
+    .orderBy(sql`p95 DESC`)
+    .limit(10);
 
   // Endpoints with errors
-  const errors = await db.execute(sql`
-    SELECT
-      endpoint,
-      count(*)::int AS count,
-      (array_agg(error_message ORDER BY timestamp DESC))[1] AS "lastError"
-    FROM metrics.request_events
-    WHERE timestamp > ${since}::timestamptz AND status_code >= 400
-    GROUP BY endpoint
-    ORDER BY count DESC
-    LIMIT 10
-  `);
+  const errors = await db
+    .select({
+      endpoint: requestEvents.endpoint,
+      count: count().as("count"),
+      lastError: sql<string>`(array_agg(${requestEvents.errorMessage} ORDER BY ${requestEvents.timestamp} DESC))[1]`.as("lastError"),
+    })
+    .from(requestEvents)
+    .where(and(gte(requestEvents.timestamp, since), gte(requestEvents.statusCode, 400)))
+    .groupBy(requestEvents.endpoint)
+    .orderBy(desc(count()))
+    .limit(10);
 
-  // SLO breaches
-  const sloBreaches = await db.execute(sql`
-    SELECT
-      st.endpoint,
-      st.metric_type AS "metricType",
-      st.threshold_ms AS "thresholdMs",
-      percentile_cont(
-        CASE st.metric_type WHEN 'p95' THEN 0.95 WHEN 'p99' THEN 0.99 ELSE 0.95 END
-      ) WITHIN GROUP (ORDER BY re.duration_ms)::int AS actual
-    FROM metrics.slo_targets st
-    CROSS JOIN metrics.request_events re
-    WHERE re.timestamp > ${since}::timestamptz
-      AND st.metric_type IN ('p95', 'p99')
-      AND (st.endpoint IS NULL OR re.endpoint = st.endpoint)
-    GROUP BY st.id, st.endpoint, st.metric_type, st.threshold_ms
-    HAVING percentile_cont(
-      CASE st.metric_type WHEN 'p95' THEN 0.95 WHEN 'p99' THEN 0.99 ELSE 0.95 END
-    ) WITHIN GROUP (ORDER BY re.duration_ms) > st.threshold_ms
-  `);
+  // SLO breaches — fetch targets then check each
+  const targets = await db.select().from(sloTargets);
+  const sloBreaches = [];
+
+  for (const target of targets) {
+    if (target.metricType !== "p95" && target.metricType !== "p99") continue;
+    if (!target.thresholdMs) continue;
+
+    const pct = target.metricType === "p95" ? 0.95 : 0.99;
+    const whereClause = target.endpoint
+      ? and(gte(requestEvents.timestamp, since), sql`${requestEvents.endpoint} = ${target.endpoint}`)
+      : gte(requestEvents.timestamp, since);
+
+    const [result] = await db
+      .select({
+        actual: sql<number>`coalesce(percentile_cont(${pct}) WITHIN GROUP (ORDER BY ${requestEvents.durationMs})::int, 0)`.as("actual"),
+      })
+      .from(requestEvents)
+      .where(whereClause);
+
+    if (result && result.actual > target.thresholdMs) {
+      sloBreaches.push({
+        endpoint: target.endpoint ?? "(global)",
+        metricType: target.metricType,
+        thresholdMs: target.thresholdMs,
+        actual: result.actual,
+      });
+    }
+  }
 
   return {
     period: `last_${periodMinutes}m`,
