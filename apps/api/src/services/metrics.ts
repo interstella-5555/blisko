@@ -1,6 +1,7 @@
 import type { Context, MiddlewareHandler } from "hono";
 import { db, schema } from "@/db";
 import type { NewRequestEvent } from "@/db/schema";
+import { createQueryContext, getQueryStats, queryTracker } from "@/services/query-tracker";
 import { httpRequestDuration, httpRequestsTotal } from "./prometheus";
 
 // --- Config ---
@@ -71,8 +72,24 @@ export const requestMeta = new WeakMap<
     requestId: string;
     userId?: string;
     sessionId?: string;
+    targetUserId?: string;
+    targetGroupId?: string;
   }
 >();
+
+export function setTargetUserId(req: Request, targetUserId: string): void {
+  const meta = requestMeta.get(req);
+  if (meta) {
+    meta.targetUserId = targetUserId;
+  }
+}
+
+export function setTargetGroupId(req: Request, targetGroupId: string): void {
+  const meta = requestMeta.get(req);
+  if (meta) {
+    meta.targetGroupId = targetGroupId;
+  }
+}
 
 // --- Helpers ---
 
@@ -125,14 +142,17 @@ export function metricsMiddleware(): MiddlewareHandler {
     requestMeta.set(c.req.raw, { requestId });
 
     let errMsg: string | null = null;
+    const queryContext = createQueryContext();
+
     try {
-      await next();
+      await queryTracker.run(queryContext, () => next());
     } catch (err) {
       errMsg = truncate(err instanceof Error ? err.message : String(err), 200);
       throw err;
     } finally {
       const durationMs = Math.round(performance.now() - start);
       const meta = requestMeta.get(c.req.raw);
+      const queryStats = getQueryStats() ?? queryContext;
 
       const endpoint = extractEndpoint(c);
       const statusCode = errMsg ? 500 : c.res.status;
@@ -156,6 +176,10 @@ export function metricsMiddleware(): MiddlewareHandler {
         ipHash: hashIp(getClientIp(c)),
         userAgent: truncate(c.req.header("user-agent"), 200),
         errorMessage: errMsg,
+        targetUserId: meta?.targetUserId ?? null,
+        targetGroupId: meta?.targetGroupId ?? null,
+        dbQueryCount: queryStats.queryCount || null,
+        dbDurationMs: queryStats.dbDurationMs || null,
       });
       requestMeta.delete(c.req.raw);
     }

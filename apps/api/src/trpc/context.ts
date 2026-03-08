@@ -15,6 +15,7 @@ export const sessionByToken = db
 export interface TRPCContext {
   userId: string | null;
   db: typeof db;
+  req: Request;
   [key: string]: unknown;
 }
 
@@ -62,5 +63,6 @@ export async function createContext(opts: FetchCreateContextFnOptions): Promise<
   return {
     userId,
     db,
+    req: opts.req,
   };
 }
