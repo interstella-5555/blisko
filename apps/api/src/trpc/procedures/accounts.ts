@@ -91,16 +91,17 @@ export const accountsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid OTP" });
       }
 
-      // 3. Soft delete — set deletedAt
-      await db.update(schema.user).set({ deletedAt: new Date() }).where(eq(schema.user.id, ctx.userId));
+      // 3. Soft delete + cleanup in transaction
+      await db.transaction(async (tx) => {
+        // Soft delete
+        await tx.update(schema.user).set({ deletedAt: new Date() }).where(eq(schema.user.id, ctx.userId));
+        // Delete all sessions (logs out everywhere)
+        await tx.delete(schema.session).where(eq(schema.session.userId, ctx.userId));
+        // Remove push tokens (stop notifications)
+        await tx.delete(schema.pushTokens).where(eq(schema.pushTokens.userId, ctx.userId));
+      });
 
-      // 4. Delete all sessions (logs out everywhere)
-      await db.delete(schema.session).where(eq(schema.session.userId, ctx.userId));
-
-      // 5. Remove push tokens (stop notifications)
-      await db.delete(schema.pushTokens).where(eq(schema.pushTokens.userId, ctx.userId));
-
-      // 6. Schedule hard delete in 14 days
+      // 4. Schedule hard delete outside transaction (queue job, not DB)
       await enqueueHardDeleteUser(ctx.userId);
 
       return { ok: true };

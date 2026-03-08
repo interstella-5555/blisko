@@ -59,44 +59,37 @@ export const wavesRouter = router({
         });
       }
 
-      // Check if already waved
-      const [existingWave] = await db
-        .select()
-        .from(schema.waves)
-        .where(
-          and(
-            eq(schema.waves.fromUserId, ctx.userId),
-            eq(schema.waves.toUserId, input.toUserId),
-            eq(schema.waves.status, "pending"),
-          ),
-        );
+      // Check + insert in serializable transaction to prevent duplicate waves
+      const [wave] = await db.transaction(
+        async (tx) => {
+          const [existingWave] = await tx
+            .select()
+            .from(schema.waves)
+            .where(
+              and(
+                eq(schema.waves.fromUserId, ctx.userId),
+                eq(schema.waves.toUserId, input.toUserId),
+                eq(schema.waves.status, "pending"),
+              ),
+            );
 
-      if (existingWave) {
-        console.log(`[waves.send] Already waved: from=${ctx.userId} to=${input.toUserId}`);
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "You already waved at this user",
-        });
-      }
+          if (existingWave) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "You already waved at this user",
+            });
+          }
 
-      let wave: typeof schema.waves.$inferSelect;
-      try {
-        [wave] = await db
-          .insert(schema.waves)
-          .values({
-            fromUserId: ctx.userId,
-            toUserId: input.toUserId,
-          })
-          .returning();
-      } catch (err: unknown) {
-        if (err instanceof Error && "code" in err && (err as { code: string }).code === "23505") {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "You already waved at this user",
-          });
-        }
-        throw err;
-      }
+          return await tx
+            .insert(schema.waves)
+            .values({
+              fromUserId: ctx.userId,
+              toUserId: input.toUserId,
+            })
+            .returning();
+        },
+        { isolationLevel: "serializable" },
+      );
 
       await promotePairAnalysis(ctx.userId, input.toUserId);
 
@@ -195,24 +188,25 @@ export const wavesRouter = router({
         });
       }
 
-      const newStatus = input.accept ? "accepted" : "declined";
-
-      const [updatedWave] = await db
-        .update(schema.waves)
-        .set({ status: newStatus })
-        .where(eq(schema.waves.id, input.waveId))
-        .returning();
-
-      // If accepted, create a conversation
       if (input.accept) {
-        const [conversation] = await db.insert(schema.conversations).values({}).returning();
+        const { updatedWave, conversation } = await db.transaction(async (tx) => {
+          const [updatedWave] = await tx
+            .update(schema.waves)
+            .set({ status: "accepted" })
+            .where(eq(schema.waves.id, input.waveId))
+            .returning();
 
-        await db.insert(schema.conversationParticipants).values([
-          { conversationId: conversation.id, userId: wave.fromUserId },
-          { conversationId: conversation.id, userId: ctx.userId },
-        ]);
+          const [conversation] = await tx.insert(schema.conversations).values({}).returning();
 
-        // Query responder profile for notification display
+          await tx.insert(schema.conversationParticipants).values([
+            { conversationId: conversation.id, userId: wave.fromUserId },
+            { conversationId: conversation.id, userId: ctx.userId },
+          ]);
+
+          return { updatedWave, conversation };
+        });
+
+        // Side effects (push, WS) outside transaction — they don't need atomicity
         const [responderProfile] = await db
           .select({ displayName: schema.profiles.displayName, avatarUrl: schema.profiles.avatarUrl })
           .from(schema.profiles)
@@ -236,6 +230,13 @@ export const wavesRouter = router({
 
         return { wave: updatedWave, conversationId: conversation.id };
       }
+
+      // Decline path (no transaction needed — single update)
+      const [updatedWave] = await db
+        .update(schema.waves)
+        .set({ status: "declined" })
+        .where(eq(schema.waves.id, input.waveId))
+        .returning();
 
       ee.emit("waveResponded", {
         fromUserId: wave.fromUserId,
@@ -263,26 +264,29 @@ export const wavesRouter = router({
       });
     }
 
-    // Create block
-    const [block] = await db
-      .insert(schema.blocks)
-      .values({
-        blockerId: ctx.userId,
-        blockedId: input.userId,
-      })
-      .returning();
+    // Create block + decline pending waves atomically
+    const [block] = await db.transaction(async (tx) => {
+      const [block] = await tx
+        .insert(schema.blocks)
+        .values({
+          blockerId: ctx.userId,
+          blockedId: input.userId,
+        })
+        .returning();
 
-    // Decline any pending waves from blocked user
-    await db
-      .update(schema.waves)
-      .set({ status: "declined" })
-      .where(
-        and(
-          eq(schema.waves.fromUserId, input.userId),
-          eq(schema.waves.toUserId, ctx.userId),
-          eq(schema.waves.status, "pending"),
-        ),
-      );
+      await tx
+        .update(schema.waves)
+        .set({ status: "declined" })
+        .where(
+          and(
+            eq(schema.waves.fromUserId, input.userId),
+            eq(schema.waves.toUserId, ctx.userId),
+            eq(schema.waves.status, "pending"),
+          ),
+        );
+
+      return [block];
+    });
 
     return block;
   }),
