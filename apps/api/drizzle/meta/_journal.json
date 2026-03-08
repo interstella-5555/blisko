@@ -8,6 +8,13 @@
       "when": 1772978970341,
       "tag": "0000_baseline",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772982528692,
+      "tag": "0001_add-metrics-schema",
+      "breakpoints": true
     }
   ]
 }
