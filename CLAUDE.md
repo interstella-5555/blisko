@@ -337,9 +337,87 @@ Use Bun's built-in `RedisClient` (`import { RedisClient } from 'bun'`) for all d
 
 ## Drizzle queries
 
-Always prefer Drizzle's built-in filter functions over raw `sql`\`...\``. Use `between()`, `eq()`, `ne()`, `gt()`, `lt()`, `gte()`, `lte()`, `isNull()`, `isNotNull()`, `inArray()`, `notInArray()`, `like()`, `ilike()`, `and()`, `or()`, `not()` — all from `drizzle-orm`.
+**Prefer `findMany`/`findFirst` by default.** Before choosing an approach, think about what SQL Drizzle will generate and pick the one that produces a significantly better query.
 
-Raw `sql` is only acceptable when there's no Drizzle equivalent: Haversine/distance formulas, `CASE WHEN`, `NULLS LAST` ordering, `TRUNCATE`, column arithmetic in `.set()`, or computed column aliases in `ORDER BY`.
+**Rule of thumb:** Pick the approach that produces the simplest, most efficient code. `findMany`/`findFirst` should be short and obvious — if it's growing past ~15 lines, over-fetching data, or fighting the relational API with complex `where`/`columns` nesting, switch to query builder.
+
+- **Simple fetch, few/no joins** → `findMany`/`findFirst` — cleaner, less code
+- **Complex joins, aggregation, selective columns across tables, performance-critical** → `db.select().from().leftJoin()...` — one SQL query, fetches only what you need, often fewer LOC than a bloated relational query
+- Before choosing, think about what SQL Drizzle will generate. `findMany` with `with` runs separate queries or lateral joins per relation. Query builder produces a single explicit JOIN. Pick whichever is significantly better for the use case.
+
+1. **Relational queries** (default) — `db.query.*.findMany()`, `db.query.*.findFirst()` with `with`, `where`, `columns`, `orderBy`, `limit`
+2. **Query builder** (joins, aggregates, subqueries, performance-critical) — `db.select().from().where().leftJoin()...`
+3. **Raw `sql`** (last resort) — only inside a query builder call when there's no Drizzle equivalent (Haversine, `CASE WHEN`, `NULLS LAST`, `TRUNCATE`, column arithmetic in `.set()`, computed aliases in `ORDER BY`). **Never** as a standalone `db.execute(sql`...`)`.
+
+```ts
+// ✅ Best — relational query
+const user = await db.query.user.findFirst({
+  where: eq(schema.user.id, userId),
+  with: { profile: true },
+});
+
+// ✅ OK — query builder for aggregates/complex joins
+const userConversations = await db
+  .select({
+    conversationId: schema.conversationParticipants.conversationId,
+    lastReadAt: schema.conversationParticipants.lastReadAt,
+  })
+  .from(schema.conversationParticipants)
+  .where(eq(schema.conversationParticipants.userId, ctx.userId));
+
+// ❌ Never do this
+const result = await db.execute(sql`SELECT ... FROM ... JOIN ... WHERE ...`);
+```
+
+**When raw `sql` is unavoidable:** If a query genuinely can't be expressed with Drizzle's query builder or relational API, create a Linear ticket (label: **Improvement**, title: "Refactor raw SQL: [context]") describing the query and why it's raw, so Karol can review and verify.
+
+**Filters:** Always use Drizzle's built-in filter functions over raw `sql`\`...\``: `between()`, `eq()`, `ne()`, `gt()`, `lt()`, `gte()`, `lte()`, `isNull()`, `isNotNull()`, `inArray()`, `notInArray()`, `like()`, `ilike()`, `and()`, `or()`, `not()` — all from `drizzle-orm`.
+
+**Single-row fetch → `findFirst()`, not destructured array.** Don't write `const [item] = await db.select().from(...).where(...)` — use `db.query.*.findFirst()` instead. It adds `LIMIT 1` automatically and returns the object directly (no array destructuring).
+
+```ts
+// ✅ Correct
+const profile = await db.query.profiles.findFirst({
+  where: eq(schema.profiles.userId, userId),
+});
+
+// ❌ Don't do this for single-row lookups
+const [profile] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, userId));
+```
+
+**Transactions: always use `tx`, never `db`.** Inside `db.transaction(async (tx) => { ... })`, all queries must go through `tx`. Using `db` inside a transaction runs the query outside the transaction — it won't be rolled back on failure.
+
+```ts
+// ✅ Correct
+await db.transaction(async (tx) => {
+  const [wave] = await tx.insert(schema.waves).values({ ... }).returning();
+  await tx.insert(schema.conversations).values({ ... });
+});
+
+// ❌ Footgun — db query escapes the transaction
+await db.transaction(async (tx) => {
+  const [wave] = await tx.insert(schema.waves).values({ ... }).returning();
+  await db.insert(schema.conversations).values({ ... }); // NOT in transaction!
+});
+```
+
+**`.returning()` after insert/update.** When you need the inserted/updated row, use `.returning()` instead of doing a separate select after the write. One round-trip instead of two.
+
+**Upsert with `onConflictDoUpdate`.** When the logic is "insert if not exists, update if exists", use `.onConflictDoUpdate()` instead of select → if exists → update else insert. Atomic, single query, no race conditions.
+
+**Prepared statements for hot paths.** Use `.prepare("name")` for queries executed on every request (auth middleware, session lookup). Drizzle compiles the SQL once and reuses the precompiled query plan. Use `placeholder("param")` for dynamic values.
+
+```ts
+const getSession = db.query.session.findFirst({
+  where: eq(schema.session.token, placeholder("token")),
+  with: { user: true },
+}).prepare("session_by_token");
+
+// Execute — reuses compiled query
+const session = await getSession.execute({ token: bearerToken });
+```
+
+**Stable API only.** We use stable Drizzle (v1 relational queries). Relations are defined with `relations()` from `drizzle-orm` per-table in `schema.ts`. Do NOT use the beta v2 API (`defineRelations` from `drizzle-orm`, `r.one.*/r.many.*` syntax) — it has a different, incompatible syntax.
 
 ## Biome (linter + formatter)
 
