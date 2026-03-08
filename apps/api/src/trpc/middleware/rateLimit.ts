@@ -9,7 +9,11 @@ import { middleware } from "@/trpc/trpc";
  * @param name - Key from rateLimits config
  * @param keySuffix - Optional function to derive a per-resource suffix (e.g. conversationId)
  */
-export function rateLimit(name: RateLimitName, keySuffix?: (opts: { input: any }) => string) {
+export function rateLimit(
+  name: RateLimitName,
+  // biome-ignore lint/suspicious/noExplicitAny: tRPC middleware input is `unknown` — callers constrain type via their procedure schema
+  keySuffix?: (opts: { input: any }) => string,
+) {
   const config = rateLimits[name];
 
   return middleware(async ({ ctx, input, next }) => {

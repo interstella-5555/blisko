@@ -110,9 +110,9 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
 // File uploads — S3-compatible object storage (Bun built-in S3Client)
 import { S3Client } from "bun";
 import { and, eq, gt } from "drizzle-orm";
+import { DEFAULT_RATE_LIMIT_MESSAGE, rateLimitMessages, rateLimits } from "./config/rateLimits";
 import { db, schema } from "./db";
 import { checkRateLimit } from "./services/rate-limiter";
-import { DEFAULT_RATE_LIMIT_MESSAGE, rateLimitMessages, rateLimits } from "./config/rateLimits";
 
 const s3 = new S3Client({
   accessKeyId: process.env.BUCKET_ACCESS_KEY_ID!,
