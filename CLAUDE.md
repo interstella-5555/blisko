@@ -208,21 +208,122 @@ Reads `DATABASE_URL` from env or `apps/api/.env`. Refreshes every 3s. Does NOT r
 
 Schema source of truth: `apps/api/src/db/schema.ts`
 Migrations folder: `apps/api/drizzle/`
+Config: `apps/api/drizzle.config.ts` (lists all schema files)
 
-**After changing `schema.ts`:**
+### Workflow by scenario
+
+**Adding tables, columns, indexes (most common):**
 
 ```bash
 cd apps/api
-npx drizzle-kit generate --name=describe-change   # creates SQL migration + snapshot
-npx drizzle-kit migrate                            # applies to database
+# 1. Edit schema.ts (or add new schema file to drizzle.config.ts)
+# 2. Generate migration
+npx drizzle-kit generate --name=describe-change
+# 3. Review the generated SQL in drizzle/NNNN_describe-change.sql
+# 4. Apply locally
+npx drizzle-kit migrate
+# 5. Test your changes
+# 6. Commit migration files + schema changes together
 ```
 
-- Never use `db:push` in production — always generate migration files.
-- `db:push` is OK for local dev if you don't need migration history.
-- Review generated SQL before running `migrate` — drizzle-kit can't handle every alteration (e.g. `text → jsonb` needs manual `USING` clause).
-- For custom/manual SQL (extensions, data migrations, casts with USING), use `npx drizzle-kit generate --custom --name=describe-change` and write the SQL yourself.
-- Migration files are committed to git. The `drizzle/meta/` snapshots are also committed — they're how drizzle-kit diffs against previous state.
-- **After any schema change:** check if `apps/api/src/services/data-export.ts` needs updating. This service exports all user data as JSON for GDPR/RODO compliance (Art. 15, 20). If you add, rename, or remove columns/tables that hold user data, update the export to include the new fields or remove old ones.
+`drizzle-kit generate` is non-interactive for additive changes — safe to run from Claude Code.
+
+**Renaming a column or table:**
+
+`drizzle-kit generate` becomes interactive when it detects a rename (column deleted + new one created). It asks "Is X renamed from Y?" which blocks in Claude Code.
+
+Do it in TWO migrations instead:
+
+```bash
+# Migration 1: Add new column with data copy
+npx drizzle-kit generate --custom --name=rename-col-step1
+# Write SQL: ALTER TABLE ADD new_col; UPDATE SET new_col = old_col;
+
+# Migration 2: After deploying migration 1, remove old column from schema
+npx drizzle-kit generate --name=rename-col-step2
+# This is non-interactive (pure drop, no ambiguity)
+```
+
+**Changing column types (e.g. `text → jsonb`):**
+
+Drizzle can't auto-generate type casts. Use custom migration:
+
+```bash
+npx drizzle-kit generate --custom --name=describe-change
+```
+
+Then write the SQL manually with the appropriate `USING` clause:
+```sql
+ALTER TABLE "my_table" ALTER COLUMN "my_col" TYPE jsonb USING "my_col"::jsonb;
+```
+
+Update `schema.ts` to match the new type.
+
+**Data migrations (backfill, transform existing data):**
+
+Use custom migration — never mix schema DDL and data DML in the same file:
+
+```bash
+npx drizzle-kit generate --custom --name=backfill-describe-what
+```
+
+Write the migration SQL:
+```sql
+-- Backfill: set default value for new column added in previous migration
+UPDATE "profiles" SET "visibility" = 'public' WHERE "visibility" IS NULL;
+```
+
+**Dropping tables or columns:**
+
+Remove from `schema.ts`, then generate. This is non-interactive (no rename ambiguity).
+
+```bash
+npx drizzle-kit generate --name=drop-unused-column
+```
+
+**Creating PostgreSQL extensions, custom functions, triggers:**
+
+Always custom:
+```bash
+npx drizzle-kit generate --custom --name=add-extension-name
+```
+
+### Rules
+
+- **Never use `db:push`** — it's been removed from package.json. All changes go through migrations.
+- **Migrations run on production automatically** via Railway post-deploy hook on the API service (`drizzle-kit migrate`). Don't run migrations against production manually.
+- **Review generated SQL before committing.** Always read the generated `.sql` file. Drizzle-kit can produce unexpected DDL for complex changes.
+- **One concern per migration.** Don't mix unrelated schema changes. Don't mix DDL (CREATE/ALTER) with DML (UPDATE/INSERT) in the same migration.
+- **Commit migration files with the code that uses them.** Schema change + migration + application code = one commit or PR branch.
+- **Custom migrations get detailed comments.** When using `--custom`, document WHY in the SQL file header:
+  ```sql
+  -- Custom migration: change profiles.bio from text to jsonb
+  -- Drizzle can't auto-generate USING clause for type casts
+  ALTER TABLE "profiles" ALTER COLUMN "bio" TYPE jsonb USING "bio"::jsonb;
+  ```
+- **Migration files and `drizzle/meta/` snapshots are committed to git.** Snapshots are how drizzle-kit diffs against previous state.
+- **After any schema change:** check if `apps/api/src/services/data-export.ts` needs updating (GDPR/RODO data export).
+
+### Local development
+
+```bash
+cd apps/api
+npx drizzle-kit generate --name=my-change   # generate migration from schema diff
+npx drizzle-kit migrate                      # apply all pending migrations locally
+```
+
+To see what SQL your full schema would produce from scratch:
+```bash
+npx drizzle-kit export --sql
+```
+
+### When `generate` blocks (interactive prompt)
+
+If `drizzle-kit generate` hangs waiting for input, it detected a rename ambiguity. Kill it (Ctrl+C) and split the change into two non-ambiguous migrations:
+1. Add the new thing (non-interactive)
+2. Deploy, then remove the old thing (non-interactive)
+
+Or ask the user to run `drizzle-kit generate` in their terminal where they can answer the prompt.
 
 ## Layout: aligning controls with labels
 
