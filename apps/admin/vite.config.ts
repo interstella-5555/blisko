@@ -12,6 +12,11 @@ const config = defineConfig({
       "~": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      external: ["node:stream", "node:stream/web", "node:async_hooks"],
+    },
+  },
   plugins: [
     nitro(),
     viteTsConfigPaths({
