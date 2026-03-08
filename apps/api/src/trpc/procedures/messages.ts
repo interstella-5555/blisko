@@ -1,7 +1,7 @@
 import { deleteMessageSchema, reactToMessageSchema, searchMessagesSchema, sendMessageSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
 import { RedisClient } from "bun";
-import { and, desc, eq, gt, ilike, inArray, isNotNull, isNull, lt, ne, notInArray, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { sendPushToUser } from "@/services/push";
@@ -30,132 +30,181 @@ export const messagesRouter = router({
       return [];
     }
 
-    const lastReadMap = new Map(userConversations.map((c) => [c.conversationId, c.lastReadAt]));
+    // Batch-fetch all data in parallel
+    const [conversations, allParticipants, lastMessages, unreadCounts] = await Promise.all([
+      // 1. All conversations
+      db.select().from(schema.conversations).where(inArray(schema.conversations.id, conversationIds)),
 
-    // For each conversation, get the other participant and last message
-    const result = await Promise.all(
-      conversationIds.map(async (conversationId) => {
-        // Get conversation
-        const [conversation] = await db
-          .select()
-          .from(schema.conversations)
-          .where(eq(schema.conversations.id, conversationId));
+      // 2. All participants (for DM other-user + group member count)
+      db
+        .select({
+          conversationId: schema.conversationParticipants.conversationId,
+          userId: schema.conversationParticipants.userId,
+        })
+        .from(schema.conversationParticipants)
+        .where(inArray(schema.conversationParticipants.conversationId, conversationIds)),
+
+      // 3. Last message per conversation (using DISTINCT ON)
+      db.execute(sql`
+        SELECT DISTINCT ON (conversation_id) *
+        FROM messages
+        WHERE conversation_id = ANY(${conversationIds})
+          AND deleted_at IS NULL
+        ORDER BY conversation_id, created_at DESC
+      `),
+
+      // 4. Unread counts per conversation
+      db.execute(sql`
+        SELECT
+          m.conversation_id,
+          count(*) AS count
+        FROM messages m
+        JOIN conversations c ON c.id = m.conversation_id
+        JOIN conversation_participants cp
+          ON cp.conversation_id = m.conversation_id AND cp.user_id = ${ctx.userId}
+        WHERE m.conversation_id = ANY(${conversationIds})
+          AND m.sender_id != ${ctx.userId}
+          AND m.deleted_at IS NULL
+          AND (
+            CASE
+              WHEN c.type = 'group' THEN
+                m.created_at > COALESCE(cp.last_read_at, '1970-01-01'::timestamp)
+              ELSE
+                m.read_at IS NULL
+            END
+          )
+        GROUP BY m.conversation_id
+      `),
+    ]);
+
+    // Build lookup maps
+    const convMap = new Map(conversations.map((c) => [c.id, c]));
+
+    // Participants grouped by conversation
+    const participantsByConv = new Map<string, string[]>();
+    for (const p of allParticipants) {
+      const arr = participantsByConv.get(p.conversationId);
+      if (arr) arr.push(p.userId);
+      else participantsByConv.set(p.conversationId, [p.userId]);
+    }
+
+    // Last messages map
+    const lastMsgMap = new Map<string, (typeof lastMessages)[0]>();
+    for (const row of lastMessages) {
+      lastMsgMap.set(row.conversation_id as string, row);
+    }
+
+    // Unread counts map
+    const unreadMap = new Map<string, number>();
+    for (const row of unreadCounts) {
+      unreadMap.set(row.conversation_id as string, Number(row.count));
+    }
+
+    // For DMs: batch-fetch other participant profiles (filter soft-deleted)
+    const dmOtherUserIds: string[] = [];
+    for (const [convId, members] of participantsByConv) {
+      const conv = convMap.get(convId);
+      if (conv?.type !== "group") {
+        const otherId = members.find((id) => id !== ctx.userId);
+        if (otherId) dmOtherUserIds.push(otherId);
+      }
+    }
+
+    const dmProfiles =
+      dmOtherUserIds.length > 0
+        ? await db
+            .select({ profile: schema.profiles })
+            .from(schema.profiles)
+            .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+            .where(and(inArray(schema.profiles.userId, dmOtherUserIds), isNull(schema.user.deletedAt)))
+        : [];
+
+    const profileMap = new Map(dmProfiles.map((p) => [p.profile.userId, p.profile]));
+
+    // For groups: batch-fetch sender names for last messages
+    const groupLastMsgSenderIds: string[] = [];
+    for (const [convId, row] of lastMsgMap) {
+      const conv = convMap.get(convId);
+      if (conv?.type === "group" && row.sender_id) {
+        groupLastMsgSenderIds.push(row.sender_id as string);
+      }
+    }
+
+    const senderProfiles =
+      groupLastMsgSenderIds.length > 0
+        ? await db
+            .select({ userId: schema.profiles.userId, displayName: schema.profiles.displayName })
+            .from(schema.profiles)
+            .where(inArray(schema.profiles.userId, groupLastMsgSenderIds))
+        : [];
+
+    const senderNameMap = new Map(senderProfiles.map((p) => [p.userId, p.displayName]));
+
+    // Assemble results
+    const result = conversationIds
+      .map((convId) => {
+        const conversation = convMap.get(convId);
+        if (!conversation) return null;
 
         const isGroup = conversation.type === "group";
+        const members = participantsByConv.get(convId) ?? [];
 
-        // For DMs: get other participant. For groups: get member count.
+        // DM: other participant profile. Group: member count.
         let participant = null;
         let memberCount = null;
 
         if (isGroup) {
-          const [countResult] = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(schema.conversationParticipants)
-            .where(eq(schema.conversationParticipants.conversationId, conversationId));
-          memberCount = Number(countResult.count);
+          memberCount = members.length;
         } else {
-          const [otherParticipant] = await db
-            .select({ profile: schema.profiles })
-            .from(schema.conversationParticipants)
-            .innerJoin(schema.profiles, eq(schema.conversationParticipants.userId, schema.profiles.userId))
-            .where(
-              and(
-                eq(schema.conversationParticipants.conversationId, conversationId),
-                ne(schema.conversationParticipants.userId, ctx.userId),
-                notInArray(
-                  schema.conversationParticipants.userId,
-                  db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-                ),
-              ),
-            );
-          participant = otherParticipant?.profile || null;
+          const otherId = members.find((id) => id !== ctx.userId);
+          participant = otherId ? (profileMap.get(otherId) ?? null) : null;
         }
 
-        // Get last message (skip deleted)
-        const [lastMessage] = await db
-          .select()
-          .from(schema.messages)
-          .where(and(eq(schema.messages.conversationId, conversationId), isNull(schema.messages.deletedAt)))
-          .orderBy(desc(schema.messages.createdAt))
-          .limit(1);
+        // Skip DMs where other participant is deleted
+        if (!isGroup && !participant) return null;
 
-        // Get sender name for last message (for groups)
-        let lastMessageSenderName: string | null = null;
-        if (isGroup && lastMessage) {
-          const [senderProfile] = await db
-            .select({ displayName: schema.profiles.displayName })
-            .from(schema.profiles)
-            .where(eq(schema.profiles.userId, lastMessage.senderId));
-          lastMessageSenderName = senderProfile?.displayName ?? null;
-        }
+        // Last message
+        const lastMsgRow = lastMsgMap.get(convId);
+        const lastMessage = lastMsgRow
+          ? {
+              id: lastMsgRow.id as string,
+              conversationId: lastMsgRow.conversation_id as string,
+              senderId: lastMsgRow.sender_id as string,
+              content: lastMsgRow.content as string,
+              type: lastMsgRow.type as string,
+              metadata: lastMsgRow.metadata,
+              replyToId: lastMsgRow.reply_to_id as string | null,
+              topicId: lastMsgRow.topic_id as string | null,
+              createdAt: new Date(lastMsgRow.created_at as string),
+              readAt: lastMsgRow.read_at ? new Date(lastMsgRow.read_at as string) : null,
+              deletedAt: null,
+            }
+          : null;
 
-        // Count unread messages
-        let unreadCount = 0;
-        if (isGroup) {
-          // Groups: count messages after lastReadAt
-          const lastReadAt = lastReadMap.get(conversationId);
-          if (lastReadAt) {
-            const [unreadResult] = await db
-              .select({ count: sql<number>`count(*)` })
-              .from(schema.messages)
-              .where(
-                and(
-                  eq(schema.messages.conversationId, conversationId),
-                  ne(schema.messages.senderId, ctx.userId),
-                  isNull(schema.messages.deletedAt),
-                  gt(schema.messages.createdAt, lastReadAt),
-                ),
-              );
-            unreadCount = Number(unreadResult?.count || 0);
-          } else {
-            // Never read — count all messages from others
-            const [unreadResult] = await db
-              .select({ count: sql<number>`count(*)` })
-              .from(schema.messages)
-              .where(
-                and(
-                  eq(schema.messages.conversationId, conversationId),
-                  ne(schema.messages.senderId, ctx.userId),
-                  isNull(schema.messages.deletedAt),
-                ),
-              );
-            unreadCount = Number(unreadResult?.count || 0);
-          }
-        } else {
-          // DMs: use per-message readAt
-          const [unreadResult] = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(schema.messages)
-            .where(
-              and(
-                eq(schema.messages.conversationId, conversationId),
-                ne(schema.messages.senderId, ctx.userId),
-                isNull(schema.messages.readAt),
-                isNull(schema.messages.deletedAt),
-              ),
-            );
-          unreadCount = Number(unreadResult?.count || 0);
-        }
+        const lastMessageSenderName =
+          isGroup && lastMsgRow ? (senderNameMap.get(lastMsgRow.sender_id as string) ?? null) : null;
+
+        const unreadCount = unreadMap.get(convId) ?? 0;
 
         return {
           conversation,
           participant,
-          lastMessage: lastMessage || null,
+          lastMessage,
           lastMessageSenderName,
           memberCount,
           unreadCount,
         };
-      }),
-    );
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
 
-    // Sort by last message date — keep groups even without participant
-    return result
-      .filter((r) => r.conversation.type === "group" || r.participant !== null)
-      .sort((a, b) => {
-        const dateA = a.lastMessage?.createdAt || a.conversation.createdAt;
-        const dateB = b.lastMessage?.createdAt || b.conversation.createdAt;
-        return new Date(dateB).getTime() - new Date(dateA).getTime();
-      });
+    // Sort by last message date
+    result.sort((a, b) => {
+      const dateA = a.lastMessage?.createdAt || a.conversation.createdAt;
+      const dateB = b.lastMessage?.createdAt || b.conversation.createdAt;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
+
+    return result;
   }),
 
   // Get messages for a conversation
