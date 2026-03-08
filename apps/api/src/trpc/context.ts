@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { db, schema } from "@/db";
 
 // Prepared statement — compiled once, reused on every authenticated request
-const sessionByToken = db
+export const sessionByToken = db
   .select()
   .from(schema.session)
   .where(and(eq(schema.session.token, placeholder("token")), gt(schema.session.expiresAt, placeholder("now"))))
