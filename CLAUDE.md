@@ -76,7 +76,7 @@ xcrun simctl location booted set 52.2010865,20.9618980
 
 Two env files in `apps/api/`:
 - **`.env`** — local development defaults (localhost DB/Redis, dev keys). Loaded automatically by Bun.
-- **`.env.production`** — production Railway credentials. **Never loaded automatically.** To run a script against prod: `bun --env-file=apps/api/.env.production run <script>`.
+- **`.env.production`** — production Railway credentials. **Never loaded automatically.** Use only for scripts that need prod access (seed, scatter): `bun --env-file=apps/api/.env.production run <script>`.
 
 | Var | Purpose |
 |-----|---------|
