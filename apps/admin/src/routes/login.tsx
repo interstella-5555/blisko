@@ -6,7 +6,7 @@ import { createSession, generateOtp, getSession, isAllowedEmail, verifyOtp } fro
 import { adminOtp, sendEmail } from "~/lib/email";
 
 const requestOtp = createServerFn({ method: "POST" })
-  .validator((data: { email: string }) => data)
+  .inputValidator((data: { email: string }) => data)
   .handler(async ({ data }) => {
     const email = data.email.trim().toLowerCase();
     if (!isAllowedEmail(email)) {
@@ -18,7 +18,7 @@ const requestOtp = createServerFn({ method: "POST" })
   });
 
 const verifyOtpFn = createServerFn({ method: "POST" })
-  .validator((data: { email: string; otp: string }) => data)
+  .inputValidator((data: { email: string; otp: string }) => data)
   .handler(async ({ data }) => {
     const email = data.email.trim().toLowerCase();
     const valid = verifyOtp(email, data.otp.trim());

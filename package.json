@@ -53,6 +53,7 @@
     "*.{ts,tsx,js,jsx,json,css}": "biome check --fix --no-errors-on-unmatched",
     "apps/api/src/**/*.ts": "bash -c 'pnpm --filter @repo/api typecheck'",
     "apps/mobile/**/*.{ts,tsx}": "bash -c 'pnpm --filter @repo/mobile typecheck'",
-    "packages/shared/src/**/*.ts": "bash -c 'pnpm --filter @repo/shared typecheck'"
+    "packages/shared/src/**/*.ts": "bash -c 'pnpm --filter @repo/shared typecheck'",
+    "apps/admin/**/*.{ts,tsx}": "bash -c 'pnpm --filter @repo/admin typecheck'"
   }
 }
