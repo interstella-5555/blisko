@@ -254,79 +254,104 @@ export const messagesRouter = router({
         }
       }
 
-      // Enrich messages with reply-to info and reactions
-      const enrichedMessages = await Promise.all(
-        result.map(async (msg) => {
-          // Get reply-to message if exists
-          let replyTo = null;
-          if (msg.replyToId) {
-            const [replyMsg] = await db
+      // Batch-fetch all reactions for these messages
+      const messageIds = result.map((m) => m.id);
+      const allReactions =
+        messageIds.length > 0
+          ? await db
+              .select()
+              .from(schema.messageReactions)
+              .where(inArray(schema.messageReactions.messageId, messageIds))
+          : [];
+
+      // Group reactions by messageId
+      const reactionsMap = new Map<string, typeof allReactions>();
+      for (const r of allReactions) {
+        const arr = reactionsMap.get(r.messageId);
+        if (arr) arr.push(r);
+        else reactionsMap.set(r.messageId, [r]);
+      }
+
+      // Batch-fetch reply-to messages
+      const replyToIds = result.map((m) => m.replyToId).filter((id): id is string => id !== null);
+      const replyToMessages =
+        replyToIds.length > 0
+          ? await db
               .select({
                 id: schema.messages.id,
                 content: schema.messages.content,
                 senderId: schema.messages.senderId,
               })
               .from(schema.messages)
-              .where(eq(schema.messages.id, msg.replyToId));
+              .where(inArray(schema.messages.id, replyToIds))
+          : [];
 
-            if (replyMsg) {
-              const senderProfile =
-                senderProfileMap.get(replyMsg.senderId) ||
-                (
-                  await db
-                    .select({ displayName: schema.profiles.displayName })
-                    .from(schema.profiles)
-                    .where(eq(schema.profiles.userId, replyMsg.senderId))
-                )[0];
+      // Fetch any reply sender profiles not already in senderProfileMap
+      const replySenderIds = replyToMessages.map((m) => m.senderId).filter((id) => !senderProfileMap.has(id));
+      if (replySenderIds.length > 0) {
+        const replyProfiles = await db
+          .select({
+            userId: schema.profiles.userId,
+            displayName: schema.profiles.displayName,
+            avatarUrl: schema.profiles.avatarUrl,
+          })
+          .from(schema.profiles)
+          .where(inArray(schema.profiles.userId, replySenderIds));
+        for (const sp of replyProfiles) {
+          senderProfileMap.set(sp.userId, {
+            displayName: sp.displayName,
+            avatarUrl: sp.avatarUrl,
+          });
+        }
+      }
 
-              replyTo = {
-                id: replyMsg.id,
-                content: replyMsg.content,
-                senderName: senderProfile?.displayName ?? "Użytkownik",
-              };
-            }
+      const replyToMap = new Map(replyToMessages.map((m) => [m.id, m]));
+
+      // Enrich messages (no more async — all data pre-fetched)
+      const enrichedMessages = result.map((msg) => {
+        // Reply-to
+        let replyTo = null;
+        if (msg.replyToId) {
+          const replyMsg = replyToMap.get(msg.replyToId);
+          if (replyMsg) {
+            const senderProfile = senderProfileMap.get(replyMsg.senderId);
+            replyTo = {
+              id: replyMsg.id,
+              content: replyMsg.content,
+              senderName: senderProfile?.displayName ?? "Użytkownik",
+            };
           }
+        }
 
-          // Get reactions for this message
-          const reactionsData = await db
-            .select()
-            .from(schema.messageReactions)
-            .where(eq(schema.messageReactions.messageId, msg.id));
-
-          // Group reactions by emoji
-          const reactionMap = new Map<string, { emoji: string; count: number; userIds: string[] }>();
-          for (const r of reactionsData) {
-            const existing = reactionMap.get(r.emoji);
-            if (existing) {
-              existing.count++;
-              existing.userIds.push(r.userId);
-            } else {
-              reactionMap.set(r.emoji, {
-                emoji: r.emoji,
-                count: 1,
-                userIds: [r.userId],
-              });
-            }
+        // Reactions — group by emoji
+        const reactionsData = reactionsMap.get(msg.id) ?? [];
+        const reactionGroups = new Map<string, { emoji: string; count: number; userIds: string[] }>();
+        for (const r of reactionsData) {
+          const existing = reactionGroups.get(r.emoji);
+          if (existing) {
+            existing.count++;
+            existing.userIds.push(r.userId);
+          } else {
+            reactionGroups.set(r.emoji, { emoji: r.emoji, count: 1, userIds: [r.userId] });
           }
+        }
+        const reactions = Array.from(reactionGroups.values()).map((r) => ({
+          emoji: r.emoji,
+          count: r.count,
+          myReaction: r.userIds.includes(ctx.userId),
+        }));
 
-          const reactions = Array.from(reactionMap.values()).map((r) => ({
-            emoji: r.emoji,
-            count: r.count,
-            myReaction: r.userIds.includes(ctx.userId),
-          }));
+        // Sender info for groups
+        const senderInfo = isGroup ? (senderProfileMap.get(msg.senderId) ?? null) : null;
 
-          // Add sender info for groups
-          const senderInfo = isGroup ? (senderProfileMap.get(msg.senderId) ?? null) : null;
-
-          return {
-            ...msg,
-            replyTo,
-            reactions,
-            senderName: senderInfo?.displayName ?? null,
-            senderAvatarUrl: senderInfo?.avatarUrl ?? null,
-          };
-        }),
-      );
+        return {
+          ...msg,
+          replyTo,
+          reactions,
+          senderName: senderInfo?.displayName ?? null,
+          senderAvatarUrl: senderInfo?.avatarUrl ?? null,
+        };
+      });
 
       return {
         messages: enrichedMessages,
