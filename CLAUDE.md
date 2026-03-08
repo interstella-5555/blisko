@@ -406,7 +406,7 @@ Custom sliding window counter on Redis (Lua scripts). No external rate limiting 
 - `apps/api/src/middleware/rateLimit.ts` — Hono middleware for pre-auth endpoints (key: IP)
 - `apps/api/src/trpc/middleware/rateLimit.ts` — tRPC middleware for post-auth endpoints (key: userId)
 
-**Design doc:** `docs/plans/2026-03-08-rate-limiting-design.md` — full rationale, limits table, decisions.
+**Design doc:** `docs/architecture/rate-limiting.md` — full rationale, limits table, decisions.
 
 **When adding or changing API endpoints:**
 - Check if the new endpoint needs a rate limit. If it triggers push notifications, enqueues AI jobs, sends emails, writes to S3, or could be abused by bots — it needs one.
@@ -680,8 +680,9 @@ When user shares an idea, feedback, or feature concept:
   - **Idea** = vague, needs refinement
 - **Priority**: set when user expresses urgency, otherwise leave unset (None).
 - **Sub-issues**: when a feature has distinct parts, create sub-issues with `parentId`. Discover naturally — don't force upfront decomposition. Every sub-ticket MUST have its own acceptance criteria — never reference parent's criteria. Each sub-ticket stands alone.
-- **Specs & plans**: When using `writing-plans` skill, ask where to save the plan:
-  - **`docs/plans/`** (default) — for plans that will be implemented immediately in this session. Save to `docs/plans/YYYY-MM-DD-<topic>.md`.
+- **Specs & plans**: Two destinations:
+  - **`docs/plans/`** (gitignored) — temporary implementation plans from `writing-plans` skill. Local-only, never committed. Format: `YYYY-MM-DD-<topic>.md`.
+  - **`docs/architecture/`** (tracked) — permanent design docs with rationale, decisions, tradeoffs. Named by topic, no dates: `rate-limiting.md`, `gdpr.md`, `soft-delete.md`. When a plan contains design decisions worth preserving, extract them to `docs/architecture/<topic>.md` after implementation.
   - **Linear Document** — for plans saved for later. Use `create_document` with `issue` param to attach to the ticket.
   Each sub-ticket must be **self-contained** — all info needed to implement it should be in its description (code snippets, file paths, props, styles). Never reference external files from ticket descriptions.
 - **Mid-conversation**: if something worth tracking comes up, create the issue immediately.
@@ -690,6 +691,8 @@ When user shares an idea, feedback, or feature concept:
 ### Development workflow — Superpowers skills
 
 Superpowers skills are **mandatory** at each stage, not optional. Use `brainstorming` skill before any creative/design work. Use `writing-plans` skill for implementation plans (ask where to save: `docs/plans/` for immediate work, Linear Document for later). Use `verification-before-completion` skill before claiming anything is done.
+
+**Architecture docs checkpoint:** After `writing-plans` completes — check if the plan contains design decisions, rationale, or tradeoffs worth preserving. If so, extract them to `docs/architecture/<topic>.md` (or update an existing file). After `finishing-a-development-branch` — check if any existing doc in `docs/architecture/` needs updating based on what was actually implemented (approach may have changed during development).
 
 | Stage | Skill | When |
 |-------|-------|------|
