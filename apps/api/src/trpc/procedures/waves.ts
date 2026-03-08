@@ -6,6 +6,7 @@ import { db, schema } from "@/db";
 import { sendPushToUser } from "@/services/push";
 import { promotePairAnalysis } from "@/services/queue";
 import { featureGate } from "@/trpc/middleware/featureGate";
+import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 import { ee } from "@/ws/events";
 
@@ -13,6 +14,7 @@ export const wavesRouter = router({
   // Send a wave to someone
   send: protectedProcedure
     .use(featureGate("waves.send"))
+    .use(rateLimit("waves.send"))
     .input(sendWaveSchema)
     .mutation(async ({ ctx, input }) => {
       console.log(`[waves.send] from=${ctx.userId} to=${input.toUserId}`);
@@ -187,6 +189,7 @@ export const wavesRouter = router({
   // Respond to a wave (accept or decline)
   respond: protectedProcedure
     .use(featureGate("waves.respond"))
+    .use(rateLimit("waves.respond"))
     .input(respondToWaveSchema)
     .mutation(async ({ ctx, input }) => {
       const [wave] = await db

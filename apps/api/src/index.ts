@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { auth } from "./auth";
+import { honoRateLimit } from "./middleware/rateLimit";
 import { createContext } from "./trpc/context";
 import { appRouter } from "./trpc/router";
 
@@ -35,6 +36,10 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
     return c.json(verifications);
   });
 }
+
+// Pre-auth rate limits (by IP, before Better Auth handler)
+app.post("/api/auth/sign-in/email-otp", honoRateLimit("auth.otpRequest"));
+app.post("/api/auth/email-otp/verify-email", honoRateLimit("auth.otpVerify"));
 
 // Better Auth handler
 app.on(["POST", "GET"], "/api/auth/*", (c) => {

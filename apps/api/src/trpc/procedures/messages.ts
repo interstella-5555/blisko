@@ -4,6 +4,7 @@ import { and, desc, eq, gt, ilike, inArray, isNotNull, isNull, lt, ne, notInArra
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { sendPushToUser } from "@/services/push";
+import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 import { ee } from "@/ws/events";
 import { ensureTypingListener } from "@/ws/handler";
@@ -331,91 +332,95 @@ export const messagesRouter = router({
     }),
 
   // Send a message
-  send: protectedProcedure.input(sendMessageSchema).mutation(async ({ ctx, input }) => {
-    // Verify user is participant
-    const [participant] = await db
-      .select()
-      .from(schema.conversationParticipants)
-      .where(
-        and(
-          eq(schema.conversationParticipants.conversationId, input.conversationId),
-          eq(schema.conversationParticipants.userId, ctx.userId),
-        ),
-      );
+  send: protectedProcedure
+    .use(rateLimit("messages.send", ({ input }) => input.conversationId))
+    .use(rateLimit("messages.sendGlobal"))
+    .input(sendMessageSchema)
+    .mutation(async ({ ctx, input }) => {
+      // Verify user is participant
+      const [participant] = await db
+        .select()
+        .from(schema.conversationParticipants)
+        .where(
+          and(
+            eq(schema.conversationParticipants.conversationId, input.conversationId),
+            eq(schema.conversationParticipants.userId, ctx.userId),
+          ),
+        );
 
-    if (!participant) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "You are not a participant in this conversation",
-      });
-    }
+      if (!participant) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not a participant in this conversation",
+        });
+      }
 
-    const [message] = await db
-      .insert(schema.messages)
-      .values({
-        conversationId: input.conversationId,
-        senderId: ctx.userId,
-        content: input.content,
-        type: input.type ?? "text",
-        metadata: input.metadata ?? null,
-        replyToId: input.replyToId ?? null,
-        topicId: input.topicId ?? null,
-      })
-      .returning();
-
-    // Update conversation updatedAt
-    await db
-      .update(schema.conversations)
-      .set({ updatedAt: new Date() })
-      .where(eq(schema.conversations.id, input.conversationId));
-
-    // If message belongs to a topic, update topic stats
-    if (input.topicId) {
-      await db
-        .update(schema.topics)
-        .set({
-          lastMessageAt: new Date(),
-          messageCount: sql`${schema.topics.messageCount} + 1`,
+      const [message] = await db
+        .insert(schema.messages)
+        .values({
+          conversationId: input.conversationId,
+          senderId: ctx.userId,
+          content: input.content,
+          type: input.type ?? "text",
+          metadata: input.metadata ?? null,
+          replyToId: input.replyToId ?? null,
+          topicId: input.topicId ?? null,
         })
-        .where(eq(schema.topics.id, input.topicId));
-    }
+        .returning();
 
-    // Get sender profile for WS event enrichment
-    const [senderProfile] = await db
-      .select({
-        displayName: schema.profiles.displayName,
-        avatarUrl: schema.profiles.avatarUrl,
-      })
-      .from(schema.profiles)
-      .where(eq(schema.profiles.userId, ctx.userId));
+      // Update conversation updatedAt
+      await db
+        .update(schema.conversations)
+        .set({ updatedAt: new Date() })
+        .where(eq(schema.conversations.id, input.conversationId));
 
-    // Push notifications to other participants
-    const participants = await db
-      .select({ userId: schema.conversationParticipants.userId })
-      .from(schema.conversationParticipants)
-      .where(eq(schema.conversationParticipants.conversationId, input.conversationId));
+      // If message belongs to a topic, update topic stats
+      if (input.topicId) {
+        await db
+          .update(schema.topics)
+          .set({
+            lastMessageAt: new Date(),
+            messageCount: sql`${schema.topics.messageCount} + 1`,
+          })
+          .where(eq(schema.topics.id, input.topicId));
+      }
 
-    const messagePreview = message.content.length > 100 ? `${message.content.slice(0, 97)}...` : message.content;
+      // Get sender profile for WS event enrichment
+      const [senderProfile] = await db
+        .select({
+          displayName: schema.profiles.displayName,
+          avatarUrl: schema.profiles.avatarUrl,
+        })
+        .from(schema.profiles)
+        .where(eq(schema.profiles.userId, ctx.userId));
 
-    for (const p of participants) {
-      if (p.userId === ctx.userId) continue;
-      void sendPushToUser(p.userId, {
-        title: senderProfile?.displayName ?? "Ktoś",
-        body: messagePreview,
-        data: { type: "chat", conversationId: input.conversationId },
+      // Push notifications to other participants
+      const participants = await db
+        .select({ userId: schema.conversationParticipants.userId })
+        .from(schema.conversationParticipants)
+        .where(eq(schema.conversationParticipants.conversationId, input.conversationId));
+
+      const messagePreview = message.content.length > 100 ? `${message.content.slice(0, 97)}...` : message.content;
+
+      for (const p of participants) {
+        if (p.userId === ctx.userId) continue;
+        void sendPushToUser(p.userId, {
+          title: senderProfile?.displayName ?? "Ktoś",
+          body: messagePreview,
+          data: { type: "chat", conversationId: input.conversationId },
+        });
+      }
+
+      // Emit real-time event
+      ee.emit("newMessage", {
+        conversationId: input.conversationId,
+        message,
+        senderName: senderProfile?.displayName ?? null,
+        senderAvatarUrl: senderProfile?.avatarUrl ?? null,
       });
-    }
 
-    // Emit real-time event
-    ee.emit("newMessage", {
-      conversationId: input.conversationId,
-      message,
-      senderName: senderProfile?.displayName ?? null,
-      senderAvatarUrl: senderProfile?.avatarUrl ?? null,
-    });
-
-    return message;
-  }),
+      return message;
+    }),
 
   // Mark messages as read
   markAsRead: protectedProcedure
