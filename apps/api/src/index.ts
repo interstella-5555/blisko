@@ -109,6 +109,10 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
 
 // File uploads — S3-compatible object storage (Bun built-in S3Client)
 import { S3Client } from "bun";
+import { and, eq, gt } from "drizzle-orm";
+import { db, schema } from "./db";
+import { checkRateLimit } from "./services/rate-limiter";
+import { DEFAULT_RATE_LIMIT_MESSAGE, rateLimitMessages, rateLimits } from "./config/rateLimits";
 
 const s3 = new S3Client({
   accessKeyId: process.env.BUCKET_ACCESS_KEY_ID!,
@@ -123,6 +127,36 @@ app.post("/uploads", async (c) => {
     const authHeader = c.req.header("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    // Validate session token and get userId
+    const token = authHeader.replace("Bearer ", "");
+    const [sessionRow] = await db
+      .select({ userId: schema.session.userId })
+      .from(schema.session)
+      .where(and(eq(schema.session.token, token), gt(schema.session.expiresAt, new Date())));
+
+    if (!sessionRow) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    // Rate limit uploads
+    const rlResult = await checkRateLimit(
+      `uploads:${sessionRow.userId}`,
+      rateLimits.uploads.limit,
+      rateLimits.uploads.window,
+    );
+    if (rlResult.limited) {
+      return c.json(
+        {
+          error: "RATE_LIMITED",
+          context: "uploads",
+          message: rateLimitMessages.uploads ?? DEFAULT_RATE_LIMIT_MESSAGE,
+          retryAfter: rlResult.retryAfter,
+        },
+        429,
+        { "Retry-After": String(rlResult.retryAfter) },
+      );
     }
 
     const body = await c.req.parseBody();
