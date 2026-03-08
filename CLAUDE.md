@@ -166,7 +166,7 @@ Team: **Blisko**, key: **BLI**
 
 - `linear/no-attachment-upload` — Don't attach images via `create_attachment` (unreliable). Reference HTML mockup file paths in ticket descriptions.
 
-- `linear/self-contained-subtasks` — Every sub-issue has its own acceptance criteria. Never reference parent's. Each stands alone.
+- `linear/self-contained-subtasks` — Every sub-issue must be **fully self-contained**: own acceptance criteria, all implementation info (code snippets, file paths, props, styles) in the description. Never reference parent's criteria or external files from ticket descriptions. Each sub-ticket stands alone — someone reading only it should have everything needed to implement.
 
 ---
 
@@ -197,6 +197,7 @@ echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:300
 - `pnpm api:scatter` — re-scatter existing users (direct DB, no side-effects)
 - `cd apps/api && bun run scripts/scatter-locations.ts` — re-scatter via API (fires AI re-analysis + WS broadcasts)
 - Fresh seed: delete `apps/api/scripts/.seed-cache.json` first, then `bun run apps/api/scripts/seed-users.ts`
+- After re-seeding, display a random test user email (e.g. `user42@example.com`) for quick login
 
 **Chatbot:** `apps/chatbot/`, run with `pnpm chatbot:dev`. Seed users auto-respond to waves and messages. Wave acceptance is match-based: AI match score >=75% always accepts, scales linearly down to 10% at score 0. If you log in as a seed user, the bot pauses responding as that user for 5 minutes (activity-based detection).
 
@@ -223,7 +224,18 @@ Key files: `design-book.tsx` (`?screenshot` detection + early return), `Screens.
 
 **Shared package:** `@repo/shared` — types, Zod validators, enums, haversine. Used by API and Mobile. Typecheck: `pnpm --filter @repo/shared typecheck`.
 
-**Testing:** Vitest on Bun. `pnpm api:test`, `pnpm --filter @repo/shared test`. Mobile E2E: Maestro (`pnpm --filter @repo/mobile test:e2e`). Tests: `apps/api/__tests__/**/*.test.ts`.
+**Testing:** Vitest on Bun. `pnpm api:test`, `pnpm --filter @repo/shared test`. Mobile E2E: Maestro (`pnpm --filter @repo/mobile test:e2e`). Tests: `apps/api/__tests__/**/*.test.ts`. Test pattern for Hono endpoints (no server needed):
+```ts
+import { describe, expect, it } from "vitest";
+import { app } from "../src/index";
+
+describe("endpoint", () => {
+  it("works", async () => {
+    const res = await app.request("/health");
+    expect(res.status).toBe(200);
+  });
+});
+```
 
 **Biome:** `pnpm check` (format + lint + imports). Config: `biome.json`. TanStack Query ESLint rules not applicable (tRPC manages queryKeys, Biome covers hook deps).
 
@@ -263,18 +275,18 @@ Technical notes: add as comments on the Linear issue.
 
 Skills are **mandatory** at each stage, not optional:
 
-| Stage | Skill |
-|-------|-------|
-| New idea / feature design | `brainstorming` |
-| Implementation plan (3+ acceptance criteria) | `writing-plans` |
-| Executing multi-step plans | `executing-plans` |
-| 2+ independent tasks | `dispatching-parallel-agents` |
-| Any feature or bugfix | `test-driven-development` |
-| Bug / test failure | `systematic-debugging` |
-| Before Done / merge | `verification-before-completion` |
-| After implementation, before merge | `requesting-code-review` |
-| Receiving review feedback | `receiving-code-review` |
-| Branch complete | `finishing-a-development-branch` |
+| Stage | Skill | When |
+|-------|-------|------|
+| New idea / feature design | `brainstorming` | Before any Backlog→Todo, before non-trivial implementation |
+| Implementation plan | `writing-plans` | After brainstorming, for tickets with 3+ acceptance criteria. Ask where to save: `docs/plans/` for immediate work, Linear Document for later |
+| Executing plan with sub-tasks | `executing-plans` | Working through sub-issues or multi-step plans |
+| Parallel independent tasks | `dispatching-parallel-agents` | 2+ tasks with no shared state |
+| Writing code | `test-driven-development` | Any feature or bugfix — test before code |
+| Bug / test failure | `systematic-debugging` | Before proposing any fix — diagnose first |
+| Before Done / merge | `verification-before-completion` | Always. Run checks, confirm output |
+| After implementation | `requesting-code-review` | Before merge, after all tests pass |
+| Receiving feedback | `receiving-code-review` | When getting review comments — verify before implementing |
+| Branch complete | `finishing-a-development-branch` | Deciding merge/PR/cleanup |
 
 **Architecture docs checkpoint:** After `writing-plans` — extract design decisions to `docs/architecture/<topic>.md`. After `finishing-a-development-branch` — update existing docs if approach changed during implementation.
 
