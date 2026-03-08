@@ -79,13 +79,24 @@ export const wavesRouter = router({
         });
       }
 
-      const [wave] = await db
-        .insert(schema.waves)
-        .values({
-          fromUserId: ctx.userId,
-          toUserId: input.toUserId,
-        })
-        .returning();
+      let wave: typeof schema.waves.$inferSelect;
+      try {
+        [wave] = await db
+          .insert(schema.waves)
+          .values({
+            fromUserId: ctx.userId,
+            toUserId: input.toUserId,
+          })
+          .returning();
+      } catch (err: unknown) {
+        if (err instanceof Error && "code" in err && (err as { code: string }).code === "23505") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "You already waved at this user",
+          });
+        }
+        throw err;
+      }
 
       await promotePairAnalysis(ctx.userId, input.toUserId);
 
