@@ -8,7 +8,7 @@ import {
   updateProfileSchema,
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { and, between, eq, isNotNull, lte, ne, notInArray, sql } from "drizzle-orm";
+import { and, between, eq, isNotNull, isNull, lte, ne, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { roundDistance, toGridCenter } from "@/lib/grid";
@@ -451,18 +451,12 @@ export const profilesRouter = router({
 
   // Get profile by user ID
   getById: protectedProcedure.input(z.object({ userId: z.string() })).query(async ({ input }) => {
-    const [profile] = await db
-      .select()
+    const [result] = await db
+      .select({ profile: schema.profiles })
       .from(schema.profiles)
-      .where(
-        and(
-          eq(schema.profiles.userId, input.userId),
-          notInArray(
-            schema.profiles.userId,
-            db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-          ),
-        ),
-      );
+      .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+      .where(and(eq(schema.profiles.userId, input.userId), isNull(schema.user.deletedAt)));
+    const profile = result?.profile;
 
     if (!profile) return null;
 
