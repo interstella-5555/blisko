@@ -18,7 +18,8 @@
       "!**/*.generated.*",
       "!docs",
       "!**/*.gen.ts",
-      "!**/drizzle"
+      "!**/drizzle",
+      "!**/CLAUDE.md"
     ]
   },
   "formatter": {

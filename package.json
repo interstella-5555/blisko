@@ -46,7 +46,7 @@
     "node": ">=20"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json,css}": "biome format --write --no-errors-on-unmatched",
+    "*.{ts,tsx,js,jsx,json,css}": "biome check --fix --no-errors-on-unmatched",
     "apps/api/src/**/*.ts": "bash -c 'pnpm --filter @repo/api typecheck'",
     "apps/mobile/**/*.{ts,tsx}": "bash -c 'pnpm --filter @repo/mobile typecheck'",
     "packages/shared/src/**/*.ts": "bash -c 'pnpm --filter @repo/shared typecheck'"

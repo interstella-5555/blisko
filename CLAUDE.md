@@ -2,600 +2,76 @@
 
 Social proximity app — connects nearby people in Warsaw based on location, interests, and AI-generated compatibility analysis. Monorepo: API (Bun/Hono/tRPC), Mobile (Expo/React Native), Design Book (TanStack Start), Chatbot (seed user AI responder).
 
-## Railway
+Rules are in `.claude/rules/` — one file per category: `drizzle.md`, `migrations.md`, `mobile.md`, `security.md`, `infra.md`, `api.md` (also imports + style), `linear.md`. All loaded automatically by Claude Code. When adding a new rule, put it in the matching category file. If no category fits, propose a new one (new `.md` file in `.claude/rules/`).
 
-Project **blisko** on Railway (ID: `62599e90-30e8-47dd-af34-4e3f73c2261a`). Use the `mcp__railway__*` tools for managing deployments, logs, variables, etc. Workspace path: `/Users/karol/code/blisko`.
+---
 
-**Services → local paths:**
-- api → `apps/api`
-- chatbot → `apps/chatbot`
-- design → `apps/design`
-- metro → `apps/mobile`
-- website → `apps/website`
-- database → managed Postgres
-- queue → managed Redis (BullMQ)
+## Quick Reference
 
-**Environment:** production
+Brief pointers — details are in the code. Look there first.
 
-**Env vars:** After changing env vars on a service, immediately restart that service (redeploy) — don't ask, just do it.
+**Railway:** Project ID `62599e90-30e8-47dd-af34-4e3f73c2261a`. Services: api, chatbot, design, metro (mobile), website, database (Postgres), queue (Redis). Use `mcp__railway__*` tools.
 
-## Regenerating README screenshot
+**Running locally:** `pnpm api:dev`, `pnpm design:dev`, `pnpm chatbot:dev`, `pnpm website:dev`. Mobile: `cd apps/mobile && npx expo run:ios` (simulator) or `--device` (physical). Simulator location: `xcrun simctl location booted set 52.2010865,20.9618980` (ul. Altowa, Warszawa).
 
-The README includes a screenshot of 4 design book screens (Login, OTP, Profile, Waves).
-The screenshot mode is built into the codebase — no temporary changes needed.
-
-**How it works:**
-- `?screenshot` query param on `/design-book` renders only `<Screens onlyFirstRow />` on a white background, hiding the sidebar and all other sections.
-- `onlyFirstRow` prop on `Screens` component renders Login, OTP, Profile, and Waves Received in a single row.
-
-**To regenerate:**
-
-1. Make sure the dev server is running (`localhost:3000`)
-2. Capture the screenshot:
-   ```bash
-   npx capture-website-cli "http://localhost:3000/design-book?screenshot" \
-     --width 1400 --scale-factor 2 --delay 3 --full-page \
-     --disable-animations --remove-elements ".nav" \
-     --output docs/screens-new.png
-   ```
-3. Rename with last 6 chars of MD5 for cache busting:
-   ```bash
-   HASH=$(md5 -q docs/screens-new.png | tail -c 7)
-   mv docs/screens-new.png docs/screens-$HASH.png
-   ```
-4. Update `README.md` to point to the new filename
-5. Delete the old screenshot file and commit
-
-**Key files:**
-- `apps/design/src/routes/design-book.tsx` — `?screenshot` detection and early return
-- `apps/design/src/components/design-book/Screens.tsx` — `onlyFirstRow` prop
-
-## Running locally
-
+**Physical iPhone:** UDID `00008130-00065CE826A0001C` (iPhone 15). API URL via `EXPO_PUBLIC_API_URL` in `apps/mobile/.env.local`:
 ```bash
-# API
-pnpm api:dev
-
-# Mobile — simulator (dev client, NOT Expo Go)
-cd apps/mobile && npx expo run:ios
-
-# Mobile — physical device
-cd apps/mobile && npx expo run:ios --device
-```
-
-Other services: `pnpm design:dev`, `pnpm chatbot:dev`, `pnpm website:dev`.
-
-**Important:** Never use `npx expo start` / Expo Go — native modules (expo-notifications etc.) require a dev client build.
-
-**Simulator location:** After launching the simulator, always set its location to ul. Altowa, Warszawa:
-```bash
-xcrun simctl location booted set 52.2010865,20.9618980
-```
-
-## Environment variables (API)
-
-Two env files in `apps/api/`:
-- **`.env`** — local development defaults (localhost DB/Redis, dev keys). Loaded automatically by Bun.
-- **`.env.production`** — production Railway credentials. **Never loaded automatically.** Use for scripts that need prod access (seed, scatter) and when running the API for simulator/device testing: `bun --env-file=apps/api/.env.production run <script>`.
-
-| Var | Purpose |
-|-----|---------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `REDIS_URL` | BullMQ queue + rate limiter |
-| `BETTER_AUTH_SECRET` | Auth encryption key |
-| `BETTER_AUTH_URL` | API base URL for auth |
-| `OPENAI_API_KEY` | AI analysis & embeddings |
-| `RESEND_API_KEY` | Email (optional — falls back to console.log) |
-| `BUCKET_ACCESS_KEY_ID` | Tigris/S3 object storage |
-| `BUCKET_SECRET_ACCESS_KEY` | Tigris/S3 object storage |
-| `BUCKET_ENDPOINT` | Tigris/S3 endpoint URL |
-| `BUCKET_NAME` | Tigris/S3 bucket name |
-| `IP_HASH_SALT` | Hashing IPs for rate limiting |
-| `ENABLE_DEV_LOGIN` | Allow test login (`"true"` — dev only) |
-
-OAuth providers (Apple, Facebook, Google, LinkedIn): `*_CLIENT_ID` + `*_CLIENT_SECRET`.
-
-## Dev CLI
-
-Interactive CLI for testing waves, chats, and messages without the mobile app. Calls the API via HTTP so WebSocket events fire properly.
-
-**Location:** `packages/dev-cli/`
-
-**Run from root:**
-```bash
-pnpm dev-cli -- <command> [args]
-```
-
-**Commands:**
-| Command | Description |
-|---------|-------------|
-| `create-user <name>` | Create user + profile + location (auto-login) |
-| `users` | List users created this session |
-| `send-wave --from <email> --to <email>` | Send a wave |
-| `waves <name>` | Show received & sent waves |
-| `respond-wave <name> <waveId> accept\|decline` | Accept or decline a wave |
-| `chats <name>` | List conversations |
-| `messages <name> <convId>` | Show messages |
-| `send-message <name> <convId> <text>` | Send a message |
-| `reanalyze <email> [--clear-all]` | Clear analyses + re-trigger AI for user |
-
-Users are referenced by name (e.g. "ania"). The CLI resolves names to userId/token from an in-memory map. Set `API_URL` env var to override the default `http://localhost:3000`.
-
-## After changing AI prompts
-
-After modifying AI prompts in `apps/api/src/services/ai.ts`, clear stale analyses and re-trigger for a test user:
-
-```bash
-pnpm dev-cli -- reanalyze user42@example.com --clear-all
-```
-
-This truncates all `connection_analyses` and enqueues new pair analyses for the given user's nearby connections. Check results in the DB or mobile app.
-
-## Running on physical iPhone
-
-The API URL is controlled by `EXPO_PUBLIC_API_URL` in `apps/mobile/.env.local`.
-
-**For physical device (Railway API):**
-```bash
-# Set .env.local to Railway
+# Production (Railway API)
 echo 'EXPO_PUBLIC_API_URL=https://api.blisko.app' > apps/mobile/.env.local
 
-# Build and install on connected iPhone
-cd apps/mobile && npx expo run:ios --device
-```
-
-**To switch back to local dev:**
-```bash
+# Local dev
 echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:3000' > apps/mobile/.env.local
 ```
 
-The iPhone UDID is `00008130-00065CE826A0001C` (Karol iPhone 15). Use `xcrun xctrace list devices` to verify.
+**Env vars:** Two env files in `apps/api/`: `.env` (local dev, loaded by Bun automatically), `.env.production` (Railway credentials, never loaded automatically — use `bun --env-file=apps/api/.env.production run <script>` for scripts needing prod access or simulator/device testing). OAuth providers: `*_CLIENT_ID` + `*_CLIENT_SECRET` for Apple, Facebook, Google, LinkedIn.
 
-## Seed user locations
+**Dev CLI:** `pnpm dev-cli -- <command>` (calls API via HTTP so WebSocket events fire). `API_URL` env var overrides default `http://localhost:3000`. Users referenced by email, resolved to userId/token from in-memory cache.
 
-Seed users are scattered across 7 Warsaw districts using real boundary polygons from `apps/api/scripts/warszawa-dzielnice.geojson` (source: [andilabs/warszawa-dzielnice-geojson](https://github.com/andilabs/warszawa-dzielnice-geojson)).
+| Command | Example |
+|---------|---------|
+| `create-user <name>` | Create user + profile + location (auto-login) |
+| `send-wave --from <email> --to <email>` | Send a wave between users |
+| `respond-wave <name> <waveId> accept\|decline` | Accept or decline a wave |
+| `waves <name>` | Show received & sent waves |
+| `chats <name>` | List conversations |
+| `messages <name> <convId>` | Show messages in a conversation |
+| `send-message <name> <convId> <text>` | Send a message |
+| `reanalyze <email> [--clear-all]` | Clear analyses + re-trigger AI |
 
-**Target districts** (configurable in `TARGET_DISTRICTS` array): Ochota, Włochy, Wola, Śródmieście, Mokotów, Ursynów, Bemowo.
+**Monitors:** `pnpm dev-cli:queue-monitor` (BullMQ jobs), `pnpm dev-cli:chatbot-monitor` (bot activity).
 
-To re-scatter existing users (direct DB, no API needed):
+**Seed users:** Emails `user0@example.com` through `user249@example.com`, scattered across 7 Warsaw districts (Ochota, Włochy, Wola, Śródmieście, Mokotów, Ursynów, Bemowo) using polygons from `apps/api/scripts/warszawa-dzielnice.geojson`.
+- `pnpm api:scatter` — re-scatter existing users (direct DB, no side-effects)
+- `cd apps/api && bun run scripts/scatter-locations.ts` — re-scatter via API (fires AI re-analysis + WS broadcasts)
+- Fresh seed: delete `apps/api/scripts/.seed-cache.json` first, then `bun run apps/api/scripts/seed-users.ts`
+- After re-seeding, display a random test user email (e.g. `user42@example.com`) for quick login
+
+**Chatbot:** `apps/chatbot/`, run with `pnpm chatbot:dev`. Seed users auto-respond to waves and messages. Wave acceptance is match-based: AI match score >=75% always accepts, scales linearly down to 10% at score 0. If you log in as a seed user, the bot pauses responding as that user for 5 minutes (activity-based detection).
+
+**After changing AI prompts:** `pnpm dev-cli -- reanalyze user42@example.com --clear-all`.
+
+**TestFlight:** `pnpm mobile:testflight` → builds archive → opens Xcode Organizer → Distribute App manually. Set `.env.local` to production API first. Script: `apps/mobile/scripts/testflight.sh`.
+
+**README screenshot:**
 ```bash
-pnpm api:scatter
+# 1. Dev server running at localhost:3000
+# 2. Capture screenshot (uses ?screenshot mode on /design-book)
+npx capture-website-cli "http://localhost:3000/design-book?screenshot" \
+  --width 1400 --scale-factor 2 --delay 3 --full-page \
+  --disable-animations --remove-elements ".nav" \
+  --output docs/screens-new.png
+# 3. MD5-rename for cache busting
+HASH=$(md5 -q docs/screens-new.png | tail -c 7)
+mv docs/screens-new.png docs/screens-$HASH.png
+# 4. Update README.md with new filename, delete old file
 ```
+Key files: `design-book.tsx` (`?screenshot` detection + early return), `Screens.tsx` (`onlyFirstRow` prop).
 
-To re-scatter via API (fires side-effects like AI re-analysis and WS broadcasts):
-```bash
-cd apps/api && bun run scripts/scatter-locations.ts
-```
+**Design Book:** `apps/design/`, `localhost:3000/design-book`. CSS modules (mangled class names). PhoneFrame: max 402px, aspect 402:874. Variants in `apps/design/src/variants/v2-*/`.
 
-For a fresh seed with new locations, delete the cache first:
-```bash
-rm apps/api/scripts/.seed-cache.json
-cd apps/api && bun run scripts/seed-users.ts
-```
+**Shared package:** `@repo/shared` — types, Zod validators, enums, haversine. Used by API and Mobile. Typecheck: `pnpm --filter @repo/shared typecheck`.
 
-## Chatbot (seed user auto-responses)
-
-Separate app that makes seed users respond to waves and messages automatically.
-
-**Run:**
-```bash
-cd apps/chatbot && bun dev
-```
-
-Requires the API to be running. Seed users auto-respond with AI-generated messages
-in character. Wave acceptance is match-based: higher AI match score = higher chance
-of accepting (>=75% always accepts, scales linearly down to 10% at score 0).
-
-If you log in as a seed user and send messages, the bot stops responding
-as that user for 5 minutes (activity-based detection).
-
-**Location:** `apps/chatbot/`
-
-**Env vars** (reads from API's `.env` or own):
-- `DATABASE_URL` — same as API
-- `API_URL` — defaults to `http://localhost:3000`
-- `OPENAI_API_KEY` — same as API
-- `BOT_POLL_INTERVAL_MS` — default `3000`
-
-## Queue monitor (BullMQ debugging)
-
-Live dashboard for the `ai-jobs` BullMQ queue. Shows waiting/active/completed jobs, timing breakdowns (queue wait vs AI call vs DB), and per-job pair names.
-
-**Run:** `pnpm dev-cli:queue-monitor`
-
-Reads `REDIS_URL` from env or `apps/api/.env`. Refreshes every 2s.
-
-**What it shows:**
-- Queue counts (waiting, active, delayed, failed, completed)
-- Recent completed jobs with wait/process/total times
-- Averages by job type
-- Active + waiting jobs with user pair names and who requested the analysis
-
-**Key file:** `packages/dev-cli/src/queue-monitor.ts`
-
-## Chatbot monitor
-
-Live dashboard showing what the chatbot sees: pending waves, wave decisions, active conversations with last messages.
-
-**Run:** `pnpm dev-cli:chatbot-monitor`
-
-Reads `DATABASE_URL` from env or `apps/api/.env`. Refreshes every 3s. Does NOT require the chatbot to be running — reads DB directly.
-
-**What it shows:**
-- Stats (bot vs human messages, accepted/declined waves in last hour)
-- Pending waves waiting for seed user response
-- Recent wave accept/decline decisions with match scores
-- Active conversations with last 3 messages (`🤖` = bot, `[name]` = seed user)
-
-**Key file:** `packages/dev-cli/src/chatbot-monitor.ts`
-
-## Database migrations (Drizzle)
-
-Schema source of truth: `apps/api/src/db/schema.ts`
-Migrations folder: `apps/api/drizzle/`
-Config: `apps/api/drizzle.config.ts` (lists all schema files)
-
-### Workflow by scenario
-
-**Adding tables, columns, indexes (most common):**
-
-```bash
-cd apps/api
-# 1. Edit schema.ts (or add new schema file to drizzle.config.ts)
-# 2. Generate migration
-npx drizzle-kit generate --name=describe-change
-# 3. Review the generated SQL in drizzle/NNNN_describe-change.sql
-# 4. Apply locally
-npx drizzle-kit migrate
-# 5. Test your changes
-# 6. Commit migration files + schema changes together
-```
-
-`drizzle-kit generate` is non-interactive for additive changes — safe to run from Claude Code.
-
-**Renaming a column or table:**
-
-`drizzle-kit generate` becomes interactive when it detects a rename (column deleted + new one created). It asks "Is X renamed from Y?" which blocks in Claude Code.
-
-Do it in TWO migrations instead:
-
-```bash
-# Migration 1: Add new column with data copy
-npx drizzle-kit generate --custom --name=rename-col-step1
-# Write SQL: ALTER TABLE ADD new_col; UPDATE SET new_col = old_col;
-
-# Migration 2: After deploying migration 1, remove old column from schema
-npx drizzle-kit generate --name=rename-col-step2
-# This is non-interactive (pure drop, no ambiguity)
-```
-
-**Changing column types (e.g. `text → jsonb`):**
-
-Drizzle can't auto-generate type casts. Use custom migration:
-
-```bash
-npx drizzle-kit generate --custom --name=describe-change
-```
-
-Then write the SQL manually with the appropriate `USING` clause:
-```sql
-ALTER TABLE "my_table" ALTER COLUMN "my_col" TYPE jsonb USING "my_col"::jsonb;
-```
-
-Update `schema.ts` to match the new type.
-
-**Data migrations (backfill, transform existing data):**
-
-Use custom migration — never mix schema DDL and data DML in the same file:
-
-```bash
-npx drizzle-kit generate --custom --name=backfill-describe-what
-```
-
-Write the migration SQL:
-```sql
--- Backfill: set default value for new column added in previous migration
-UPDATE "profiles" SET "visibility" = 'public' WHERE "visibility" IS NULL;
-```
-
-**Dropping tables or columns:**
-
-Remove from `schema.ts`, then generate. This is non-interactive (no rename ambiguity).
-
-```bash
-npx drizzle-kit generate --name=drop-unused-column
-```
-
-**Creating PostgreSQL extensions, custom functions, triggers:**
-
-Always custom:
-```bash
-npx drizzle-kit generate --custom --name=add-extension-name
-```
-
-### Rules
-
-- **Use underscores in migration names**, not dashes: `--name=add_metrics_schema` (not `--name=add-metrics-schema`).
-- **Never use `db:push`** — it's been removed from package.json. All changes go through migrations.
-- **Migrations run on production automatically** via Railway post-deploy hook on the API service (`drizzle-kit migrate`). **NEVER run `drizzle-kit migrate` manually** — `.env` points at the production database, so any manual run hits prod. Only generate migrations locally; they get applied on deploy.
-- **Always use pnpm scripts**, not `npx drizzle-kit`: `pnpm --filter @repo/api db:generate -- --name=my_change`, `pnpm --filter @repo/api db:migrate`.
-- **Review generated SQL before committing.** Always read the generated `.sql` file. Drizzle-kit can produce unexpected DDL for complex changes.
-- **One concern per migration.** Don't mix unrelated schema changes. Don't mix DDL (CREATE/ALTER) with DML (UPDATE/INSERT) in the same migration.
-- **Commit migration files with the code that uses them.** Schema change + migration + application code = one commit or PR branch.
-- **Custom migrations get detailed comments.** When using `--custom`, document WHY in the SQL file header:
-  ```sql
-  -- Custom migration: change profiles.bio from text to jsonb
-  -- Drizzle can't auto-generate USING clause for type casts
-  ALTER TABLE "profiles" ALTER COLUMN "bio" TYPE jsonb USING "bio"::jsonb;
-  ```
-- **Migration files and `drizzle/meta/` snapshots are committed to git.** Snapshots are how drizzle-kit diffs against previous state.
-- **After any schema change:** check if `apps/api/src/services/data-export.ts` needs updating (GDPR/RODO data export).
-
-### Local development
-
-```bash
-pnpm --filter @repo/api db:generate -- --name=my_change   # generate migration from schema diff
-pnpm --filter @repo/api db:migrate                         # apply pending migrations
-```
-
-To see what SQL your full schema would produce from scratch:
-```bash
-npx drizzle-kit export --sql
-```
-
-### When `generate` blocks (interactive prompt)
-
-If `drizzle-kit generate` hangs waiting for input, it detected a rename ambiguity. Kill it (Ctrl+C) and split the change into two non-ambiguous migrations:
-1. Add the new thing (non-interactive)
-2. Deploy, then remove the old thing (non-interactive)
-
-Or ask the user to run `drizzle-kit generate` in their terminal where they can answer the prompt.
-
-## Layout: aligning controls with labels
-
-When placing a Switch/toggle next to a label + description block, don't wrap both texts in one View and use `alignItems: 'center'` — the control will center against the whole block (label + description), not just the label. Instead, put only the label and the control in a flex row with `alignItems: 'center'`, and render the description as a separate element below the row. Same principle applies to any row where a control should align with the first line of text.
-
-## Navigation headers: fully custom, no native chrome
-
-**NEVER** use React Navigation's native header (`headerLeft`, `headerRight`, `headerBackImage`, `headerStyle`, etc.) for stack navigators in this app. The native header on iOS wraps components in `UIBarButtonItem`, which adds an ugly capsule/rounded-rect background that we can't style away.
-
-**Always** use `header: () => (...)` in `screenOptions` (or per-screen `options`) to render a fully custom header. This bypasses the native header entirely and gives us full control.
-
-**Standard header pattern** (used in settings, modals, and similar stack layouts):
-
-```tsx
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Stack, router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, fonts } from '@/theme';
-import { IconChevronLeft } from '@/components/ui/icons';
-
-// In screenOptions:
-header: ({ options }) => (
-  <SafeAreaView edges={['top']} style={{ backgroundColor: colors.bg }}>
-    <View style={{
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: spacing.section, height: 58,
-    }}>
-      <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
-        <IconChevronLeft size={24} color={colors.ink} />
-      </Pressable>
-      <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>
-        {options.title}
-      </Text>
-      <View style={{ width: 24 }} />
-    </View>
-  </SafeAreaView>
-),
-contentStyle: { backgroundColor: colors.bg },
-```
-
-**Back button rules:**
-- Always `IconChevronLeft` (from `@/components/ui/icons`), size 24, color `colors.ink`
-- Always `hitSlop={8}` on the Pressable
-- No text next to the chevron (no "Wróć", no "Back")
-- No native back button elements (`headerBackVisible: false` is irrelevant when using custom `header`)
-
-**Screen-specific headers** (like chat with avatar + name) still use `header: () => (...)` but with a custom layout inside the SafeAreaView. The back chevron Pressable must remain identical (same icon, size, hitSlop).
-
-**Files currently using this pattern:**
-- `apps/mobile/app/settings/_layout.tsx` — standard centered title
-- `apps/mobile/app/(modals)/_layout.tsx` — standard centered title
-- `apps/mobile/app/chat/[id].tsx` — custom with avatar + participant name
-
-## Scripts convention
-
-All runnable tools must have a `scripts` entry in their own `package.json` AND a corresponding entry in the root `package.json` using the `pnpm --filter` pattern. Always run from the root directory using the root script.
-
-**Pattern:** `"<package>:<script>": "pnpm --filter @repo/<package> <script>"`
-
-**Example:**
-```json
-// root package.json
-"dev-cli:queue-monitor": "pnpm --filter @repo/dev-cli monitor"
-
-// packages/dev-cli/package.json
-"monitor": "bun run src/queue-monitor.ts"
-```
-
-When creating new CLI tools, scripts, or monitors — always add both entries.
-
-## Rate limiting & abuse protection
-
-Custom sliding window counter on Redis (Lua scripts). No external rate limiting libraries.
-
-**Config:** `apps/api/src/config/rateLimits.ts` — single source of truth for all limits. Every limit has a name, max count, time window, and human-readable comment explaining why.
-
-**Engine:** `apps/api/src/services/rate-limiter.ts` — Redis Lua sliding window counter.
-
-**Middleware:**
-- `apps/api/src/middleware/rateLimit.ts` — Hono middleware for pre-auth endpoints (key: IP)
-- `apps/api/src/trpc/middleware/rateLimit.ts` — tRPC middleware for post-auth endpoints (key: userId)
-
-**Design doc:** `docs/architecture/rate-limiting.md` — full rationale, limits table, decisions.
-
-**When adding or changing API endpoints:**
-- Check if the new endpoint needs a rate limit. If it triggers push notifications, enqueues AI jobs, sends emails, writes to S3, or could be abused by bots — it needs one.
-- If modifying an existing rate-limited endpoint, check if the limit still makes sense (e.g. changed from mutation to query, added batch capability).
-- Add new limits to `rateLimits.ts` and apply the appropriate middleware.
-- Group push notifications use `collapseId` for unread suppression (1 audible push per unread batch, silent updates after). DM push has no suppression.
-
-**Waves are irreversible** — no cancel. This is by design (prevents wave/unwave notification spam).
-
-## Email (Resend)
-
-All emails go through `apps/api/src/services/email.ts`. Never send emails directly via `resend.emails.send()` — always use the `sendEmail()` helper and template functions from this module.
-
-**Module:** `apps/api/src/services/email.ts`
-- `sendEmail(to, template)` — sends via Resend, falls back to console.log when `RESEND_API_KEY` is not set
-- `layout(content)` — shared wrapper with BLISKO header + "Pozdrawiamy" footer
-- `otpBlock(otp)` / `button(label, href)` — reusable HTML blocks
-
-**Existing templates:** `signInOtp(otp, deepLink)`, `changeEmailOtp(otp)`, `dataExportReady(downloadUrl)`
-
-**Adding a new email:**
-1. Add a new exported function in `email.ts` that returns `{ subject: string; html: string }`
-2. Use `layout()` to wrap the content for consistent branding
-3. Call `sendEmail(to, yourTemplate(...))` from the sending location
-
-## Redis
-
-Use Bun's built-in `RedisClient` (`import { RedisClient } from 'bun'`) for all direct Redis operations (pub/sub, get/set, etc.). Never add `ioredis` as a direct dependency — BullMQ uses it internally and that's fine, but our code should use Bun's native client.
-
-## Drizzle queries
-
-**Prefer `findMany`/`findFirst` by default.** Before choosing an approach, think about what SQL Drizzle will generate and pick the one that produces a significantly better query.
-
-**Rule of thumb:** Pick the approach that produces the simplest, most efficient code. `findMany`/`findFirst` should be short and obvious — if it's growing past ~15 lines, over-fetching data, or fighting the relational API with complex `where`/`columns` nesting, switch to query builder.
-
-- **Simple fetch, few/no joins** → `findMany`/`findFirst` — cleaner, less code
-- **Complex joins, aggregation, selective columns across tables, performance-critical** → `db.select().from().leftJoin()...` — one SQL query, fetches only what you need, often fewer LOC than a bloated relational query
-- Before choosing, think about what SQL Drizzle will generate. `findMany` with `with` runs separate queries or lateral joins per relation. Query builder produces a single explicit JOIN. Pick whichever is significantly better for the use case.
-
-1. **Relational queries** (default) — `db.query.*.findMany()`, `db.query.*.findFirst()` with `with`, `where`, `columns`, `orderBy`, `limit`
-2. **Query builder** (joins, aggregates, subqueries, performance-critical) — `db.select().from().where().leftJoin()...`
-3. **Raw `sql`** (last resort) — only inside a query builder call when there's no Drizzle equivalent (Haversine, `CASE WHEN`, `NULLS LAST`, `TRUNCATE`, column arithmetic in `.set()`, computed aliases in `ORDER BY`). **Never** as a standalone `db.execute(sql`...`)`.
-
-```ts
-// ✅ Best — relational query
-const user = await db.query.user.findFirst({
-  where: eq(schema.user.id, userId),
-  with: { profile: true },
-});
-
-// ✅ OK — query builder for aggregates/complex joins
-const userConversations = await db
-  .select({
-    conversationId: schema.conversationParticipants.conversationId,
-    lastReadAt: schema.conversationParticipants.lastReadAt,
-  })
-  .from(schema.conversationParticipants)
-  .where(eq(schema.conversationParticipants.userId, ctx.userId));
-
-// ❌ Never do this
-const result = await db.execute(sql`SELECT ... FROM ... JOIN ... WHERE ...`);
-```
-
-**When raw `sql` is unavoidable:** If a query genuinely can't be expressed with Drizzle's query builder or relational API, create a Linear ticket (label: **Improvement**, title: "Refactor raw SQL: [context]") describing the query and why it's raw, so Karol can review and verify.
-
-**Filters:** Always use Drizzle's built-in filter functions over raw `sql`\`...\``: `between()`, `eq()`, `ne()`, `gt()`, `lt()`, `gte()`, `lte()`, `isNull()`, `isNotNull()`, `inArray()`, `notInArray()`, `like()`, `ilike()`, `and()`, `or()`, `not()` — all from `drizzle-orm`.
-
-**Select only the columns you need.** Never fetch `SELECT *` — always specify `columns` (relational API) or explicit fields (query builder / `.returning()`). Fetching unused columns wastes bandwidth, memory, and can leak sensitive data.
-
-```ts
-// ✅ Correct — only fetch what you use
-const profile = await db.query.profiles.findFirst({
-  where: eq(schema.profiles.userId, userId),
-  columns: { displayName: true, avatarUrl: true },
-});
-
-const [wave] = await db
-  .insert(schema.waves)
-  .values({ ... })
-  .returning({ id: schema.waves.id, status: schema.waves.status });
-
-// ❌ Don't fetch entire rows when you only need a few fields
-const profile = await db.query.profiles.findFirst({
-  where: eq(schema.profiles.userId, userId),
-});
-```
-
-**Single-row fetch → `findFirst()`, not destructured array.** Don't write `const [item] = await db.select().from(...).where(...)` — use `db.query.*.findFirst()` instead. It adds `LIMIT 1` automatically and returns the object directly (no array destructuring).
-
-```ts
-// ✅ Correct
-const profile = await db.query.profiles.findFirst({
-  where: eq(schema.profiles.userId, userId),
-  columns: { displayName: true, avatarUrl: true },
-});
-
-// ❌ Don't do this for single-row lookups
-const [profile] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, userId));
-```
-
-**Transactions: always use `tx`, never `db`.** Inside `db.transaction(async (tx) => { ... })`, all queries must go through `tx`. Using `db` inside a transaction runs the query outside the transaction — it won't be rolled back on failure.
-
-```ts
-// ✅ Correct
-await db.transaction(async (tx) => {
-  const [wave] = await tx.insert(schema.waves).values({ ... }).returning();
-  await tx.insert(schema.conversations).values({ ... });
-});
-
-// ❌ Footgun — db query escapes the transaction
-await db.transaction(async (tx) => {
-  const [wave] = await tx.insert(schema.waves).values({ ... }).returning();
-  await db.insert(schema.conversations).values({ ... }); // NOT in transaction!
-});
-```
-
-**`.returning()` after insert/update.** When you need the inserted/updated row, use `.returning()` instead of doing a separate select after the write. One round-trip instead of two.
-
-**Upsert with `onConflictDoUpdate`.** When the logic is "insert if not exists, update if exists", use `.onConflictDoUpdate()` instead of select → if exists → update else insert. Atomic, single query, no race conditions.
-
-**Prepared statements for hot paths.** Use `.prepare("name")` for queries executed on every request (auth middleware, session lookup). Drizzle compiles the SQL once and reuses the precompiled query plan. Use `placeholder("param")` for dynamic values.
-
-```ts
-const getSession = db.query.session.findFirst({
-  where: eq(schema.session.token, placeholder("token")),
-  with: { user: true },
-}).prepare("session_by_token");
-
-// Execute — reuses compiled query
-const session = await getSession.execute({ token: bearerToken });
-```
-
-**Stable API only.** We use stable Drizzle (v1 relational queries). Relations are defined with `relations()` from `drizzle-orm` per-table in `schema.ts`. Do NOT use the beta v2 API (`defineRelations` from `drizzle-orm`, `r.one.*/r.many.*` syntax) — it has a different, incompatible syntax.
-
-## Biome (linter + formatter)
-
-We use [Biome](https://biomejs.dev/) for formatting and linting. Config: `biome.json`.
-
-**Commands:**
-- `pnpm format` — format all files
-- `pnpm format:check` — check formatting (CI)
-- `pnpm lint` — lint all files
-- `pnpm check` — format + lint + organize imports (CI runs this)
-
-**TanStack Query ESLint rules:** Biome has no plugin system, so TanStack's ESLint rules ([`no-unstable-deps`](https://github.com/TanStack/query/blob/main/docs/eslint/no-unstable-deps.md), [`exhaustive-deps`](https://github.com/TanStack/query/blob/main/docs/eslint/exhaustive-deps.md)) can't be used. Not a real gap — tRPC manages queryKeys automatically, and Biome's `useExhaustiveDependencies` already covers React hook deps. The tRPC method-chain pattern (`trpc.*.useMutation()`) also means Biome can't match these as custom hooks anyway.
-
-**Before finishing any task**, run `npx @biomejs/biome check .` and verify 0 errors. Do NOT add new `biome-ignore` comments or disable rules in `biome.json` just to make errors go away — fix the actual code instead. The only acceptable `biome-ignore` is when the code is intentionally correct and the rule is a false positive (e.g. `noArrayIndexKey` on a fixed-length OTP input).
-
-**Auto-formatting hook:** `.claude/settings.json` runs `biome format --write` after every Edit/Write tool call.
-
-## Testing
-
-**Framework:** Vitest 2.0 (runs on Bun via `bun --bun vitest`).
-
-**Commands:**
-- `pnpm api:test` — run API tests
-- `pnpm --filter @repo/shared test` — run shared package tests
-
-**API tests:** `apps/api/__tests__/**/*.test.ts`. Config: `apps/api/vitest.config.ts`.
-
-**Mobile E2E:** Maestro — flows in `apps/mobile/maestro/`. Run: `pnpm --filter @repo/mobile test:e2e`.
-
-**Pattern:**
+**Testing:** Vitest on Bun. `pnpm api:test`, `pnpm --filter @repo/shared test`. Mobile E2E: Maestro (`pnpm --filter @repo/mobile test:e2e`). Tests: `apps/api/__tests__/**/*.test.ts`. Test pattern for Hono endpoints (no server needed):
 ```ts
 import { describe, expect, it } from "vitest";
 import { app } from "../src/index";
@@ -608,158 +84,121 @@ describe("endpoint", () => {
 });
 ```
 
-## Schema imports
+**Biome:** `pnpm check` (format + lint + imports). Config: `biome.json`. TanStack Query ESLint rules not applicable (tRPC manages queryKeys, Biome covers hook deps).
 
-**NEVER** import individual tables from `apps/api/src/db/schema.ts` directly. Instead, import the `schema` namespace from `apps/api/src/db/index.ts` and access tables as `schema.profiles`, `schema.user`, `schema.waves`, etc.
+**Rate limiting:** Design doc at `docs/architecture/rate-limiting.md`. Engine: `apps/api/src/services/rate-limiter.ts`. Middleware: `apps/api/src/middleware/rateLimit.ts` (pre-auth, IP key), `apps/api/src/trpc/middleware/rateLimit.ts` (post-auth, userId key).
 
-```ts
-// ✅ Correct
-import { db, schema } from '@/db';
-// then use: schema.profiles, schema.user, schema.waves, etc.
+**Schema inspection:** `npx drizzle-kit export --sql` — see what SQL the full schema would produce from scratch.
 
-// ❌ Wrong — never import individual tables from db/schema.ts
-import { profiles, user, waves, blocks, ... } from '@/db/schema';
-```
+## Database migrations (Drizzle)
 
-The only exception is `apps/api/src/db/index.ts` itself, which must import from `schema.ts` to set up Drizzle.
+Schema: `apps/api/src/db/schema.ts`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`. Rules: `.claude/rules/migrations.md`.
 
-## Shared package (`packages/shared`)
+### Workflow by scenario
 
-Workspace package `@repo/shared` — shared types, validators, and utils used by API and Mobile.
+**Adding tables, columns, indexes (most common):**
 
-- `types.ts` — TypeScript interfaces: User, Profile, Wave, Conversation, WaveStatus
-- `validators.ts` — Zod schemas: profile creation/update, location, visibility
-- `models.ts` — enums and type helpers
-- `math.ts` — haversine distance calculation
-
-Typecheck: `pnpm --filter @repo/shared typecheck`
-
-## Import aliases
-
-When a tsconfig defines path aliases, always prefer them over `..` relative imports. Relative `./` (same directory) imports are fine. Update this table when changing tsconfig paths.
-
-| App | Alias | Maps to | Example |
-|-----|-------|---------|---------|
-| `apps/api` | `@/*` | `src/*` | `import { db } from '@/db'` |
-| `apps/mobile` | `@/*` | `src/*` | `import { trpc } from '@/lib/trpc'` |
-| `apps/design` | `~/*` | `src/*` | `import { Theme } from '~/theme'` |
-
-```ts
-// ✅ Correct — use alias
-import { db, schema } from '@/db';
-import { ee } from '@/ws/events';
-
-// ❌ Wrong — don't drill up with ..
-import { db, schema } from '../../db';
-import { ee } from '../ws/events';
-```
-
-## Soft-deleted users (GDPR)
-
-The `user` table has a `deletedAt` column. Soft-deleted users (`deletedAt IS NOT NULL`) must be **invisible everywhere**:
-
-- **Any query that returns user/profile data to other users** must filter out soft-deleted users
-- Standard pattern: `notInArray(schema.profiles.userId, db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)))` in the WHERE clause
-- This applies to: nearby queries, waves, conversations, group members, status matching, discoverable groups — any place another user's profile is shown
-- **When adding new tables or queries that reference users:** always check if soft-deleted users should be filtered
-- The tRPC `isAuthed` middleware already blocks soft-deleted users from making API calls (throws `FORBIDDEN` / `ACCOUNT_DELETED`)
-
-## EAS policy
-
-Do NOT suggest using EAS Build or EAS Submit. We use local Xcode builds + manual upload via Xcode Organizer. If EAS is ever needed, the user will say so explicitly.
-
-When using EAS CLI (e.g. for credentials), always use `npx -y eas-cli@latest <command>` — never bare `eas` or `npx eas-cli`.
-
-## Deploying to TestFlight (without EAS)
-
-Local build + upload to TestFlight via Xcode. No EAS subscription needed — uses Xcode's native archive and distribute flow.
-
-**Prerequisites:**
-- Active Apple Developer account (Individual / Sole Proprietor)
-- App created in [App Store Connect](https://appstoreconnect.apple.com) with bundle ID `com.blisko.app`
-- Xcode signed in with Apple ID (Xcode → Settings → Accounts)
-- Signing team selected in Xcode project (automatic signing recommended)
-
-**Run from root:**
 ```bash
-pnpm mobile:testflight
+# 1. Edit schema.ts
+# 2. Generate migration
+pnpm --filter @repo/api db:generate -- --name=describe_change
+# 3. Review the generated SQL in drizzle/NNNN_describe_change.sql
+# 4. Apply locally
+pnpm --filter @repo/api db:migrate
+# 5. Test, then commit migration + schema + app code together
 ```
 
-**What it does:**
-1. Installs CocoaPods if needed
-2. Builds a Release archive via `xcodebuild`
-3. Opens the archive in Xcode Organizer
+`drizzle-kit generate` is non-interactive for additive changes — safe to run from Claude Code.
 
-**After the script finishes (manual step):**
-1. Xcode Organizer opens with the archive
-2. Click **Distribute App**
-3. Select **App Store Connect** → **Upload**
-4. Build appears in TestFlight within ~5-15 minutes
+**Renaming a column or table (two-step, non-interactive):**
 
-**Important:**
-- Make sure `apps/mobile/.env.local` points to production API (`https://api.blisko.app`) before building
-- First upload requires creating the app in App Store Connect (Apps → + New App → bundle ID `com.blisko.app`)
-- TestFlight internal testers get builds instantly; external testers need one Beta App Review first
+`generate` becomes interactive on renames (asks "Is X renamed from Y?"). Split into two migrations:
 
-**Script location:** `apps/mobile/scripts/testflight.sh`
+```bash
+# Step 1: Add new column + copy data
+npx drizzle-kit generate --custom --name=rename_col_step1
+# Write SQL: ALTER TABLE ADD new_col; UPDATE SET new_col = old_col;
 
-## After restarting the app / seeding
+# Step 2: After deploying step 1, remove old column from schema
+npx drizzle-kit generate --name=rename_col_step2
+```
 
-After any restart that involves re-seeding the database, display a random test user email for quick login. Seeded users have emails `user0@example.com` through `user249@example.com`.
+**Changing column types (e.g. `text → jsonb`):**
 
-## Design Book
+Drizzle can't auto-generate type casts. Use custom migration:
 
-Located at `apps/design/`, served at `localhost:3000/design-book`.
+```bash
+npx drizzle-kit generate --custom --name=describe_change
+```
 
-- CSS modules used throughout — class names are mangled, can't target them with plain CSS selectors from outside
-- Root nav is `<nav className="nav">` in `__root.tsx`
-- Screens: `apps/design/src/components/design-book/Screens.tsx` — phone frame mockups
-- CSS: `screens.module.css`, `form-elements.module.css`, `components.module.css`
-- Variants: `apps/design/src/variants/v2-*/` — each variant has its own tab bar with hardcoded labels
-- PhoneFrame: max 402px wide, aspect 402:874, in screenCol constrained to 280px
+```sql
+-- Custom migration: change column type with explicit cast
+ALTER TABLE "my_table" ALTER COLUMN "my_col" TYPE jsonb USING "my_col"::jsonb;
+```
 
-## Linear integration
+**Data migrations (backfill):**
 
-Team: **Blisko**, key: **BLI**
+Use custom migration — never mix DDL and DML in the same file:
 
-### Linear API — markdown formatting
+```bash
+npx drizzle-kit generate --custom --name=backfill_describe_what
+```
 
-- Pass raw markdown strings to `save_issue` description — NOT escaped strings with `\\n`. Just use normal newlines in the parameter value.
-- Avoid starting a line with `>` followed by text (e.g. `>5 członków`) — Linear's markdown parser treats it as a blockquote. Use words instead: "Więcej niż 5" or "ponad 5".
-- Checkboxes: use `- [ ]` not `\[ \]`
-- Always double-check the response from `save_issue` to verify markdown rendered correctly before moving on.
-- NEVER try to attach screenshots/images to Linear tickets via `create_attachment` — the base64 upload workflow doesn't work reliably (size limits, tool output issues). Just reference HTML mockup file paths in ticket descriptions instead.
+```sql
+-- Backfill: set default value for new column
+UPDATE "profiles" SET "visibility" = 'public' WHERE "visibility" IS NULL;
+```
+
+**Dropping tables/columns:** Remove from `schema.ts`, then `generate`. Non-interactive.
+
+**PostgreSQL extensions, functions, triggers:** Always `--custom`.
+
+## Drizzle query approach
+
+Rules: `.claude/rules/drizzle.md`. Decision hierarchy (in order of preference):
+
+1. **Relational queries** (default) — `db.query.*.findMany()` / `findFirst()` with `with`, `where`, `columns`, `orderBy`, `limit`
+2. **Query builder** (joins, aggregates, subqueries, performance-critical) — `db.select().from().where().leftJoin()...`
+3. **Raw `sql`** (last resort) — only inside a query builder call when no Drizzle equivalent exists
+
+**Rule of thumb:** Pick the approach that produces the simplest, most efficient code. `findMany`/`findFirst` should be short and obvious — if it's growing past ~15 lines, over-fetching data, or fighting the relational API, switch to query builder. Before choosing, think about what SQL Drizzle will generate.
+
+---
+
+## Linear Workflow
 
 ### Capturing ideas
 
-When user shares an idea, feedback, or feature concept:
-
-- **Vague idea** (no clear scope) → issue with label **Idea**, status **Backlog**. Short title, raw description. Don't force structure.
-- **Refined idea** (clear what to build) → use the appropriate label:
-  - **Feature** = new capability
-  - **Improvement** = enhancing existing thing
-  - **Bug** = broken thing
-  - **Idea** = vague, needs refinement
-- **Priority**: set when user expresses urgency, otherwise leave unset (None).
-- **Sub-issues**: when a feature has distinct parts, create sub-issues with `parentId`. Discover naturally — don't force upfront decomposition. Every sub-ticket MUST have its own acceptance criteria — never reference parent's criteria. Each sub-ticket stands alone.
-- **Specs & plans**: Two destinations:
-  - **`docs/plans/`** (gitignored) — temporary implementation plans from `writing-plans` skill. Local-only, never committed. Format: `YYYY-MM-DD-<topic>.md`.
-  - **`docs/architecture/`** (tracked) — permanent design docs with rationale, decisions, tradeoffs. Named by topic, no dates: `rate-limiting.md`, `gdpr.md`, `soft-delete.md`. When a plan contains design decisions worth preserving, extract them to `docs/architecture/<topic>.md` after implementation.
-  - **Linear Document** — for plans saved for later. Use `create_document` with `issue` param to attach to the ticket.
-  Each sub-ticket must be **self-contained** — all info needed to implement it should be in its description (code snippets, file paths, props, styles). Never reference external files from ticket descriptions.
+- **Vague idea** (no clear scope) → label **Idea**, status **Backlog**. Short title, raw description.
+- **Refined idea** (clear what to build) → label **Feature** / **Improvement** / **Bug** as appropriate.
+- **Priority**: set when user expresses urgency, otherwise leave unset.
+- **Sub-issues**: create with `parentId` when distinct parts emerge naturally. Don't force upfront decomposition.
+- **Specs**: `docs/plans/` (gitignored, temporary plans) or `docs/architecture/` (tracked, permanent design docs with rationale). Linear Document for plans saved for later via `create_document` with `issue` param.
+- **External feedback**: separate Idea issue per point, tagged with who gave it ("Feedback od Jarka:").
 - **Mid-conversation**: if something worth tracking comes up, create the issue immediately.
-- **External feedback**: when user relays feedback from others (e.g. Jarek), capture each distinct point as a separate Idea issue. Tag description with who gave the feedback ("Feedback od Jarka:").
 
-### Development workflow — Superpowers skills
+### Working on a ticket
 
-Superpowers skills are **mandatory** at each stage, not optional. Use `brainstorming` skill before any creative/design work. Use `writing-plans` skill for implementation plans (ask where to save: `docs/plans/` for immediate work, Linear Document for later). Use `verification-before-completion` skill before claiming anything is done.
+1. **Fetch & understand** — get issue description + comments + sub-issues
+2. **Status → In Progress** — immediately, don't ask
+3. **Create branch** — use Linear's `gitBranchName` (format: `kwypchlo/bli-X-slug`)
+4. **Brainstorm if needed** — `brainstorming` skill for non-trivial work, then `writing-plans`
+5. **Implement** — `test-driven-development` skill. Bugs → `systematic-debugging` skill
+6. **Commit** — `Fix map default state (BLI-6)` — imperative, verb-first, issue ID at end
+7. **Verify** — `verification-before-completion` skill before claiming done
+8. **Finish** — merge to main, status → Done. No PR (solo dev). If CI added later, use In Review + PR
+9. **Sub-tasks** — each sub-issue gets own branch (`gitBranchName`), merged to main independently. Parent → Done when all children done
 
-**Architecture docs checkpoint:** After `writing-plans` completes — check if the plan contains design decisions, rationale, or tradeoffs worth preserving. If so, extract them to `docs/architecture/<topic>.md` (or update an existing file). After `finishing-a-development-branch` — check if any existing doc in `docs/architecture/` needs updating based on what was actually implemented (approach may have changed during development).
+Technical notes: add as comments on the Linear issue.
+
+### Development skills pipeline
+
+Skills are **mandatory** at each stage, not optional:
 
 | Stage | Skill | When |
 |-------|-------|------|
 | New idea / feature design | `brainstorming` | Before any Backlog→Todo, before non-trivial implementation |
-| Implementation plan | `writing-plans` | After brainstorming, for tickets with 3+ acceptance criteria |
+| Implementation plan | `writing-plans` | After brainstorming, for tickets with 3+ acceptance criteria. Ask where to save: `docs/plans/` for immediate work, Linear Document for later |
 | Executing plan with sub-tasks | `executing-plans` | Working through sub-issues or multi-step plans |
 | Parallel independent tasks | `dispatching-parallel-agents` | 2+ tasks with no shared state |
 | Writing code | `test-driven-development` | Any feature or bugfix — test before code |
@@ -768,167 +207,7 @@ Superpowers skills are **mandatory** at each stage, not optional. Use `brainstor
 | After implementation | `requesting-code-review` | Before merge, after all tests pass |
 | Receiving feedback | `receiving-code-review` | When getting review comments — verify before implementing |
 | Branch complete | `finishing-a-development-branch` | Deciding merge/PR/cleanup |
-| Feature isolation | `using-git-worktrees` | When user explicitly requests worktree |
 
-Ralph uses the same pipeline automatically — skills trigger on context.
+**Architecture docs checkpoint:** After `writing-plans` — extract design decisions to `docs/architecture/<topic>.md`. After `finishing-a-development-branch` — update existing docs if approach changed during implementation.
 
-### Working on a ticket
-
-When user says "work on BLI-X" or similar:
-
-1. **Fetch & understand** — get issue description + comments + sub-issues.
-2. **Status → In Progress** — do this immediately, don't ask.
-3. **Create branch** — use Linear's `gitBranchName` from the issue (format: `kwypchlo/bli-X-slug`).
-4. **Brainstorm if needed** — for non-trivial work, use `brainstorming` skill first. Then `writing-plans` skill (ask where to save plan).
-5. **Implement** — use `test-driven-development` skill. If bugs arise, use `systematic-debugging` skill.
-6. **Commit** — issue ID at end of message: `Fix map default state (BLI-6)`. Keep existing style (imperative, verb-first).
-7. **Verify** — use `verification-before-completion` skill before claiming done.
-8. **Finish** — merge branch to main, set status → **Done**. No PR needed (solo dev). If CI is added later, create PR and use **In Review** status before merge.
-9. **Sub-tasks** — work through sub-issues in order. Each sub-issue uses its **own branch** (`gitBranchName` from the sub-issue) and gets merged to main independently. Parent → Done when all children done.
-
-Technical notes: add as comments on the Linear issue when making non-obvious decisions.
-
-### Ralph protocol
-
-Autonomous worker — reads task files from `scripts/ralph-queue/`, implements them one by one.
-
-Runner: `pnpm ralph` / `pnpm ralph:dry`
-
-#### How it works
-
-1. Shell picks first `.md` file from `scripts/ralph-queue/` (sorted by 5-digit prefix)
-2. Shell determines if first/last sub-task for the ticket (by checking `.done/`)
-3. Claude gets: system prompt + task file contents + FIRST_SUBTASK/LAST_SUBTASK flags
-4. Claude implements, verifies, commits
-5. Shell moves file to `.done/` on success
-
-**Timeout & auto-retry:** Each attempt has a 10m timeout (default). On timeout, the shell assesses git state (new commits, uncommitted changes, nothing) and retries with a `## Continuation context` section describing what was already done. Max 2 retries per task — after that, auto-blocked.
-
-**Rebase:** Only rebases on `origin/main` if the branch is actually behind. Skips if already up to date.
-
-**Zero Linear API calls.** Linear automation detects branch names and sets In Progress / Done automatically.
-
-#### Task file format
-
-```
-# BLI-42: Short description
-
-Ticket: BLI-42
-Branch: kwypchlo/bli-42-feature-name
-
-## Task
-What to implement.
-
-## Files to modify
-- exact/paths/here.ts
-
-## Implementation
-Detailed instructions, code snippets, approach.
-
-## Acceptance criteria
-- [ ] Criteria 1
-- [ ] Criteria 2
-```
-
-#### Queue structure
-
-```
-scripts/ralph-queue/          ← gitignored
-├── .done/                    ← completed files
-├── 00001-BLI-42-add-schema.md
-├── 00002-BLI-42-add-api.md
-├── 00003-BLI-42-add-mobile.md
-└── 00004-BLI-55-fix-button.md
-```
-
-- 5-digit prefix = execution order
-- One branch per ticket (all sub-tasks share it)
-- First sub-task: checkout from main. Subsequent: continue on branch.
-- Last sub-task: merge to main.
-
-#### Scope discipline
-
-Commit must match the task file's acceptance criteria — nothing more, nothing less. If you spot an unrelated issue, note it in the RALPH_BLOCKED output or ignore it.
-
-#### Verify steps
-
-```
-pnpm --filter @repo/api typecheck
-pnpm --filter @repo/shared typecheck
-pnpm --filter @repo/mobile typecheck
-pnpm --filter @repo/api test
-```
-
-Only fix errors you introduced. Pre-existing failures are not your problem.
-
-#### Signals
-
-- `RALPH_MERGED` — task done, file moved to `.done/`
-- `RALPH_BLOCKED` — stuck, file stays in queue (renamed `.blocked`)
-- `RALPH_DONE` — queue empty, nothing to do
-
-#### Review (for Karol)
-
-1. `pnpm ralph:dry` — see queue state
-2. `git log --oneline -20` — see what was merged
-3. Blocked files: `ls scripts/ralph-queue/*.blocked` — check logs for why
-4. Unblock: fix the issue, rename `.blocked` back to `.md`
-
-### Ralph prep
-
-Prepares task files for Ralph from Linear tickets. Triggered by "przygotuj tickety na noc" or similar.
-
-#### Workflow
-
-1. Query Linear: team=Blisko, status=Backlog (or tickets user specifies)
-2. For each ticket:
-   a. Read description + comments
-   b. Explore relevant codebase (schema, API, mobile, shared)
-   c. Brainstorm approach with user
-   d. Split into atomic sub-tasks (1 commit each)
-   e. Generate numbered `.md` files in `scripts/ralph-queue/`:
-      - 5-digit prefix for ordering (00001, 00002, ...)
-      - Ticket ID in filename: `00001-BLI-42-add-schema.md`
-      - Self-contained: task, files, implementation, acceptance criteria
-      - All sub-tasks for same ticket share the same Branch value
-   f. Update Linear ticket description with structured plan
-   g. Move ticket status to Todo
-3. Report summary — files created, tickets prepared, any skipped
-
-#### File numbering
-
-Continue from the highest existing number in the queue. If queue has `00003-*`, next file is `00004-*`.
-
-#### Skip conditions
-- Ticket too vague (no clear outcome) → comment asking for clarification, leave in Backlog
-- Ticket requires external info → comment "Needs: ...", leave in Backlog
-
-### Ralph report
-
-Summary of Ralph's work. Triggered by "ralph report" or "co się stało w nocy".
-
-#### What to check
-
-1. **Done files** — `ls scripts/ralph-queue/.done/` — completed tasks with ticket IDs
-2. **Blocked files** — `ls scripts/ralph-queue/*.blocked` — check logs for block reason
-3. **Remaining** — `ls scripts/ralph-queue/[0-9]*.md` — tasks still in queue
-4. **Git log** — `git log --oneline --since="12 hours ago"` — commits on main
-
-#### Output format
-
-```
-## Ralph report — [date]
-
-### Done
-- 00001-BLI-42-add-schema.md → [commit hash] [commit message]
-- 00002-BLI-42-add-api.md → [commit hash] [commit message]
-
-### Blocked
-- 00003-BLI-42-add-mobile.md → BLOCKED: [reason from log]
-
-### Remaining in queue
-- 00004-BLI-55-fix-button.md
-
-### Git activity
-[N] commits, [summary]
-```
+**Ralph Protocol:** Moved to `.claude/skills/ralph-protocol.md` — auto-invoked when running Ralph, preparing tickets, or generating reports.
