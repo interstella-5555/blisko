@@ -106,8 +106,8 @@ function LoginPage() {
                 id="otp"
                 type="text"
                 required
-                inputMode="numeric"
-                maxLength={8}
+                maxLength={6}
+                autoComplete="one-time-code"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="000000"

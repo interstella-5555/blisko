@@ -31,10 +31,13 @@ export function isAllowedEmail(email: string): boolean {
   return getAllowedEmails().includes(email.toLowerCase().trim());
 }
 
+const OTP_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // 30 chars, no 0/O/1/I/l
+const OTP_LENGTH = 6; // 30^6 ≈ 729M combinations
+
 export function generateOtp(email: string): string {
-  const array = new Uint32Array(1);
+  const array = new Uint8Array(OTP_LENGTH);
   crypto.getRandomValues(array);
-  const otp = (10000000 + (array[0] % 90000000)).toString();
+  const otp = Array.from(array, (b) => OTP_ALPHABET[b % OTP_ALPHABET.length]).join("");
   otpStore.set(email.toLowerCase(), {
     otp,
     expiresAt: Date.now() + OTP_TTL_MS,
@@ -57,7 +60,7 @@ export function verifyOtp(email: string, otp: string): boolean {
     return false;
   }
   entry.attempts++;
-  if (!safeEqual(entry.otp, otp)) return false;
+  if (!safeEqual(entry.otp, otp.toUpperCase())) return false;
   otpStore.delete(key);
   return true;
 }
