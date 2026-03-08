@@ -39,7 +39,7 @@ export async function createContext(opts: FetchCreateContextFnOptions): Promise<
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.slice(7);
       try {
-        const [session] = await sessionByToken.execute({ token, now: new Date() });
+        const [session] = await sessionByToken.execute({ token, now: new Date().toISOString() });
 
         if (session) {
           userId = session.userId;

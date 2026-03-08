@@ -48,7 +48,7 @@ function checkWsRateLimit(userId: string, type: string, limit: number, windowMs:
 
 async function authenticateToken(token: string): Promise<string | null> {
   try {
-    const [session] = await sessionByToken.execute({ token, now: new Date() });
+    const [session] = await sessionByToken.execute({ token, now: new Date().toISOString() });
     return session?.userId ?? null;
   } catch {
     return null;
