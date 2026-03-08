@@ -5,64 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1771158340582,
+      "when": 1772978970341,
       "tag": "0000_baseline",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1771407515712,
-      "tag": "0001_add-groups-and-topics",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1772396646440,
-      "tag": "0002_add-location-visible",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1772435858388,
-      "tag": "0003_social-links-visibility",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1772439011056,
-      "tag": "0004_status-na-teraz",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1772905000934,
-      "tag": "0005_add-user-deleted-at",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1772929453236,
-      "tag": "0006_wave-pending-unique-constraint",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1772929683880,
-      "tag": "0007_add-missing-indexes",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1772976332922,
-      "tag": "0008_add-connection-analyses-unique-pair",
       "breakpoints": true
     }
   ]
