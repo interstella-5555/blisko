@@ -2,6 +2,7 @@ import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { and, eq, gt, placeholder } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, preparedName, schema } from "@/db";
+import { requestMeta } from "@/services/metrics";
 
 // Prepared statement — compiled once, reused on every authenticated request
 export const sessionByToken = db
@@ -47,6 +48,14 @@ export async function createContext(opts: FetchCreateContextFnOptions): Promise<
       } catch (error) {
         console.error("Token verification error:", error);
       }
+    }
+  }
+
+  // Enrich metrics event with userId
+  if (userId) {
+    const meta = requestMeta.get(opts.req);
+    if (meta) {
+      meta.userId = userId;
     }
   }
 

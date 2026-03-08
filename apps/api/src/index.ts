@@ -4,10 +4,14 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { auth } from "./auth";
 import { honoRateLimit } from "./middleware/rateLimit";
+import { metricsMiddleware } from "./services/metrics";
 import { createContext } from "./trpc/context";
 import { appRouter } from "./trpc/router";
 
 const app = new Hono();
+
+// Metrics — must be first to capture full request duration
+app.use("*", metricsMiddleware());
 
 // Middleware
 app.use("*", logger());
