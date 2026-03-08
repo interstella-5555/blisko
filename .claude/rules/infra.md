@@ -6,6 +6,6 @@
 
 - `infra/scripts-both-json` — All scripts go in both the package's `package.json` AND root `package.json` with `"<pkg>:<script>": "pnpm --filter @repo/<pkg> <script>"` pattern. Always run from root.
 
-- `infra/email-via-helper` — Never send emails via `resend.emails.send()` directly. Use `sendEmail()` from `apps/api/src/services/email.ts`. New templates: export function returning `{ subject, html }`, wrap content with `layout()`.
+- `infra/email-via-helper` — Never call `resend.emails.send()` directly from route handlers or business logic. Each app has its own `sendEmail()` helper (API: `apps/api/src/services/email.ts`, Admin: `apps/admin/src/lib/email.ts`). New templates: export function returning `{ subject, html }`, wrap content with `layout()`.
 
 - `infra/waves-irreversible` — Waves have no cancel/undo. By design — prevents wave/unwave notification spam.

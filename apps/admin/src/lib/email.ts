@@ -46,7 +46,7 @@ function otpBlock(otp: string) {
 
 export function adminOtp(otp: string) {
   return {
-    subject: `${otp} - Kod do panelu administracyjnego Blisko`,
+    subject: "Kod do logowania — Blisko Admin",
     html: layout(`
       <p style="font-size: 15px; color: #3A3A3A; line-height: 1.6;">Kod do logowania w panelu administracyjnym:</p>
       ${otpBlock(otp)}

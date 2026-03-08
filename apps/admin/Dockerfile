@@ -11,15 +11,8 @@ COPY apps/admin/package.json apps/admin/package.json
 RUN pnpm install --frozen-lockfile --prefer-offline
 
 # ── Stage 2: Build ───────────────────────────
-FROM oven/bun:1-alpine AS build
+FROM deps AS build
 
-RUN bun install -g pnpm@10
-
-WORKDIR /app
-
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/admin/node_modules ./apps/admin/node_modules
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/admin/ apps/admin/
 
 RUN pnpm --filter @repo/admin build

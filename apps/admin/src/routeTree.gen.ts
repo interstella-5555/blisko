@@ -14,6 +14,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiVerifyOtpRouteImport } from './routes/api/verify-otp'
 import { Route as ApiRequestOtpRouteImport } from './routes/api/request-otp'
+import { Route as ApiLogoutRouteImport } from './routes/api/logout'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -40,11 +41,17 @@ const ApiRequestOtpRoute = ApiRequestOtpRouteImport.update({
   path: '/api/request-otp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLogoutRoute = ApiLogoutRouteImport.update({
+  id: '/api/logout',
+  path: '/api/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/logout': typeof ApiLogoutRoute
   '/api/request-otp': typeof ApiRequestOtpRoute
   '/api/verify-otp': typeof ApiVerifyOtpRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/logout': typeof ApiLogoutRoute
   '/api/request-otp': typeof ApiRequestOtpRoute
   '/api/verify-otp': typeof ApiVerifyOtpRoute
 }
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/logout': typeof ApiLogoutRoute
   '/api/request-otp': typeof ApiRequestOtpRoute
   '/api/verify-otp': typeof ApiVerifyOtpRoute
 }
@@ -69,15 +78,23 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/api/logout'
     | '/api/request-otp'
     | '/api/verify-otp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/api/request-otp' | '/api/verify-otp'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/api/logout'
+    | '/api/request-otp'
+    | '/api/verify-otp'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/login'
+    | '/api/logout'
     | '/api/request-otp'
     | '/api/verify-otp'
   fileRoutesById: FileRoutesById
@@ -86,6 +103,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  ApiLogoutRoute: typeof ApiLogoutRoute
   ApiRequestOtpRoute: typeof ApiRequestOtpRoute
   ApiVerifyOtpRoute: typeof ApiVerifyOtpRoute
 }
@@ -127,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRequestOtpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/logout': {
+      id: '/api/logout'
+      path: '/api/logout'
+      fullPath: '/api/logout'
+      preLoaderRoute: typeof ApiLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -134,6 +159,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  ApiLogoutRoute: ApiLogoutRoute,
   ApiRequestOtpRoute: ApiRequestOtpRoute,
   ApiVerifyOtpRoute: ApiVerifyOtpRoute,
 }

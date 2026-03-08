@@ -6,10 +6,9 @@ export const Route = createFileRoute("/")({
       throw redirect({ to: "/login" });
     }
     const { getRequestHeader } = await import("@tanstack/react-start/server");
-    const { getSession } = await import("~/lib/auth");
+    const { getSession, parseSessionToken } = await import("~/lib/auth");
     const cookie = getRequestHeader("cookie") || "";
-    const match = cookie.match(/admin-session=([^;]+)/);
-    const token = match ? match[1] : null;
+    const token = parseSessionToken(cookie);
     const session = token ? getSession(token) : null;
     if (session) {
       throw redirect({ to: "/dashboard" });

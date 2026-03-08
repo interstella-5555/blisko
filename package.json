@@ -27,6 +27,7 @@
     "admin:dev": "pnpm --filter @repo/admin dev",
     "admin:build": "pnpm --filter @repo/admin build",
     "admin:start": "pnpm --filter @repo/admin start",
+    "admin:typecheck": "pnpm --filter @repo/admin typecheck",
     "ralph": "bash scripts/ralph.sh",
     "ralph:dry": "bash scripts/ralph.sh --dry-run",
     "prepare": "husky",

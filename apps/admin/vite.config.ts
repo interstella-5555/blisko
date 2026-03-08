@@ -14,7 +14,7 @@ const config = defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ["node:stream", "node:stream/web", "node:async_hooks"],
+      external: ["node:crypto", "node:stream", "node:stream/web", "node:async_hooks"],
     },
   },
   plugins: [
