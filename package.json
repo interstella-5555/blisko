@@ -5,6 +5,7 @@
   "scripts": {
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
     "api:dev": "pnpm --filter @repo/api dev",
+    "api:dev:production": "pnpm --filter @repo/api dev:prod",
     "api:build": "pnpm --filter @repo/api build",
     "api:test": "pnpm --filter @repo/api test",
     "api:start": "pnpm --filter @repo/api start",
@@ -18,6 +19,7 @@
     "dev-cli:queue-monitor": "pnpm --filter @repo/dev-cli monitor",
     "dev-cli:chatbot-monitor": "pnpm --filter @repo/dev-cli chatbot-monitor",
     "api:scatter": "pnpm --filter @repo/api scatter",
+    "api:scatter:production": "pnpm --filter @repo/api scatter:production",
     "website:dev": "pnpm --filter @repo/website dev",
     "website:start": "pnpm --filter @repo/website start",
     "mobile:testflight": "pnpm --filter @repo/mobile testflight",

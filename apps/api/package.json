@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
+    "dev:production": "bun --env-file=.env.production run --watch src/index.ts",
     "build": "bun build src/index.ts --outdir=dist --target=bun",
     "start": "bun run src/index.ts",
     "test": "bun --bun vitest run",
@@ -14,8 +15,8 @@
     "lint": "eslint src/",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-
-    "scatter": "bun run scripts/scatter-locations-db.ts"
+    "scatter": "bun run scripts/scatter-locations-db.ts",
+    "scatter:production": "bun --env-file=.env.production run scripts/scatter-locations-db.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.29",
