@@ -3,6 +3,7 @@ import { db, schema } from "@/db";
 import { bullmqQueueDepth } from "./prometheus";
 import { getQueueInstance } from "./queue";
 import { getQueueStats, percentile } from "./queue-metrics";
+import { getWsStats } from "./ws-metrics";
 
 const DEFAULT_WINDOW_HOURS = 24;
 
@@ -17,7 +18,9 @@ export async function getMetricsSummary(windowHours = DEFAULT_WINDOW_HOURS) {
     getQueueSummary(),
   ]);
 
-  return { windowHours, since: since.toISOString(), overview, slowest, errors, sloBreaches, queues };
+  const websocket = getWsStats();
+
+  return { windowHours, since: since.toISOString(), overview, slowest, errors, sloBreaches, queues, websocket };
 }
 
 async function getOverview(since: Date) {
