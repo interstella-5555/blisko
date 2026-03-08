@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiVerifyOtpRouteImport } from './routes/api/verify-otp'
+import { Route as ApiRequestOtpRouteImport } from './routes/api/request-otp'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -28,35 +30,64 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVerifyOtpRoute = ApiVerifyOtpRouteImport.update({
+  id: '/api/verify-otp',
+  path: '/api/verify-otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRequestOtpRoute = ApiRequestOtpRouteImport.update({
+  id: '/api/request-otp',
+  path: '/api/request-otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/request-otp': typeof ApiRequestOtpRoute
+  '/api/verify-otp': typeof ApiVerifyOtpRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/request-otp': typeof ApiRequestOtpRoute
+  '/api/verify-otp': typeof ApiVerifyOtpRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
+  '/api/request-otp': typeof ApiRequestOtpRoute
+  '/api/verify-otp': typeof ApiVerifyOtpRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/api/request-otp'
+    | '/api/verify-otp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login'
-  id: '__root__' | '/' | '/dashboard' | '/login'
+  to: '/' | '/dashboard' | '/login' | '/api/request-otp' | '/api/verify-otp'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/api/request-otp'
+    | '/api/verify-otp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
+  ApiRequestOtpRoute: typeof ApiRequestOtpRoute
+  ApiVerifyOtpRoute: typeof ApiVerifyOtpRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +113,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/verify-otp': {
+      id: '/api/verify-otp'
+      path: '/api/verify-otp'
+      fullPath: '/api/verify-otp'
+      preLoaderRoute: typeof ApiVerifyOtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/request-otp': {
+      id: '/api/request-otp'
+      path: '/api/request-otp'
+      fullPath: '/api/request-otp'
+      preLoaderRoute: typeof ApiRequestOtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +134,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
+  ApiRequestOtpRoute: ApiRequestOtpRoute,
+  ApiVerifyOtpRoute: ApiVerifyOtpRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
