@@ -396,11 +396,17 @@ export const requestEvents = metricsSchema.table(
     ipHash: text("ip_hash"),
     userAgent: text("user_agent"),
     errorMessage: text("error_message"),
+    targetUserId: text("target_user_id"),
+    targetGroupId: text("target_group_id"),
+    dbQueryCount: integer("db_query_count"),
+    dbDurationMs: integer("db_duration_ms"),
   },
   (table) => [
     index("idx_re_timestamp").on(table.timestamp),
     index("idx_re_endpoint_ts").on(table.endpoint, table.timestamp),
     index("idx_re_user_ts").on(table.userId, table.timestamp),
+    index("idx_re_target_user_ts").on(table.targetUserId, table.timestamp),
+    index("idx_re_target_group").on(table.targetGroupId),
   ],
 );
 
