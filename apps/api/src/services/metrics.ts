@@ -1,6 +1,6 @@
 import type { Context, MiddlewareHandler } from "hono";
-import { db } from "@/db";
-import { requestEvents, type NewRequestEvent } from "@/db/metrics-schema";
+import { db, schema } from "@/db";
+import type { NewRequestEvent } from "@/db/schema";
 
 // --- Config ---
 
@@ -26,7 +26,7 @@ export async function flushMetrics(): Promise<number> {
   isFlushing = true;
   const batch = buffer.splice(0);
   try {
-    await db.insert(requestEvents).values(batch);
+    await db.insert(schema.requestEvents).values(batch);
     return batch.length;
   } catch (error) {
     console.warn(`[metrics] flush failed (${batch.length} events):`, error instanceof Error ? error.message : error);
