@@ -10,10 +10,11 @@ import { ActivityIndicator, Alert, AppState, Platform, View } from "react-native
 import { NotificationOverlay } from "../src/components/ui/NotificationOverlay";
 import { ToastOverlay } from "../src/components/ui/ToastOverlay";
 import { authClient } from "../src/lib/auth";
+import { getRateLimitMessage } from "../src/lib/rateLimitMessages";
 import { trpc, trpcClient } from "../src/lib/trpc";
 import { useWebSocket } from "../src/lib/ws";
 import { NotificationProvider } from "../src/providers/NotificationProvider";
-import { ToastProvider } from "../src/providers/ToastProvider";
+import { showToastGlobal, ToastProvider } from "../src/providers/ToastProvider";
 import { useAuthStore } from "../src/stores/authStore";
 import { colors } from "../src/theme";
 
@@ -37,14 +38,40 @@ function handleAccountDeleted(error: unknown) {
   }
 }
 
+function handleRateLimitError(error: unknown) {
+  const err = error as { data?: { code?: string }; message?: string };
+  if (err?.data?.code !== "TOO_MANY_REQUESTS") return;
+
+  try {
+    const parsed = JSON.parse(err.message ?? "");
+    if (parsed.error === "RATE_LIMITED") {
+      showToastGlobal({
+        type: "error",
+        title: getRateLimitMessage(parsed.context),
+      });
+    }
+  } catch {
+    showToastGlobal({
+      type: "error",
+      title: getRateLimitMessage(),
+    });
+  }
+}
+
+function handleGlobalError(error: unknown) {
+  handleAccountDeleted(error);
+  handleRateLimitError(error);
+}
+
 export const queryClient = new QueryClient({
-  queryCache: new QueryCache({ onError: handleAccountDeleted }),
-  mutationCache: new MutationCache({ onError: handleAccountDeleted }),
+  queryCache: new QueryCache({ onError: handleGlobalError }),
+  mutationCache: new MutationCache({ onError: handleGlobalError }),
   defaultOptions: {
     queries: {
       retry: (failureCount, error: unknown) => {
         const err = error as { data?: { code?: string }; message?: string };
         if (err?.data?.code === "FORBIDDEN" && err?.message === "ACCOUNT_DELETED") return false;
+        if (err?.data?.code === "TOO_MANY_REQUESTS") return false;
         return failureCount < 3;
       },
     },

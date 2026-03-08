@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 export type ToastType = "error" | "success" | "info";
 
@@ -24,6 +24,17 @@ const ToastContext = createContext<ToastContextValue>({
 
 export function useToast() {
   return useContext(ToastContext);
+}
+
+// Module-level toast for use outside React tree (e.g., QueryClient error handlers)
+let globalShowToast: ((config: Omit<ToastConfig, "id">) => void) | null = null;
+
+export function registerGlobalToast(fn: (config: Omit<ToastConfig, "id">) => void) {
+  globalShowToast = fn;
+}
+
+export function showToastGlobal(config: Omit<ToastConfig, "id">) {
+  globalShowToast?.(config);
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -66,6 +77,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       );
     }
   }, []);
+
+  // Register for global (non-React) access
+  useEffect(() => {
+    registerGlobalToast(showToast);
+    return () => {
+      globalShowToast = null;
+    };
+  }, [showToast]);
 
   const dismiss = useCallback(() => {
     setCurrent(null);
