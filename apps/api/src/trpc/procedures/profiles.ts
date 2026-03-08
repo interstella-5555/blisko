@@ -8,7 +8,7 @@ import {
   updateProfileSchema,
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { and, between, eq, isNotNull, lte, ne, notInArray, sql } from "drizzle-orm";
+import { and, between, eq, isNotNull, lte, ne, notInArray, placeholder, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { roundDistance, toGridCenter } from "@/lib/grid";
@@ -23,10 +23,17 @@ import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 import { ee } from "@/ws/events";
 
+// Prepared statement — compiled once, reused on every profiles.me call
+const profileByUserId = db
+  .select()
+  .from(schema.profiles)
+  .where(eq(schema.profiles.userId, placeholder("userId")))
+  .prepare("profile_by_user_id");
+
 export const profilesRouter = router({
   // Get current user's profile
   me: protectedProcedure.query(async ({ ctx }) => {
-    const [profile] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId));
+    const [profile] = await profileByUserId.execute({ userId: ctx.userId });
 
     return profile || null;
   }),
