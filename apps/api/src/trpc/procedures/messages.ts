@@ -1,5 +1,6 @@
 import { deleteMessageSchema, reactToMessageSchema, searchMessagesSchema, sendMessageSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
+import { RedisClient } from "bun";
 import { and, desc, eq, gt, ilike, inArray, isNotNull, isNull, lt, ne, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
@@ -8,6 +9,8 @@ import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 import { ee } from "@/ws/events";
 import { ensureTypingListener } from "@/ws/handler";
+
+const idempotencyRedis = new RedisClient(process.env.REDIS_URL!);
 
 export const messagesRouter = router({
   // Get all conversations for current user
@@ -355,6 +358,19 @@ export const messagesRouter = router({
         });
       }
 
+      // Idempotency check — prevent duplicate messages on retry
+      if (input.idempotencyKey) {
+        const idemKey = `idem:msg:${ctx.userId}:${input.idempotencyKey}`;
+        try {
+          const existing = await idempotencyRedis.get(idemKey);
+          if (existing) {
+            return JSON.parse(existing);
+          }
+        } catch {
+          // Redis failure — proceed without idempotency (fail open)
+        }
+      }
+
       const [message] = await db
         .insert(schema.messages)
         .values({
@@ -367,6 +383,16 @@ export const messagesRouter = router({
           topicId: input.topicId ?? null,
         })
         .returning();
+
+      // Cache for idempotency (5 min TTL)
+      if (input.idempotencyKey) {
+        const idemKey = `idem:msg:${ctx.userId}:${input.idempotencyKey}`;
+        try {
+          await idempotencyRedis.send("SET", [idemKey, JSON.stringify(message), "EX", "300"]);
+        } catch {
+          // Redis failure — non-critical, just skip caching
+        }
+      }
 
       // Update conversation updatedAt
       await db
