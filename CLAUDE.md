@@ -293,6 +293,28 @@ All runnable tools must have a `scripts` entry in their own `package.json` AND a
 
 When creating new CLI tools, scripts, or monitors — always add both entries.
 
+## Rate limiting & abuse protection
+
+Custom sliding window counter on Redis (Lua scripts). No external rate limiting libraries.
+
+**Config:** `apps/api/src/config/rateLimits.ts` — single source of truth for all limits. Every limit has a name, max count, time window, and human-readable comment explaining why.
+
+**Engine:** `apps/api/src/services/rate-limiter.ts` — Redis Lua sliding window counter.
+
+**Middleware:**
+- `apps/api/src/middleware/rateLimit.ts` — Hono middleware for pre-auth endpoints (key: IP)
+- `apps/api/src/trpc/middleware/rateLimit.ts` — tRPC middleware for post-auth endpoints (key: userId)
+
+**Design doc:** `docs/plans/2026-03-08-rate-limiting-design.md` — full rationale, limits table, decisions.
+
+**When adding or changing API endpoints:**
+- Check if the new endpoint needs a rate limit. If it triggers push notifications, enqueues AI jobs, sends emails, writes to S3, or could be abused by bots — it needs one.
+- If modifying an existing rate-limited endpoint, check if the limit still makes sense (e.g. changed from mutation to query, added batch capability).
+- Add new limits to `rateLimits.ts` and apply the appropriate middleware.
+- Group push notifications use `collapseId` for unread suppression (1 audible push per unread batch, silent updates after). DM push has no suppression.
+
+**Waves are irreversible** — no cancel. This is by design (prevents wave/unwave notification spam).
+
 ## Redis
 
 Use Bun's built-in `RedisClient` (`import { RedisClient } from 'bun'`) for all direct Redis operations (pub/sub, get/set, etc.). Never add `ioredis` as a direct dependency — BullMQ uses it internally and that's fine, but our code should use Bun's native client.
