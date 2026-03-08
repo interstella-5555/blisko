@@ -118,9 +118,8 @@ export const waves = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
-    fromUserIdx: index("waves_from_user_idx").on(table.fromUserId),
-    toUserIdx: index("waves_to_user_idx").on(table.toUserId),
-    statusIdx: index("waves_status_idx").on(table.status),
+    fromUserStatusIdx: index("waves_from_user_status_idx").on(table.fromUserId, table.status),
+    toUserStatusIdx: index("waves_to_user_status_idx").on(table.toUserId, table.status),
   }),
 );
 
@@ -221,9 +220,8 @@ export const messages = pgTable(
     deletedAt: timestamp("deleted_at"),
   },
   (table) => ({
-    conversationIdx: index("messages_conversation_idx").on(table.conversationId),
+    convCreatedIdx: index("messages_conv_created_idx").on(table.conversationId, table.createdAt),
     senderIdx: index("messages_sender_idx").on(table.senderId),
-    createdAtIdx: index("messages_created_at_idx").on(table.createdAt),
     topicIdx: index("messages_topic_idx").on(table.topicId),
   }),
 );
@@ -285,18 +283,25 @@ export const pushTokens = pgTable(
 );
 
 // Status matches (AI-evaluated "na teraz" status matches between users)
-export const statusMatches = pgTable("status_matches", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id),
-  matchedUserId: text("matched_user_id")
-    .notNull()
-    .references(() => user.id),
-  reason: text("reason").notNull(),
-  matchedVia: text("matched_via").notNull(), // 'status' | 'profile'
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const statusMatches = pgTable(
+  "status_matches",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id),
+    matchedUserId: text("matched_user_id")
+      .notNull()
+      .references(() => user.id),
+    reason: text("reason").notNull(),
+    matchedVia: text("matched_via").notNull(), // 'status' | 'profile'
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("sm_user_id_idx").on(table.userId),
+    matchedUserIdIdx: index("sm_matched_user_id_idx").on(table.matchedUserId),
+  }),
+);
 
 // Connection analyses (AI-generated per-viewer descriptions of what connects two users)
 export const connectionAnalyses = pgTable(
@@ -340,7 +345,7 @@ export const profilingSessions = pgTable(
     completedAt: timestamp("completed_at"),
   },
   (table) => ({
-    userIdIdx: index("ps_user_id_idx").on(table.userId),
+    userStatusIdx: index("ps_user_status_idx").on(table.userId, table.status),
   }),
 );
 

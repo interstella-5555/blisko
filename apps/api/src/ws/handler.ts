@@ -1,6 +1,7 @@
 import type { ServerWebSocket } from "bun";
-import { and, eq, gt } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { sessionByToken } from "@/trpc/context";
 import type {
   AnalysisReadyEvent,
   GroupInvitedEvent,
@@ -47,11 +48,7 @@ function checkWsRateLimit(userId: string, type: string, limit: number, windowMs:
 
 async function authenticateToken(token: string): Promise<string | null> {
   try {
-    const [session] = await db
-      .select()
-      .from(schema.session)
-      .where(and(eq(schema.session.token, token), gt(schema.session.expiresAt, new Date())))
-      .limit(1);
+    const [session] = await sessionByToken.execute({ token, now: new Date() });
     return session?.userId ?? null;
   } catch {
     return null;

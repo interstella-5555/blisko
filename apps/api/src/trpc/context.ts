@@ -1,7 +1,15 @@
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, placeholder } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, schema } from "@/db";
+
+// Prepared statement — compiled once, reused on every authenticated request
+export const sessionByToken = db
+  .select()
+  .from(schema.session)
+  .where(and(eq(schema.session.token, placeholder("token")), gt(schema.session.expiresAt, placeholder("now"))))
+  .limit(1)
+  .prepare("session_by_token");
 
 export interface TRPCContext {
   userId: string | null;
@@ -31,11 +39,7 @@ export async function createContext(opts: FetchCreateContextFnOptions): Promise<
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.slice(7);
       try {
-        const [session] = await db
-          .select()
-          .from(schema.session)
-          .where(and(eq(schema.session.token, token), gt(schema.session.expiresAt, new Date())))
-          .limit(1);
+        const [session] = await sessionByToken.execute({ token, now: new Date() });
 
         if (session) {
           userId = session.userId;
