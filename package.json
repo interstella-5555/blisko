@@ -20,6 +20,7 @@
     "dev-cli:chatbot-monitor": "pnpm --filter @repo/dev-cli chatbot-monitor",
     "api:scatter": "pnpm --filter @repo/api scatter",
     "api:scatter:production": "pnpm --filter @repo/api scatter:production",
+    "api:seed:slo": "pnpm --filter @repo/api seed:slo",
     "website:dev": "pnpm --filter @repo/website dev",
     "website:start": "pnpm --filter @repo/website start",
     "mobile:testflight": "pnpm --filter @repo/mobile testflight",

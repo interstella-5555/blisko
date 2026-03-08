@@ -5,7 +5,7 @@ import { IconChat, IconPerson, IconPin, IconPlus, IconSettings, IconWave } from 
 import { useBackgroundSync } from "../../src/hooks/useBackgroundSync";
 import { useInAppNotifications } from "../../src/hooks/useInAppNotifications";
 import { usePushNotifications } from "../../src/hooks/usePushNotifications";
-import { trpc } from "../../src/lib/trpc";
+import { getLastFailedRequestId, trpc } from "../../src/lib/trpc";
 import { sendWsMessage, useWebSocket, type WSMessage } from "../../src/lib/ws";
 import { useAuthStore } from "../../src/stores/authStore";
 import { useConversationsStore } from "../../src/stores/conversationsStore";
@@ -270,6 +270,7 @@ export default function TabsLayout() {
 
   // If API error, show retry button instead of redirecting to onboarding
   if (isError && !hasCheckedProfile) {
+    const requestId = getLastFailedRequestId();
     return (
       <View
         style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: colors.bg }}
@@ -280,6 +281,11 @@ export default function TabsLayout() {
         <Text style={{ ...typ.body, color: colors.accent }} onPress={() => refetch()}>
           Spróbuj ponownie
         </Text>
+        {requestId && (
+          <Text selectable style={{ ...typ.caption, color: colors.muted, marginTop: 12 }}>
+            ID: {requestId.slice(0, 8)}
+          </Text>
+        )}
       </View>
     );
   }

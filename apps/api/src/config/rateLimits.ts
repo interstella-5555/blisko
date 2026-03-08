@@ -52,6 +52,10 @@ export const rateLimits = {
   // Data export — heavy operation, once per day
   dataExport: { limit: 1, window: 24 * 60 * 60 },
 
+  // Metrics endpoints — prevent scraping abuse
+  "metrics.summary": { limit: 30, window: 60 },
+  "metrics.prometheus": { limit: 30, window: 60 },
+
   // Global catch-all — safety net for all authenticated requests
   global: { limit: 200, window: 60 },
 } as const;
