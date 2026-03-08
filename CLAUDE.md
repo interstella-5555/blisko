@@ -315,7 +315,8 @@ npx drizzle-kit generate --custom --name=add-extension-name
 
 - **Use underscores in migration names**, not dashes: `--name=add_metrics_schema` (not `--name=add-metrics-schema`).
 - **Never use `db:push`** — it's been removed from package.json. All changes go through migrations.
-- **Migrations run on production automatically** via Railway post-deploy hook on the API service (`drizzle-kit migrate`). Don't run migrations against production manually.
+- **Migrations run on production automatically** via Railway post-deploy hook on the API service (`drizzle-kit migrate`). **NEVER run `drizzle-kit migrate` manually** — `.env` points at the production database, so any manual run hits prod. Only generate migrations locally; they get applied on deploy.
+- **Always use pnpm scripts**, not `npx drizzle-kit`: `pnpm --filter @repo/api db:generate -- --name=my_change`, `pnpm --filter @repo/api db:migrate`.
 - **Review generated SQL before committing.** Always read the generated `.sql` file. Drizzle-kit can produce unexpected DDL for complex changes.
 - **One concern per migration.** Don't mix unrelated schema changes. Don't mix DDL (CREATE/ALTER) with DML (UPDATE/INSERT) in the same migration.
 - **Commit migration files with the code that uses them.** Schema change + migration + application code = one commit or PR branch.
@@ -331,9 +332,8 @@ npx drizzle-kit generate --custom --name=add-extension-name
 ### Local development
 
 ```bash
-cd apps/api
-npx drizzle-kit generate --name=my-change   # generate migration from schema diff
-npx drizzle-kit migrate                      # apply all pending migrations locally
+pnpm --filter @repo/api db:generate -- --name=my_change   # generate migration from schema diff
+pnpm --filter @repo/api db:migrate                         # apply pending migrations
 ```
 
 To see what SQL your full schema would produce from scratch:
