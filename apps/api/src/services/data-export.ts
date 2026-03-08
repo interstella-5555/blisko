@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { eq, or } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 interface ExportData {
@@ -109,34 +109,60 @@ export async function collectAndExportUserData(userId: string, email: string) {
     .from(schema.conversationParticipants)
     .where(eq(schema.conversationParticipants.userId, userId));
 
-  const conversationsExport = [];
+  const conversationIds = participations.map((p) => p.conversationId);
+
+  // Batch-fetch all participants and messages for all conversations
+  const allParticipants =
+    conversationIds.length > 0
+      ? await db
+          .select({
+            conversationId: schema.conversationParticipants.conversationId,
+            userId: schema.conversationParticipants.userId,
+          })
+          .from(schema.conversationParticipants)
+          .where(inArray(schema.conversationParticipants.conversationId, conversationIds))
+      : [];
+
+  const allMessages =
+    conversationIds.length > 0
+      ? await db.select().from(schema.messages).where(inArray(schema.messages.conversationId, conversationIds))
+      : [];
+
+  // Group by conversationId
+  const participantsByConv = new Map<string, typeof allParticipants>();
+  for (const p of allParticipants) {
+    const arr = participantsByConv.get(p.conversationId);
+    if (arr) arr.push(p);
+    else participantsByConv.set(p.conversationId, [p]);
+  }
+
+  const messagesByConv = new Map<string, typeof allMessages>();
+  for (const m of allMessages) {
+    const arr = messagesByConv.get(m.conversationId);
+    if (arr) arr.push(m);
+    else messagesByConv.set(m.conversationId, [m]);
+  }
+
   const otherUserIds = new Set<string>();
 
-  // Collect all other user IDs first
+  // Collect other user IDs from waves
   for (const w of sentWaves) otherUserIds.add(w.toUserId);
   for (const w of receivedWaves) otherUserIds.add(w.fromUserId);
 
-  for (const p of participations) {
-    const allParticipants = await db
-      .select({ userId: schema.conversationParticipants.userId })
-      .from(schema.conversationParticipants)
-      .where(eq(schema.conversationParticipants.conversationId, p.conversationId));
+  // Collect from conversations
+  const conversationsExport = conversationIds.map((convId) => {
+    const convParticipants = participantsByConv.get(convId) ?? [];
+    const convMessages = messagesByConv.get(convId) ?? [];
 
-    for (const pp of allParticipants) {
+    for (const pp of convParticipants) {
       if (pp.userId !== userId) otherUserIds.add(pp.userId);
     }
-
-    const messages = await db
-      .select()
-      .from(schema.messages)
-      .where(eq(schema.messages.conversationId, p.conversationId));
-
-    for (const m of messages) {
+    for (const m of convMessages) {
       if (m.senderId !== userId) otherUserIds.add(m.senderId);
     }
 
-    conversationsExport.push({ conversationId: p.conversationId, allParticipants, messages });
-  }
+    return { conversationId: convId, allParticipants: convParticipants, messages: convMessages };
+  });
 
   // 6. Reactions
   const reactions = await db.select().from(schema.messageReactions).where(eq(schema.messageReactions.userId, userId));
@@ -154,18 +180,26 @@ export async function collectAndExportUserData(userId: string, email: string) {
   // 8. Profiling sessions & QA
   const sessions = await db.select().from(schema.profilingSessions).where(eq(schema.profilingSessions.userId, userId));
 
-  const sessionsExport = [];
-  for (const s of sessions) {
-    const qa = await db.select().from(schema.profilingQA).where(eq(schema.profilingQA.sessionId, s.id));
+  const sessionIds = sessions.map((s) => s.id);
+  const allQA =
+    sessionIds.length > 0
+      ? await db.select().from(schema.profilingQA).where(inArray(schema.profilingQA.sessionId, sessionIds))
+      : [];
 
-    sessionsExport.push({
-      createdAt: s.createdAt.toISOString(),
-      questions: qa.map((q) => ({
-        question: q.question,
-        answer: q.answer,
-      })),
-    });
+  const qaBySession = new Map<string, typeof allQA>();
+  for (const q of allQA) {
+    const arr = qaBySession.get(q.sessionId);
+    if (arr) arr.push(q);
+    else qaBySession.set(q.sessionId, [q]);
   }
+
+  const sessionsExport = sessions.map((s) => ({
+    createdAt: s.createdAt.toISOString(),
+    questions: (qaBySession.get(s.id) ?? []).map((q) => ({
+      question: q.question,
+      answer: q.answer,
+    })),
+  }));
 
   // 9. Blocks
   const blocks = await db.select().from(schema.blocks).where(eq(schema.blocks.blockerId, userId));
