@@ -38,3 +38,44 @@ export const bullmqQueueDepth = new Gauge({
   labelNames: ["queue", "state"] as const,
   registers: [registry],
 });
+
+// WebSocket metrics
+export const wsConnectionsActive = new Gauge({
+  name: "ws_connections_active",
+  help: "Currently active WebSocket connections",
+  registers: [registry],
+});
+
+export const wsSubscriptionsActive = new Gauge({
+  name: "ws_subscriptions_active",
+  help: "Currently active WebSocket conversation subscriptions",
+  registers: [registry],
+});
+
+export const wsAuthTotal = new Counter({
+  name: "ws_auth_total",
+  help: "Total WebSocket authentication attempts",
+  labelNames: ["result"] as const,
+  registers: [registry],
+});
+
+export const wsEventsInboundTotal = new Counter({
+  name: "ws_events_inbound_total",
+  help: "Total inbound WebSocket messages from clients",
+  labelNames: ["type"] as const,
+  registers: [registry],
+});
+
+export const wsEventsOutboundTotal = new Counter({
+  name: "ws_events_outbound_total",
+  help: "Total outbound WebSocket messages to clients",
+  labelNames: ["event_type"] as const,
+  registers: [registry],
+});
+
+export const wsRateLimitHitsTotal = new Counter({
+  name: "ws_rate_limit_hits_total",
+  help: "Total WebSocket messages dropped by rate limiting",
+  labelNames: ["limit"] as const,
+  registers: [registry],
+});
