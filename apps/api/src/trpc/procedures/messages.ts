@@ -1,12 +1,16 @@
 import { deleteMessageSchema, reactToMessageSchema, searchMessagesSchema, sendMessageSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
+import { RedisClient } from "bun";
 import { and, desc, eq, gt, ilike, inArray, isNotNull, isNull, lt, ne, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { sendPushToUser } from "@/services/push";
+import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 import { ee } from "@/ws/events";
 import { ensureTypingListener } from "@/ws/handler";
+
+const idempotencyRedis = new RedisClient(process.env.REDIS_URL!);
 
 export const messagesRouter = router({
   // Get all conversations for current user
@@ -331,91 +335,169 @@ export const messagesRouter = router({
     }),
 
   // Send a message
-  send: protectedProcedure.input(sendMessageSchema).mutation(async ({ ctx, input }) => {
-    // Verify user is participant
-    const [participant] = await db
-      .select()
-      .from(schema.conversationParticipants)
-      .where(
-        and(
-          eq(schema.conversationParticipants.conversationId, input.conversationId),
-          eq(schema.conversationParticipants.userId, ctx.userId),
-        ),
-      );
+  send: protectedProcedure
+    .use(rateLimit("messages.send", ({ input }) => input.conversationId))
+    .use(rateLimit("messages.sendGlobal"))
+    .input(sendMessageSchema)
+    .mutation(async ({ ctx, input }) => {
+      // Verify user is participant
+      const [participant] = await db
+        .select()
+        .from(schema.conversationParticipants)
+        .where(
+          and(
+            eq(schema.conversationParticipants.conversationId, input.conversationId),
+            eq(schema.conversationParticipants.userId, ctx.userId),
+          ),
+        );
 
-    if (!participant) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "You are not a participant in this conversation",
-      });
-    }
+      if (!participant) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not a participant in this conversation",
+        });
+      }
 
-    const [message] = await db
-      .insert(schema.messages)
-      .values({
-        conversationId: input.conversationId,
-        senderId: ctx.userId,
-        content: input.content,
-        type: input.type ?? "text",
-        metadata: input.metadata ?? null,
-        replyToId: input.replyToId ?? null,
-        topicId: input.topicId ?? null,
-      })
-      .returning();
+      // Idempotency check — prevent duplicate messages on retry
+      if (input.idempotencyKey) {
+        const idemKey = `idem:msg:${ctx.userId}:${input.idempotencyKey}`;
+        try {
+          const existing = await idempotencyRedis.get(idemKey);
+          if (existing) {
+            return JSON.parse(existing);
+          }
+        } catch {
+          // Redis failure — proceed without idempotency (fail open)
+        }
+      }
 
-    // Update conversation updatedAt
-    await db
-      .update(schema.conversations)
-      .set({ updatedAt: new Date() })
-      .where(eq(schema.conversations.id, input.conversationId));
-
-    // If message belongs to a topic, update topic stats
-    if (input.topicId) {
-      await db
-        .update(schema.topics)
-        .set({
-          lastMessageAt: new Date(),
-          messageCount: sql`${schema.topics.messageCount} + 1`,
+      const [message] = await db
+        .insert(schema.messages)
+        .values({
+          conversationId: input.conversationId,
+          senderId: ctx.userId,
+          content: input.content,
+          type: input.type ?? "text",
+          metadata: input.metadata ?? null,
+          replyToId: input.replyToId ?? null,
+          topicId: input.topicId ?? null,
         })
-        .where(eq(schema.topics.id, input.topicId));
-    }
+        .returning();
 
-    // Get sender profile for WS event enrichment
-    const [senderProfile] = await db
-      .select({
-        displayName: schema.profiles.displayName,
-        avatarUrl: schema.profiles.avatarUrl,
-      })
-      .from(schema.profiles)
-      .where(eq(schema.profiles.userId, ctx.userId));
+      // Cache for idempotency (5 min TTL)
+      if (input.idempotencyKey) {
+        const idemKey = `idem:msg:${ctx.userId}:${input.idempotencyKey}`;
+        try {
+          await idempotencyRedis.send("SET", [idemKey, JSON.stringify(message), "EX", "300"]);
+        } catch {
+          // Redis failure — non-critical, just skip caching
+        }
+      }
 
-    // Push notifications to other participants
-    const participants = await db
-      .select({ userId: schema.conversationParticipants.userId })
-      .from(schema.conversationParticipants)
-      .where(eq(schema.conversationParticipants.conversationId, input.conversationId));
+      // Update conversation updatedAt
+      await db
+        .update(schema.conversations)
+        .set({ updatedAt: new Date() })
+        .where(eq(schema.conversations.id, input.conversationId));
 
-    const messagePreview = message.content.length > 100 ? `${message.content.slice(0, 97)}...` : message.content;
+      // If message belongs to a topic, update topic stats
+      if (input.topicId) {
+        await db
+          .update(schema.topics)
+          .set({
+            lastMessageAt: new Date(),
+            messageCount: sql`${schema.topics.messageCount} + 1`,
+          })
+          .where(eq(schema.topics.id, input.topicId));
+      }
 
-    for (const p of participants) {
-      if (p.userId === ctx.userId) continue;
-      void sendPushToUser(p.userId, {
-        title: senderProfile?.displayName ?? "Ktoś",
-        body: messagePreview,
-        data: { type: "chat", conversationId: input.conversationId },
+      // Get sender profile for WS event enrichment
+      const [senderProfile] = await db
+        .select({
+          displayName: schema.profiles.displayName,
+          avatarUrl: schema.profiles.avatarUrl,
+        })
+        .from(schema.profiles)
+        .where(eq(schema.profiles.userId, ctx.userId));
+
+      // Push notifications to other participants
+      const participants = await db
+        .select({ userId: schema.conversationParticipants.userId })
+        .from(schema.conversationParticipants)
+        .where(eq(schema.conversationParticipants.conversationId, input.conversationId));
+
+      const messagePreview = message.content.length > 100 ? `${message.content.slice(0, 97)}...` : message.content;
+
+      // Get conversation type for push strategy
+      const [conversation] = await db
+        .select({ type: schema.conversations.type, name: schema.conversations.name })
+        .from(schema.conversations)
+        .where(eq(schema.conversations.id, input.conversationId));
+
+      const isGroup = conversation?.type === "group";
+
+      for (const p of participants) {
+        if (p.userId === ctx.userId) continue;
+
+        if (isGroup) {
+          // Group: check if recipient has unread messages (unread suppression)
+          const [recipientParticipant] = await db
+            .select({ lastReadAt: schema.conversationParticipants.lastReadAt })
+            .from(schema.conversationParticipants)
+            .where(
+              and(
+                eq(schema.conversationParticipants.conversationId, input.conversationId),
+                eq(schema.conversationParticipants.userId, p.userId),
+              ),
+            );
+
+          // Count unread messages for this recipient
+          const lastRead = recipientParticipant?.lastReadAt;
+          const whereConditions = [
+            eq(schema.messages.conversationId, input.conversationId),
+            ne(schema.messages.senderId, p.userId),
+            isNull(schema.messages.deletedAt),
+          ];
+          if (lastRead) {
+            whereConditions.push(gt(schema.messages.createdAt, lastRead));
+          }
+
+          const [unreadResult] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(schema.messages)
+            .where(and(...whereConditions));
+
+          const unreadCount = Number(unreadResult?.count || 0);
+          const hasUnread = unreadCount > 1; // >1 because current message is already inserted
+
+          void sendPushToUser(p.userId, {
+            title: conversation?.name ?? senderProfile?.displayName ?? "Blisko",
+            body: hasUnread
+              ? `${unreadCount} nowych wiadomości`
+              : `${senderProfile?.displayName ?? "Ktoś"}: ${messagePreview}`,
+            data: { type: "chat", conversationId: input.conversationId },
+            collapseId: hasUnread ? `group:${input.conversationId}` : undefined,
+          });
+        } else {
+          // DM: push every message (like iMessage)
+          void sendPushToUser(p.userId, {
+            title: senderProfile?.displayName ?? "Ktoś",
+            body: messagePreview,
+            data: { type: "chat", conversationId: input.conversationId },
+          });
+        }
+      }
+
+      // Emit real-time event
+      ee.emit("newMessage", {
+        conversationId: input.conversationId,
+        message,
+        senderName: senderProfile?.displayName ?? null,
+        senderAvatarUrl: senderProfile?.avatarUrl ?? null,
       });
-    }
 
-    // Emit real-time event
-    ee.emit("newMessage", {
-      conversationId: input.conversationId,
-      message,
-      senderName: senderProfile?.displayName ?? null,
-      senderAvatarUrl: senderProfile?.avatarUrl ?? null,
-    });
-
-    return message;
-  }),
+      return message;
+    }),
 
   // Mark messages as read
   markAsRead: protectedProcedure

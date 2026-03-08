@@ -43,6 +43,13 @@
       "when": 1772905000934,
       "tag": "0005_add-user-deleted-at",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772929453236,
+      "tag": "0006_wave-pending-unique-constraint",
+      "breakpoints": true
     }
   ]
 }

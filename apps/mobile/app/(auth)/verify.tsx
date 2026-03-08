@@ -8,6 +8,22 @@ import { authClient } from "../../src/lib/auth";
 import { useAuthStore } from "../../src/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
+const authErrorMessages: Record<string, string> = {
+  "Too many requests. Please try again later.": "Za dużo prób logowania. Spróbuj ponownie za kilka minut.",
+};
+
+function translateAuthError(message?: string): string {
+  if (!message) return "Wystąpił błąd";
+  if (authErrorMessages[message]) return authErrorMessages[message];
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed.error === "RATE_LIMITED" && parsed.message) return parsed.message;
+  } catch {
+    // Not JSON, use as-is
+  }
+  return message;
+}
+
 const CODE_LENGTH = 6;
 const RESEND_COOLDOWN = 10; // seconds between resends (10s for testing)
 
@@ -39,7 +55,7 @@ export default function VerifyScreen() {
         });
 
         if (result.error) {
-          setError(result.error.message || "Nieprawidłowy kod");
+          setError(translateAuthError(result.error.message) || "Nieprawidłowy kod");
           setIsLoading(false);
           return;
         }
@@ -156,7 +172,7 @@ export default function VerifyScreen() {
       });
 
       if (result.error) {
-        setError(result.error.message || "Nie udało się wysłać kodu");
+        setError(translateAuthError(result.error.message) || "Nie udało się wysłać kodu");
       } else {
         setResendCooldown(RESEND_COOLDOWN);
         // Clear the code inputs

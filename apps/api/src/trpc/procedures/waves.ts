@@ -1,11 +1,11 @@
 import { blockUserSchema, respondToWaveSchema, sendWaveSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray, isNotNull, notInArray, or } from "drizzle-orm";
-import { z } from "zod";
 import { db, schema } from "@/db";
 import { sendPushToUser } from "@/services/push";
 import { promotePairAnalysis } from "@/services/queue";
 import { featureGate } from "@/trpc/middleware/featureGate";
+import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 import { ee } from "@/ws/events";
 
@@ -13,6 +13,7 @@ export const wavesRouter = router({
   // Send a wave to someone
   send: protectedProcedure
     .use(featureGate("waves.send"))
+    .use(rateLimit("waves.send"))
     .input(sendWaveSchema)
     .mutation(async ({ ctx, input }) => {
       console.log(`[waves.send] from=${ctx.userId} to=${input.toUserId}`);
@@ -78,13 +79,24 @@ export const wavesRouter = router({
         });
       }
 
-      const [wave] = await db
-        .insert(schema.waves)
-        .values({
-          fromUserId: ctx.userId,
-          toUserId: input.toUserId,
-        })
-        .returning();
+      let wave: typeof schema.waves.$inferSelect;
+      try {
+        [wave] = await db
+          .insert(schema.waves)
+          .values({
+            fromUserId: ctx.userId,
+            toUserId: input.toUserId,
+          })
+          .returning();
+      } catch (err: unknown) {
+        if (err instanceof Error && "code" in err && (err as { code: string }).code === "23505") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "You already waved at this user",
+          });
+        }
+        throw err;
+      }
 
       await promotePairAnalysis(ctx.userId, input.toUserId);
 
@@ -158,35 +170,10 @@ export const wavesRouter = router({
     return sentWaves;
   }),
 
-  // Cancel a sent wave
-  cancel: protectedProcedure.input(z.object({ waveId: z.string().min(1) })).mutation(async ({ ctx, input }) => {
-    const [wave] = await db
-      .select()
-      .from(schema.waves)
-      .where(and(eq(schema.waves.id, input.waveId), eq(schema.waves.fromUserId, ctx.userId)));
-
-    if (!wave) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Wave not found",
-      });
-    }
-
-    if (wave.status !== "pending") {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Can only cancel pending waves",
-      });
-    }
-
-    const [deleted] = await db.delete(schema.waves).where(eq(schema.waves.id, input.waveId)).returning();
-
-    return deleted;
-  }),
-
   // Respond to a wave (accept or decline)
   respond: protectedProcedure
     .use(featureGate("waves.respond"))
+    .use(rateLimit("waves.respond"))
     .input(respondToWaveSchema)
     .mutation(async ({ ctx, input }) => {
       const [wave] = await db

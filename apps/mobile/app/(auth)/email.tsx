@@ -11,12 +11,20 @@ import { colors, fonts, spacing, type as typ } from "../../src/theme";
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
 const authErrorMessages: Record<string, string> = {
-  "Too many requests. Please try again later.": "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
+  "Too many requests. Please try again later.": "Za dużo prób logowania. Spróbuj ponownie za kilka minut.",
 };
 
 function translateAuthError(message?: string): string {
   if (!message) return "Wystąpił błąd";
-  return authErrorMessages[message] || message;
+  if (authErrorMessages[message]) return authErrorMessages[message];
+  // Try parsing rate limit JSON response from Hono middleware
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed.error === "RATE_LIMITED" && parsed.message) return parsed.message;
+  } catch {
+    // Not JSON, use as-is
+  }
+  return message;
 }
 
 export default function EmailLoginScreen() {

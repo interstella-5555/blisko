@@ -17,7 +17,8 @@
       "!**/package.json",
       "!**/*.generated.*",
       "!docs",
-      "!**/*.gen.ts"
+      "!**/*.gen.ts",
+      "!**/drizzle"
     ]
   },
   "formatter": {
@@ -25,8 +26,7 @@
     "indentStyle": "space",
     "indentWidth": 2,
     "lineEnding": "lf",
-    "lineWidth": 120,
-    "includes": ["**", "!**/drizzle"]
+    "lineWidth": 120
   },
   "linter": {
     "enabled": true,

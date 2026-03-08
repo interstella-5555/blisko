@@ -4,6 +4,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db, schema } from "@/db";
 import { enqueueDataExport, enqueueHardDeleteUser } from "@/services/queue";
+import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 
 export const accountsRouter = router({
@@ -105,7 +106,7 @@ export const accountsRouter = router({
       return { ok: true };
     }),
 
-  requestDataExport: protectedProcedure.mutation(async ({ ctx }) => {
+  requestDataExport: protectedProcedure.use(rateLimit("dataExport")).mutation(async ({ ctx }) => {
     // Get user email
     const [userData] = await db
       .select({ email: schema.user.email })

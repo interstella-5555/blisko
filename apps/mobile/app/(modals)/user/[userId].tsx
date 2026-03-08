@@ -128,7 +128,6 @@ export default function UserProfileScreen() {
   });
 
   const sendWaveMutation = trpc.waves.send.useMutation();
-  const cancelWaveMutation = trpc.waves.cancel.useMutation();
   const respondMutation = trpc.waves.respond.useMutation();
 
   const [optimisticAction, setOptimisticAction] = useState<"accepted" | "declined" | null>(null);
@@ -181,24 +180,6 @@ export default function UserProfileScreen() {
         setPendingWaveId(null);
         Alert.alert("Błąd", `Nie udało się wysłać zaczepienia: ${errorMsg}`);
       }
-    } finally {
-      busyRef.current = false;
-    }
-  };
-
-  const handleCancelWave = async () => {
-    if (busyRef.current || !pendingWaveId || pendingWaveId === "optimistic") return;
-    busyRef.current = true;
-    const prevId = pendingWaveId;
-    setPendingWaveId(null);
-    useWavesStore.getState().removeSent(prevId);
-    try {
-      await cancelWaveMutation.mutateAsync({ waveId: prevId });
-      await utils.waves.getSent.invalidate();
-    } catch {
-      // Re-add on failure (will be reconciled on next sync)
-      setPendingWaveId(prevId);
-      await utils.waves.getSent.invalidate();
     } finally {
       busyRef.current = false;
     }
@@ -327,10 +308,10 @@ export default function UserProfileScreen() {
               </Pressable>
             )}
             {actionState === "pending" && (
-              <Pressable style={styles.pendingPill} onPress={handleCancelWave}>
+              <View style={styles.pendingPill}>
                 <IconCheck size={12} color={colors.muted} />
                 <Text style={styles.pendingPillText}>Zaczepiono</Text>
-              </Pressable>
+              </View>
             )}
             {actionState === "incoming" && (
               <View style={styles.incomingActions}>

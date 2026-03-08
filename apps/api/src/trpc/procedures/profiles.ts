@@ -19,6 +19,7 @@ import {
   enqueueStatusMatching,
   enqueueUserPairAnalysis,
 } from "@/services/queue";
+import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 import { ee } from "@/ws/events";
 
@@ -67,37 +68,40 @@ export const profilesRouter = router({
   }),
 
   // Update profile (async — AI regeneration via queue if bio/lookingFor changed)
-  update: protectedProcedure.input(updateProfileSchema).mutation(async ({ ctx, input }) => {
-    const fieldsToModerate = [input.displayName, input.bio, input.lookingFor].filter(Boolean);
-    if (fieldsToModerate.length > 0) {
-      await moderateContent(fieldsToModerate.join("\n\n"));
-    }
-
-    const [profile] = await db
-      .update(schema.profiles)
-      .set({
-        ...input,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.profiles.userId, ctx.userId))
-      .returning();
-
-    // If bio or lookingFor changed, re-run AI pipeline async
-    if (input.bio || input.lookingFor) {
-      const bio = profile.bio;
-      const lookingFor = profile.lookingFor;
-      enqueueProfileAI(ctx.userId, bio, lookingFor).catch((err) => {
-        console.error("[profiles] Failed to enqueue profile AI job:", err);
-      });
-
-      // Also re-analyze connections (profile changed → analyses stale)
-      if (profile.latitude && profile.longitude) {
-        enqueueUserPairAnalysis(ctx.userId, profile.latitude, profile.longitude).catch(() => {});
+  update: protectedProcedure
+    .use(rateLimit("profiles.update"))
+    .input(updateProfileSchema)
+    .mutation(async ({ ctx, input }) => {
+      const fieldsToModerate = [input.displayName, input.bio, input.lookingFor].filter(Boolean);
+      if (fieldsToModerate.length > 0) {
+        await moderateContent(fieldsToModerate.join("\n\n"));
       }
-    }
 
-    return profile;
-  }),
+      const [profile] = await db
+        .update(schema.profiles)
+        .set({
+          ...input,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.profiles.userId, ctx.userId))
+        .returning();
+
+      // If bio or lookingFor changed, re-run AI pipeline async
+      if (input.bio || input.lookingFor) {
+        const bio = profile.bio;
+        const lookingFor = profile.lookingFor;
+        enqueueProfileAI(ctx.userId, bio, lookingFor).catch((err) => {
+          console.error("[profiles] Failed to enqueue profile AI job:", err);
+        });
+
+        // Also re-analyze connections (profile changed → analyses stale)
+        if (profile.latitude && profile.longitude) {
+          enqueueUserPairAnalysis(ctx.userId, profile.latitude, profile.longitude).catch(() => {});
+        }
+      }
+
+      return profile;
+    }),
 
   // Update location
   updateLocation: protectedProcedure.input(updateLocationSchema).mutation(async ({ ctx, input }) => {
@@ -147,136 +151,24 @@ export const profilesRouter = router({
   }),
 
   // Get nearby users
-  getNearbyUsers: protectedProcedure.input(getNearbyUsersSchema).query(async ({ ctx, input }) => {
-    const { latitude, longitude, radiusMeters, limit } = input;
+  getNearbyUsers: protectedProcedure
+    .use(rateLimit("profiles.getNearby"))
+    .input(getNearbyUsersSchema)
+    .query(async ({ ctx, input }) => {
+      const { latitude, longitude, radiusMeters, limit } = input;
 
-    // Calculate bounding box for initial filter (uses index!)
-    // ~111km per degree latitude, longitude varies by latitude
-    const latDelta = radiusMeters / 111000;
-    const lonDelta = radiusMeters / (111000 * Math.cos((latitude * Math.PI) / 180));
+      // Calculate bounding box for initial filter (uses index!)
+      // ~111km per degree latitude, longitude varies by latitude
+      const latDelta = radiusMeters / 111000;
+      const lonDelta = radiusMeters / (111000 * Math.cos((latitude * Math.PI) / 180));
 
-    const minLat = latitude - latDelta;
-    const maxLat = latitude + latDelta;
-    const minLon = longitude - lonDelta;
-    const maxLon = longitude + lonDelta;
+      const minLat = latitude - latDelta;
+      const maxLat = latitude + latDelta;
+      const minLon = longitude - lonDelta;
+      const maxLon = longitude + lonDelta;
 
-    // Get blocked users and current profile in parallel
-    const [blockedUsers, blockedByUsers, currentProfileResult] = await Promise.all([
-      db
-        .select({ blockedId: schema.blocks.blockedId })
-        .from(schema.blocks)
-        .where(eq(schema.blocks.blockerId, ctx.userId)),
-      db
-        .select({ blockerId: schema.blocks.blockerId })
-        .from(schema.blocks)
-        .where(eq(schema.blocks.blockedId, ctx.userId)),
-      db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId)),
-    ]);
-
-    const allBlockedIds = new Set([...blockedUsers.map((b) => b.blockedId), ...blockedByUsers.map((b) => b.blockerId)]);
-
-    const currentProfile = currentProfileResult[0];
-
-    // Query with bounding box filter first (fast, uses index)
-    // Then calculate exact Haversine distance
-    const distanceFormula = sql<number>`
-        6371000 * acos(
-          LEAST(1.0, GREATEST(-1.0,
-            cos(radians(${latitude})) * cos(radians(${schema.profiles.latitude})) *
-            cos(radians(${schema.profiles.longitude}) - radians(${longitude})) +
-            sin(radians(${latitude})) * sin(radians(${schema.profiles.latitude}))
-          ))
-        )
-      `;
-
-    const nearbyUsers = await db
-      .select({
-        profile: schema.profiles,
-        distance: distanceFormula,
-      })
-      .from(schema.profiles)
-      .where(
-        and(
-          ne(schema.profiles.userId, ctx.userId),
-          eq(schema.profiles.visibilityMode, "visible"),
-          // Bounding box filter (uses index)
-          between(schema.profiles.latitude, minLat, maxLat),
-          between(schema.profiles.longitude, minLon, maxLon),
-          // Exact distance filter
-          lte(distanceFormula, radiusMeters),
-          notInArray(
-            schema.profiles.userId,
-            db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-          ),
-          ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
-        ),
-      )
-      .orderBy(distanceFormula)
-      .limit(limit + allBlockedIds.size); // Fetch extra to account for filtered
-
-    // Filter blocked and calculate similarity in one pass
-    const results = [];
-    for (const u of nearbyUsers) {
-      if (allBlockedIds.has(u.profile.userId)) continue;
-      if (results.length >= limit) break;
-
-      let similarityScore: number | null = null;
-      if (currentProfile?.embedding && u.profile.embedding) {
-        similarityScore = cosineSimilarity(currentProfile.embedding, u.profile.embedding);
-      }
-
-      results.push({
-        profile: u.profile,
-        distance: u.distance,
-        similarityScore,
-      });
-    }
-
-    return results;
-  }),
-
-  // Get nearby users for map view (with grid-based privacy + ranking)
-  getNearbyUsersForMap: protectedProcedure.input(getNearbyUsersForMapSchema).query(async ({ ctx, input }) => {
-    const { latitude, longitude, radiusMeters, limit, cursor } = input;
-    const offset = cursor ?? 0;
-
-    // Calculate bounding box for initial filter (uses index!)
-    const latDelta = radiusMeters / 111000;
-    const lonDelta = radiusMeters / (111000 * Math.cos((latitude * Math.PI) / 180));
-
-    const minLat = latitude - latDelta;
-    const maxLat = latitude + latDelta;
-    const minLon = longitude - lonDelta;
-    const maxLon = longitude + lonDelta;
-
-    // Haversine distance formula
-    const distanceFormula = sql<number>`
-        6371000 * acos(
-          LEAST(1.0, GREATEST(-1.0,
-            cos(radians(${latitude})) * cos(radians(${schema.profiles.latitude})) *
-            cos(radians(${schema.profiles.longitude}) - radians(${longitude})) +
-            sin(radians(${latitude})) * sin(radians(${schema.profiles.latitude}))
-          ))
-        )
-      `;
-
-    // Base WHERE conditions (reused for count + paginated query)
-    const baseWhere = and(
-      ne(schema.profiles.userId, ctx.userId),
-      eq(schema.profiles.visibilityMode, "visible"),
-      between(schema.profiles.latitude, minLat, maxLat),
-      between(schema.profiles.longitude, minLon, maxLon),
-      lte(distanceFormula, radiusMeters),
-      notInArray(
-        schema.profiles.userId,
-        db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-      ),
-      ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
-    );
-
-    // Get blocked users + current profile + analyses + status matches + totalCount in parallel
-    const [blockedUsers, blockedByUsers, currentProfileResult, analyses, myStatusMatchRows, countResult] =
-      await Promise.all([
+      // Get blocked users and current profile in parallel
+      const [blockedUsers, blockedByUsers, currentProfileResult] = await Promise.all([
         db
           .select({ blockedId: schema.blocks.blockedId })
           .from(schema.blocks)
@@ -286,123 +178,247 @@ export const profilesRouter = router({
           .from(schema.blocks)
           .where(eq(schema.blocks.blockedId, ctx.userId)),
         db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId)),
-        db.select().from(schema.connectionAnalyses).where(eq(schema.connectionAnalyses.fromUserId, ctx.userId)),
-        db.select().from(schema.statusMatches).where(eq(schema.statusMatches.userId, ctx.userId)),
-        db.select({ count: sql<number>`count(*)` }).from(schema.profiles).where(baseWhere),
       ]);
 
-    const allBlockedIds = new Set([...blockedUsers.map((b) => b.blockedId), ...blockedByUsers.map((b) => b.blockerId)]);
+      const allBlockedIds = new Set([
+        ...blockedUsers.map((b) => b.blockedId),
+        ...blockedByUsers.map((b) => b.blockerId),
+      ]);
 
-    const rawCount = Number(countResult[0]?.count ?? 0);
-    // Subtract blocked users from count (approximate — blocked users may not all be in range)
-    const totalCount = Math.max(0, rawCount - allBlockedIds.size);
+      const currentProfile = currentProfileResult[0];
 
-    const currentProfile = currentProfileResult[0];
+      // Query with bounding box filter first (fast, uses index)
+      // Then calculate exact Haversine distance
+      const distanceFormula = sql<number>`
+        6371000 * acos(
+          LEAST(1.0, GREATEST(-1.0,
+            cos(radians(${latitude})) * cos(radians(${schema.profiles.latitude})) *
+            cos(radians(${schema.profiles.longitude}) - radians(${longitude})) +
+            sin(radians(${latitude})) * sin(radians(${schema.profiles.latitude}))
+          ))
+        )
+      `;
 
-    const analysisMap = new Map(analyses.map((a) => [a.toUserId, a]));
+      const nearbyUsers = await db
+        .select({
+          profile: schema.profiles,
+          distance: distanceFormula,
+        })
+        .from(schema.profiles)
+        .where(
+          and(
+            ne(schema.profiles.userId, ctx.userId),
+            eq(schema.profiles.visibilityMode, "visible"),
+            // Bounding box filter (uses index)
+            between(schema.profiles.latitude, minLat, maxLat),
+            between(schema.profiles.longitude, minLon, maxLon),
+            // Exact distance filter
+            lte(distanceFormula, radiusMeters),
+            notInArray(
+              schema.profiles.userId,
+              db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
+            ),
+            ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
+          ),
+        )
+        .orderBy(distanceFormula)
+        .limit(limit + allBlockedIds.size); // Fetch extra to account for filtered
 
-    const statusMatchMap = new Map(
-      myStatusMatchRows.map((m) => [m.matchedUserId, { reason: m.reason, matchedVia: m.matchedVia }]),
-    );
+      // Filter blocked and calculate similarity in one pass
+      const results = [];
+      for (const u of nearbyUsers) {
+        if (allBlockedIds.has(u.profile.userId)) continue;
+        if (results.length >= limit) break;
 
-    const now = new Date();
-    const myStatusActive =
-      currentProfile?.currentStatus && (!currentProfile.statusExpiresAt || currentProfile.statusExpiresAt > now);
+        let similarityScore: number | null = null;
+        if (currentProfile?.embedding && u.profile.embedding) {
+          similarityScore = cosineSimilarity(currentProfile.embedding, u.profile.embedding);
+        }
 
-    // Fetch extra rows to account for blocked users being filtered out
-    const nearbyUsers = await db
-      .select({
-        profile: schema.profiles,
-        distance: distanceFormula,
-      })
-      .from(schema.profiles)
-      .where(baseWhere)
-      .orderBy(distanceFormula)
-      .limit(limit + allBlockedIds.size)
-      .offset(offset);
-
-    const myInterests = currentProfile?.interests ?? [];
-    const myEmbedding = currentProfile?.embedding ?? null;
-
-    // Filter blocked users, calculate ranking, add grid positions
-    const results = [];
-    for (const u of nearbyUsers) {
-      if (allBlockedIds.has(u.profile.userId)) continue;
-      if (results.length >= limit) break;
-
-      const gridPos = toGridCenter(u.profile.latitude!, u.profile.longitude!);
-
-      // Ranking calculation
-      const proximity = 1 - Math.min(u.distance, radiusMeters) / radiusMeters;
-
-      const analysis = analysisMap.get(u.profile.userId);
-
-      let similarity: number | null = null;
-      if (myEmbedding?.length && u.profile.embedding?.length) {
-        similarity = cosineSimilarity(myEmbedding, u.profile.embedding);
+        results.push({
+          profile: u.profile,
+          distance: u.distance,
+          similarityScore,
+        });
       }
 
-      const theirInterests = u.profile.interests ?? [];
-      const commonInterests = myInterests.filter((i) => theirInterests.includes(i));
-      const interestScore = myInterests.length > 0 ? commonInterests.length / myInterests.length : 0;
+      return results;
+    }),
 
-      // Use AI score when available, fallback to embedding + interests
-      const matchScore = analysis
-        ? analysis.aiMatchScore / 100
-        : similarity != null
-          ? 0.7 * similarity + 0.3 * interestScore
-          : interestScore;
-      const rankScore = 0.6 * matchScore + 0.4 * proximity;
+  // Get nearby users for map view (with grid-based privacy + ranking)
+  getNearbyUsersForMap: protectedProcedure
+    .use(rateLimit("profiles.getNearby"))
+    .input(getNearbyUsersForMapSchema)
+    .query(async ({ ctx, input }) => {
+      const { latitude, longitude, radiusMeters, limit, cursor } = input;
+      const offset = cursor ?? 0;
 
-      results.push({
-        profile: {
-          id: u.profile.id,
-          userId: u.profile.userId,
-          displayName: u.profile.displayName,
-          bio: u.profile.bio,
-          lookingFor: u.profile.lookingFor,
-          avatarUrl: u.profile.avatarUrl,
-        },
-        distance: roundDistance(u.distance),
-        gridLat: gridPos.gridLat,
-        gridLng: gridPos.gridLng,
-        gridId: gridPos.gridId,
-        rankScore: Math.round(rankScore * 100) / 100,
-        matchScore: Math.round(matchScore * 100),
-        commonInterests,
-        shortSnippet: analysis?.shortSnippet ?? null,
-        analysisReady: !!analysis,
-        statusMatch:
-          myStatusActive && u.profile.currentStatus && (!u.profile.statusExpiresAt || u.profile.statusExpiresAt > now)
-            ? (statusMatchMap.get(u.profile.userId) ?? null)
-            : null,
-      });
-    }
+      // Calculate bounding box for initial filter (uses index!)
+      const latDelta = radiusMeters / 111000;
+      const lonDelta = radiusMeters / (111000 * Math.cos((latitude * Math.PI) / 180));
 
-    // Sort by rankScore descending
-    results.sort((a, b) => b.rankScore - a.rankScore);
+      const minLat = latitude - latDelta;
+      const maxLat = latitude + latDelta;
+      const minLon = longitude - lonDelta;
+      const maxLon = longitude + lonDelta;
 
-    // Safety net: queue analyses for users without one
-    const missingAnalysisUserIds = results
-      .filter((r) => !analysisMap.has(r.profile.userId))
-      .map((r) => r.profile.userId);
+      // Haversine distance formula
+      const distanceFormula = sql<number>`
+        6371000 * acos(
+          LEAST(1.0, GREATEST(-1.0,
+            cos(radians(${latitude})) * cos(radians(${schema.profiles.latitude})) *
+            cos(radians(${schema.profiles.longitude}) - radians(${longitude})) +
+            sin(radians(${latitude})) * sin(radians(${schema.profiles.latitude}))
+          ))
+        )
+      `;
 
-    for (const theirUserId of missingAnalysisUserIds) {
-      enqueuePairAnalysis(ctx.userId, theirUserId).catch(() => {});
-    }
+      // Base WHERE conditions (reused for count + paginated query)
+      const baseWhere = and(
+        ne(schema.profiles.userId, ctx.userId),
+        eq(schema.profiles.visibilityMode, "visible"),
+        between(schema.profiles.latitude, minLat, maxLat),
+        between(schema.profiles.longitude, minLon, maxLon),
+        lte(distanceFormula, radiusMeters),
+        notInArray(
+          schema.profiles.userId,
+          db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
+        ),
+        ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
+      );
 
-    const nextCursor = offset + limit < totalCount ? offset + limit : null;
+      // Get blocked users + current profile + analyses + status matches + totalCount in parallel
+      const [blockedUsers, blockedByUsers, currentProfileResult, analyses, myStatusMatchRows, countResult] =
+        await Promise.all([
+          db
+            .select({ blockedId: schema.blocks.blockedId })
+            .from(schema.blocks)
+            .where(eq(schema.blocks.blockerId, ctx.userId)),
+          db
+            .select({ blockerId: schema.blocks.blockerId })
+            .from(schema.blocks)
+            .where(eq(schema.blocks.blockedId, ctx.userId)),
+          db.select().from(schema.profiles).where(eq(schema.profiles.userId, ctx.userId)),
+          db.select().from(schema.connectionAnalyses).where(eq(schema.connectionAnalyses.fromUserId, ctx.userId)),
+          db.select().from(schema.statusMatches).where(eq(schema.statusMatches.userId, ctx.userId)),
+          db.select({ count: sql<number>`count(*)` }).from(schema.profiles).where(baseWhere),
+        ]);
 
-    const myStatus = myStatusActive
-      ? {
-          text: currentProfile!.currentStatus!,
-          expiresAt: currentProfile!.statusExpiresAt?.toISOString() ?? null,
-          setAt: currentProfile!.statusSetAt?.toISOString() ?? null,
+      const allBlockedIds = new Set([
+        ...blockedUsers.map((b) => b.blockedId),
+        ...blockedByUsers.map((b) => b.blockerId),
+      ]);
+
+      const rawCount = Number(countResult[0]?.count ?? 0);
+      // Subtract blocked users from count (approximate — blocked users may not all be in range)
+      const totalCount = Math.max(0, rawCount - allBlockedIds.size);
+
+      const currentProfile = currentProfileResult[0];
+
+      const analysisMap = new Map(analyses.map((a) => [a.toUserId, a]));
+
+      const statusMatchMap = new Map(
+        myStatusMatchRows.map((m) => [m.matchedUserId, { reason: m.reason, matchedVia: m.matchedVia }]),
+      );
+
+      const now = new Date();
+      const myStatusActive =
+        currentProfile?.currentStatus && (!currentProfile.statusExpiresAt || currentProfile.statusExpiresAt > now);
+
+      // Fetch extra rows to account for blocked users being filtered out
+      const nearbyUsers = await db
+        .select({
+          profile: schema.profiles,
+          distance: distanceFormula,
+        })
+        .from(schema.profiles)
+        .where(baseWhere)
+        .orderBy(distanceFormula)
+        .limit(limit + allBlockedIds.size)
+        .offset(offset);
+
+      const myInterests = currentProfile?.interests ?? [];
+      const myEmbedding = currentProfile?.embedding ?? null;
+
+      // Filter blocked users, calculate ranking, add grid positions
+      const results = [];
+      for (const u of nearbyUsers) {
+        if (allBlockedIds.has(u.profile.userId)) continue;
+        if (results.length >= limit) break;
+
+        const gridPos = toGridCenter(u.profile.latitude!, u.profile.longitude!);
+
+        // Ranking calculation
+        const proximity = 1 - Math.min(u.distance, radiusMeters) / radiusMeters;
+
+        const analysis = analysisMap.get(u.profile.userId);
+
+        let similarity: number | null = null;
+        if (myEmbedding?.length && u.profile.embedding?.length) {
+          similarity = cosineSimilarity(myEmbedding, u.profile.embedding);
         }
-      : null;
 
-    return { users: results, totalCount, nextCursor, myStatus };
-  }),
+        const theirInterests = u.profile.interests ?? [];
+        const commonInterests = myInterests.filter((i) => theirInterests.includes(i));
+        const interestScore = myInterests.length > 0 ? commonInterests.length / myInterests.length : 0;
+
+        // Use AI score when available, fallback to embedding + interests
+        const matchScore = analysis
+          ? analysis.aiMatchScore / 100
+          : similarity != null
+            ? 0.7 * similarity + 0.3 * interestScore
+            : interestScore;
+        const rankScore = 0.6 * matchScore + 0.4 * proximity;
+
+        results.push({
+          profile: {
+            id: u.profile.id,
+            userId: u.profile.userId,
+            displayName: u.profile.displayName,
+            bio: u.profile.bio,
+            lookingFor: u.profile.lookingFor,
+            avatarUrl: u.profile.avatarUrl,
+          },
+          distance: roundDistance(u.distance),
+          gridLat: gridPos.gridLat,
+          gridLng: gridPos.gridLng,
+          gridId: gridPos.gridId,
+          rankScore: Math.round(rankScore * 100) / 100,
+          matchScore: Math.round(matchScore * 100),
+          commonInterests,
+          shortSnippet: analysis?.shortSnippet ?? null,
+          analysisReady: !!analysis,
+          statusMatch:
+            myStatusActive && u.profile.currentStatus && (!u.profile.statusExpiresAt || u.profile.statusExpiresAt > now)
+              ? (statusMatchMap.get(u.profile.userId) ?? null)
+              : null,
+        });
+      }
+
+      // Sort by rankScore descending
+      results.sort((a, b) => b.rankScore - a.rankScore);
+
+      // Safety net: queue analyses for users without one
+      const missingAnalysisUserIds = results
+        .filter((r) => !analysisMap.has(r.profile.userId))
+        .map((r) => r.profile.userId);
+
+      for (const theirUserId of missingAnalysisUserIds) {
+        enqueuePairAnalysis(ctx.userId, theirUserId).catch(() => {});
+      }
+
+      const nextCursor = offset + limit < totalCount ? offset + limit : null;
+
+      const myStatus = myStatusActive
+        ? {
+            text: currentProfile!.currentStatus!,
+            expiresAt: currentProfile!.statusExpiresAt?.toISOString() ?? null,
+            setAt: currentProfile!.statusSetAt?.toISOString() ?? null,
+          }
+        : null;
+
+      return { users: results, totalCount, nextCursor, myStatus };
+    }),
 
   // Ensure analysis exists — lightweight "poke" to re-enqueue if stuck/failed
   ensureAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ ctx, input }) => {

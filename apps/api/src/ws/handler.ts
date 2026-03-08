@@ -28,6 +28,23 @@ export interface WSData {
 // Track all connected clients
 const clients = new Set<ServerWebSocket<WSData>>();
 
+// In-memory sliding window for WebSocket rate limiting
+const wsCounters = new Map<string, { count: number; resetAt: number }>();
+
+function checkWsRateLimit(userId: string, type: string, limit: number, windowMs: number): boolean {
+  const key = `${type}:${userId}`;
+  const now = Date.now();
+  const entry = wsCounters.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    wsCounters.set(key, { count: 1, resetAt: now + windowMs });
+    return false; // not limited
+  }
+
+  entry.count++;
+  return entry.count > limit; // limited if over
+}
+
 async function authenticateToken(token: string): Promise<string | null> {
   try {
     const [session] = await db
@@ -58,7 +75,7 @@ export const wsHandler = {
     try {
       const data = JSON.parse(typeof message === "string" ? message : message.toString());
 
-      // Auth message: { type: 'auth', token: '...' }
+      // Auth messages bypass rate limiting
       if (data.type === "auth" && data.token) {
         const userId = await authenticateToken(data.token);
         if (userId) {
@@ -75,8 +92,13 @@ export const wsHandler = {
         return;
       }
 
+      // Global WS rate limit: 30 messages per minute (silent drop)
+      if (ws.data.userId && checkWsRateLimit(ws.data.userId, "ws", 30, 60_000)) return;
+
       // Typing indicator: { type: 'typing', conversationId: '...', isTyping: true/false }
       if (data.type === "typing" && ws.data.userId && data.conversationId) {
+        // Rate limit typing indicators: 10 per 10 seconds (silent drop)
+        if (checkWsRateLimit(ws.data.userId, "typing", 10, 10_000)) return;
         ee.emit(`typing:${data.conversationId}`, {
           conversationId: data.conversationId,
           userId: ws.data.userId,
@@ -99,6 +121,17 @@ export const wsHandler = {
     clients.delete(ws);
   },
 };
+
+// Periodic cleanup of expired WS rate limit entries
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, entry] of wsCounters) {
+      if (now > entry.resetAt) wsCounters.delete(key);
+    }
+  },
+  5 * 60 * 1000,
+);
 
 // Broadcast events to a specific user (all their connected clients)
 function broadcastToUser(userId: string, payload: unknown) {

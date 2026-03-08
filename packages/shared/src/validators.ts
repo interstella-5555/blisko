@@ -47,6 +47,7 @@ export const sendMessageSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
   replyToId: z.string().uuid().optional(),
   topicId: z.string().uuid().optional(),
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 export const deleteMessageSchema = z.object({

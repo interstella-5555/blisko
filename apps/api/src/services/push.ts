@@ -14,7 +14,7 @@ function isUserConnected(userId: string): boolean {
 
 export async function sendPushToUser(
   userId: string,
-  payload: { title: string; body: string; data?: Record<string, string> },
+  payload: { title: string; body: string; data?: Record<string, string>; collapseId?: string },
 ): Promise<void> {
   try {
     // Don't send push if user is connected via WebSocket (in-app banner handles it)
@@ -31,10 +31,11 @@ export async function sendPushToUser(
       .filter((t) => Expo.isExpoPushToken(t.token))
       .map((t) => ({
         to: t.token,
-        sound: "default" as const,
+        sound: payload.collapseId ? undefined : ("default" as const),
         title: payload.title,
         body: payload.body,
         data: payload.data,
+        ...(payload.collapseId && { _id: payload.collapseId }),
       }));
 
     if (messages.length === 0) return;

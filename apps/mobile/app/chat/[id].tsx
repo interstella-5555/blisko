@@ -256,6 +256,7 @@ export default function ChatScreen() {
         content: text,
         replyToId,
         topicId,
+        idempotencyKey: crypto.randomUUID(),
       });
     },
     [conversationId, topicId, sendMessage],
@@ -341,6 +342,7 @@ export default function ChatScreen() {
           width: asset.width,
           height: asset.height,
         },
+        idempotencyKey: crypto.randomUUID(),
       });
     } catch (_error) {
       Alert.alert("Błąd", "Nie udało się wysłać zdjęcia");
@@ -365,6 +367,7 @@ export default function ChatScreen() {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         },
+        idempotencyKey: crypto.randomUUID(),
       });
     } catch (_error) {
       Alert.alert("Błąd", "Nie udało się pobrać lokalizacji");
