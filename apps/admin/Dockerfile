@@ -1,7 +1,7 @@
 # ── Stage 1: Dependencies ────────────────────
 FROM oven/bun:1-alpine AS deps
 
-RUN corepack enable && corepack prepare pnpm@10 --activate
+RUN bun install -g pnpm@10
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN pnpm install --frozen-lockfile --prefer-offline
 # ── Stage 2: Build ───────────────────────────
 FROM oven/bun:1-alpine AS build
 
-RUN corepack enable && corepack prepare pnpm@10 --activate
+RUN bun install -g pnpm@10
 
 WORKDIR /app
 
