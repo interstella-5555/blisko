@@ -40,3 +40,21 @@
   ```
 
 - `drizzle/prefer-relational` — Default to `findMany`/`findFirst`. Switch to query builder (`db.select().from().leftJoin()`) when relational query grows past ~15 lines, over-fetches, or needs complex joins/aggregation. Think about what SQL Drizzle will generate — `findMany` with `with` runs separate queries or lateral joins per relation, query builder produces a single explicit JOIN. Pick whichever is significantly better.
+
+- `drizzle/no-unbounded-in` — `inArray()` / `notInArray()` with a subquery that can grow past ~50 rows must be replaced with an INNER JOIN. `NOT IN (SELECT ...)` bypasses index usage and has a NULL pitfall (any NULL in the subquery makes the entire condition false). If a `db.query` (relational API) query would need this, convert it to `db.select()` with a JOIN instead.
+
+  ```ts
+  // ❌ notInArray with unbounded subquery
+  notInArray(
+    schema.profiles.userId,
+    db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
+  )
+
+  // ✅ INNER JOIN
+  db.select({ ... })
+    .from(schema.profiles)
+    .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+    .where(isNull(schema.user.deletedAt))
+  ```
+
+  If the refactor isn't trivial (e.g. query structure makes adding a JOIN complex), flag it to the user instead of forcing it.

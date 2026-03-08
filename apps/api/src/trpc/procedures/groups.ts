@@ -7,7 +7,7 @@ import {
   updateGroupSchema,
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNotNull, lte, ne, notInArray, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { sendPushToUser } from "@/services/push";
@@ -336,14 +336,9 @@ export const groupsRouter = router({
         })
         .from(schema.conversationParticipants)
         .innerJoin(schema.profiles, eq(schema.conversationParticipants.userId, schema.profiles.userId))
+        .innerJoin(schema.user, eq(schema.conversationParticipants.userId, schema.user.id))
         .where(
-          and(
-            eq(schema.conversationParticipants.conversationId, input.conversationId),
-            notInArray(
-              schema.conversationParticipants.userId,
-              db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-            ),
-          ),
+          and(eq(schema.conversationParticipants.conversationId, input.conversationId), isNull(schema.user.deletedAt)),
         )
         .orderBy(
           sql`CASE ${schema.conversationParticipants.role}
@@ -763,16 +758,14 @@ export const groupsRouter = router({
         isNotNull(schema.profiles.latitude),
         lte(distanceSql, radiusMeters),
         ne(schema.conversationParticipants.userId, ctx.userId),
-        notInArray(
-          schema.conversationParticipants.userId,
-          db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-        ),
+        isNull(schema.user.deletedAt),
       );
 
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.conversationParticipants)
         .innerJoin(schema.profiles, eq(schema.conversationParticipants.userId, schema.profiles.userId))
+        .innerJoin(schema.user, eq(schema.conversationParticipants.userId, schema.user.id))
         .where(baseWhere);
 
       const totalNearby = Number(countResult.count);
@@ -786,6 +779,7 @@ export const groupsRouter = router({
         })
         .from(schema.conversationParticipants)
         .innerJoin(schema.profiles, eq(schema.conversationParticipants.userId, schema.profiles.userId))
+        .innerJoin(schema.user, eq(schema.conversationParticipants.userId, schema.user.id))
         .where(baseWhere)
         .orderBy(sql`distance`)
         .limit(limit);

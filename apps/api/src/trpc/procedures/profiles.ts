@@ -8,7 +8,7 @@ import {
   updateProfileSchema,
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { and, between, eq, isNotNull, isNull, lte, ne, notInArray, placeholder, sql } from "drizzle-orm";
+import { and, between, eq, isNotNull, isNull, lte, ne, placeholder, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, preparedName, schema } from "@/db";
 import { roundDistance, toGridCenter } from "@/lib/grid";
@@ -137,16 +137,14 @@ export const profilesRouter = router({
 
     db.select({ userId: schema.profiles.userId })
       .from(schema.profiles)
+      .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
       .where(
         and(
           ne(schema.profiles.userId, ctx.userId),
           eq(schema.profiles.visibilityMode, "visible"),
           between(schema.profiles.latitude, input.latitude - latDelta, input.latitude + latDelta),
           between(schema.profiles.longitude, input.longitude - lonDelta, input.longitude + lonDelta),
-          notInArray(
-            schema.profiles.userId,
-            db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-          ),
+          isNull(schema.user.deletedAt),
         ),
       )
       .then((nearbyUsers) => {
@@ -214,6 +212,7 @@ export const profilesRouter = router({
           distance: distanceFormula,
         })
         .from(schema.profiles)
+        .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
         .where(
           and(
             ne(schema.profiles.userId, ctx.userId),
@@ -223,10 +222,7 @@ export const profilesRouter = router({
             between(schema.profiles.longitude, minLon, maxLon),
             // Exact distance filter
             lte(distanceFormula, radiusMeters),
-            notInArray(
-              schema.profiles.userId,
-              db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-            ),
+            isNull(schema.user.deletedAt),
             ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
           ),
         )
@@ -289,10 +285,7 @@ export const profilesRouter = router({
         between(schema.profiles.latitude, minLat, maxLat),
         between(schema.profiles.longitude, minLon, maxLon),
         lte(distanceFormula, radiusMeters),
-        notInArray(
-          schema.profiles.userId,
-          db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-        ),
+        isNull(schema.user.deletedAt),
         ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
       );
 
@@ -312,7 +305,11 @@ export const profilesRouter = router({
           }),
           db.select().from(schema.connectionAnalyses).where(eq(schema.connectionAnalyses.fromUserId, ctx.userId)),
           db.select().from(schema.statusMatches).where(eq(schema.statusMatches.userId, ctx.userId)),
-          db.select({ count: sql<number>`count(*)` }).from(schema.profiles).where(baseWhere),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(schema.profiles)
+            .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+            .where(baseWhere),
         ]);
 
       const allBlockedIds = new Set([
@@ -341,6 +338,7 @@ export const profilesRouter = router({
           distance: distanceFormula,
         })
         .from(schema.profiles)
+        .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
         .where(baseWhere)
         .orderBy(distanceFormula)
         .limit(limit + allBlockedIds.size)

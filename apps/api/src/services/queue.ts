@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { cosineSimilarity } from "@repo/shared";
 import { type Job, Queue, Worker } from "bullmq";
 import { RedisClient } from "bun";
-import { and, between, eq, gte, isNotNull, lte, ne, notInArray, or, sql } from "drizzle-orm";
+import { and, between, eq, gte, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { ee } from "@/ws/events";
 import { analyzeConnection, evaluateStatusMatch, extractInterests, generateEmbedding, generatePortrait } from "./ai";
@@ -320,6 +320,7 @@ async function processAnalyzeUserPairs(userId: string, latitude: number, longitu
       distance: distanceFormula,
     })
     .from(schema.profiles)
+    .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
     .where(
       and(
         ne(schema.profiles.userId, userId),
@@ -328,10 +329,7 @@ async function processAnalyzeUserPairs(userId: string, latitude: number, longitu
         between(schema.profiles.latitude, minLat, maxLat),
         between(schema.profiles.longitude, minLon, maxLon),
         lte(distanceFormula, radiusMeters),
-        notInArray(
-          schema.profiles.userId,
-          db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-        ),
+        isNull(schema.user.deletedAt),
       ),
     )
     .limit(100);
@@ -477,8 +475,9 @@ async function processStatusMatching(userId: string) {
   // Get nearby visible users (~5km bounding box)
   const nearbyRadius = 0.05;
   const nearbyUsers = await db
-    .select()
+    .select({ profile: schema.profiles })
     .from(schema.profiles)
+    .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
     .where(
       and(
         ne(schema.profiles.userId, userId),
@@ -490,16 +489,13 @@ async function processStatusMatching(userId: string) {
         lte(schema.profiles.latitude, user.latitude + nearbyRadius),
         gte(schema.profiles.longitude, user.longitude - nearbyRadius),
         lte(schema.profiles.longitude, user.longitude + nearbyRadius),
-        notInArray(
-          schema.profiles.userId,
-          db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-        ),
+        isNull(schema.user.deletedAt),
       ),
     );
 
   // Pre-filter by cosine similarity — top 20
   const scored = nearbyUsers
-    .map((u) => {
+    .map(({ profile: u }) => {
       const hasActiveStatus = u.currentStatus && (!u.statusExpiresAt || u.statusExpiresAt > new Date());
 
       let similarity = 0;

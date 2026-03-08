@@ -1,6 +1,6 @@
 import { blockUserSchema, respondToWaveSchema, sendWaveSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, inArray, isNotNull, notInArray, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { sendPushToUser } from "@/services/push";
 import { promotePairAnalysis } from "@/services/queue";
@@ -19,15 +19,13 @@ export const wavesRouter = router({
       console.log(`[waves.send] from=${ctx.userId} to=${input.toUserId}`);
 
       // Check if target user exists and is not soft-deleted
-      const targetProfile = await db.query.profiles.findFirst({
-        where: and(
-          eq(schema.profiles.userId, input.toUserId),
-          notInArray(
-            schema.profiles.userId,
-            db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-          ),
-        ),
-      });
+      const [targetResult] = await db
+        .select({ userId: schema.profiles.userId })
+        .from(schema.profiles)
+        .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+        .where(and(eq(schema.profiles.userId, input.toUserId), isNull(schema.user.deletedAt)))
+        .limit(1);
+      const targetProfile = targetResult ?? null;
 
       if (!targetProfile) {
         console.log(`[waves.send] Target profile not found for userId=${input.toUserId}`);
@@ -119,14 +117,12 @@ export const wavesRouter = router({
       })
       .from(schema.waves)
       .innerJoin(schema.profiles, eq(schema.waves.fromUserId, schema.profiles.userId))
+      .innerJoin(schema.user, eq(schema.waves.fromUserId, schema.user.id))
       .where(
         and(
           eq(schema.waves.toUserId, ctx.userId),
           inArray(schema.waves.status, ["pending", "accepted"]),
-          notInArray(
-            schema.waves.fromUserId,
-            db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-          ),
+          isNull(schema.user.deletedAt),
         ),
       )
       .orderBy(desc(schema.waves.createdAt));
@@ -143,15 +139,8 @@ export const wavesRouter = router({
       })
       .from(schema.waves)
       .innerJoin(schema.profiles, eq(schema.waves.toUserId, schema.profiles.userId))
-      .where(
-        and(
-          eq(schema.waves.fromUserId, ctx.userId),
-          notInArray(
-            schema.waves.toUserId,
-            db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-          ),
-        ),
-      )
+      .innerJoin(schema.user, eq(schema.waves.toUserId, schema.user.id))
+      .where(and(eq(schema.waves.fromUserId, ctx.userId), isNull(schema.user.deletedAt)))
       .orderBy(desc(schema.waves.createdAt));
 
     return sentWaves;
@@ -301,15 +290,8 @@ export const wavesRouter = router({
       })
       .from(schema.blocks)
       .innerJoin(schema.profiles, eq(schema.blocks.blockedId, schema.profiles.userId))
-      .where(
-        and(
-          eq(schema.blocks.blockerId, ctx.userId),
-          notInArray(
-            schema.blocks.blockedId,
-            db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
-          ),
-        ),
-      );
+      .innerJoin(schema.user, eq(schema.blocks.blockedId, schema.user.id))
+      .where(and(eq(schema.blocks.blockerId, ctx.userId), isNull(schema.user.deletedAt)));
 
     return blockedUsers;
   }),
