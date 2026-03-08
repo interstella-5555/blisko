@@ -1,6 +1,6 @@
 FROM oven/bun:1-alpine
 
-RUN bun install -g pnpm@9
+RUN bun install -g pnpm@10
 
 WORKDIR /app
 

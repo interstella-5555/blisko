@@ -1,6 +1,6 @@
 FROM node:24-slim
 
-RUN corepack enable && corepack prepare pnpm@9 --activate
+RUN corepack enable && corepack prepare pnpm@10 --activate
 
 WORKDIR /app
 

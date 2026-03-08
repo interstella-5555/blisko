@@ -1,7 +1,7 @@
 # ── Stage 1: Dependencies ────────────────────
 FROM node:24-alpine AS deps
 
-RUN corepack enable && corepack prepare pnpm@9 --activate
+RUN corepack enable && corepack prepare pnpm@10 --activate
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN pnpm install --frozen-lockfile --prefer-offline
 # ── Stage 2: Build ───────────────────────────
 FROM node:24-alpine AS build
 
-RUN corepack enable && corepack prepare pnpm@9 --activate
+RUN corepack enable && corepack prepare pnpm@10 --activate
 
 WORKDIR /app
 
