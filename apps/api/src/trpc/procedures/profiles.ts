@@ -451,7 +451,18 @@ export const profilesRouter = router({
 
   // Get profile by user ID
   getById: protectedProcedure.input(z.object({ userId: z.string() })).query(async ({ input }) => {
-    const [profile] = await db.select().from(schema.profiles).where(eq(schema.profiles.userId, input.userId));
+    const [profile] = await db
+      .select()
+      .from(schema.profiles)
+      .where(
+        and(
+          eq(schema.profiles.userId, input.userId),
+          notInArray(
+            schema.profiles.userId,
+            db.select({ id: schema.user.id }).from(schema.user).where(isNotNull(schema.user.deletedAt)),
+          ),
+        ),
+      );
 
     if (!profile) return null;
 
