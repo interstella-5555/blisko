@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { eq, inArray, or } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { dataExportReady, sendEmail } from "@/services/email";
 
 interface ExportData {
   exportedAt: string;
@@ -303,26 +304,6 @@ export async function collectAndExportUserData(userId: string, email: string) {
 
   const downloadUrl = s3.file(key).presign({ expiresIn: 7 * 24 * 60 * 60 });
 
-  // Send email via Resend
-  const { Resend } = await import("resend");
-  const resend = new Resend(process.env.RESEND_API_KEY);
-
-  await resend.emails.send({
-    from: process.env.EMAIL_FROM || "Blisko <noreply@blisko.app>",
-    to: email,
-    subject: "Twoje dane z Blisko są gotowe do pobrania",
-    html: `
-      <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
-        <p style="font-size: 24px; font-weight: 300; letter-spacing: 4px; margin-bottom: 24px;">BLISKO</p>
-        <p style="font-size: 15px; color: #3A3A3A; line-height: 1.6;">Cześć!</p>
-        <p style="font-size: 15px; color: #3A3A3A; line-height: 1.6;">Twoje dane są gotowe. Kliknij poniższy link, aby pobrać plik JSON z eksportem wszystkich Twoich danych z aplikacji Blisko.</p>
-        <p style="margin: 24px 0;">
-          <a href="${downloadUrl}" style="background: #C0392B; color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">Pobierz dane</a>
-        </p>
-        <p style="font-size: 13px; color: #8B8680; line-height: 1.6;">Link jest ważny przez 7 dni. Po tym czasie możesz złożyć nowe żądanie w ustawieniach aplikacji.</p>
-        <p style="font-size: 13px; color: #8B8680; line-height: 1.6;">Jeśli nie prosiłeś/aś o eksport danych, zignoruj tę wiadomość.</p>
-        <p style="font-size: 13px; color: #8B8680; margin-top: 32px;">Pozdrawiamy,<br>Zespół Blisko</p>
-      </div>
-    `,
-  });
+  // Send email notification
+  await sendEmail(email, dataExportReady(downloadUrl));
 }
