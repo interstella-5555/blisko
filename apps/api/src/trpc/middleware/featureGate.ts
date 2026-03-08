@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, placeholder } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { middleware } from "@/trpc/trpc";
 
@@ -25,6 +25,12 @@ async function getGates(): Promise<Map<string, Gate>> {
   return gateCache;
 }
 
+const profileIsComplete = db
+  .select({ isComplete: schema.profiles.isComplete })
+  .from(schema.profiles)
+  .where(eq(schema.profiles.userId, placeholder("userId")))
+  .prepare("profile_is_complete");
+
 export function featureGate(featureName: string) {
   return middleware(async ({ ctx, next }) => {
     const gates = await getGates();
@@ -36,10 +42,7 @@ export function featureGate(featureName: string) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "NOT_AUTHENTICATED" });
     }
 
-    const [profile] = await db
-      .select({ isComplete: schema.profiles.isComplete })
-      .from(schema.profiles)
-      .where(eq(schema.profiles.userId, ctx.userId));
+    const [profile] = await profileIsComplete.execute({ userId: ctx.userId });
 
     if (!profile) {
       throw new TRPCError({

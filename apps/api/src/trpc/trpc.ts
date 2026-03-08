@@ -1,5 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, placeholder } from "drizzle-orm";
 import { DEFAULT_RATE_LIMIT_MESSAGE, rateLimitMessages, rateLimits } from "@/config/rateLimits";
 import { db, schema } from "@/db";
 import { checkRateLimit } from "@/services/rate-limiter";
@@ -11,6 +11,12 @@ export const router = t.router;
 export const middleware = t.middleware;
 export const publicProcedure = t.procedure;
 
+const userDeletedAt = db
+  .select({ deletedAt: schema.user.deletedAt })
+  .from(schema.user)
+  .where(eq(schema.user.id, placeholder("userId")))
+  .prepare("user_deleted_at");
+
 // Middleware that requires authentication
 const isAuthed = t.middleware(async ({ ctx, next }) => {
   if (!ctx.userId) {
@@ -21,10 +27,7 @@ const isAuthed = t.middleware(async ({ ctx, next }) => {
   }
 
   // Check if user is soft-deleted
-  const [userData] = await db
-    .select({ deletedAt: schema.user.deletedAt })
-    .from(schema.user)
-    .where(eq(schema.user.id, ctx.userId));
+  const [userData] = await userDeletedAt.execute({ userId: ctx.userId });
 
   if (userData?.deletedAt) {
     throw new TRPCError({

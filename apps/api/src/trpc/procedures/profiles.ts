@@ -497,6 +497,7 @@ export const profilesRouter = router({
 
   // Dev: clear all connection analyses
   clearAnalyses: protectedProcedure.mutation(async () => {
+    // Raw SQL: TRUNCATE has no Drizzle query builder equivalent (dev-only endpoint)
     await db.execute(sql`TRUNCATE connection_analyses`);
     return { ok: true };
   }),

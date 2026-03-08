@@ -44,7 +44,8 @@ export const messagesRouter = router({
         .from(schema.conversationParticipants)
         .where(inArray(schema.conversationParticipants.conversationId, conversationIds)),
 
-      // 3. Last message per conversation (using DISTINCT ON)
+      // 3. Last message per conversation
+      // Raw SQL: DISTINCT ON is PostgreSQL-specific, no Drizzle equivalent (BLI-87)
       db.execute(sql`
         SELECT DISTINCT ON (conversation_id) *
         FROM messages
@@ -57,6 +58,7 @@ export const messagesRouter = router({
       `),
 
       // 4. Unread counts per conversation
+      // Raw SQL: CASE WHEN group/DM unread logic has no Drizzle equivalent (BLI-88)
       db.execute(sql`
         SELECT
           m.conversation_id,
