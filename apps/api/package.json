@@ -16,7 +16,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "scatter": "bun run scripts/scatter-locations-db.ts",
-    "scatter:production": "bun --env-file=.env.production run scripts/scatter-locations-db.ts"
+    "scatter:production": "bun --env-file=.env.production run scripts/scatter-locations-db.ts",
+    "seed:slo": "bun run scripts/seed-slo-targets.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.29",
@@ -34,6 +35,7 @@
     "hono": "^4.5.0",
     "pg": "^8.17.2",
     "postgres": "^3.4.0",
+    "prom-client": "^15.1.3",
     "resend": "^6.8.0",
     "zod": "^3.23.0"
   },

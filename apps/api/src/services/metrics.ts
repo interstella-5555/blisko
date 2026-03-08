@@ -1,6 +1,7 @@
 import type { Context, MiddlewareHandler } from "hono";
 import { db, schema } from "@/db";
 import type { NewRequestEvent } from "@/db/schema";
+import { httpRequestDuration, httpRequestsTotal } from "./prometheus";
 
 // --- Config ---
 
@@ -11,7 +12,7 @@ const SKIP_PATHS = new Set(["/metrics", "/api/metrics/summary"]);
 
 // --- Buffer state ---
 
-let buffer: NewRequestEvent[] = [];
+const buffer: NewRequestEvent[] = [];
 let flushTimer: ReturnType<typeof setInterval> | null = null;
 let isFlushing = false;
 
@@ -133,14 +134,21 @@ export function metricsMiddleware(): MiddlewareHandler {
       const durationMs = Math.round(performance.now() - start);
       const meta = requestMeta.get(c.req.raw);
 
+      const endpoint = extractEndpoint(c);
+      const statusCode = errMsg ? 500 : c.res.status;
+      const labels = { method: c.req.method, endpoint, status_code: String(statusCode) };
+
+      httpRequestDuration.observe(labels, durationMs);
+      httpRequestsTotal.inc(labels);
+
       pushEvent({
         timestamp: new Date(),
         requestId,
         method: c.req.method,
-        endpoint: extractEndpoint(c),
+        endpoint,
         userId: meta?.userId ?? null,
         durationMs,
-        statusCode: errMsg ? 500 : c.res.status,
+        statusCode,
         appVersion: c.req.header("x-app-version") ?? null,
         platform: parsePlatform(c.req.header("user-agent")),
         authProvider: null,

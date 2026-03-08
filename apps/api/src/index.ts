@@ -41,6 +41,20 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
   });
 }
 
+// Metrics endpoints (IP rate limited)
+app.get("/api/metrics/summary", honoRateLimit("metrics.summary"), async (c) => {
+  const { getMetricsSummary } = await import("./services/metrics-summary");
+  const windowHours = Number(c.req.query("window") || 24);
+  const summary = await getMetricsSummary(windowHours);
+  return c.json(summary);
+});
+
+app.get("/metrics", honoRateLimit("metrics.prometheus"), async (c) => {
+  const { registry } = await import("./services/prometheus");
+  const metrics = await registry.metrics();
+  return c.text(metrics, 200, { "Content-Type": registry.contentType });
+});
+
 // Pre-auth rate limits (by IP, before Better Auth handler)
 app.post("/api/auth/sign-in/email-otp", honoRateLimit("auth.otpRequest"));
 app.post("/api/auth/email-otp/verify-email", honoRateLimit("auth.otpVerify"));
