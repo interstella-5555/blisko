@@ -2,6 +2,8 @@
 
 Schema: `apps/api/src/db/schema.ts`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`.
 
+- `migrations/never-modify-merged` — **NEVER** modify existing migration files that are already on `main`. Merged migrations are immutable — they may have already run in production. You can only: (1) add new migrations, or (2) modify migrations you created on your current branch that haven't been merged yet.
+
 - `migrations/no-db-push` — All changes through migrations, never `db:push`.
 
 - `migrations/use-pnpm-scripts` — Always `pnpm --filter @repo/api db:generate -- --name=my_change` and `pnpm --filter @repo/api db:migrate`. Never bare `npx drizzle-kit`.
