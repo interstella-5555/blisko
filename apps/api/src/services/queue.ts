@@ -7,6 +7,7 @@ import { db, schema } from "@/db";
 import { ee } from "@/ws/events";
 import { analyzeConnection, evaluateStatusMatch, extractInterests, generateEmbedding, generatePortrait } from "./ai";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
+import { recordJobCompleted, recordJobFailed } from "./queue-metrics";
 
 function getConnectionConfig() {
   const url = new URL(process.env.REDIS_URL!);
@@ -102,6 +103,10 @@ type AIJob =
 // --- Queue (lazy init) ---
 
 let _queue: Queue | null = null;
+
+export function getQueueInstance(): Queue | null {
+  return _queue;
+}
 
 function getQueue(): Queue {
   if (!_queue) {
@@ -694,10 +699,13 @@ export function startWorker() {
   });
 
   _worker.on("completed", (job) => {
-    console.log(`[queue] Job ${job.id} completed (${job.data.type})`);
+    const durationMs = job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : 0;
+    recordJobCompleted("ai-jobs", durationMs);
+    console.log(`[queue] Job ${job.id} completed (${job.data.type}) ${durationMs}ms`);
   });
 
   _worker.on("failed", (job, err) => {
+    recordJobFailed("ai-jobs");
     console.error(`[queue] Job ${job?.id} failed:`, err.message);
   });
 

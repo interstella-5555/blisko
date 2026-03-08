@@ -1,19 +1,23 @@
 import { and, count, eq, gte, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { bullmqQueueDepth } from "./prometheus";
+import { getQueueInstance } from "./queue";
+import { getQueueStats, percentile } from "./queue-metrics";
 
 const DEFAULT_WINDOW_HOURS = 24;
 
 export async function getMetricsSummary(windowHours = DEFAULT_WINDOW_HOURS) {
   const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
 
-  const [overview, slowest, errors, sloBreaches] = await Promise.all([
+  const [overview, slowest, errors, sloBreaches, queues] = await Promise.all([
     getOverview(since),
     getSlowestEndpoints(since),
     getTopErrors(since),
     checkSloBreaches(since),
+    getQueueSummary(),
   ]);
 
-  return { windowHours, since: since.toISOString(), overview, slowest, errors, sloBreaches };
+  return { windowHours, since: since.toISOString(), overview, slowest, errors, sloBreaches, queues };
 }
 
 async function getOverview(since: Date) {
@@ -140,4 +144,47 @@ async function getPercentile(since: Date, pct: number, endpoint: string | null):
     .where(and(...conditions));
 
   return Math.round(Number(rows[0]?.value ?? 0));
+}
+
+async function getQueueSummary() {
+  const allStats = getQueueStats();
+  const queue = getQueueInstance();
+  const results = [];
+
+  for (const [name, s] of allStats) {
+    const avgDurationMs =
+      s.durations.length > 0 ? Math.round(s.durations.reduce((a, b) => a + b, 0) / s.durations.length) : 0;
+    const p95DurationMs = Math.round(percentile(s.durations, 0.95));
+
+    let waiting = 0;
+    let active = 0;
+    let delayed = 0;
+
+    if (queue) {
+      try {
+        const counts = await queue.getJobCounts("waiting", "active", "delayed");
+        waiting = counts.waiting ?? 0;
+        active = counts.active ?? 0;
+        delayed = counts.delayed ?? 0;
+        bullmqQueueDepth.set({ queue: name, state: "waiting" }, waiting);
+        bullmqQueueDepth.set({ queue: name, state: "active" }, active);
+        bullmqQueueDepth.set({ queue: name, state: "delayed" }, delayed);
+      } catch {
+        // Redis might be unavailable
+      }
+    }
+
+    results.push({
+      name,
+      completed: s.completed,
+      failed: s.failed,
+      waiting,
+      active,
+      delayed,
+      avgDurationMs,
+      p95DurationMs,
+    });
+  }
+
+  return results;
 }
