@@ -28,6 +28,7 @@ export const user = pgTable("user", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
+  anonymizedAt: timestamp("anonymized_at"),
 });
 
 export const session = pgTable("session", {
