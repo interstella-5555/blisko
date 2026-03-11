@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { cosineSimilarity } from "@repo/shared";
 import { type Job, Queue, Worker } from "bullmq";
 import { RedisClient } from "bun";
-import { and, between, eq, gte, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, between, eq, gte, inArray, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { ee } from "@/ws/events";
 import { analyzeConnection, evaluateStatusMatch, extractInterests, generateEmbedding, generatePortrait } from "./ai";
@@ -562,18 +562,25 @@ async function processStatusMatching(userId: string) {
 // --- Hard delete processor ---
 
 async function processHardDeleteUser(userId: string) {
-  console.log(`[queue] hard-delete-user starting for ${userId}`);
+  console.log(`[queue] anonymize-user starting for ${userId}`);
 
-  // 1. Get S3 file keys from profile before deleting
+  // Skip if already anonymized
+  const userData = await db.query.user.findFirst({
+    where: eq(schema.user.id, userId),
+    columns: { anonymizedAt: true },
+  });
+  if (userData?.anonymizedAt) {
+    console.log(`[queue] user ${userId} already anonymized, skipping`);
+    return;
+  }
+
+  // 1. Get S3 file keys from profile before overwriting
   const profile = await db.query.profiles.findFirst({
     where: eq(schema.profiles.userId, userId),
-    columns: {
-      avatarUrl: true,
-      portrait: true,
-    },
+    columns: { avatarUrl: true, portrait: true },
   });
 
-  // 2. Delete S3 files
+  // 2. Delete S3 files (avatar, portrait)
   if (profile) {
     const keysToDelete: string[] = [];
     for (const url of [profile.avatarUrl, profile.portrait]) {
@@ -601,40 +608,83 @@ async function processHardDeleteUser(userId: string) {
     }
   }
 
-  // 3. Delete non-cascading tables (order matters for FK constraints)
-  await db
-    .delete(schema.connectionAnalyses)
-    .where(or(eq(schema.connectionAnalyses.fromUserId, userId), eq(schema.connectionAnalyses.toUserId, userId)));
-  await db
-    .delete(schema.statusMatches)
-    .where(or(eq(schema.statusMatches.userId, userId), eq(schema.statusMatches.matchedUserId, userId)));
-  await db.delete(schema.blocks).where(or(eq(schema.blocks.blockerId, userId), eq(schema.blocks.blockedId, userId)));
-  await db.delete(schema.pushTokens).where(eq(schema.pushTokens.userId, userId));
+  const now = new Date();
+  const anonymizedEmail = `${crypto.randomUUID()}@deleted.localhost`;
 
-  // Messages & reactions
-  const userMessages = await db
-    .select({ id: schema.messages.id })
-    .from(schema.messages)
-    .where(eq(schema.messages.senderId, userId));
-  if (userMessages.length > 0) {
-    for (const msg of userMessages) {
-      await db.delete(schema.messageReactions).where(eq(schema.messageReactions.messageId, msg.id));
+  // 3. Anonymize user + profile + profiling data in a transaction
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.user)
+      .set({
+        name: "Usunięty użytkownik",
+        email: anonymizedEmail,
+        emailVerified: false,
+        image: null,
+        updatedAt: now,
+        anonymizedAt: now,
+      })
+      .where(eq(schema.user.id, userId));
+
+    await tx
+      .update(schema.profiles)
+      .set({
+        displayName: "Usunięty użytkownik",
+        avatarUrl: null,
+        bio: "",
+        lookingFor: "",
+        socialLinks: null,
+        visibilityMode: "hidden",
+        interests: null,
+        embedding: null,
+        portrait: null,
+        portraitSharedForMatching: false,
+        isComplete: false,
+        currentStatus: null,
+        statusExpiresAt: null,
+        statusEmbedding: null,
+        statusSetAt: null,
+        latitude: null,
+        longitude: null,
+        lastLocationUpdate: null,
+        updatedAt: now,
+      })
+      .where(eq(schema.profiles.userId, userId));
+
+    await tx
+      .update(schema.profilingSessions)
+      .set({ generatedBio: null, generatedLookingFor: null, generatedPortrait: null })
+      .where(eq(schema.profilingSessions.userId, userId));
+
+    const sessionIds = await tx
+      .select({ id: schema.profilingSessions.id })
+      .from(schema.profilingSessions)
+      .where(eq(schema.profilingSessions.userId, userId));
+
+    if (sessionIds.length > 0) {
+      await tx
+        .update(schema.profilingQA)
+        .set({ answer: null })
+        .where(
+          inArray(
+            schema.profilingQA.sessionId,
+            sessionIds.map((s) => s.id),
+          ),
+        );
     }
+  });
+
+  // 4. Anonymize metrics (outside transaction — separate schema, non-critical)
+  try {
+    await db.update(schema.requestEvents).set({ userId: null }).where(eq(schema.requestEvents.userId, userId));
+    await db
+      .update(schema.requestEvents)
+      .set({ targetUserId: null })
+      .where(eq(schema.requestEvents.targetUserId, userId));
+  } catch (err) {
+    console.error(`[queue] failed to anonymize metrics for ${userId}:`, err);
   }
-  await db.delete(schema.messageReactions).where(eq(schema.messageReactions.userId, userId));
-  await db.delete(schema.messages).where(eq(schema.messages.senderId, userId));
 
-  await db.delete(schema.conversationParticipants).where(eq(schema.conversationParticipants.userId, userId));
-  await db.delete(schema.waves).where(or(eq(schema.waves.fromUserId, userId), eq(schema.waves.toUserId, userId)));
-
-  // Set creatorId to null on conversations/topics (nullable FK)
-  await db.update(schema.conversations).set({ creatorId: null }).where(eq(schema.conversations.creatorId, userId));
-  await db.update(schema.topics).set({ creatorId: null }).where(eq(schema.topics.creatorId, userId));
-
-  // 4. Delete user row — cascades to: session, account, profiles, profilingSessions
-  await db.delete(schema.user).where(eq(schema.user.id, userId));
-
-  console.log(`[queue] hard-delete-user completed for ${userId}`);
+  console.log(`[queue] anonymize-user completed for ${userId}`);
 }
 
 // --- Export user data processor ---
