@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { dataExportReady, sendEmail } from "@/services/email";
 
@@ -128,7 +128,10 @@ export async function collectAndExportUserData(userId: string, email: string) {
 
   const allMessages =
     conversationIds.length > 0
-      ? await db.select().from(schema.messages).where(inArray(schema.messages.conversationId, conversationIds))
+      ? await db
+          .select()
+          .from(schema.messages)
+          .where(and(inArray(schema.messages.conversationId, conversationIds), isNull(schema.messages.deletedAt)))
       : [];
 
   // Group by conversationId

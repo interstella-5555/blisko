@@ -411,7 +411,6 @@ async function processGenerateProfilingQuestion(job: GenerateProfilingQuestionJo
     sessionId,
     questionNumber,
     question: result.question,
-    suggestions: result.suggestions,
     sufficient: result.sufficient,
   });
 

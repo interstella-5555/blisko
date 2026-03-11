@@ -376,7 +376,6 @@ export const profilingRouter = router({
         sessionId: session.id,
         questionNumber,
         question: questionText,
-        suggestions: [],
         answer: a.answer,
         sufficient: false,
       });
@@ -401,7 +400,6 @@ export const profilingRouter = router({
           sessionId: session.id,
           questionNumber,
           question: fq,
-          suggestions: [],
           answer: null,
           sufficient: false,
         })

@@ -364,7 +364,6 @@ export const profilingQA = pgTable(
       .references(() => profilingSessions.id, { onDelete: "cascade" }),
     questionNumber: integer("question_number").notNull(),
     question: text("question").notNull(),
-    suggestions: text("suggestions").array().notNull(),
     answer: text("answer"),
     sufficient: boolean("sufficient").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -1,0 +1,1 @@
+ALTER TABLE "profiling_qa" DROP COLUMN "suggestions";

@@ -59,7 +59,6 @@ Wygeneruj pytania pogłębiające (0-3).`,
 
 const nextQuestionSchema = z.object({
   question: z.string(),
-  suggestions: z.array(z.string()).min(3).max(4),
   sufficient: z.boolean(),
 });
 
@@ -77,7 +76,6 @@ export async function generateNextQuestion(
   if (!isConfigured()) {
     return {
       question: "Opowiedz mi o swoich zainteresowaniach.",
-      suggestions: ["Sport i aktywność", "Muzyka i sztuka", "Technologia", "Podróże"],
       sufficient: qaHistory.length >= 5,
     };
   }
