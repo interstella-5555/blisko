@@ -1,0 +1,41 @@
+{
+  "$schema": "./scatter-areas-schema.json",
+  "_doc": "Area definitions for scatter-targeted.ts. Three types: geojson-ref (from warszawa-dzielnice.geojson), polygon (inline [lng,lat][] ring), bbox (simple box).",
+  "areas": {
+    "bemowo": {
+      "type": "geojson-ref",
+      "feature": "Bemowo"
+    },
+    "ochota": {
+      "type": "geojson-ref",
+      "feature": "Ochota"
+    },
+    "wlochy": {
+      "type": "geojson-ref",
+      "feature": "Włochy"
+    },
+    "wola": {
+      "type": "geojson-ref",
+      "feature": "Wola"
+    },
+    "srodmiescie": {
+      "type": "geojson-ref",
+      "feature": "Śródmieście"
+    },
+    "mokotow": {
+      "type": "geojson-ref",
+      "feature": "Mokotów"
+    },
+    "ursynow": {
+      "type": "geojson-ref",
+      "feature": "Ursynów"
+    },
+    "golaszew": {
+      "type": "bbox",
+      "latMin": 52.201,
+      "latMax": 52.215,
+      "lngMin": 20.738,
+      "lngMax": 20.76
+    }
+  }
+}

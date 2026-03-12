@@ -41,8 +41,19 @@ echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:300
 **Monitors:** `pnpm dev-cli:queue-monitor` (BullMQ jobs), `pnpm dev-cli:chatbot-monitor` (bot activity).
 
 **Seed users:** Emails `user0@example.com` through `user249@example.com`, scattered across 7 Warsaw districts (Ochota, Włochy, Wola, Śródmieście, Mokotów, Ursynów, Bemowo) using polygons from `apps/api/scripts/warszawa-dzielnice.geojson`.
-- `pnpm api:scatter` — re-scatter existing users (direct DB, no side-effects)
+- `pnpm api:scatter` — re-scatter ALL users uniformly across 7 districts (direct DB, no side-effects)
 - `cd apps/api && bun run scripts/scatter-locations.ts` — re-scatter via API (fires AI re-analysis + WS broadcasts)
+- **Targeted scatter** — move specific users to specific areas:
+  ```bash
+  bun --env-file=apps/api/.env.production run apps/api/scripts/scatter-targeted.ts \
+    <area>:<count>:<startIdx> [...]
+  # Example: 30 users to Bemowo, 15 to Gołaszew
+  bun --env-file=apps/api/.env.production run apps/api/scripts/scatter-targeted.ts \
+    bemowo:30:200 golaszew:15:230
+  # List available areas:  --list
+  # Preview without DB changes:  --dry-run
+  ```
+  Areas defined in `apps/api/scripts/scatter-areas.json` — supports `geojson-ref` (from warszawa-dzielnice.geojson), `polygon` (inline coordinates), or `bbox`.
 - Fresh seed: delete `apps/api/scripts/.seed-cache.json` first, then `bun run apps/api/scripts/seed-users.ts`
 - After re-seeding, display a random test user email (e.g. `user42@example.com`) for quick login
 
