@@ -1,249 +1,417 @@
-# Blisko — Connecting People with Shared Interests Nearby
+# Blisko — Product Bible
 
-## Product Vision
+> ***Właściwa osoba jest w pobliżu. Zawsze była.***
 
-**Blisko** is a mobile app (iOS/Android) that lets users discover and connect with people who share their interests and happen to be nearby. Unlike dating apps, Blisko focuses on building relationships around shared passions — whether it's walking dogs, bowling, cycling, or reading Stanislaw Lem novels.
-
----
-
-## Core Features
-
-### 1. User Profile
-
-#### Free-Text Fields
-Instead of long forms, users fill in **three free-text fields**:
-
-- **Display name** (2–50 characters)
-- **"Who I am, what I like to do"** (`bio`, 10–500 characters) — a free-form self-description
-  > *Example: "I'm Karol, 32. I have a golden retriever named Max. I like running in the park, I bowl on weekends, and in the evenings I read sci-fi — mostly Lem and Asimov."*
-- **"What I'm looking for"** (`lookingFor`, 10–500 characters) — what the user wants from others
-  > *Example: "Looking for people to walk dogs with — Max loves company. I'd also enjoy casual bowling. Would be great to chat about sci-fi books too."*
-
-An `avatarUrl` field exists in the schema but is not yet used in the UI.
-
-#### AI-Powered Matching
-The system uses OpenAI (`text-embedding-3-small`) to generate an embedding vector from the combined bio and lookingFor text. This embedding powers similarity-based matching — nearby users are ranked by cosine similarity so the most relevant people appear first.
-
-### 2. Authentication
-
-Blisko uses **Better Auth** with the **email OTP** plugin:
-
-1. User enters their email address
-2. A 6-digit one-time code is sent via **Resend**
-3. User enters the code (or taps the deep link) and is logged in
-4. Sessions are stored securely via Expo SecureStore
-
-No passwords, no phone numbers — just email magic links.
-
-### 3. Nearby Discovery
-
-#### Map + Bottom Sheet
-The main screen shows a map (react-native-maps) with user clusters and a gesture-driven bottom sheet:
-
-- **Map view**: clusters of nearby users, grouped by ~500m grid cells for privacy
-- **Bottom sheet**: swipe up to see a list of nearby users sorted by distance
-- Tap a cluster to filter the list to users in that area
-- Each user row shows display name, distance (rounded to 100m), and a wave button
-
-#### Location Privacy
-Exact coordinates are never exposed to other users. The system uses **grid snapping** (~500m cells):
-
-- `toGridCenter()` snaps lat/lng to the center of a grid cell
-- Distance is rounded to the nearest 100m to prevent triangulation
-- Separate API endpoints: one returns grid positions for the map, another returns distance + similarity scores for the list
-
-### 4. Waves
-
-The "wave" system is how users initiate contact:
-
-1. **Send a wave**: user taps the wave button on someone's profile, optionally with a message
-2. **Receive notification**: the recipient sees the wave in their waves tab
-3. **Respond**: the recipient can:
-   - **Accept** — a 1:1 conversation is automatically created
-   - **Decline** — the wave is dismissed; the sender is not notified
-   - **Block** — the sender can never contact this user again
-4. **Unblock**: users can unblock from settings
-
-Duplicate waves are prevented. Blocking auto-declines any pending waves and prevents contact in both directions.
-
-The waves screen has two tabs: received (pending) and sent (with status tracking).
-
-### 5. Chat
-
-#### Backend (fully implemented)
-- tRPC procedures for sending messages, fetching conversations, cursor-based message pagination
-- Read status tracking (`readAt` timestamp)
-- Unread message count per conversation
-- Conversations are created automatically when a wave is accepted
-
-#### Current limitations
-- **Text only** — no images or media
-- **No real-time updates** — standard HTTP polling, no WebSockets or SSE
-- **No typing indicators** — the store structure exists but is unused
-- Frontend chat UI is a stub screen
-
-### 6. Push Notifications
-
-A `pushTokens` table exists in the database (userId, token, platform), and `expo-notifications` is a dependency — but there is no actual push sending logic yet. Wave acceptance, new messages, and other events have `// TODO: Send push notification` markers in the backend code.
+Ten dokument jest wykładnią produktu. Każda decyzja — techniczna, designerska, marketingowa — powinna dać się uzasadnić przez coś co tu jest napisane. Jeśli nie da się — albo decyzja jest zła, albo ten dokument wymaga aktualizacji.
 
 ---
 
-## Planned Features
+## Wielka idea
 
-The following features are part of the product vision but not yet built:
+Blisko to pierwsza platforma która zamienia przestrzeń fizyczną w warstwę intencji.
 
-- **Filters** — gender, age range, interests (tags), dog owners, verified profiles
-- **Avatar upload & photo gallery** — the `avatarUrl` field exists but upload and display are not implemented
-- **AI tags & profile summary** — extract interest tags and a short summary from the bio text (currently only embeddings are generated)
-- **Push notifications** — send notifications for waves, messages, and proximity alerts (table exists, logic pending)
-- **Real-time chat** — WebSocket or SSE-based live message delivery
-- **Chat media** — image/photo sharing in conversations
-- **Typing indicators** — show "typing..." status in chat
-- **Groups** — public/private groups with admin roles, group chat, and discovery based on member proximity
-- **Smart proximity notifications** — alert users when a high-match person is nearby, with cooldown rules (moved >500m, >1h since last alert)
-- **Anonymous browsing mode** — view aggregate stats ("4 dog owners nearby") without logging in
+Nigdy w historii ludzkość nie była tak połączona — i nigdy nie czuła się tak samotna. Mamy tysiąc znajomych na LinkedIn i nie ma z kim pogadać o projekcie. Mamy Tindera i związki trwają krócej niż subskrypcja. Mamy Meetup i wracamy do domu z wizytówką której nigdy nie użyjemy.
+
+Problem nie jest w ludziach. Problem jest w modelu. Wszystkie obecne platformy działają na tej samej architekturze: stwórz profil → przeglądaj → wybierz → połącz. To model sklepowy. Blisko robi coś fundamentalnie innego: **nie przeglądasz ludzi — jesteś w miejscu.**
+
+Miejsce ma energię. Ludzie w tym miejscu mają potrzeby. Blisko sprawia że te potrzeby mogą się spotkać — bez performowania, bez scrollowania, bez cold outreachu. W kawiarni, na siłowni, na evencie, w samolocie. Wszędzie tam gdzie już jesteś.
 
 ---
 
-## Use Cases
+## Dlaczego teraz
 
-### UC1: Dog Walk
-**Actor**: Karol (golden retriever owner)
-
-1. Karol opens the app in the park
-2. He sees that Anna with a labrador is 300m away
-3. He taps "Wave" on Anna's profile
-4. Anna gets a notification and accepts
-5. They arrange a walk through chat
-6. The dogs play, the owners talk
-
-### UC2: Weekend Bowling
-**Actor**: Adam (bowling fan)
-
-1. Adam is looking for people to bowl with
-2. He sets a filter for the "bowling" interest
-3. He finds a group called "Bowling Warsaw Wola"
-4. He sends a request to join
-5. The admin approves
-6. Adam joins the group chat and arranges the next game
-
-### UC3: New City, New Friends
-**Actor**: Maja (new in town)
-
-1. Maja just moved to Krakow
-2. She fills in her profile: likes running, books, coffee
-3. The app shows nearby people and groups
-4. Maja finds a running group "Parkrun Krakow"
-5. She joins and meets local runners
-
-### UC4: Chance Encounter at the Mall
-**Actor**: Tomek (sci-fi fan)
-
-1. Tomek goes to a shopping mall
-2. He gets a notification: "Someone nearby also reads Lem!"
-3. He opens the app and sees Kasia (~50m away)
-4. He waves at Kasia, she accepts
-5. They meet for coffee at the mall
-
-### UC5: Organizing a Football Match
-**Actor**: Piotr (football group admin)
-
-1. Piotr creates a group "Sunday Kickabout Ursynow"
-2. He sets it to public
-3. People nearby see the group when they're close to Ursynow
-4. 15 people join within a week
-5. Piotr organizes the first match through the group chat
+| Epidemia samotności | Zmęczenie cyfrowymi relacjami | Koniec modelu sklepowego |
+|---|---|---|
+| WHO uznało samotność za globalny kryzys zdrowotny. Gen Z i Millenialsi to najbardziej osamotnione pokolenie w historii — mimo bycia najbardziej online. | Po pandemii ludzie wracają do fizyczności. Kawiarnie pełne, siłownie rekordowe, eventy wyprzedane. Chcemy być razem — brakuje nam tylko pomostu. | Tinder, LinkedIn, Bumble BFF — tracą retencję. Użytkownicy nie chcą kolejnej apki do scrollowania. Chcą narzędzia które działa za nich. |
 
 ---
 
-## Safety & Privacy
+## Cztery filary
 
-### Location Protection
-- **Exact location is never shared** — positions are snapped to ~500m grid cells
-- Distance is rounded to the nearest 100m to prevent triangulation
-- Users can hide themselves temporarily (invisible mode — planned)
+Każda funkcja w Blisko musi wzmacniać przynajmniej jeden z tych filarów. Jeśli nie wzmacnia żadnego — nie budujemy tego.
 
-### Moderation
-- Blocking system (one-way, prevents all contact)
-- Reporting system (planned)
-- AI chat moderation (planned)
+### Ambient
+Działa w tle gdy użytkownik żyje swoim życiem. Nie wymaga uwagi — sam powiadamia gdy coś się dzieje. **Zero scrollowania.** Aplikacja szuka za użytkownika. Użytkownik żyje, Blisko pracuje.
 
-### User Data
-- GDPR compliance (planned)
-- Data export (planned)
-- Full account and data deletion (planned)
+### Meta
+Jedno narzędzie, nieskończone konteksty: randka, projekt, inwestycja, znajomy do biegania, klient, współpracownik. Nie kategoryzuje cię — **ty sam decydujesz czego szukasz dziś.** Status to twoja aktualna intencja, zmienialna jednym tapem.
 
----
+### Fizyczny
+Łączy przez obecność, nie przez algorytm. Dwie osoby 300 metrów od siebie z pasującą intencją — to 10-20x wyższy kontekst niż cold message. **Bliskość fizyczna jest filtrem jakości.**
 
-## Future Ideas
-
-1. **Events & Meetups** — create events with date, time, and place; RSVP tracking
-2. **Achievements & Gamification** — badges for activity ("First walk", "10 meetups", "Popular profile"), user levels
-3. **Calendar Integration** — sync meetups with phone calendar, reminders
-4. **Place Recommendations** — AI suggests meeting spots ("For a dog walk, try Skaryszewski Park — 2km from you")
-5. **Schedule-Based Matching** — users share availability; system connects people with matching routines ("Adam also runs mornings in this park!")
-6. **Video Verification** — optional short video to verify identity, builds trust
-7. **Stories / Status Updates** — short posts like "I'm in the park with my dog right now, anyone want to join?" visible to nearby users for 24h
-8. **Reputation System** — post-meetup feedback ("Great walk! The dogs got along"), builds community trust
-9. **Fitbit / Apple Health Integration** — detect activity automatically ("Karol is running in the park — want to join?")
-10. **"I'm Here" Mode** — broadcast to nearby users: "I'm at cafe X, happy to chat" for spontaneous meetups
+### Prywatny
+Intencja ukryta dopóki sam nie zdecydujesz. Nikt nie wie że szukasz inwestora, randki, wspólnika — dopóki nie pingujesz. **Status zawsze ukryty przed pingiem — to jest serce różnicy między Blisko a każdą inną aplikacją.**
 
 ---
 
-## Success Metrics (KPIs)
+## Nasz użytkownik (High-Expectation Customer)
+
+20-35 lat. Mieszka w dużym mieście. Aktywny — siłownia, kawiarnie, eventy, coworkingi. Ma potrzeby społeczne i zawodowe ale nie chce spędzać czasu na scrollowaniu profili. Chce żeby „rzeczy się zdarzały" — naturalnie, w tle, przy okazji.
+
+To nie jest osoba która szuka apki do poznawania ludzi. To osoba która chce **narzędzie które pracuje za nią** — jak GPS który prowadzi, nie jak katalog który trzeba przeglądać.
+
+Konkretne persony:
+- Freelancer w kawiarni, otwarty na rozmowę o projekcie
+- Studentka SGH szukająca kogoś do projektu z Politechniki
+- Inwestor na konferencji, szukający deep tech foundersów
+- Nowa osoba w mieście, chcąca poznać kogoś do biegania
+- Regularny bywalec siłowni — te same twarze, zero rozmów
+
+---
+
+## Zasady produktu
+
+Zasady które tworzą **realne trade-offy** — gdyby nikt nie mógł się z nimi nie zgodzić, nie byłyby zasadami.
+
+### 1. Prywatność intencji ponad wygodę odkrywania
+> Status jest zawsze ukryty przed pingiem. Nawet jeśli to oznacza że użytkownik pinguje „w ciemno" — bo chronienie intencji buduje zaufanie, a zaufanie buduje społeczność. Nikt nie wie czego szukasz dopóki nie zdecydujesz się to odsłonić.
+
+### 2. Ambient ponad engagement
+> Wolę użytkownika który otwiera apkę 2 razy dziennie po push notyfikacji niż takiego który scrolluje 40 minut. Nie projektujemy na time-on-app. Projektujemy na „czy spotkałeś kogoś ciekawego dziś". Brak aktywności to nie problem — to znak że apka działa w tle jak powinna.
+
+### 3. Ludzie ponad miejsca
+> Nie budujemy Yelpa, Foursquare'a ani discovery app dla restauracji. Miejsca to kontekst, nie produkt. Budujemy warstwę ludzkich potrzeb w przestrzeni fizycznej.
+
+### 4. Stopniowe odsłanianie ponad natychmiastowy dostęp
+> Im więcej zaufania, tym więcej informacji. Ping → status. Akceptacja → pełny profil i „Co nas łączy". Każdy krok odsłania więcej — i każdy krok wymaga zgody.
+
+### 5. Ludzki ton ponad systemowy
+> Nie „odrzucono", tylko „ta osoba jest teraz niedostępna". Nie „brak matchów", tylko „możesz być pierwszy". Każdy komunikat powinien brzmieć jak coś co powiedziałby przyjaciel, nie system.
+
+### 6. Fizyczność ponad wirtualność
+> Łączymy ludzi którzy są w tym samym miejscu, teraz. Nie budujemy czatu globalnego. Nie budujemy Discorda. Bliskość fizyczna jest warunkiem koniecznym pierwszego kontaktu.
+
+### 7. Prostota ponad kompletność
+> Każda decyzja techniczna powinna przechodzić test: czy to wzmacnia poczucie że tu chodzi o prawdziwych ludzi w prawdziwej przestrzeni — czy je osłabia? Jeśli feature komplikuje core loop — nie dodajemy go.
+
+---
+
+## Czego NIE robimy
+
+- **Nie scrollujemy profili.** Żadnych list do przeglądania, żadnego swipe. Aplikacja szuka, użytkownik decyduje.
+- **Nie pokazujemy intencji.** Status ukryty przed pingiem. Zawsze. Bez wyjątków (oprócz znajomych).
+- **Nie monetyzujemy danych.** Zero sprzedaży danych, zero reklam bannerowych. Jedyna forma obecności firm to organiczne statusy na mapie.
+- **Nie budujemy wersji webowej.** Aplikacja oparta na GPS i fizyczności. Mobilna, ambient, w tle.
+- **Nie robimy global chat.** Blisko łączy ludzi w przestrzeni fizycznej. Bez czatu ze znajomymi po drugiej stronie globu.
+- **Nie wymuszamy zaangażowania.** Zero streaks, zero FOMO, zero „wróć bo stracisz". Użytkownik używa kiedy ma potrzebę.
+
+---
+
+## System interakcji
+
+### Bańki na mapie
+Każdy użytkownik widoczny jako bańka/avatar. Bańki są **neutralne** — żaden kolor, rozmiar ani ikona nie zdradza intencji. Wyjątek: ikona trybu Nie przeszkadzać (widoczna dla wszystkich).
+
+### Co widzisz ZANIM pingujesz
+
+| Element | Widoczne? |
+|---|---|
+| Avatar / zdjęcie | Tak — na bańce |
+| % dopasowania profilu | Tak — przy bańce |
+| Odległość (~300m) | Tak — przybliżona |
+| Krótkie bio | Tak — po kliknięciu |
+| „Co nas łączy" (ogólne) | Tak — wspólne tagi, 1-2 zdania AI, **bez statusu** |
+| Kategoria statusu | **NIE** — ukryty przed pingiem |
+| Pełny profil / linki | **NIE** — po akceptacji pinga |
+
+### Ping = wzajemna wymiana statusów za zgodą obu stron
+
+1. **A pinguje B** — status A staje się widoczny dla B. B widzi: profil A + status A + „Co nas łączy" (pełna wersja ze statusem).
+2. **B akceptuje** — status B staje się widoczny dla A. Chat otwiera się. Oboje widzą pełne profile i linki.
+3. **B odrzuca** — statusy wracają ukryte. A dostaje: „Ta osoba jest teraz niedostępna — powodów może być wiele, nie przejmuj się." Cooldown 24h.
+
+### Limity
+- 1 ping do tej samej osoby na 24h (zawsze, niezależnie od planu)
+- 5 pingów/dzień (Basic) / 20 pingów/dzień (Premium)
+- Pingi do znajomych nie wchodzą w dzienny limit
+
+### Mutual ping
+Gdy oboje pingują się wzajemnie w odstępie < 30 sekund — chat otwiera się automatycznie bez akceptacji. Specjalny efekt: *„Pingowaliście się wzajemnie w tym samym momencie. To rzadkie. To zostaje."*
+
+---
+
+## Matching — dwa poziomy
+
+### Poziom 1: Profile Match (głęboki, stały)
+Widoczny jako **% na bańce zawsze** — przed i po pingu. Porównuje:
+- Tagi hobby i zainteresowań
+- Branżę i typ pracy
+- Tryb oferty (wolontariat / wymiana / zlecenie)
+- Embedding similarity (AI-generated)
+
+Nie blokuje pinga — użytkownik sam decyduje czy 10% match go interesuje.
+
+### Poziom 2: Status Match (sytuacyjny, „na teraz")
+Porównanie statusu A z „Co mogę dać" B (i odwrotnie). Działa w tle. Gdy pojawi się match w pobliżu — ambient notification (cichy sygnał / wibracja). **Status match nie ujawnia czyjego statusu — tylko sygnalizuje że jest ktoś komplementarny w pobliżu.**
+
+---
+
+## Profil użytkownika
+
+### Onboarding (AI-driven, nie formularze)
+
+**Krok 1 — Kim jesteś (The Persona)**
+> *„Cześć! Wyobraź sobie, że siadamy przy jednym stoliku. Czym się zajmujesz i co sprawia że tracisz poczucie czasu?"*
+
+AI wyciąga tagi: branża, rola, hobby, zainteresowania, styl życia. Max jedno pytanie doprecyzowujące. Bio generowane przez AI, edytowalne.
+
+**Krok 2 — Co oferujesz (Superpower)**
+> *„W czym możesz komuś pomóc od ręki — w zamian za kawę lub dobrą rozmowę?"*
+
+Selektor formy: wolontariat / wymiana skilli / potencjalne zlecenie.
+
+**Krok 3 — Czego szukasz dziś (Status)**
+> *„Czego szukasz dziś — albo co możesz dziś dać?"*
+
+Kafle kategorii (max 2 jednocześnie):
+- ⚡ Projekt / Współpraca
+- 🤝 Networking / Sparring
+- 🔥 Randka / Relacja
+- ☕ Luźne wyjście / Hobby
+
+**Krok 4 — Widoczność**
+
+| Tryb | Opis |
+|---|---|
+| 🥷 Ninja | Widzisz innych, Ciebie nie widać. Nie możesz pingować (aplikacja pyta o przejście na Semi-Open). |
+| 🔵 Semi-Open | Widoczny na mapie. Możesz pingować i być pingowany. |
+| 🟢 Full Nomad | Widoczny, otwarty. AI zachęca do kontaktu bezpośredniego. |
+
+**Potwierdzenie** — AI pokazuje 3-4 zdania podsumowania: *„Oto jak Cię widzę — powiedz czy trafiłem."*
+
+### Elementy profilu
+- Jedno zdjęcie profilowe (dowolne)
+- Bio wygenerowane przez AI (edytowalne)
+- „Co mogę dać" z tagami i typem oferty
+- Opcjonalnie: link do LinkedIn/Instagram + strona www (widoczne po akceptacji pinga)
+- Badge Verified (opcjonalna weryfikacja twarzy)
+
+---
+
+## Tryby widoczności — szczegóły
+
+Trzy tryby niezależne od statusu. Zmiana jednym tapem na mapie.
+
+| | Ninja 🥷 | Semi-Open 🔵 | Full Nomad 🟢 |
+|---|---|---|---|
+| Widoczny na mapie | Nie | Tak | Tak |
+| Może pingować | Nie (prompt o zmianę) | Tak | Tak |
+| Może być pingowany | Nie | Tak | Tak |
+| AI zachęca do podejścia | — | — | Tak |
+
+**Nie przeszkadzać** — osobna ikonka, niezależna od trybu. Pingi dochodzą ale bez powiadomienia. Po wyłączeniu — user widzi zaległe pingi.
+
+---
+
+## Chat
+
+- Otwiera się automatycznie po akceptacji pinga
+- Widoczne: imię, zdjęcie, % match, status z momentu akceptacji (snapshot, nie live)
+- „Co nas łączy" — pełna wersja AI uwzględniająca statusy obu stron z momentu połączenia
+- Bez limitu czasowego, powiadomienia push o nowych wiadomościach
+- Archiwizacja/usunięcie przez użytkownika (obustronne)
+
+### Karta pierwszego kontaktu (WOW moment)
+Zamiast pustego ekranu — chat otwiera się z kartą:
+> *📍 12 marca · Śródmieście · ~300m od siebie*
+
+Dla mutual pinga dodatkowa linia:
+> *✨ Pingowaliście się wzajemnie w tym samym momencie. To rzadkie. To zostaje.*
+
+### Usuwanie chatu
+Usunięcie = obustronne. Prompt z opcjonalną oceną (⭐1-5) lub „Pomiń i usuń".
+
+---
+
+## Grupy (Premium+)
+
+- Tryb sesyjny: widzę grupę w pobliżu, pingę żeby dołączyć do sesji
+- Tryb stały: dołączam jako członek, dostaję powiadomienie gdy ktoś z grupy jest w pobliżu
+- Każda grupa ma czat grupowy
+- Założenie grupy: tylko Premium+
+- Wydarzenia: admin tworzy z datą, godziną, miejscem — widoczne na mapie
+
+---
+
+## Znajomi
+
+- Skanowanie kontaktów z telefonu (widzę kto ma Blisko, oni nie wiedzą)
+- Zaproszenie → akceptacja = połączeni jako znajomi
+- Znajomi widzą wzajemnie statusy **bez pinga** (wyjątek od zasady ukrytego statusu)
+- Bezpośredni chat bez pinga, bez limitu
+- Pingi do znajomych nie wchodzą w dzienny limit
+- Powiadomienie gdy znajomy jest w pobliżu
+- Bez limitu znajomych, dostępne dla wszystkich planów
+
+---
+
+## Safety
+
+### Ochrona lokalizacji
+- Lokalizacja odświeżana co 3 minuty (nie real-time)
+- Na mapie: bańka w promieniu 50-100m (nie precyzyjny GPS)
+- Auto-wyłączenie GPS gdy nieruchomy 2h (wznawia po ruszeniu)
+
+### Weryfikacja (Verified badge)
+- Opcjonalna — brak weryfikacji nie blokuje dostępu
+- Liveness check (krótki filmik selfie) + porównanie z zdjęciem profilowym
+- Dane biometryczne zaszyfrowane, oddzielnie od profilu, osobna zgoda GDPR
+- Przy permanentnej blokadzie — dane twarzy uniemożliwiają nowe konto
+
+### Blokowanie i raportowanie
+- Każdy może zablokować każdego (trwale, znika z mapy)
+- Report: spam / nieodpowiednie zachowanie / nękanie
+- Eskalacja automatyczna:
+  - 2 zgłoszenia → blokada 1 dzień
+  - 5 łącznie → blokada 7 dni + email
+  - 10 łącznie → permanentna blokada
+  - Nękanie: 2 zgłoszenia od różnych osób → 7 dni; 3 → permanentna
+
+### Moderacja treści
+- Automatyczny filtr (AI) przy każdym zapisie: status, bio, nazwa grupy, wiadomość
+- 2 zgłoszenia treści → automatyczne ukrycie
+- Zero ręcznej moderacji na starcie (automatyczna eskalacja)
+
+### Usuwanie konta
+- Dwufazowe: soft-delete (14 dni grace period) → anonimizacja (nadpisanie danych)
+- Relacje zachowane (wiadomości, waves) — user widoczny jako „Usunięty użytkownik"
+- GDPR data export na żądanie
+
+---
+
+## Monetyzacja
+
+### Subskrypcje
+
+| | Basic (free) | Premium (19 PLN/mies lub 159 PLN/rok) | Premium+ (cena TBD) |
+|---|---|---|---|
+| Pingi / dzień | 5 | 20 | 20 + Grupy |
+| Trial | — | 3 dni gratis, bez karty | — |
+| Grupy | Brak | Brak | Tworzenie i zarządzanie |
+
+### Program poleceń
+- Nowy użytkownik przez link: 50% rabatu na pierwszy miesiąc/rok
+- Polecający: 50% wartości płatności jako kredyt
+- Gdy kredyty > koszt abonamentu → następny rok gratis
+
+### B2B (przyszłość)
+- „Blisko dla [instytucja]" — zamknięta społeczność dla członków
+- Lokale (kawiarnie, restauracje) rejestrują się jak userzy — status z ofertą dnia na mapie
+
+### Czego NIE monetyzujemy
+- Zero sprzedaży danych użytkowników
+- Zero bannerów reklamowych
+- Jedyna forma obecności firm: organiczne statusy na mapie
+
+---
+
+## Go-to-market — Warszawa
+
+**Strategia: gęstość w konkretnych miejscach.** Jedna dzielnica z wysoką koncentracją jest cenniejsza niż 10x więcej rozsianych po mieście.
+
+### Trzy filary launchu
+
+**🎓 Uczelnie** — SGH + Politechnika. Jeden ambasador na roku (premium za onboarding 20 znajomych). Cel: 200 userów w jednym miejscu w 2 tygodnie. Viralność: *„kto to pingował?"*
+
+**💪 Siłownie** — 3 niezależne w Śródmieściu. Pitch do właściciela: *„Dajesz swoim członkom narzędzie do poznawania się — za darmo."* Behawioralnie idealne: regularność + te same twarze + zero rozmów = skumulowana potrzeba.
+
+**☕ Śródmieście** — Powiśle, freelancerzy, startupowcy. Kawiarnie rejestrują się jak userzy ze statusem-ofertą dnia.
+
+### Ambasadorzy
+Nie reklamują — używają. Autentyczność > marketing. Influencerzy: *„Właśnie dostałam pinga od kogoś 200m ode mnie"* (nie „pobierz"). Sportowcy: challenge (*„kto mnie znajdzie przez Blisko — trening razem"*).
+
+---
+
+## System komunikacji
+
+| Kontekst | Komunikat |
+|---|---|
+| **Tagline główny** | *To nie przypadek. To Blisko.* |
+| **Hero screen** | *Właściwa osoba jest w pobliżu. Zawsze była.* |
+| **Social media** | *Przeznaczenie działa. My tylko skracamy drogę.* |
+| **Filozofia** | *Przypadek to tylko bat którego przeznaczenie używa do popędzenia tego co i tak nieuchronne. Blisko to ten bat.* |
+
+**Zasada:** Blisko nie brzmi jak apka. Brzmi jak coś między filozofią a technologią. Lekko mistyczne, bardzo ludzkie. Nie mówi co robi — mówi co czujesz.
+
+---
+
+## Jak mierzymy sukces
+
+### Product-Market Fit (cel: ≥40% „very disappointed")
+Pytanie: *„Jak byś się czuł gdybyś nie mógł więcej używać Blisko?"* Opcje: Bardzo rozczarowany / Trochę rozczarowany / Bez różnicy. Cel: ≥40% odpowiada „bardzo rozczarowany" (Sean Ellis benchmark).
 
 ### Engagement
-- DAU/MAU ratio
-- Average waves per user per week
-- Wave-to-accept conversion rate
-- Average messages per conversation
+- **Pingi wysłane / user / tydzień** — czy ludzie inicjują kontakt?
+- **Ping → akceptacja conversion rate** — czy pingi mają wartość?
+- **Wiadomości / konwersacja** — czy rozmowy się udają?
+- **Spotkania umówione** — ultimate metric (self-reported)
 
-### Retention
-- D1, D7, D30 retention
-- % of users with a complete profile
-- % of users in at least one group
+### Retention (a16z social app benchmarks)
+| Metryka | Cel „Good" | Cel „Great" |
+|---|---|---|
+| DAU/MAU | 40% | 50%+ |
+| D1 retention | 60% | 70% |
+| D7 retention | 40% | 50% |
+| D30 retention | 25% | 30% |
 
 ### Growth
-- New users per week
-- Virality (average invites per user)
-
-### Satisfaction
-- App Store rating
-- NPS score
-- % of users who arranged a meetup
+- Nowi userzy / tydzień (organiczny > 80%)
+- Viralność: średnie zaproszenia / user
+- Gęstość: userzy / km² w target areas (> 50 = „żywa mapa")
 
 ---
 
-## Monetization (Future)
+## Pozycjonowanie
 
-### Freemium Model
-**Free**:
-- Browse 10 people per day
-- 1 wave per day
-- Membership in 3 groups
-
-**Premium** (~29 PLN/month):
-- Unlimited browsing
-- Unlimited waves
-- Unlimited groups
-- See who viewed your profile
-- Priority in results
-- No ads
-
-### Additional Revenue
-- Promoted profiles
-- Local ads (cafes, gyms, etc.)
-- Partnerships with event organizers
+| | Tinder / Bumble | LinkedIn | Blisko |
+|---|---|---|---|
+| **Cel** | Randka / romans | Kariera / biznes | **Wszystko — zależy od Ciebie** |
+| **Model** | Scroll → Match | Profil → Outreach | **Obecność → Intencja → Ping** |
+| **Wymagana uwaga** | Wysoka | Wysoka | **Minimalna — działa w tle** |
+| **Kontekst spotkania** | Brak | Niski | **Wysoki — jesteście w tym samym miejscu, teraz** |
+| **Prywatność intencji** | Niska | Niska | **Wysoka — status ukryty dopóki nie zdecydujesz** |
 
 ---
 
-## Competition
+## Platforma i technologia
 
-| App | Focus | How Blisko Differs |
-|-----|-------|--------------------|
-| Bumble BFF | Friends | Less location-driven, more "swipe"-based |
-| Meetup | Events | Larger groups, less spontaneous |
-| Nextdoor | Neighbors | Neighborhood focus, not interest-based |
-| Tinder | Dating | Romantic focus |
+- **iOS i Android** — tylko mobilna, brak wersji webowej
+- **Jedno konto na wielu urządzeniach** — dane w chmurze
+- **Języki v1.0:** polski i ukraiński. v2.0: angielski
+- **Docelowe rynki:** Polska (start) → Europa → globalnie
 
-**Blisko's unique value**: Combining real-time location with AI-powered interest matching for spontaneous, informal meetups.
+### Obecne możliwości techniczne
+- AI profiling (Q&A sessions, bio generation, portrait, interests extraction)
+- AI matching (bidirectional connection analysis, 0-100% score)
+- Status matching (embedding + LLM evaluation)
+- Real-time WebSocket (typing, new messages, analysis ready, nearby changes)
+- Push notifications (smart batching, collapse ID)
+- Background location tracking
+- Grid-based location privacy
+- Group chat with topics, reactions, replies
+- OAuth (Apple, Google, Facebook, LinkedIn)
+- GDPR compliance (data export, two-phase deletion)
+- Content moderation (AI-powered)
+- Performance monitoring (SLO, Prometheus metrics)
+
+---
+
+## Blisko w prawdziwym życiu
+
+**☕ Kawiarnia — spontaniczny projekt.** Siedzisz, ktoś obok mówi o medtech. Wpisujesz status „inwestor, szukam labu do protez". Blisko sprawdza czy w pobliżu ktoś pasuje. Rozmowa już trwa — Blisko ją tylko domyka.
+
+**💼 Konferencja — cold outreach bez chłodu.** Zamiast wizytówek w ciemno — ustawiasz status. Tylko pasujące osoby widzą sygnał. Ping zamiast niezręcznego podejścia.
+
+**🏋️ Siłownia — wspólna pasja.** Te same twarze od miesięcy, zero rozmów. Blisko pokazuje że ktoś 10m od Ciebie szuka partnera do biegania i słucha tej samej muzyki.
+
+**✈️ Hotel w podróży.** Status „otwarty na kolację, fintech". Ktoś w tym samym hotelu szuka rozmówcy.
+
+**🎓 Uczelnia — projekt i znajomości.** Student SGH szuka kogoś z PW do projektu IoT. Nie maile na grupę — status. Dopasowanie przychodzi samo.
+
+**📱 Zawsze — asystent w tle.** Inwestor: stały profil „szukam deep tech, medtech". Apka działa 24/7. Powiadomienie gdy ktoś pasujący jest w pobliżu.
+
+---
+
+*Blisko — Product Bible v2.0*
+*Opracowane na podstawie dokumentów strategicznych Jarka (Workflow v1.0, Brand Strategy v2.0) i analizy technicznej codebase'u.*
+*Dokument wewnętrzny. Kompas przy każdej decyzji produktowej, technicznej i komunikacyjnej.*
