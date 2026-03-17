@@ -40,145 +40,29 @@ echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:300
 
 **Monitors:** `pnpm dev-cli:queue-monitor` (BullMQ jobs), `pnpm dev-cli:chatbot-monitor` (bot activity).
 
-**Seed users:** Emails `user0@example.com` through `user249@example.com`, scattered across 7 Warsaw districts (Ochota, Włochy, Wola, Śródmieście, Mokotów, Ursynów, Bemowo) using polygons from `apps/api/scripts/warszawa-dzielnice.geojson`.
-- `pnpm api:scatter` — re-scatter ALL users uniformly across 7 districts (direct DB, no side-effects)
-- `cd apps/api && bun run scripts/scatter-locations.ts` — re-scatter via API (fires AI re-analysis + WS broadcasts)
-- **Targeted scatter** — move specific users to specific areas:
-  ```bash
-  bun --env-file=apps/api/.env.production run apps/api/scripts/scatter-targeted.ts \
-    <area>:<count>:<startIdx> [...]
-  # Example: 30 users to Bemowo, 15 to Gołaszew
-  bun --env-file=apps/api/.env.production run apps/api/scripts/scatter-targeted.ts \
-    bemowo:30:200 golaszew:15:230
-  # List available areas:  --list
-  # Preview without DB changes:  --dry-run
-  ```
-  Areas defined in `apps/api/scripts/scatter-areas.json` — supports `geojson-ref` (from warszawa-dzielnice.geojson), `polygon` (inline coordinates), or `bbox`.
-- Fresh seed: delete `apps/api/scripts/.seed-cache.json` first, then `bun run apps/api/scripts/seed-users.ts`
-- After re-seeding, display a random test user email (e.g. `user42@example.com`) for quick login
+**Seed users:** Emails `user0@example.com` – `user249@example.com`, scattered across 7 Warsaw districts. Polygons: `apps/api/scripts/warszawa-dzielnice.geojson`.
+- `pnpm api:scatter` — re-scatter ALL users uniformly (direct DB, no side-effects)
+- `bun run apps/api/scripts/scatter-locations.ts` — re-scatter via API (fires AI re-analysis + WS broadcasts)
+- `bun --env-file=apps/api/.env.production run apps/api/scripts/scatter-targeted.ts <area>:<count>:<startIdx> [...]` — targeted scatter (`--list` for areas, `--dry-run` to preview)
+- Fresh seed: delete `apps/api/scripts/.seed-cache.json`, then `bun run apps/api/scripts/seed-users.ts`. Display a random test email after
 
-**Chatbot:** `apps/chatbot/`, run with `pnpm chatbot:dev`. Seed users auto-respond to waves and messages. Wave acceptance is match-based: AI match score >=75% always accepts, scales linearly down to 10% at score 0. If you log in as a seed user, the bot pauses responding as that user for 5 minutes (activity-based detection).
+**Chatbot:** `pnpm chatbot:dev`. Seed users auto-respond to waves/messages. Acceptance: AI match >=75% always accepts, scales linearly to 10% at score 0. Logging in as a seed user pauses bot for 5 min.
 
-**After changing AI prompts:** `pnpm dev-cli -- reanalyze user42@example.com --clear-all`.
+**After changing AI prompts:** `pnpm dev-cli -- reanalyze user42@example.com --clear-all`
 
-**TestFlight:** `pnpm mobile:testflight` → builds archive → opens Xcode Organizer → Distribute App manually. Set `.env.local` to production API first. Script: `apps/mobile/scripts/testflight.sh`.
-
-**README screenshot:**
-```bash
-# 1. Dev server running at localhost:3000
-# 2. Capture screenshot (uses ?screenshot mode on /design-book)
-npx capture-website-cli "http://localhost:3000/design-book?screenshot" \
-  --width 1400 --scale-factor 2 --delay 3 --full-page \
-  --disable-animations --remove-elements ".nav" \
-  --output docs/screens-new.png
-# 3. MD5-rename for cache busting
-HASH=$(md5 -q docs/screens-new.png | tail -c 7)
-mv docs/screens-new.png docs/screens-$HASH.png
-# 4. Update README.md with new filename, delete old file
-```
-Key files: `design-book.tsx` (`?screenshot` detection + early return), `Screens.tsx` (`onlyFirstRow` prop).
+**TestFlight:** `pnpm mobile:testflight` → Xcode Organizer → Distribute App manually. Set `.env.local` to production API first.
 
 **Design Book:** `apps/design/`, `localhost:3000/design-book`. CSS modules (mangled class names). PhoneFrame: max 402px, aspect 402:874. Variants in `apps/design/src/variants/v2-*/`.
 
-**Shared package:** `@repo/shared` — types, Zod validators, enums, haversine. Used by API and Mobile. Typecheck: `pnpm --filter @repo/shared typecheck`.
+**Shared package:** `@repo/shared` — types, Zod validators, enums, haversine. Typecheck: `pnpm --filter @repo/shared typecheck`.
 
-**Testing:** Vitest on Bun. `pnpm api:test`, `pnpm --filter @repo/shared test`. Mobile E2E: Maestro (`pnpm --filter @repo/mobile test:e2e`). Tests: `apps/api/__tests__/**/*.test.ts`. Test pattern for Hono endpoints (no server needed):
-```ts
-import { describe, expect, it } from "vitest";
-import { app } from "../src/index";
+**Testing:** `pnpm api:test`, `pnpm --filter @repo/shared test`. E2E: Maestro (`pnpm --filter @repo/mobile test:e2e`). Tests in `apps/api/__tests__/**/*.test.ts`. Use `app.request()` directly (no server needed).
 
-describe("endpoint", () => {
-  it("works", async () => {
-    const res = await app.request("/health");
-    expect(res.status).toBe(200);
-  });
-});
-```
+**Biome:** `pnpm check` (format + lint + imports). TanStack Query ESLint rules not applicable (tRPC manages queryKeys, Biome covers hook deps).
 
-**Biome:** `pnpm check` (format + lint + imports). Config: `biome.json`. TanStack Query ESLint rules not applicable (tRPC manages queryKeys, Biome covers hook deps).
+**Monitoring:** `GET /api/metrics/summary?window=24` (JSON overview), `GET /metrics` (Prometheus). SLO: p95 < 500ms, error_rate < 5%. Design doc: `docs/architecture/instrumentation.md`.
 
-**Rate limiting:** Design doc at `docs/architecture/rate-limiting.md`. Engine: `apps/api/src/services/rate-limiter.ts`. Middleware: `apps/api/src/middleware/rateLimit.ts` (pre-auth, IP key), `apps/api/src/trpc/middleware/rateLimit.ts` (post-auth, userId key).
-
-**Monitoring production performance:** Two endpoints on `https://api.blisko.app`:
-- `GET /api/metrics/summary?window=24` — JSON: overview (totalRequests, errorRate, p50/p95/p99), slowest endpoints, top errors, SLO breaches. `window` = hours (default 24).
-- `GET /metrics` — Prometheus format (histogram `http_request_duration_ms`, counter `http_requests_total`).
-- SLO targets: global p95 < 500ms, error_rate < 5%; per-endpoint in `metrics.slo_targets` table. Seed: `bun run apps/api/scripts/seed-slo-targets.ts`.
-- Design doc: `docs/architecture/instrumentation.md`. Code: `apps/api/src/services/metrics.ts`, `prometheus.ts`, `metrics-summary.ts`.
-
-**Schema inspection:** `npx drizzle-kit export --sql` — see what SQL the full schema would produce from scratch.
-
-## Database migrations (Drizzle)
-
-Schema: `apps/api/src/db/schema.ts`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`. Rules: `.claude/rules/migrations.md`.
-
-### Workflow by scenario
-
-**Adding tables, columns, indexes (most common):**
-
-```bash
-# 1. Edit schema.ts
-# 2. Generate migration
-pnpm --filter @repo/api db:generate -- --name=describe_change
-# 3. Review the generated SQL in drizzle/NNNN_describe_change.sql
-# 4. Apply locally
-pnpm --filter @repo/api db:migrate
-# 5. Test, then commit migration + schema + app code together
-```
-
-`drizzle-kit generate` is non-interactive for additive changes — safe to run from Claude Code.
-
-**Renaming a column or table (two-step, non-interactive):**
-
-`generate` becomes interactive on renames (asks "Is X renamed from Y?"). Split into two migrations:
-
-```bash
-# Step 1: Add new column + copy data
-npx drizzle-kit generate --custom --name=rename_col_step1
-# Write SQL: ALTER TABLE ADD new_col; UPDATE SET new_col = old_col;
-
-# Step 2: After deploying step 1, remove old column from schema
-npx drizzle-kit generate --name=rename_col_step2
-```
-
-**Changing column types (e.g. `text → jsonb`):**
-
-Drizzle can't auto-generate type casts. Use custom migration:
-
-```bash
-npx drizzle-kit generate --custom --name=describe_change
-```
-
-```sql
--- Custom migration: change column type with explicit cast
-ALTER TABLE "my_table" ALTER COLUMN "my_col" TYPE jsonb USING "my_col"::jsonb;
-```
-
-**Data migrations (backfill):**
-
-Use custom migration — never mix DDL and DML in the same file:
-
-```bash
-npx drizzle-kit generate --custom --name=backfill_describe_what
-```
-
-```sql
--- Backfill: set default value for new column
-UPDATE "profiles" SET "visibility" = 'public' WHERE "visibility" IS NULL;
-```
-
-**Dropping tables/columns:** Remove from `schema.ts`, then `generate`. Non-interactive.
-
-**PostgreSQL extensions, functions, triggers:** Always `--custom`.
-
-## Drizzle query approach
-
-Rules: `.claude/rules/drizzle.md`. Decision hierarchy (in order of preference):
-
-1. **Relational queries** (default) — `db.query.*.findMany()` / `findFirst()` with `with`, `where`, `columns`, `orderBy`, `limit`
-2. **Query builder** (joins, aggregates, subqueries, performance-critical) — `db.select().from().where().leftJoin()...`
-3. **Raw `sql`** (last resort) — only inside a query builder call when no Drizzle equivalent exists
-
-**Rule of thumb:** Pick the approach that produces the simplest, most efficient code. `findMany`/`findFirst` should be short and obvious — if it's growing past ~15 lines, over-fetching data, or fighting the relational API, switch to query builder. Before choosing, think about what SQL Drizzle will generate.
+**Schema inspection:** `npx drizzle-kit export --sql`
 
 ---
 
@@ -213,22 +97,19 @@ Technical notes: add as comments on the Linear issue.
 
 Skills are **mandatory** at each stage, not optional:
 
-| Stage | Skill | When |
-|-------|-------|------|
-| New idea / feature design | `brainstorming` | Before any Backlog→Todo, before non-trivial implementation |
-| Implementation plan | `writing-plans` | After brainstorming, for tickets with 3+ acceptance criteria. Save to `docs/plans/` (committed, visible in worktrees) or Linear Document for later |
-| Executing plan with sub-tasks | `executing-plans` | Working through sub-issues or multi-step plans |
-| Parallel independent tasks | `dispatching-parallel-agents` | 2+ tasks with no shared state |
-| Writing code | `test-driven-development` | Any feature or bugfix — test before code |
-| Bug / test failure | `systematic-debugging` | Before proposing any fix — diagnose first |
-| Before Done / merge | `verification-before-completion` | Always. Run checks, confirm output |
-| After implementation | `requesting-code-review` | Before merge, after all tests pass |
-| Receiving feedback | `receiving-code-review` | When getting review comments — verify before implementing |
-| Branch complete | `finishing-a-development-branch` | Deciding merge/PR/cleanup |
+| Stage | Skill |
+|-------|-------|
+| New idea / feature design | `brainstorming` → `writing-plans` |
+| Executing plan with sub-tasks | `executing-plans` |
+| Parallel independent tasks | `dispatching-parallel-agents` |
+| Writing code | `test-driven-development` |
+| Bug / test failure | `systematic-debugging` |
+| Before Done / merge | `verification-before-completion` |
+| After implementation | `requesting-code-review` |
+| Receiving feedback | `receiving-code-review` |
+| Branch complete | `finishing-a-development-branch` |
 
 **Plans (`docs/plans/`) — overrides for `writing-plans` skill:**
-
-The `writing-plans` skill is always used for plans. These project-specific overrides take precedence:
 
 | Skill default | Our override | Why |
 |---------------|-------------|-----|

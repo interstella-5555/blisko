@@ -58,3 +58,6 @@ scripts/ralph-queue/
 # Worktrees
 .worktrees/
 
+# Superpowers
+.superpowers/
+
