@@ -31,8 +31,8 @@ tailwind.config = {
   .orb-delay-1 { animation-delay: -7s; }
   .orb-delay-2 { animation-delay: -14s; }
   .slide-track { display: flex; transition: transform 0.5s cubic-bezier(0.22,1,0.36,1); will-change: transform; }
-  .slide { flex: 0 0 100%; width: 100%; min-width: 100%; opacity: 0.3; transform: scale(0.95); transition: opacity 0.5s, transform 0.5s; pointer-events: none; }
-  .slide.active { opacity: 1; transform: scale(1); pointer-events: auto; }
+  .slide { flex: 0 0 100%; width: 100%; min-width: 100%; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
+  .slide.active { opacity: 1; pointer-events: auto; }
   .slide.active .stagger > *:nth-child(1) { animation: fadeUp 0.6s 0.1s forwards; }
   .slide.active .stagger > *:nth-child(2) { animation: fadeUp 0.6s 0.25s forwards; }
   .slide.active .stagger > *:nth-child(3) { animation: fadeUp 0.6s 0.4s forwards; }
