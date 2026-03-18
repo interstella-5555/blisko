@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as ProductRouteImport } from './routes/product'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PitchRouteImport } from './routes/pitch'
 import { Route as IndexRouteImport } from './routes/index'
@@ -18,6 +19,11 @@ import { Route as JoinCodeRouteImport } from './routes/join.$code'
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductRoute = ProductRouteImport.update({
+  id: '/product',
+  path: '/product',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/pitch': typeof PitchRoute
   '/privacy': typeof PrivacyRoute
+  '/product': typeof ProductRoute
   '/terms': typeof TermsRoute
   '/join/$code': typeof JoinCodeRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/pitch': typeof PitchRoute
   '/privacy': typeof PrivacyRoute
+  '/product': typeof ProductRoute
   '/terms': typeof TermsRoute
   '/join/$code': typeof JoinCodeRoute
 }
@@ -60,21 +68,30 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/pitch': typeof PitchRoute
   '/privacy': typeof PrivacyRoute
+  '/product': typeof ProductRoute
   '/terms': typeof TermsRoute
   '/join/$code': typeof JoinCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/pitch' | '/privacy' | '/terms' | '/join/$code'
+  fullPaths: '/' | '/pitch' | '/privacy' | '/product' | '/terms' | '/join/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/pitch' | '/privacy' | '/terms' | '/join/$code'
-  id: '__root__' | '/' | '/pitch' | '/privacy' | '/terms' | '/join/$code'
+  to: '/' | '/pitch' | '/privacy' | '/product' | '/terms' | '/join/$code'
+  id:
+    | '__root__'
+    | '/'
+    | '/pitch'
+    | '/privacy'
+    | '/product'
+    | '/terms'
+    | '/join/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PitchRoute: typeof PitchRoute
   PrivacyRoute: typeof PrivacyRoute
+  ProductRoute: typeof ProductRoute
   TermsRoute: typeof TermsRoute
   JoinCodeRoute: typeof JoinCodeRoute
 }
@@ -86,6 +103,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/product': {
+      id: '/product'
+      path: '/product'
+      fullPath: '/product'
+      preLoaderRoute: typeof ProductRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -123,6 +147,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PitchRoute: PitchRoute,
   PrivacyRoute: PrivacyRoute,
+  ProductRoute: ProductRoute,
   TermsRoute: TermsRoute,
   JoinCodeRoute: JoinCodeRoute,
 }

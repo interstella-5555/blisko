@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap");
 @import "animate.css";
 @import "tailwindcss" source("../");
+@plugin "@tailwindcss/typography";
 
 @theme {
   --font-sans: "DM Sans", system-ui, sans-serif;

@@ -21,6 +21,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/website/node_modules ./apps/website/node_modules
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/website/ apps/website/
+COPY PRODUCT.md PRODUCT.md
 
 RUN pnpm --filter @repo/website build
 
