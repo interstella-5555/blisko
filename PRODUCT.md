@@ -6,6 +6,22 @@ Ten dokument jest wykładnią produktu. Każda decyzja — techniczna, designers
 
 ---
 
+## Blisko w 90 sekund
+
+Blisko rozwiązuje paradoks naszych czasów: nigdy nie byliśmy tak połączeni i nigdy nie czuliśmy się tak samotni.
+
+Tinder, LinkedIn, Bumble — wszystkie działają na tym samym modelu: stwórz profil, przeglądaj, wybierz. To model sklepowy. Blisko robi coś fundamentalnie innego.
+
+Działamy w tle. Użytkownik ustawia status — czego szuka dziś: współpracownika, randki, kogoś do biegania, inwestora — i żyje swoim życiem. Gdy w promieniu 500 metrów pojawi się ktoś z komplementarną intencją, telefon delikatnie wibruje. Jedna bańka na mapie zaczyna pulsować. Nic więcej.
+
+Nie ma scrollowania. Nie ma algorytmu rekomendacji. Jest tylko obecność — dwoje ludzi, 300 metrów od siebie, w tym samym momencie, z pasującą potrzebą. To 10-20 razy wyższy kontekst niż cold message na LinkedIn.
+
+Prywatność jest wbudowana w architekturę — intencja pod kontrolą użytkownika dopóki sam nie zdecyduje się pingować. Nikt nie wie czego szukasz, dopóki nie wyślesz sygnału.
+
+Startujemy w Polsce, z wersją ukraińską od dnia pierwszego — to świadoma decyzja rynkowa. Cel: Europa w ciągu 18 miesięcy.
+
+---
+
 ## Wielka idea
 
 Blisko to pierwsza platforma która zamienia przestrzeń fizyczną w warstwę intencji.
@@ -34,13 +50,13 @@ Każda funkcja w Blisko musi wzmacniać przynajmniej jeden z tych filarów. Jeś
 Działa w tle gdy użytkownik żyje swoim życiem. Nie wymaga uwagi — sam powiadamia gdy coś się dzieje. **Zero scrollowania.** Aplikacja szuka za użytkownika. Użytkownik żyje, Blisko pracuje.
 
 ### Meta
-Jedno narzędzie, nieskończone konteksty: randka, projekt, inwestycja, znajomy do biegania, klient, współpracownik. Nie kategoryzuje cię — **ty sam decydujesz czego szukasz dziś.** Status to twoja aktualna intencja, zmienialna jednym tapem.
+Jedno narzędzie, nieskończone konteksty: randka, projekt, inwestycja, znajomy do biegania, klient, współpracownik. Nie kategoryzuje cię — **ty sam decydujesz czego szukasz.** Status to twoja intencja — wieczny, aktywny dopóki sam go nie zmienisz lub nie usuniesz. Zmiana jednym tapem na mapie.
 
 ### Fizyczny
 Łączy przez obecność, nie przez algorytm. Dwie osoby 300 metrów od siebie z pasującą intencją — to 10-20x wyższy kontekst niż cold message. **Bliskość fizyczna jest filtrem jakości.**
 
 ### Prywatny
-Intencja ukryta dopóki sam nie zdecydujesz. Nikt nie wie że szukasz inwestora, randki, wspólnika — dopóki nie pingujesz. **Status zawsze ukryty przed pingiem — to jest serce różnicy między Blisko a każdą inną aplikacją.**
+Intencja pod kontrolą użytkownika. Przy każdym statusie sam decydujesz: publiczny (widoczny dla wszystkich) czy prywatny (ukryty, matching server-side). Nikt nie wie czego szukasz dopóki sam nie zdecydujesz — **a gdy matching znajdzie kogoś komplementarnego, telefon delikatnie wibruje i jedna bańka na mapie zaczyna pulsować. Nic więcej.**
 
 ---
 
@@ -63,8 +79,8 @@ Konkretne persony:
 
 Zasady które tworzą **realne trade-offy** — gdyby nikt nie mógł się z nimi nie zgodzić, nie byłyby zasadami.
 
-### 1. Prywatność intencji ponad wygodę odkrywania
-> Status jest zawsze ukryty przed pingiem. Nawet jeśli to oznacza że użytkownik pinguje „w ciemno" — bo chronienie intencji buduje zaufanie, a zaufanie buduje społeczność. Nikt nie wie czego szukasz dopóki nie zdecydujesz się to odsłonić.
+### 1. Kontrola intencji ponad wygodę odkrywania
+> Użytkownik sam decyduje przy każdym statusie czy jest publiczny czy prywatny — brak wartości domyślnej, decyzja obowiązkowa. Prywatny status jest ukryty przed pingiem, matching działa server-side. Publiczny status widoczny w profilu po kliknięciu. W obu przypadkach — bańki na mapie pozostają neutralne.
 
 ### 2. Ambient ponad engagement
 > Wolę użytkownika który otwiera apkę 2 razy dziennie po push notyfikacji niż takiego który scrolluje 40 minut. Nie projektujemy na time-on-app. Projektujemy na „czy spotkałeś kogoś ciekawego dziś". Brak aktywności to nie problem — to znak że apka działa w tle jak powinna.
@@ -89,7 +105,7 @@ Zasady które tworzą **realne trade-offy** — gdyby nikt nie mógł się z nim
 ## Czego NIE robimy
 
 - **Nie scrollujemy profili.** Żadnych list do przeglądania, żadnego swipe. Aplikacja szuka, użytkownik decyduje.
-- **Nie pokazujemy intencji.** Status ukryty przed pingiem. Zawsze. Bez wyjątków (oprócz znajomych).
+- **Nie narzucamy widoczności intencji.** Użytkownik sam wybiera czy status jest publiczny czy prywatny. Bańki na mapie zawsze neutralne — nawet przy publicznym statusie. Znajomi widzą statusy po kliknięciu w profil, ale ich bańki też pozostają neutralne.
 - **Nie monetyzujemy danych.** Zero sprzedaży danych, zero reklam bannerowych. Jedyna forma obecności firm to organiczne statusy na mapie.
 - **Nie budujemy wersji webowej.** Aplikacja oparta na GPS i fizyczności. Mobilna, ambient, w tle.
 - **Nie robimy global chat.** Blisko łączy ludzi w przestrzeni fizycznej. Bez czatu ze znajomymi po drugiej stronie globu.
@@ -102,6 +118,8 @@ Zasady które tworzą **realne trade-offy** — gdyby nikt nie mógł się z nim
 ### Bańki na mapie
 Każdy użytkownik widoczny jako bańka/avatar. Bańki są **neutralne** — żaden kolor, rozmiar ani ikona nie zdradza intencji. Wyjątek: ikona trybu Nie przeszkadzać (widoczna dla wszystkich).
 
+Gdy serwer wykryje status match (komplementarne statusy w promieniu), bańka matched osoby zaczyna **subtelnie pulsować**. Pulsowanie sygnalizuje że istnieje komplementarność — ale nie zdradza kategorii ani treści statusu. Użytkownik widzi człowieka, nie jego potrzebę.
+
 ### Co widzisz ZANIM pingujesz
 
 | Element | Widoczne? |
@@ -110,9 +128,29 @@ Każdy użytkownik widoczny jako bańka/avatar. Bańki są **neutralne** — ża
 | % dopasowania profilu | Tak — przy bańce |
 | Odległość (~300m) | Tak — przybliżona |
 | Krótkie bio | Tak — po kliknięciu |
-| „Co nas łączy" (ogólne) | Tak — wspólne tagi, 1-2 zdania AI, **bez statusu** |
-| Kategoria statusu | **NIE** — ukryty przed pingiem |
+| „Co nas łączy" | Tak — warunkowe (patrz niżej) |
+| Status publiczny | Tak — widoczny w profilu po kliknięciu |
+| Status prywatny | **NIE** — matching server-side, sygnał przez pulsowanie bańki |
 | Pełny profil / linki | **NIE** — po akceptacji pinga |
+
+### „Co nas łączy" — logika warunkowa
+
+| Scenariusz | Co AI uwzględnia |
+|---|---|
+| Klikam losową bańkę (brak status match, status prywatny) | Tylko profil: hobby, styl życia, branża. *„Oboje lubicie muzykę na żywo i działacie w tech."* |
+| Bańka pulsuje (status match wykryty, status prywatny) | Profil + status. *„Oboje szukacie dziś współpracownika do projektu."* |
+| Status publiczny | Profil + status (zawsze). |
+
+**Zasada:** AI generując „Co nas łączy" **nigdy** nie używa tagów prywatnego statusu jeśli nie ma potwierdzonego status matcha po stronie serwera. Zdradzenie statusu pośrednio przez opis jest równoznaczne z jego ujawnieniem.
+
+### Widoczność statusu — decyzja per status
+
+Przy tworzeniu każdego statusu użytkownik wybiera widoczność. Brak wartości domyślnej — decyzja obowiązkowa.
+
+| Tryb | Zachowanie |
+|---|---|
+| **Publiczny** | Status widoczny dla wszystkich po kliknięciu w profil. „Co nas łączy" może uwzględniać treść statusu. |
+| **Prywatny** | Status ukryty. Matching server-side — serwer porównuje tagi i generuje sygnał (push + pulsująca bańka) jeśli jest match, bez ujawniania treści. |
 
 ### Ping = wzajemna wymiana statusów za zgodą obu stron
 
@@ -124,25 +162,33 @@ Każdy użytkownik widoczny jako bańka/avatar. Bańki są **neutralne** — ża
 - 1 ping do tej samej osoby na 24h (zawsze, niezależnie od planu)
 - 5 pingów/dzień (Basic) / 20 pingów/dzień (Premium)
 - Pingi do znajomych nie wchodzą w dzienny limit
+- Oczekujące pingi posortowane FIFO (najwcześniejszy na górze)
 
 ### Mutual ping
-Gdy oboje pingują się wzajemnie w odstępie < 30 sekund — chat otwiera się automatycznie bez akceptacji. Specjalny efekt: *„Pingowaliście się wzajemnie w tym samym momencie. To rzadkie. To zostaje."*
+Gdy oboje pingują się wzajemnie w odstępie < 30 sekund — chat otwiera się automatycznie bez akceptacji. Oboje automatycznie widzą wzajemne statusy. Specjalny efekt: *„Pingowaliście się wzajemnie w tym samym momencie. To rzadkie. To zostaje."*
 
 ---
 
 ## Matching — dwa poziomy
 
 ### Poziom 1: Profile Match (głęboki, stały)
-Widoczny jako **% na bańce zawsze** — przed i po pingu. Porównuje:
-- Tagi hobby i zainteresowań
-- Branżę i typ pracy
-- Tryb oferty (wolontariat / wymiana / zlecenie)
-- Embedding similarity (AI-generated)
+Widoczny jako **% na bańce zawsze** — przed i po pingu. Wagi składników:
+
+| Składnik | Waga |
+|---|---|
+| Hobby i zainteresowania | Najwyższa — core matching |
+| Styl życia | Wysoka |
+| Branża i typ pracy | Niższa niż hobby |
+| Tryb oferty (wolontariat / wymiana / zlecenie) | Uzupełniająca |
 
 Nie blokuje pinga — użytkownik sam decyduje czy 10% match go interesuje.
 
 ### Poziom 2: Status Match (sytuacyjny, „na teraz")
-Porównanie statusu A z „Co mogę dać" B (i odwrotnie). Działa w tle. Gdy pojawi się match w pobliżu — ambient notification (cichy sygnał / wibracja). **Status match nie ujawnia czyjego statusu — tylko sygnalizuje że jest ktoś komplementarny w pobliżu.**
+Porównanie tagów statusu A z tagami statusu B ORAZ tagami „Co mogę dać" B. Matching odbywa się **wyłącznie server-side**. Gdy pojawi się match w pobliżu:
+- Push notification (cichy sygnał / wibracja)
+- **Bańka matched osoby zaczyna subtelnie pulsować** na mapie
+
+Użytkownik wie **że** jest match i **kto** to jest (pulsująca bańka), ale nie wie **czego** ta osoba szuka (treść statusu pozostaje ukryta, chyba że publiczny).
 
 ---
 
@@ -161,13 +207,15 @@ AI wyciąga tagi: branża, rola, hobby, zainteresowania, styl życia. Max jedno 
 Selektor formy: wolontariat / wymiana skilli / potencjalne zlecenie.
 
 **Krok 3 — Czego szukasz dziś (Status)**
-> *„Czego szukasz dziś — albo co możesz dziś dać?"*
+> *„Czego szukasz dziś — albo co możesz dziś dać? Możesz to zmienić jednym tapem na mapie."*
 
 Kafle kategorii (max 2 jednocześnie):
 - ⚡ Projekt / Współpraca
 - 🤝 Networking / Sparring
 - 🔥 Randka / Relacja
 - ☕ Luźne wyjście / Hobby
+
+Po wybraniu kategorii i opisie: obowiązkowy wybór widoczności statusu — **Publiczny** lub **Prywatny**. Brak wartości domyślnej.
 
 **Krok 4 — Widoczność**
 
@@ -237,11 +285,12 @@ Usunięcie = obustronne. Prompt z opcjonalną oceną (⭐1-5) lub „Pomiń i us
 
 - Skanowanie kontaktów z telefonu (widzę kto ma Blisko, oni nie wiedzą)
 - Zaproszenie → akceptacja = połączeni jako znajomi
-- Znajomi widzą wzajemnie statusy **bez pinga** (wyjątek od zasady ukrytego statusu)
+- Znajomi widzą wzajemnie statusy **po kliknięciu w profil na mapie** — bez pinga. Bańka znajomego na mapie pozostaje wizualnie neutralna jak wszystkie inne.
 - Bezpośredni chat bez pinga, bez limitu
 - Pingi do znajomych nie wchodzą w dzienny limit
 - Powiadomienie gdy znajomy jest w pobliżu
 - Bez limitu znajomych, dostępne dla wszystkich planów
+- Usunięcie znajomego — bez powiadomienia dla usuwanej osoby
 
 ---
 
@@ -412,6 +461,5 @@ Pytanie: *„Jak byś się czuł gdybyś nie mógł więcej używać Blisko?"* O
 
 ---
 
-*Blisko — Product Bible v2.0*
-*Opracowane na podstawie dokumentów strategicznych Jarka (Workflow v1.0, Brand Strategy v2.0) i analizy technicznej codebase'u.*
+*Blisko — Product Bible*
 *Dokument wewnętrzny. Kompas przy każdej decyzji produktowej, technicznej i komunikacyjnej.*

@@ -1,4 +1,10 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 const PORT = Number(process.env.PORT) || 3001;
+
+// Load pitch deck HTML at startup
+const PITCH_HTML = readFileSync(resolve(import.meta.dir, "../../../docs/pitch-deck.html"), "utf-8");
 
 const APP_SCHEME = "blisko";
 const IOS_BUNDLE_ID = "com.blisko.app";
@@ -375,6 +381,13 @@ const server = Bun.serve({
     // Terms of service
     if (url.pathname === "/terms") {
       return new Response(termsPage(), {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    }
+
+    // Pitch deck
+    if (url.pathname === "/pitch") {
+      return new Response(PITCH_HTML, {
         headers: { "content-type": "text/html; charset=utf-8" },
       });
     }
