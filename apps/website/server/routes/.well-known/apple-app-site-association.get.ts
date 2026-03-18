@@ -1,4 +1,4 @@
-const IOS_BUNDLE_ID = "com.blisko.app";
+import { IOS_BUNDLE_ID } from "../../../src/config";
 
 const AASA = {
   applinks: {

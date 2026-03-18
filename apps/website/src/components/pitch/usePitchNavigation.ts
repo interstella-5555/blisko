@@ -5,7 +5,7 @@ export function usePitchNavigation(totalSlides: number) {
     if (typeof window === "undefined") return 0;
     const param = new URLSearchParams(window.location.search).get("slide");
     const n = param ? parseInt(param, 10) : 0;
-    return Math.max(0, Math.min(n, totalSlides - 1));
+    return Number.isNaN(n) ? 0 : Math.max(0, Math.min(n, totalSlides - 1));
   });
   const transitioning = useRef(false);
 

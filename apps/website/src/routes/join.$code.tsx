@@ -1,10 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect } from "react";
-
-const APP_SCHEME = "blisko";
-const IOS_APP_STORE_URL = "https://apps.apple.com/app/blisko/id0";
-const ANDROID_PACKAGE = "com.blisko.app";
-const ANDROID_PLAY_URL = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
+import { ANDROID_PLAY_URL, APP_SCHEME, IOS_APP_STORE_URL } from "@/config";
 
 export const Route = createFileRoute("/join/$code")({
   beforeLoad: ({ params }) => {

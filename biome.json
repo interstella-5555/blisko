@@ -46,7 +46,7 @@
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noArrayIndexKey": "warn"
+        "noArrayIndexKey": "error"
       },
       "a11y": {
         "useButtonType": "off",

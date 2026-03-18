@@ -1,4 +1,4 @@
-const ANDROID_PACKAGE = "com.blisko.app";
+import { ANDROID_PACKAGE } from "../../../src/config";
 
 const ASSET_LINKS = [
   {
