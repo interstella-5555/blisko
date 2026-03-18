@@ -20,9 +20,14 @@
       "!**/*.gen.ts",
       "!**/drizzle",
       "!**/CLAUDE.md",
-      "!**/pitch-deck.css",
-      "!apps/website/src/styles.css"
+      "!**/pitch-deck.css"
     ]
+  },
+  "css": {
+    "parser": {
+      "cssModules": true,
+      "tailwindDirectives": true
+    }
   },
   "formatter": {
     "enabled": true,
