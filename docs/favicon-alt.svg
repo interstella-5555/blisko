@@ -1,0 +1,6 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Alternative B: Dark circle + red signal dot (ping concept) -->
+  <circle cx="16" cy="16" r="16" fill="#1a1a1a"/>
+  <text x="15" y="23" text-anchor="middle" font-family="Georgia, serif" font-size="21" font-weight="bold" fill="#faf7f2">b</text>
+  <circle cx="23" cy="8" r="3" fill="#C0392B"/>
+</svg>
