@@ -1,15 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const PORT = Number(process.env.PORT) || 3001;
 
-// Load pitch deck HTML at startup — try Docker path first, then monorepo path
-const pitchPaths = [
-  resolve(import.meta.dir, "../docs/pitch-deck.html"),
-  resolve(import.meta.dir, "../../../docs/pitch-deck.html"),
-];
-const pitchPath = pitchPaths.find((p) => existsSync(p));
-const PITCH_HTML = pitchPath ? readFileSync(pitchPath, "utf-8") : "";
+// Load pitch deck assets at startup (co-located in src/)
+const PITCH_HTML = readFileSync(resolve(import.meta.dir, "pitch-deck.html"), "utf-8");
+const PITCH_CSS = readFileSync(resolve(import.meta.dir, "pitch-deck.css"), "utf-8");
 
 const APP_SCHEME = "blisko";
 const IOS_BUNDLE_ID = "com.blisko.app";
@@ -391,6 +387,12 @@ const server = Bun.serve({
     }
 
     // Pitch deck
+    if (url.pathname === "/pitch.css") {
+      return new Response(PITCH_CSS, {
+        headers: { "content-type": "text/css; charset=utf-8", "cache-control": "public, max-age=86400" },
+      });
+    }
+
     if (url.pathname === "/pitch") {
       return new Response(PITCH_HTML, {
         headers: { "content-type": "text/html; charset=utf-8" },

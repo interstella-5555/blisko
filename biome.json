@@ -19,7 +19,8 @@
       "!docs",
       "!**/*.gen.ts",
       "!**/drizzle",
-      "!**/CLAUDE.md"
+      "!**/CLAUDE.md",
+      "!**/pitch-deck.css"
     ]
   },
   "formatter": {
