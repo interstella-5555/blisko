@@ -1,4 +1,4 @@
-import { ANDROID_PACKAGE } from "../../../src/config";
+import { ANDROID_PACKAGE } from "@/config";
 
 const ASSET_LINKS = [
   {

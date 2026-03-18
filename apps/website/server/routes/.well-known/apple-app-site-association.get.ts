@@ -1,4 +1,4 @@
-import { IOS_BUNDLE_ID } from "../../../src/config";
+import { IOS_BUNDLE_ID } from "@/config";
 
 const AASA = {
   applinks: {
