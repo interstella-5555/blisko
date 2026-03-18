@@ -22,6 +22,7 @@
     "api:scatter:production": "pnpm --filter @repo/api scatter:production",
     "api:seed:slo": "pnpm --filter @repo/api seed:slo",
     "website:dev": "pnpm --filter @repo/website dev",
+    "website:build": "pnpm --filter @repo/website build",
     "website:start": "pnpm --filter @repo/website start",
     "mobile:testflight": "pnpm --filter @repo/mobile testflight",
     "admin:dev": "pnpm --filter @repo/admin dev",
