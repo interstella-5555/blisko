@@ -1,10 +1,15 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const PORT = Number(process.env.PORT) || 3001;
 
-// Load pitch deck HTML at startup
-const PITCH_HTML = readFileSync(resolve(import.meta.dir, "../../../docs/pitch-deck.html"), "utf-8");
+// Load pitch deck HTML at startup — try Docker path first, then monorepo path
+const pitchPaths = [
+  resolve(import.meta.dir, "../docs/pitch-deck.html"),
+  resolve(import.meta.dir, "../../../docs/pitch-deck.html"),
+];
+const pitchPath = pitchPaths.find((p) => existsSync(p));
+const PITCH_HTML = pitchPath ? readFileSync(pitchPath, "utf-8") : "";
 
 const APP_SCHEME = "blisko";
 const IOS_BUNDLE_ID = "com.blisko.app";
