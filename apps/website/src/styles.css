@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap");
+@import "animate.css";
 @import "tailwindcss" source("../");
 
 @theme {
@@ -29,41 +30,13 @@ body {
   color: var(--color-ink);
 }
 
-/* Pitch deck animations */
+/* Pitch deck — orb floating (keep custom, animate.css has nothing like it) */
 @keyframes drift {
   0% {
     transform: translate(0, 0) scale(1);
   }
   100% {
     transform: translate(40px, -30px) scale(1.1);
-  }
-}
-@keyframes fadeUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-@keyframes pulseRing {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(192, 57, 43, 0);
-  }
-  50% {
-    transform: scale(1.08);
-    box-shadow: 0 0 20px 4px rgba(192, 57, 43, 0.15);
-  }
-}
-@keyframes pulseOuter {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.3;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0;
   }
 }
 
@@ -77,6 +50,7 @@ body {
   animation-delay: -14s;
 }
 
+/* Slide track */
 .slide-track {
   display: flex;
   transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
@@ -94,31 +68,37 @@ body {
   opacity: 1;
   pointer-events: auto;
 }
-.slide.active .stagger > *:nth-child(1) {
-  animation: fadeUp 0.6s 0.1s forwards;
-}
-.slide.active .stagger > *:nth-child(2) {
-  animation: fadeUp 0.6s 0.25s forwards;
-}
-.slide.active .stagger > *:nth-child(3) {
-  animation: fadeUp 0.6s 0.4s forwards;
-}
-.slide.active .stagger > *:nth-child(4) {
-  animation: fadeUp 0.6s 0.55s forwards;
-}
-.slide.active .stagger > *:nth-child(5) {
-  animation: fadeUp 0.6s 0.7s forwards;
-}
-.slide.active .stagger > *:nth-child(6) {
-  animation: fadeUp 0.6s 0.85s forwards;
-}
+
+/* Stagger reveal — animate.css fadeInUp with delays */
 .stagger > * {
   opacity: 0;
-  transform: translateY(15px);
+}
+.slide.active .stagger > * {
+  --animate-duration: 0.6s;
+  animation-fill-mode: both;
+}
+.slide.active .stagger > *:nth-child(1) {
+  animation: fadeInUp 0.6s 0.1s both;
+}
+.slide.active .stagger > *:nth-child(2) {
+  animation: fadeInUp 0.6s 0.25s both;
+}
+.slide.active .stagger > *:nth-child(3) {
+  animation: fadeInUp 0.6s 0.4s both;
+}
+.slide.active .stagger > *:nth-child(4) {
+  animation: fadeInUp 0.6s 0.55s both;
+}
+.slide.active .stagger > *:nth-child(5) {
+  animation: fadeInUp 0.6s 0.7s both;
+}
+.slide.active .stagger > *:nth-child(6) {
+  animation: fadeInUp 0.6s 0.85s both;
 }
 
+/* Bubble pulse — animate.css pulse infinite */
 .bubble-pulse {
-  animation: pulseRing 2.2s ease-in-out infinite;
+  animation: pulse 2.2s ease-in-out infinite;
 }
 .bubble-pulse::after {
   content: "";
@@ -126,5 +106,6 @@ body {
   inset: -8px;
   border-radius: 50%;
   border: 1px solid rgba(192, 57, 43, 0.15);
-  animation: pulseOuter 2.2s ease-in-out infinite;
+  animation: pulse 2.2s ease-in-out infinite;
+  animation-delay: 0.3s;
 }
