@@ -12,7 +12,6 @@
     "test": "bun --bun vitest run",
     "test:watch": "bun --bun vitest",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "scatter": "bun run scripts/scatter-locations-db.ts",
