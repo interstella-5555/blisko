@@ -14,8 +14,3 @@
   | `apps/mobile` | `@/*` | `src/*` |
   | `apps/design` | `~/*` | `src/*` |
 
-# `style` — Code quality beyond Biome
-
-- `style/no-biome-ignore` — Don't add `biome-ignore` comments or disable rules in `biome.json` to make errors go away. Fix the actual code. Only acceptable when code is intentionally correct and the rule is a false positive.
-
-- `style/run-check` — Before finishing any task, run `npx @biomejs/biome check --fix .` and verify 0 errors. The `--fix` flag auto-fixes formatting and import ordering. Biome also runs automatically on commit via husky + lint-staged pre-commit hook.

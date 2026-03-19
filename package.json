@@ -34,10 +34,8 @@
     "ralph": "bash scripts/ralph.sh",
     "ralph:dry": "bash scripts/ralph.sh --dry-run",
     "prepare": "husky",
-    "format": "biome format --write .",
-    "format:check": "biome format .",
-    "lint": "biome lint .",
-    "check": "biome check ."
+    "check": "biome check .",
+    "check:fix": "biome check --fix ."
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
