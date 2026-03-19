@@ -3,6 +3,7 @@ import { cosineSimilarity } from "@repo/shared";
 import { type Job, Queue, Worker } from "bullmq";
 import { RedisClient } from "bun";
 import { and, between, eq, gte, inArray, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
+import ms from "ms";
 import { db, schema } from "@/db";
 import { ee } from "@/ws/events";
 import { analyzeConnection, evaluateStatusMatch, extractInterests, generateEmbedding, generatePortrait } from "./ai";
@@ -810,7 +811,10 @@ export async function enqueueUserPairAnalysis(
       longitude,
       radiusMeters,
     },
-    { jobId: `user-pairs-${userId}-${Date.now()}` },
+    {
+      jobId: `user-pairs-${userId}-${Date.now()}`,
+      debounce: { id: `user-pairs-${userId}`, ttl: ms("30s") },
+    },
   );
 }
 
@@ -862,7 +866,10 @@ export async function enqueueProfileAI(userId: string, bio: string, lookingFor: 
   await queue.add(
     "generate-profile-ai",
     { type: "generate-profile-ai", userId, bio, lookingFor },
-    { jobId: `profile-ai-${userId}-${Date.now()}` },
+    {
+      jobId: `profile-ai-${userId}-${Date.now()}`,
+      debounce: { id: `profile-ai-${userId}`, ttl: ms("30s") },
+    },
   );
 }
 

@@ -96,17 +96,15 @@ export const profilesRouter = router({
         .where(eq(schema.profiles.userId, ctx.userId))
         .returning();
 
-      // If bio or lookingFor changed, re-run AI pipeline async
+      // If bio or lookingFor changed, re-run AI pipeline (debounced 30s by BullMQ)
       if (input.bio || input.lookingFor) {
         const bio = profile.bio;
         const lookingFor = profile.lookingFor;
-        enqueueProfileAI(ctx.userId, bio, lookingFor).catch((err) => {
-          console.error("[profiles] Failed to enqueue profile AI job:", err);
-        });
+        await enqueueProfileAI(ctx.userId, bio, lookingFor);
 
         // Also re-analyze connections (profile changed → analyses stale)
         if (profile.latitude && profile.longitude) {
-          enqueueUserPairAnalysis(ctx.userId, profile.latitude, profile.longitude).catch(() => {});
+          await enqueueUserPairAnalysis(ctx.userId, profile.latitude, profile.longitude);
         }
       }
 
@@ -126,12 +124,12 @@ export const profilesRouter = router({
       .where(eq(schema.profiles.userId, ctx.userId))
       .returning();
 
-    // Queue connection analyses for new location
+    // Queue connection analyses for new location (debounced 30s by BullMQ)
     if (!input.skipAnalysis) {
-      enqueueUserPairAnalysis(ctx.userId, input.latitude, input.longitude).catch(() => {});
+      await enqueueUserPairAnalysis(ctx.userId, input.latitude, input.longitude);
     }
 
-    // Notify nearby users that someone's location changed
+    // Notify nearby users that someone's location changed (fire-and-forget — don't fail current user)
     const radiusMeters = 5000;
     const latDelta = radiusMeters / 111000;
     const lonDelta = radiusMeters / (111000 * Math.cos((input.latitude * Math.PI) / 180));
@@ -153,7 +151,9 @@ export const profilesRouter = router({
           ee.emit("nearbyChanged", { forUserId: u.userId });
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error("[profiles] Failed to broadcast nearbyChanged:", err);
+      });
 
     return profile;
   }),
@@ -412,7 +412,9 @@ export const profilesRouter = router({
         .map((r) => r.profile.userId);
 
       for (const theirUserId of missingAnalysisUserIds) {
-        enqueuePairAnalysis(ctx.userId, theirUserId).catch(() => {});
+        enqueuePairAnalysis(ctx.userId, theirUserId).catch((err) => {
+          console.error("[profiles] Failed to enqueue pair analysis:", err);
+        });
       }
 
       const nextCursor = offset + limit < totalCount ? offset + limit : null;
