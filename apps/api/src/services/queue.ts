@@ -743,8 +743,7 @@ export function startWorker() {
 
   _worker = new Worker("ai-jobs", processJob, {
     connection: getConnectionConfig(),
-    concurrency: 5,
-    limiter: { max: 20, duration: 60_000 },
+    concurrency: 50,
   });
 
   _worker.on("completed", (job) => {
