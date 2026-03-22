@@ -472,7 +472,7 @@ export default function NearbyScreen() {
             commonInterests={u.commonInterests}
             shortSnippet={u.shortSnippet}
             analysisReady={u.analysisReady}
-            statusMatch={u.statusMatch}
+            hasStatusMatch={u.hasStatusMatch}
             status={status}
             onPress={() =>
               router.push({

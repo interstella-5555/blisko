@@ -21,7 +21,7 @@ interface UserRowProps {
   commonInterests?: string[];
   shortSnippet?: string | null;
   analysisReady?: boolean;
-  statusMatch?: { reason: string; matchedVia: string } | null;
+  hasStatusMatch?: boolean;
   // Waves-only (optional)
   timestamp?: string;
 }
@@ -110,7 +110,7 @@ export function UserRow({
   commonInterests,
   shortSnippet,
   analysisReady,
-  statusMatch,
+  hasStatusMatch,
   status,
   onPress,
   timestamp,
@@ -142,7 +142,7 @@ export function UserRow({
           )}
           {distance !== undefined && <Text style={styles.distance}>{formatDistance(distance)}</Text>}
           {!distance && timestamp && <Text style={styles.distance}>{formatRelativeTime(timestamp)}</Text>}
-          {statusMatch && (
+          {hasStatusMatch && (
             <View style={styles.naTerazBadge}>
               <View style={styles.naTerazDot} />
               <Text style={styles.naTerazText}>Na teraz</Text>
@@ -164,11 +164,6 @@ export function UserRow({
         {snippet && (
           <Text style={[styles.snippet, isHighlight && styles.snippetHighlight]} numberOfLines={4}>
             {snippet}
-          </Text>
-        )}
-        {statusMatch && (
-          <Text style={styles.naTerazReason} numberOfLines={1}>
-            {statusMatch.reason}
           </Text>
         )}
       </View>
@@ -248,12 +243,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "600",
     color: "#D4851C",
-  },
-  naTerazReason: {
-    fontSize: 10,
-    color: "#D4851C",
-    fontWeight: "500",
-    marginTop: 3,
   },
   analyzingBadge: {
     flexDirection: "row",

@@ -20,6 +20,7 @@ export interface Profile {
   currentStatus: string | null;
   statusExpiresAt: Date | null;
   statusSetAt: Date | null;
+  statusVisibility: "public" | "private" | null;
   latitude: number | null;
   longitude: number | null;
   lastLocationUpdate: Date | null;

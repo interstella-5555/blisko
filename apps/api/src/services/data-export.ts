@@ -22,6 +22,7 @@ interface ExportData {
     visibilityMode: string;
     portraitUrl: string | null;
     status: string | null;
+    statusVisibility: string | null;
     location: { lat: number; lng: number } | null;
     createdAt: string;
     updatedAt: string;
@@ -240,6 +241,7 @@ export async function collectAndExportUserData(userId: string, email: string) {
           visibilityMode: profile.visibilityMode,
           portraitUrl: profile.portrait,
           status: profile.currentStatus,
+          statusVisibility: profile.statusVisibility,
           location: profile.latitude && profile.longitude ? { lat: profile.latitude, lng: profile.longitude } : null,
           createdAt: profile.createdAt.toISOString(),
           updatedAt: profile.updatedAt.toISOString(),

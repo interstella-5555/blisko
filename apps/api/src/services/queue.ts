@@ -5,6 +5,7 @@ import { RedisClient } from "bun";
 import { and, between, eq, gte, inArray, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
 import ms from "ms";
 import { db, schema } from "@/db";
+import { isStatusActive } from "@/lib/status";
 import { ee } from "@/ws/events";
 import { analyzeConnection, evaluateStatusMatch, extractInterests, generateEmbedding, generatePortrait } from "./ai";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
@@ -499,12 +500,13 @@ async function processStatusMatching(userId: string) {
     );
 
   // Pre-filter by cosine similarity — top 20
+  // Private statuses are matched via profile embedding only — their status text never enters the LLM reason
   const scored = nearbyUsers
     .map(({ profile: u }) => {
-      const hasActiveStatus = u.currentStatus && (!u.statusExpiresAt || u.statusExpiresAt > new Date());
+      const hasPublicStatus = isStatusActive(u) && u.statusVisibility !== "private";
 
       let similarity = 0;
-      if (hasActiveStatus && u.statusEmbedding?.length) {
+      if (hasPublicStatus && u.statusEmbedding?.length) {
         similarity = cosineSimilarity(statusEmb, u.statusEmbedding);
       } else if (u.embedding?.length) {
         similarity = cosineSimilarity(statusEmb, u.embedding);
@@ -513,7 +515,7 @@ async function processStatusMatching(userId: string) {
       return {
         user: u,
         similarity,
-        hasActiveStatus: Boolean(hasActiveStatus),
+        matchViaStatus: Boolean(hasPublicStatus),
       };
     })
     .filter((s) => s.similarity > 0.3)
@@ -524,9 +526,9 @@ async function processStatusMatching(userId: string) {
   const matches: { matchedUserId: string; reason: string; matchedVia: "status" | "profile" }[] = [];
 
   await Promise.all(
-    scored.map(async ({ user: otherUser, hasActiveStatus }) => {
-      const matchType = hasActiveStatus ? "status" : "profile";
-      const otherContext = hasActiveStatus
+    scored.map(async ({ user: otherUser, matchViaStatus }) => {
+      const matchType = matchViaStatus ? "status" : "profile";
+      const otherContext = matchViaStatus
         ? otherUser.currentStatus!
         : `${otherUser.bio}. Szuka: ${otherUser.lookingFor}`;
 

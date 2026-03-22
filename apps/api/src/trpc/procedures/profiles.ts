@@ -12,6 +12,7 @@ import { and, between, eq, isNotNull, isNull, lte, ne, placeholder, sql } from "
 import { z } from "zod";
 import { db, preparedName, schema } from "@/db";
 import { roundDistance, toGridCenter } from "@/lib/grid";
+import { isStatusActive, isStatusPublic } from "@/lib/status";
 import { setTargetUserId } from "@/services/metrics";
 import { moderateContent } from "@/services/moderation";
 import {
@@ -329,8 +330,7 @@ export const profilesRouter = router({
       );
 
       const now = new Date();
-      const myStatusActive =
-        currentProfile?.currentStatus && (!currentProfile.statusExpiresAt || currentProfile.statusExpiresAt > now);
+      const myStatusActive = currentProfile ? isStatusActive(currentProfile) : false;
 
       // Fetch extra rows to account for blocked users being filtered out
       const nearbyUsers = await db
@@ -378,6 +378,8 @@ export const profilesRouter = router({
             : interestScore;
         const rankScore = 0.6 * matchScore + 0.4 * proximity;
 
+        const theirStatusActive = isStatusActive(u.profile);
+
         results.push({
           profile: {
             id: u.profile.id,
@@ -386,6 +388,7 @@ export const profilesRouter = router({
             bio: u.profile.bio,
             lookingFor: u.profile.lookingFor,
             avatarUrl: u.profile.avatarUrl,
+            currentStatus: isStatusPublic(u.profile) ? u.profile.currentStatus : null,
           },
           distance: roundDistance(u.distance),
           gridLat: gridPos.gridLat,
@@ -396,10 +399,7 @@ export const profilesRouter = router({
           commonInterests,
           shortSnippet: analysis?.shortSnippet ?? null,
           analysisReady: !!analysis,
-          statusMatch:
-            myStatusActive && u.profile.currentStatus && (!u.profile.statusExpiresAt || u.profile.statusExpiresAt > now)
-              ? (statusMatchMap.get(u.profile.userId) ?? null)
-              : null,
+          hasStatusMatch: myStatusActive && theirStatusActive && statusMatchMap.has(u.profile.userId),
         });
       }
 
@@ -489,14 +489,15 @@ export const profilesRouter = router({
     if (!profile) return null;
 
     // Lazy expiry check — treat expired status as null
-    const now = new Date();
-    const hasActiveStatus = profile.currentStatus && (!profile.statusExpiresAt || profile.statusExpiresAt > now);
+    const isOwnProfile = input.userId === ctx.userId;
+    const showStatus = isOwnProfile ? isStatusActive(profile) : isStatusPublic(profile);
 
     return {
       ...profile,
-      currentStatus: hasActiveStatus ? profile.currentStatus : null,
-      statusExpiresAt: hasActiveStatus ? profile.statusExpiresAt : null,
-      statusSetAt: hasActiveStatus ? profile.statusSetAt : null,
+      currentStatus: showStatus ? profile.currentStatus : null,
+      statusExpiresAt: showStatus ? profile.statusExpiresAt : null,
+      statusSetAt: showStatus ? profile.statusSetAt : null,
+      statusVisibility: isOwnProfile ? profile.statusVisibility : null,
     };
   }),
 
@@ -538,6 +539,7 @@ export const profilesRouter = router({
       .set({
         currentStatus: input.text,
         statusExpiresAt: expiresAt,
+        statusVisibility: input.visibility,
         statusSetAt: new Date(),
         updatedAt: new Date(),
       })
@@ -561,6 +563,7 @@ export const profilesRouter = router({
         currentStatus: null,
         statusExpiresAt: null,
         statusEmbedding: null,
+        statusVisibility: null,
         statusSetAt: null,
         updatedAt: new Date(),
       })
