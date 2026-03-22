@@ -61,3 +61,6 @@ scripts/ralph-queue/
 # Superpowers
 .superpowers/
 
+# Plans (temporary working docs)
+docs/plans/
+
