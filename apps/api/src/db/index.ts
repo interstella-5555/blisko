@@ -63,5 +63,5 @@ function instrumentedUnsafe(query: string, parameters?: any[], queryOptions?: an
 client.unsafe = instrumentedUnsafe;
 
 export const db = drizzle(client, { schema });
-export { schema };
 export { preparedName } from "./prepare";
+export { schema };

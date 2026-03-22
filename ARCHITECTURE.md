@@ -97,7 +97,7 @@ blisko/
 ├── packages/
 │   └── shared/                     # Shared types + Zod validators
 │
-├── pnpm-workspace.yaml
+├── bun.lock
 ├── turbo.json
 └── package.json
 ```
@@ -146,10 +146,9 @@ EXPO_PUBLIC_API_URL=...             # API server URL
 ## Development
 
 ```bash
-pnpm dev                            # Start all services
-pnpm --filter mobile start          # Mobile only
-pnpm --filter api dev               # API only
-pnpm --filter @repo/design dev      # Design book only
-pnpm --filter api db:push           # Push DB migrations
-pnpm test                           # Run all tests
+bun run api:dev                     # API server
+bun run design:dev                  # Design book
+bun run chatbot:dev                 # Chatbot
+bun run website:dev                 # Website
+bun run api:test                    # Run API tests
 ```

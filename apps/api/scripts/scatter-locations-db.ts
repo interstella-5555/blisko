@@ -3,7 +3,7 @@
  * Uses real district boundary polygons from warszawa-dzielnice.geojson.
  * Does NOT require the API to be running — connects to Postgres directly.
  *
- * Run from root: pnpm api:scatter
+ * Run from root: bun run api:scatter
  */
 
 const USER_COUNT = 250;

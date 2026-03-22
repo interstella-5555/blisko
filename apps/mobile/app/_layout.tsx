@@ -2,7 +2,7 @@ import { focusManager, MutationCache, QueryCache, QueryClient, QueryClientProvid
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 // Workaround: expo-router 6.0.22 bug — Stack uses useLinkPreviewContext
-// but ExpoRoot's provider doesn't always reach it (pnpm dual-instance issue)
+// but ExpoRoot's provider doesn't always reach it
 import { LinkPreviewContextProvider } from "expo-router/build/link/preview/LinkPreviewContext";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";

@@ -1,13 +1,15 @@
 FROM node:24-slim
 
-RUN corepack enable && corepack prepare pnpm@10 --activate
+RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:$PATH"
 
 WORKDIR /app
 
 # Copy monorepo root files
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY bun.lock package.json ./
 
-# Copy all workspace package.json files for pnpm resolution
+# Copy all workspace package.json files for bun resolution
 COPY apps/mobile/package.json ./apps/mobile/package.json
 COPY apps/api/package.json ./apps/api/package.json
 COPY apps/chatbot/package.json ./apps/chatbot/package.json
@@ -15,7 +17,7 @@ COPY apps/design/package.json ./apps/design/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 COPY packages/dev-cli/package.json ./packages/dev-cli/package.json
 
-RUN pnpm install --frozen-lockfile --prefer-offline
+RUN bun install --frozen-lockfile
 
 # Copy source code needed for Metro bundling
 COPY apps/mobile/ ./apps/mobile/

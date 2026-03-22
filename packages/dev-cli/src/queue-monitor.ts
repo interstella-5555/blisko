@@ -7,7 +7,7 @@
  *
  * Reads REDIS_URL from env or `apps/api/.env`. Refreshes every 2s.
  *
- * Run: `pnpm dev-cli:queue-monitor`
+ * Run: `bun run dev-cli:queue-monitor`
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
