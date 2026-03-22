@@ -53,6 +53,14 @@
   "engines": {
     "node": ">=20"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
+  },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css}": "biome check --fix --no-errors-on-unmatched",
     "apps/api/src/**/*.ts": "bash -c 'pnpm --filter @repo/api typecheck'",
