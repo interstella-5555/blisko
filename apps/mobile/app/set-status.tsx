@@ -1,20 +1,10 @@
 import { router, useLocalSearchParams } from "expo-router";
-import ms from "ms";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
-
-type Duration = "1h" | "6h" | "24h" | "never";
-
-const DURATION_OPTIONS: { value: Duration; label: string }[] = [
-  { value: "1h", label: "1h" },
-  { value: "6h", label: "6h" },
-  { value: "24h", label: "24h" },
-  { value: "never", label: "Do odwołania" },
-];
 
 type Visibility = "public" | "private";
 
@@ -27,7 +17,6 @@ export default function SetStatusScreen() {
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
   const setProfile = useAuthStore((state) => state.setProfile);
   const [text, setText] = useState(prefill || "");
-  const [duration, setDuration] = useState<Duration>("6h");
   const [visibility, setVisibility] = useState<Visibility>("public");
 
   const isEditing = !!prefill;
@@ -58,13 +47,11 @@ export default function SetStatusScreen() {
     const trimmed = text.trim();
     if (!trimmed) return;
 
-    // Optimistic: update profile store + navigate back immediately
     const previousProfile = useAuthStore.getState().profile;
     if (previousProfile) {
       setProfile({
         ...previousProfile,
         currentStatus: trimmed,
-        statusExpiresAt: duration === "never" ? null : new Date(Date.now() + ms(duration)).toISOString(),
         statusSetAt: new Date().toISOString(),
         statusVisibility: visibility,
       });
@@ -72,7 +59,7 @@ export default function SetStatusScreen() {
     router.back();
 
     setStatus.mutate(
-      { text: trimmed, expiresIn: duration, visibility },
+      { text: trimmed, visibility },
       {
         onError: () => {
           if (previousProfile) setProfile(previousProfile);
@@ -88,7 +75,6 @@ export default function SetStatusScreen() {
       setProfile({
         ...previousProfile,
         currentStatus: null,
-        statusExpiresAt: null,
         statusSetAt: null,
         statusVisibility: null,
       });
@@ -121,19 +107,6 @@ export default function SetStatusScreen() {
           autoFocus
         />
         <Text style={styles.charCount}>{text.length} / 150</Text>
-      </View>
-
-      <Text style={styles.sectionLabel}>CZAS TRWANIA</Text>
-      <View style={styles.chipRow}>
-        {DURATION_OPTIONS.map((opt) => (
-          <Pressable
-            key={opt.value}
-            style={[styles.chip, duration === opt.value && styles.chipSelected]}
-            onPress={() => setDuration(opt.value)}
-          >
-            <Text style={[styles.chipText, duration === opt.value && styles.chipTextSelected]}>{opt.label}</Text>
-          </Pressable>
-        ))}
       </View>
 
       <Text style={styles.sectionLabel}>WIDOCZNOŚĆ</Text>

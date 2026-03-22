@@ -457,21 +457,6 @@ async function processStatusMatching(userId: string) {
   if (!user?.currentStatus) return;
   if (!user.isComplete) return;
 
-  // Check if status expired — clean up and return
-  if (user.statusExpiresAt && user.statusExpiresAt < new Date()) {
-    await db
-      .update(schema.profiles)
-      .set({
-        currentStatus: null,
-        statusExpiresAt: null,
-        statusEmbedding: null,
-        statusSetAt: null,
-      })
-      .where(eq(schema.profiles.userId, userId));
-    await db.delete(schema.statusMatches).where(eq(schema.statusMatches.userId, userId));
-    return;
-  }
-
   // Generate embedding for status text
   const statusEmb = await generateEmbedding(user.currentStatus);
   await db.update(schema.profiles).set({ statusEmbedding: statusEmb }).where(eq(schema.profiles.userId, userId));

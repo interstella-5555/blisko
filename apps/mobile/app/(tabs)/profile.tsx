@@ -5,26 +5,10 @@ import { IconSparkles } from "../../src/components/ui/icons";
 import { useAuthStore } from "../../src/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
-function formatTimeLeft(expiresAt: string | null | undefined): string {
-  if (!expiresAt) return "∞";
-  const diff = new Date(expiresAt).getTime() - Date.now();
-  if (diff <= 0) return "wygasł";
-  const hours = Math.floor(diff / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  if (hours > 0) return `${hours}h`;
-  return `${minutes}m`;
-}
-
-function hasActiveStatus(profile: { currentStatus?: string | null; statusExpiresAt?: string | null } | null): boolean {
-  if (!profile?.currentStatus) return false;
-  if (!profile.statusExpiresAt) return true;
-  return new Date(profile.statusExpiresAt).getTime() > Date.now();
-}
-
 export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
-  const activeStatus = hasActiveStatus(profile);
+  const activeStatus = !!profile?.currentStatus;
 
   return (
     <ScrollView style={styles.container}>
@@ -50,7 +34,7 @@ export default function ProfileScreen() {
                 {profile!.currentStatus}
               </Text>
             </Pressable>
-            <Text style={styles.statusExpiry}>wygasa za {formatTimeLeft(profile!.statusExpiresAt)}</Text>
+            <Text style={styles.statusExpiry}>aktywny dopóki go nie zmienisz</Text>
           </View>
         ) : (
           <Pressable style={styles.setStatusButton} onPress={() => router.push("/set-status" as never)}>
