@@ -1,14 +1,12 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { getAuthSession } from "~/lib/auth-session";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: async () => {
     if (typeof window !== "undefined") return;
-    const { getRequestHeader } = await import("@tanstack/react-start/server");
-    const { getSession, parseSessionToken } = await import("~/lib/auth");
-    const cookie = getRequestHeader("cookie") || "";
-    const token = parseSessionToken(cookie);
-    if (token && getSession(token)) {
+    const { isAuthenticated } = await getAuthSession();
+    if (isAuthenticated) {
       throw redirect({ to: "/dashboard" });
     }
   },

@@ -22,7 +22,7 @@
     "@tanstack/router-plugin": "catalog:",
     "animate.css": "^4.1.1",
     "lucide-react": "^0.545.0",
-    "nitro": "npm:nitro-nightly@3.0.1-20260317-115307-5d51b7f3",
+    "nitro": "^3.0.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-markdown": "^10.1.0",

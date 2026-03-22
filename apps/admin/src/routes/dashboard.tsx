@@ -1,17 +1,14 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { getAuthSession } from "~/lib/auth-session";
 
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
     if (typeof window !== "undefined") return { email: "" };
-    const { getRequestHeader } = await import("@tanstack/react-start/server");
-    const { getSession, parseSessionToken } = await import("~/lib/auth");
-    const cookie = getRequestHeader("cookie") || "";
-    const token = parseSessionToken(cookie);
-    const session = token ? getSession(token) : null;
-    if (!session) {
+    const { email, isAuthenticated } = await getAuthSession();
+    if (!isAuthenticated) {
       throw redirect({ to: "/login" });
     }
-    return { email: session.email };
+    return { email: email! };
   },
   component: DashboardPage,
 });
