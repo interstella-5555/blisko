@@ -123,6 +123,7 @@ export const waves = pgTable(
       .references(() => user.id),
     status: varchar("status", { length: 20 }).notNull().default("pending"),
     senderStatusSnapshot: text("sender_status_snapshot"),
+    recipientStatusSnapshot: text("recipient_status_snapshot"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
@@ -147,6 +148,7 @@ export const conversations = pgTable(
     longitude: real("longitude"),
     isDiscoverable: boolean("is_discoverable").default(false),
     discoveryRadiusMeters: integer("discovery_radius_meters").default(5000),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

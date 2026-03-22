@@ -176,14 +176,58 @@ export const wavesRouter = router({
       }
 
       if (input.accept) {
+        // Fetch both profiles for status snapshots + notification display
+        const [responderProfile, senderProfile] = await Promise.all([
+          db.query.profiles.findFirst({
+            where: eq(schema.profiles.userId, ctx.userId),
+            columns: { displayName: true, avatarUrl: true, currentStatus: true, latitude: true, longitude: true },
+          }),
+          db.query.profiles.findFirst({
+            where: eq(schema.profiles.userId, wave.fromUserId),
+            columns: { latitude: true, longitude: true },
+          }),
+        ]);
+
+        // Compute distance between sender and recipient at accept time
+        let connectedDistance: number | null = null;
+        if (
+          responderProfile?.latitude &&
+          responderProfile?.longitude &&
+          senderProfile?.latitude &&
+          senderProfile?.longitude
+        ) {
+          const R = 6371000;
+          const dLat = ((senderProfile.latitude - responderProfile.latitude) * Math.PI) / 180;
+          const dLon = ((senderProfile.longitude - responderProfile.longitude) * Math.PI) / 180;
+          const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos((responderProfile.latitude * Math.PI) / 180) *
+              Math.cos((senderProfile.latitude * Math.PI) / 180) *
+              Math.sin(dLon / 2) ** 2;
+          connectedDistance = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        }
+
         const { updatedWave, conversation } = await db.transaction(async (tx) => {
           const [updatedWave] = await tx
             .update(schema.waves)
-            .set({ status: "accepted" })
+            .set({
+              status: "accepted",
+              recipientStatusSnapshot: responderProfile?.currentStatus ?? null,
+            })
             .where(eq(schema.waves.id, input.waveId))
             .returning();
 
-          const [conversation] = await tx.insert(schema.conversations).values({}).returning();
+          const [conversation] = await tx
+            .insert(schema.conversations)
+            .values({
+              metadata: {
+                senderStatus: wave.senderStatusSnapshot ?? null,
+                recipientStatus: responderProfile?.currentStatus ?? null,
+                connectedAt: new Date().toISOString(),
+                connectedDistance,
+              },
+            })
+            .returning();
 
           await tx.insert(schema.conversationParticipants).values([
             { conversationId: conversation.id, userId: wave.fromUserId },
@@ -191,12 +235,6 @@ export const wavesRouter = router({
           ]);
 
           return { updatedWave, conversation };
-        });
-
-        // Side effects (push, WS) outside transaction — they don't need atomicity
-        const responderProfile = await db.query.profiles.findFirst({
-          where: eq(schema.profiles.userId, ctx.userId),
-          columns: { displayName: true, avatarUrl: true },
         });
 
         void sendPushToUser(wave.fromUserId, {
