@@ -26,9 +26,9 @@ const statusConfig = {
     bg: colors.status.success.bg,
   },
   declined: {
-    label: "ODRZUCONE",
-    text: colors.status.error.text,
-    bg: colors.status.error.bg,
+    label: "NIEDOSTĘPNA",
+    text: colors.muted,
+    bg: colors.rule,
   },
 };
 

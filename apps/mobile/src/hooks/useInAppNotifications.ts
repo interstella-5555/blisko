@@ -44,6 +44,18 @@ export function useInAppNotifications() {
         return;
       }
 
+      if (msg.type === "waveResponded" && !msg.accepted) {
+        showNotification({
+          id: `wave-declined-${msg.waveId}`,
+          title: "Blisko",
+          subtitle: "Ta osoba jest teraz niedostępna — powodów może być wiele, nie przejmuj się.",
+          avatarUrl: null,
+          avatarName: "B",
+          onPress: () => {},
+        });
+        return;
+      }
+
       if (msg.type === "groupInvited") {
         showNotification({
           id: `group-invited-${msg.conversationId}`,

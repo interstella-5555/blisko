@@ -79,7 +79,7 @@ export function WaveCard({
         <View style={styles.actions}>
           <Button
             testID={`wave-decline-${wave.id}`}
-            title="Odrzuć"
+            title="Nie teraz"
             variant="ghost"
             onPress={onDecline!}
             disabled={isLoading}
