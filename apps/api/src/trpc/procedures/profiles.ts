@@ -378,6 +378,9 @@ export const profilesRouter = router({
             : interestScore;
         const rankScore = 0.6 * matchScore + 0.4 * proximity;
 
+        const theirStatusActive =
+          u.profile.currentStatus != null && (!u.profile.statusExpiresAt || u.profile.statusExpiresAt > now);
+
         results.push({
           profile: {
             id: u.profile.id,
@@ -386,6 +389,8 @@ export const profilesRouter = router({
             bio: u.profile.bio,
             lookingFor: u.profile.lookingFor,
             avatarUrl: u.profile.avatarUrl,
+            currentStatus:
+              theirStatusActive && u.profile.statusVisibility !== "private" ? u.profile.currentStatus : null,
           },
           distance: roundDistance(u.distance),
           gridLat: gridPos.gridLat,
@@ -396,10 +401,7 @@ export const profilesRouter = router({
           commonInterests,
           shortSnippet: analysis?.shortSnippet ?? null,
           analysisReady: !!analysis,
-          statusMatch:
-            myStatusActive && u.profile.currentStatus && (!u.profile.statusExpiresAt || u.profile.statusExpiresAt > now)
-              ? (statusMatchMap.get(u.profile.userId) ?? null)
-              : null,
+          hasStatusMatch: myStatusActive && theirStatusActive && statusMatchMap.has(u.profile.userId),
         });
       }
 
