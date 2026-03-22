@@ -422,7 +422,6 @@ export const profilesRouter = router({
       const myStatus = myStatusActive
         ? {
             text: currentProfile!.currentStatus!,
-            expiresAt: currentProfile!.statusExpiresAt?.toISOString() ?? null,
             setAt: currentProfile!.statusSetAt?.toISOString() ?? null,
           }
         : null;
@@ -488,14 +487,12 @@ export const profilesRouter = router({
 
     if (!profile) return null;
 
-    // Lazy expiry check — treat expired status as null
     const isOwnProfile = input.userId === ctx.userId;
     const showStatus = isOwnProfile ? isStatusActive(profile) : isStatusPublic(profile);
 
     return {
       ...profile,
       currentStatus: showStatus ? profile.currentStatus : null,
-      statusExpiresAt: showStatus ? profile.statusExpiresAt : null,
       statusSetAt: showStatus ? profile.statusSetAt : null,
       statusVisibility: isOwnProfile ? profile.statusVisibility : null,
     };
@@ -529,16 +526,11 @@ export const profilesRouter = router({
   setStatus: protectedProcedure.input(setStatusSchema).mutation(async ({ ctx, input }) => {
     await moderateContent(input.text);
 
-    const expiresAt =
-      input.expiresIn === "never"
-        ? null
-        : new Date(Date.now() + { "1h": 3600000, "6h": 21600000, "24h": 86400000 }[input.expiresIn]);
-
     const [profile] = await db
       .update(schema.profiles)
       .set({
         currentStatus: input.text,
-        statusExpiresAt: expiresAt,
+        statusExpiresAt: null,
         statusVisibility: input.visibility,
         statusSetAt: new Date(),
         updatedAt: new Date(),

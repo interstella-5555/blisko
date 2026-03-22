@@ -39,16 +39,6 @@ import { colors, fonts, spacing, type as typ } from "../../src/theme";
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.4;
 
-function formatTimeLeft(expiresAt: string | null): string {
-  if (!expiresAt) return "∞";
-  const diff = new Date(expiresAt).getTime() - Date.now();
-  if (diff <= 0) return "wygasł";
-  const hours = Math.floor(diff / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  if (hours > 0) return `${hours}h`;
-  return `${minutes}m`;
-}
-
 type NearbyFilter = "all" | "people" | "groups";
 
 const FILTER_CHIPS: { key: NearbyFilter; label: string }[] = [
@@ -146,15 +136,11 @@ export default function NearbyScreen() {
   // Derive status from auth store (optimistic) with query fallback
   const profile = useAuthStore((s) => s.profile);
   const myStatus = useMemo(() => {
-    if (profile?.currentStatus && profile?.statusExpiresAt) {
-      const expires = new Date(profile.statusExpiresAt);
-      if (expires > new Date()) {
-        return { text: profile.currentStatus, expiresAt: profile.statusExpiresAt };
-      }
-      return null;
+    if (profile?.currentStatus) {
+      return { text: profile.currentStatus };
     }
     return listData?.pages[0]?.myStatus ?? null;
-  }, [profile?.currentStatus, profile?.statusExpiresAt, listData]);
+  }, [profile?.currentStatus, listData]);
 
   // Wave status from store (populated by _layout.tsx hydration + WS)
   const waveStatusByUserId = useWavesStore((s) => s.waveStatusByUserId);
@@ -560,7 +546,6 @@ export default function NearbyScreen() {
           <Text style={styles.statusBarText} numberOfLines={1}>
             {myStatus.text}
           </Text>
-          <Text style={styles.statusBarTime}>{formatTimeLeft(myStatus.expiresAt)}</Text>
         </Pressable>
       ) : (
         <Pressable style={styles.statusBarEmpty} onPress={() => router.push("/set-status" as never)}>
@@ -716,11 +701,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     color: colors.ink,
     flex: 1,
-  },
-  statusBarTime: {
-    fontSize: 10,
-    fontFamily: fonts.sansSemiBold,
-    color: "#D4851C",
   },
   statusBarEmpty: {
     backgroundColor: colors.mapBg,

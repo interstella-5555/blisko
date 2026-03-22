@@ -1,6 +1,5 @@
 interface StatusFields {
   currentStatus: string | null;
-  statusExpiresAt: Date | null;
 }
 
 interface VisibleStatusFields extends StatusFields {
@@ -8,7 +7,7 @@ interface VisibleStatusFields extends StatusFields {
 }
 
 export function isStatusActive(profile: StatusFields): boolean {
-  return !!profile.currentStatus && (!profile.statusExpiresAt || profile.statusExpiresAt > new Date());
+  return !!profile.currentStatus;
 }
 
 export function isStatusPublic(profile: VisibleStatusFields): boolean {

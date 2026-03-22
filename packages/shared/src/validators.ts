@@ -87,7 +87,6 @@ export const getNearbyUsersForMapSchema = z.object({
 // Status "na teraz" validators
 export const setStatusSchema = z.object({
   text: z.string().min(1).max(150),
-  expiresIn: z.enum(["1h", "6h", "24h", "never"]),
   visibility: z.enum(["public", "private"]),
 });
 
