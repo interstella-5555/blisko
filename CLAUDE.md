@@ -2,7 +2,7 @@
 
 Social proximity app — connects nearby people in Warsaw based on location, interests, and AI-generated compatibility analysis. Monorepo: API (Bun/Hono/tRPC), Mobile (Expo/React Native), Design Book (TanStack Start), Chatbot (seed user AI responder).
 
-Rules are in `.claude/rules/` — one file per category: `drizzle.md`, `migrations.md`, `mobile.md`, `security.md`, `infra.md`, `api.md` (also imports + style), `linear.md`. All loaded automatically by Claude Code. When adding a new rule, put it in the matching category file. If no category fits, propose a new one (new `.md` file in `.claude/rules/`).
+Rules are in `.claude/rules/` — one file per category: `drizzle.md`, `migrations.md`, `mobile.md`, `security.md`, `infra.md`, `api.md` (also imports + style), `linear.md`, `git.md`, `style.md`. All loaded automatically by Claude Code. When adding a new rule, put it in the matching category file. If no category fits, propose a new one (new `.md` file in `.claude/rules/`).
 
 ---
 
@@ -74,22 +74,24 @@ echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:300
 - **Refined idea** (clear what to build) → label **Feature** / **Improvement** / **Bug** as appropriate.
 - **Priority**: set when user expresses urgency, otherwise leave unset.
 - **Sub-issues**: create with `parentId` when distinct parts emerge naturally. Don't force upfront decomposition.
-- **Specs**: `docs/plans/` (committed to git, shared across worktrees) or `docs/architecture/` (permanent design docs with rationale). Linear Document for plans saved for later via `create_document` with `issue` param.
+- **Specs**: `docs/plans/` (gitignored, temporary) or `docs/architecture/` (permanent design docs with rationale, committed). Linear Document for plans saved for later via `create_document` with `issue` param.
 - **External feedback**: separate Idea issue per point, tagged with who gave it ("Feedback od Jarka:").
 - **Mid-conversation**: if something worth tracking comes up, create the issue immediately.
 
 ### Working on a ticket
 
-1. **Fetch & understand** — get issue description + comments + sub-issues
-2. **Status → In Progress** — immediately, don't ask
-3. **Create branch** — use Linear's `gitBranchName` (format: `kwypchlo/bli-X-slug`)
-4. **Brainstorm if needed** — `brainstorming` skill for non-trivial work, then `writing-plans`
-5. **Commit plan** — commit `docs/plans/` file immediately so other worktrees can see it: `Add implementation plan (BLI-X)`
-6. **Implement** — `test-driven-development` skill. Bugs → `systematic-debugging` skill
-7. **Commit** — `Fix map default state (BLI-6)` — imperative, verb-first, issue ID at end
-8. **Verify** — `verification-before-completion` skill before claiming done
-9. **Finish** — merge to main, status → Done. No PR (solo dev). If CI added later, use In Review + PR
-10. **Sub-tasks** — each sub-issue gets own branch (`gitBranchName`), merged to main independently. Parent → Done when all children done
+1. **Fetch & understand** — get issue description + comments + sub-issues. Do deep research: read relevant code, trace execution paths, understand the problem space thoroughly before planning.
+2. **Status → In Progress** — immediately, don't ask.
+3. **Brainstorm if needed** — `brainstorming` skill for non-trivial work.
+4. **Write plan** — `writing-plans` skill. Save to `docs/plans/BLI-X-ticket-summary-kebab-case.md`. Plans are gitignored (temporary working docs, not committed).
+5. **Present plan for approval** — show the user the plan and wait for explicit approval before implementing. Incorporate feedback if needed.
+6. **Create branch** — use Linear's `gitBranchName` (format: `kwypchlo/bli-X-slug`). Branch is always created from latest `origin/main` (enforced by hook).
+7. **Implement** — `test-driven-development` skill. Bugs → `systematic-debugging` skill.
+8. **Commit** — `feat: add group discovery nearby (BLI-42)` — conventional prefix, what + why, ticket ID at end.
+9. **Verify** — `verification-before-completion` skill before claiming done.
+10. **Create PR** — `gh pr create --assignee @me`. Link PR to Linear ticket via `create_attachment`. Follow PR standards from `git.md` rules.
+11. **Notify user** — send the user the PR link and Linear ticket link. Status → In Review.
+12. **Sub-tasks** — each sub-issue gets own branch (`gitBranchName`), own PR. Parent → Done when all children done.
 
 Technical notes: add as comments on the Linear issue.
 
@@ -104,7 +106,7 @@ Skills are **mandatory** at each stage, not optional:
 | Parallel independent tasks | `dispatching-parallel-agents` |
 | Writing code | `test-driven-development` |
 | Bug / test failure | `systematic-debugging` |
-| Before Done / merge | `verification-before-completion` |
+| Before Done / PR | `verification-before-completion` |
 | After implementation | `requesting-code-review` |
 | Receiving feedback | `receiving-code-review` |
 | Branch complete | `finishing-a-development-branch` |
@@ -113,9 +115,8 @@ Skills are **mandatory** at each stage, not optional:
 
 | Skill default | Our override | Why |
 |---------------|-------------|-----|
-| Filename: `YYYY-MM-DD-<feature>.md` | `YYYY-MM-DD-HHmm-<feature>.md` | Multiple plans per day are common |
-| Plans are gitignored, local-only | Plans are **committed to git** | Must be visible across worktrees/sessions |
-| Saved at end with implementation | Committed **immediately after writing** (step 5), before implementation | Other worktrees need the plan before code starts |
+| Filename: `YYYY-MM-DD-<feature>.md` | `BLI-X-ticket-summary-kebab-case.md` | Tied to ticket, easy to find |
+| Plans committed to git | Plans are **gitignored** | Temporary working docs — the PR and code are the permanent artifacts |
 
 **Using old plans:** Old plans are **implementation history only**. Never treat them as a source of truth for current state. Code and schema are the source of truth — if a plan contradicts the code, the code wins. When searching for context, read the actual code, not old plans.
 
