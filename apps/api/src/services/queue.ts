@@ -499,12 +499,14 @@ async function processStatusMatching(userId: string) {
     );
 
   // Pre-filter by cosine similarity — top 20
+  // Private statuses are matched via profile embedding only — their status text never enters the LLM reason
   const scored = nearbyUsers
     .map(({ profile: u }) => {
       const hasActiveStatus = u.currentStatus && (!u.statusExpiresAt || u.statusExpiresAt > new Date());
+      const hasPublicStatus = hasActiveStatus && u.statusVisibility !== "private";
 
       let similarity = 0;
-      if (hasActiveStatus && u.statusEmbedding?.length) {
+      if (hasPublicStatus && u.statusEmbedding?.length) {
         similarity = cosineSimilarity(statusEmb, u.statusEmbedding);
       } else if (u.embedding?.length) {
         similarity = cosineSimilarity(statusEmb, u.embedding);
@@ -513,7 +515,7 @@ async function processStatusMatching(userId: string) {
       return {
         user: u,
         similarity,
-        hasActiveStatus: Boolean(hasActiveStatus),
+        hasActiveStatus: Boolean(hasPublicStatus),
       };
     })
     .filter((s) => s.similarity > 0.3)
