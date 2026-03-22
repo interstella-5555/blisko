@@ -236,10 +236,10 @@ export default function UserProfileScreen() {
   const handleDecline = () => {
     if (!gate.requireFullProfile()) return;
     if (busyRef.current || !incomingWave) return;
-    Alert.alert("Odrzuć ping", "Czy na pewno chcesz odrzucić ten ping?", [
+    Alert.alert("Nie teraz", "Czy na pewno chcesz pominąć ten ping?", [
       { text: "Anuluj", style: "cancel" },
       {
-        text: "Odrzuć",
+        text: "Pomiń",
         style: "destructive",
         onPress: async () => {
           busyRef.current = true;
@@ -317,7 +317,7 @@ export default function UserProfileScreen() {
             {actionState === "incoming" && (
               <View style={styles.incomingActions}>
                 <Pressable style={styles.declinePill} onPress={handleDecline}>
-                  <Text style={styles.declinePillText}>Odrzuć</Text>
+                  <Text style={styles.declinePillText}>Nie teraz</Text>
                 </Pressable>
                 <Pressable style={styles.actionPill} onPress={handleAccept}>
                   <Text style={styles.actionPillText}>Akceptuj</Text>
