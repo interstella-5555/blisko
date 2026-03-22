@@ -104,7 +104,7 @@ export default function ChatsScreen() {
             <View style={styles.empty} testID="chats-empty">
               <IconChat size={48} color={colors.muted} />
               <Text style={styles.emptyTitle}>Brak czatów</Text>
-              <Text style={styles.emptyText}>Zacznij rozmowę odpowiadając na zaczepienie</Text>
+              <Text style={styles.emptyText}>Zacznij rozmowę odpowiadając na ping</Text>
             </View>
           )
         }

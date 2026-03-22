@@ -95,7 +95,7 @@ export const wavesRouter = router({
 
       void sendPushToUser(input.toUserId, {
         title: "Blisko",
-        body: `${senderProfile?.displayName ?? "Ktoś"} — nowa zaczepka!`,
+        body: `${senderProfile?.displayName ?? "Ktoś"} — nowy ping!`,
         data: { type: "wave", userId: ctx.userId },
       });
 
@@ -200,7 +200,7 @@ export const wavesRouter = router({
 
         void sendPushToUser(wave.fromUserId, {
           title: "Blisko",
-          body: `${responderProfile?.displayName ?? "Ktoś"} — zaczepka przyjęta!`,
+          body: `${responderProfile?.displayName ?? "Ktoś"} — ping przyjęty!`,
           data: { type: "chat", conversationId: conversation.id },
         });
 

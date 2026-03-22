@@ -110,7 +110,7 @@ export const profiles = pgTable(
   }),
 );
 
-// Waves (zaczepianie)
+// Waves (pings)
 export const waves = pgTable(
   "waves",
   {

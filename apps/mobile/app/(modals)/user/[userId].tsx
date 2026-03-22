@@ -178,7 +178,7 @@ export default function UserProfileScreen() {
         // Already waved — keep pending state, let next sync pick up the real ID
       } else {
         setPendingWaveId(null);
-        Alert.alert("Błąd", `Nie udało się wysłać zaczepienia: ${errorMsg}`);
+        Alert.alert("Błąd", `Nie udało się wysłać pinga: ${errorMsg}`);
       }
     } finally {
       busyRef.current = false;
@@ -236,7 +236,7 @@ export default function UserProfileScreen() {
   const handleDecline = () => {
     if (!gate.requireFullProfile()) return;
     if (busyRef.current || !incomingWave) return;
-    Alert.alert("Odrzuć zaczepienie", "Czy na pewno chcesz odrzucić to zaczepienie?", [
+    Alert.alert("Odrzuć ping", "Czy na pewno chcesz odrzucić ten ping?", [
       { text: "Anuluj", style: "cancel" },
       {
         text: "Odrzuć",
@@ -305,13 +305,13 @@ export default function UserProfileScreen() {
             {actionState === "idle" && (
               <Pressable style={styles.actionPill} onPress={handleWave}>
                 <IconWave size={13} color={colors.bg} />
-                <Text style={styles.actionPillText}>Zaczep</Text>
+                <Text style={styles.actionPillText}>Ping</Text>
               </Pressable>
             )}
             {actionState === "pending" && (
               <View style={styles.pendingPill}>
                 <IconCheck size={12} color={colors.muted} />
-                <Text style={styles.pendingPillText}>Zaczepiono</Text>
+                <Text style={styles.pendingPillText}>Pingowano</Text>
               </View>
             )}
             {actionState === "incoming" && (

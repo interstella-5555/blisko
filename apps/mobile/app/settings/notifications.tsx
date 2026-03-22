@@ -33,8 +33,8 @@ export default function NotificationsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>PUSH</Text>
 
-        <ToggleRow label="Nowe zaczepki" value={newWaves} onValueChange={setNewWaves} />
-        <ToggleRow label="Odpowiedzi na zaczepki" value={waveResponses} onValueChange={setWaveResponses} />
+        <ToggleRow label="Nowe pingi" value={newWaves} onValueChange={setNewWaves} />
+        <ToggleRow label="Odpowiedzi na pingi" value={waveResponses} onValueChange={setWaveResponses} />
         <ToggleRow label="Nowe wiadomosci" value={newMessages} onValueChange={setNewMessages} />
         <ToggleRow label="Zaproszenia do grup" value={groupInvites} onValueChange={setGroupInvites} />
 

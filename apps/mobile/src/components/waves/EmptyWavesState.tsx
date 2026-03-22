@@ -12,9 +12,9 @@ export function EmptyWavesState({ type }: EmptyWavesStateProps) {
   return (
     <View testID={isReceived ? "waves-empty-received" : "waves-empty-sent"} style={styles.container}>
       {isReceived ? <IconWave size={48} color={colors.muted} /> : <IconSend size={48} color={colors.muted} />}
-      <Text style={styles.title}>{isReceived ? "Brak zaczepień" : "Brak wysłanych zaczepień"}</Text>
+      <Text style={styles.title}>{isReceived ? "Brak pingów" : "Brak wysłanych pingów"}</Text>
       <Text style={styles.text}>
-        {isReceived ? "Gdy ktoś Cię zaczepi, zobaczysz to tutaj" : 'Zaczep kogoś w zakładce "W okolicy"'}
+        {isReceived ? "Gdy ktoś Cię pingnie, zobaczysz to tutaj" : 'Pinguj kogoś w zakładce "W okolicy"'}
       </Text>
     </View>
   );

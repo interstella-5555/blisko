@@ -350,7 +350,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="waves"
         options={{
-          title: "Zaczepki",
+          title: "Pingi",
           tabBarIcon: ({ color }) => <IconWave size={20} color={color} />,
           tabBarAccessibilityLabel: "tab-waves",
           tabBarBadge: pendingWaves > 0 ? pendingWaves : undefined,
