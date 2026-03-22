@@ -244,12 +244,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#D4851C",
   },
-  naTerazReason: {
-    fontSize: 10,
-    color: "#D4851C",
-    fontWeight: "500",
-    marginTop: 3,
-  },
   analyzingBadge: {
     flexDirection: "row",
     alignItems: "center",
