@@ -1,2 +1,4 @@
-# Auto-generated Drizzle snapshots — collapse diff by default on GitHub
+# Auto-generated files — collapse diff by default on GitHub
 apps/api/drizzle/meta/*_snapshot.json linguist-generated=true
+apps/api/drizzle/meta/_journal.json linguist-generated=true
+bun.lock linguist-generated=true
