@@ -30,6 +30,12 @@ PR titles and descriptions are read by humans who skim quickly — write for how
 
 - `git/pr-update-fresh-read` — When updating an existing PR description: run `gh pr view --json body` **in the same prompt response** as the edit — never rely on a read from earlier in the session. The user may have added screenshots, links, or other content between prompts.
 
+## Pre-PR Quality Pipeline
+
+- `git/pre-pr-simplify` — Before creating a PR, run the `/simplify` skill on the changed code to clean up quality, reuse, and efficiency issues.
+
+- `git/pre-pr-code-review` — After `/simplify`, run `/code-review:code-review` on the PR branch. One of the review subagents MUST analyze the **impact of changes on the rest of the application** — side effects, broken assumptions, things we might not have predicted. Don't comment on the PR — fix issues immediately, then re-run `/code-review:code-review`. Maximum 3 iterations. If issues remain after 3 rounds, stop and present the remaining findings to the user.
+
 ## Protected Branches
 
 - `git/no-commit-main` — Never commit or push directly to `main`. The `protect-branches` hook blocks this automatically. Always work on a feature branch and merge via PR.
