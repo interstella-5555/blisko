@@ -275,17 +275,18 @@ export default function UserProfileScreen() {
     );
   }
 
+  const isConnected = !!conversationId || optimisticAction === "accepted";
+
   // Action state: conversation/accepted > waved pending > incoming wave > idle
-  const actionState =
-    conversationId || optimisticAction === "accepted"
-      ? "chat"
-      : pendingWaveId
-        ? "pending"
-        : optimisticAction === "declined"
-          ? "idle"
-          : incomingWave
-            ? "incoming"
-            : "idle";
+  const actionState = isConnected
+    ? "chat"
+    : pendingWaveId
+      ? "pending"
+      : optimisticAction === "declined"
+        ? "idle"
+        : incomingWave
+          ? "incoming"
+          : "idle";
 
   return (
     <>
@@ -387,7 +388,7 @@ export default function UserProfileScreen() {
         </View>
 
         {/* Social links — visible only after wave acceptance */}
-        {actionState === "chat" && profile?.socialLinks && Object.values(profile.socialLinks).some(Boolean) && (
+        {isConnected && profile?.socialLinks && Object.values(profile.socialLinks).some(Boolean) && (
           <View style={styles.socialLinksRow}>
             {profile.socialLinks.facebook && (
               <Pressable
