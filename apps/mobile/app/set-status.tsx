@@ -21,6 +21,7 @@ export default function SetStatusScreen() {
   const setProfile = useAuthStore((state) => state.setProfile);
   const [text, setText] = useState(prefill || "");
   const [duration, setDuration] = useState<Duration>("6h");
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
 
   const isEditing = !!prefill;
 
@@ -58,12 +59,13 @@ export default function SetStatusScreen() {
         currentStatus: trimmed,
         statusExpiresAt: duration === "never" ? null : new Date(Date.now() + ms(duration)).toISOString(),
         statusSetAt: new Date().toISOString(),
+        statusVisibility: visibility,
       });
     }
     router.back();
 
     setStatus.mutate(
-      { text: trimmed, expiresIn: duration },
+      { text: trimmed, expiresIn: duration, visibility },
       {
         onError: () => {
           if (previousProfile) setProfile(previousProfile);
@@ -76,7 +78,13 @@ export default function SetStatusScreen() {
   const handleClear = () => {
     const previousProfile = useAuthStore.getState().profile;
     if (previousProfile) {
-      setProfile({ ...previousProfile, currentStatus: null, statusExpiresAt: null, statusSetAt: null });
+      setProfile({
+        ...previousProfile,
+        currentStatus: null,
+        statusExpiresAt: null,
+        statusSetAt: null,
+        statusVisibility: null,
+      });
     }
     router.back();
     clearStatus.mutate(undefined, {
@@ -121,6 +129,26 @@ export default function SetStatusScreen() {
             </Text>
           </Pressable>
         ))}
+      </View>
+
+      <Text style={styles.durationLabel}>WIDOCZNOŚĆ</Text>
+      <View style={styles.durationRow}>
+        <Pressable
+          style={[styles.durationChip, visibility === "public" && styles.durationChipSelected]}
+          onPress={() => setVisibility("public")}
+        >
+          <Text style={[styles.durationChipText, visibility === "public" && styles.durationChipTextSelected]}>
+            Publiczny
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.durationChip, visibility === "private" && styles.durationChipSelected]}
+          onPress={() => setVisibility("private")}
+        >
+          <Text style={[styles.durationChipText, visibility === "private" && styles.durationChipTextSelected]}>
+            Prywatny
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.submitContainer}>

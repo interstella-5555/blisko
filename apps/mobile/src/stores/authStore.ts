@@ -27,6 +27,7 @@ interface Profile {
   currentStatus?: string | null;
   statusExpiresAt?: string | null;
   statusSetAt?: string | null;
+  statusVisibility?: "public" | "private" | null;
 }
 
 interface AuthState {
