@@ -43,6 +43,13 @@
       "when": 1774200308121,
       "tag": "0005_add_status_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774204780344,
+      "tag": "0006_add_sender_status_snapshot",
+      "breakpoints": true
     }
   ]
 }

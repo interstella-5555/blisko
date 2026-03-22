@@ -122,6 +122,7 @@ export const waves = pgTable(
       .notNull()
       .references(() => user.id),
     status: varchar("status", { length: 20 }).notNull().default("pending"),
+    senderStatusSnapshot: text("sender_status_snapshot"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
