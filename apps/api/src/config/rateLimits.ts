@@ -67,7 +67,7 @@ export type RateLimitName = keyof typeof rateLimits;
  * Mobile app uses these directly in toast notifications.
  */
 export const rateLimitMessages: Partial<Record<RateLimitName, string>> = {
-  "waves.send": "Wysłałeś dużo zaczepek. Odpocznij chwilę i spróbuj później.",
+  "waves.send": "Wysłałeś dużo pingów. Odpocznij chwilę i spróbuj później.",
   "messages.send": "Za dużo wiadomości naraz. Zwolnij trochę.",
   "messages.sendGlobal": "Za dużo wiadomości. Spróbuj ponownie za chwilę.",
   "profiles.update": "Za dużo zmian w profilu. Spróbuj ponownie za chwilę.",

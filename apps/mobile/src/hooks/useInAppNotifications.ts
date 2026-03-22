@@ -16,7 +16,7 @@ export function useInAppNotifications() {
         showNotification({
           id: `wave-${wave.id}`,
           title: fromProfile.displayName,
-          subtitle: "Zaczepił(a) Cię!",
+          subtitle: "Pinguje Cię!",
           avatarUrl: fromProfile.avatarUrl,
           avatarName: fromProfile.displayName,
           onPress: () => {
@@ -34,7 +34,7 @@ export function useInAppNotifications() {
         showNotification({
           id: `wave-responded-${msg.waveId}`,
           title: responderProfile?.displayName ?? "Ktoś",
-          subtitle: "Przyjął(a) Twoją zaczepkę!",
+          subtitle: "Przyjął(a) Twój ping!",
           avatarUrl: responderProfile?.avatarUrl ?? null,
           avatarName: responderProfile?.displayName ?? "?",
           onPress: () => {

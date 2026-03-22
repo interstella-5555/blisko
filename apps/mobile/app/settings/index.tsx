@@ -155,7 +155,7 @@ const groups: GroupRow[] = [
   {
     icon: <IconNotifications />,
     label: "Powiadomienia",
-    description: "Zaczepki, wiadomości",
+    description: "Pingi, wiadomości",
     route: "/settings/notifications",
   },
   {

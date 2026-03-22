@@ -95,7 +95,7 @@ function getMatchColor(percent: number): string {
 }
 
 const statusConfig: Record<Exclude<UserRowStatus, "none">, { label: string; color: string }> = {
-  waved: { label: "ZACZEPIONO", color: colors.muted },
+  waved: { label: "PINGOWANO", color: colors.muted },
   incoming: { label: "CHCE CIĘ POZNAĆ", color: colors.status.warning.text },
   friend: { label: "ZNAJOMY", color: colors.status.success.text },
 };
