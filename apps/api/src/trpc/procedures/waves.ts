@@ -53,6 +53,12 @@ export const wavesRouter = router({
         });
       }
 
+      // Fetch sender profile for status snapshot + notification display
+      const senderProfile = await db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, ctx.userId),
+        columns: { displayName: true, avatarUrl: true, currentStatus: true },
+      });
+
       // Check + insert in serializable transaction to prevent duplicate waves
       const [wave] = await db.transaction(
         async (tx) => {
@@ -79,6 +85,7 @@ export const wavesRouter = router({
             .values({
               fromUserId: ctx.userId,
               toUserId: input.toUserId,
+              senderStatusSnapshot: senderProfile?.currentStatus ?? null,
             })
             .returning();
         },
@@ -86,12 +93,6 @@ export const wavesRouter = router({
       );
 
       await promotePairAnalysis(ctx.userId, input.toUserId);
-
-      // Query sender profile for notification display
-      const senderProfile = await db.query.profiles.findFirst({
-        where: eq(schema.profiles.userId, ctx.userId),
-        columns: { displayName: true, avatarUrl: true },
-      });
 
       void sendPushToUser(input.toUserId, {
         title: "Blisko",

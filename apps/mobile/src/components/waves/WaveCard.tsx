@@ -17,6 +17,7 @@ interface Wave {
   fromUserId: string;
   toUserId: string;
   status: "pending" | "accepted" | "declined";
+  senderStatusSnapshot: string | null;
   createdAt: string;
 }
 
@@ -73,6 +74,15 @@ export function WaveCard({
         <Text style={styles.bio} numberOfLines={2}>
           {profile.bio}
         </Text>
+      )}
+
+      {isReceived && wave.senderStatusSnapshot && (
+        <View style={styles.statusSnapshot}>
+          <Text style={styles.statusSnapshotLabel}>SZUKA TERAZ</Text>
+          <Text style={styles.statusSnapshotText} numberOfLines={2}>
+            {wave.senderStatusSnapshot}
+          </Text>
+        </View>
       )}
 
       {isReceived && isPending && (
@@ -133,6 +143,27 @@ const styles = StyleSheet.create({
     color: colors.muted,
     lineHeight: 20,
     marginBottom: spacing.gutter,
+  },
+  statusSnapshot: {
+    backgroundColor: "#FFF8F0",
+    borderLeftWidth: 2,
+    borderLeftColor: "#D4851C",
+    paddingVertical: spacing.tight,
+    paddingHorizontal: spacing.gutter,
+    marginBottom: spacing.gutter,
+  },
+  statusSnapshotLabel: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 9,
+    letterSpacing: 1,
+    color: "#D4851C",
+    marginBottom: 2,
+  },
+  statusSnapshotText: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    color: colors.ink,
+    lineHeight: 18,
   },
   actions: {
     flexDirection: "row",
