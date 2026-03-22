@@ -9,7 +9,7 @@
  * Reads DATABASE_URL from env or `apps/api/.env`. Refreshes every 3s.
  * Does NOT require the chatbot to be running — reads DB directly.
  *
- * Run: `pnpm dev-cli:chatbot-monitor`
+ * Run: `bun run dev-cli:chatbot-monitor`
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

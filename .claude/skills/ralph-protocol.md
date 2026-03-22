@@ -7,7 +7,7 @@ description: Use when running as Ralph (autonomous queue worker), preparing tick
 
 Autonomous worker — reads task files from `scripts/ralph-queue/`, implements them one by one. The queue directory is gitignored — it's runtime state, not tracked content.
 
-Runner: `pnpm ralph` / `pnpm ralph:dry`
+Runner: `bun run ralph` / `bun run ralph:dry`
 
 ## How it works
 
@@ -52,10 +52,10 @@ Commit must match the task file's acceptance criteria — nothing more, nothing 
 ## Verify steps
 
 ```
-pnpm --filter @repo/api typecheck
-pnpm --filter @repo/shared typecheck
-pnpm --filter @repo/mobile typecheck
-pnpm --filter @repo/api test
+bun run --filter '@repo/api' typecheck
+bun run --filter '@repo/shared' typecheck
+bun run --filter '@repo/mobile' typecheck
+bun run --filter '@repo/api' test
 ```
 
 Only fix errors you introduced.
@@ -129,7 +129,7 @@ Triggered by "ralph report" / "co się stało w nocy".
 
 After Ralph runs, review what happened:
 
-1. `pnpm ralph:dry` — see queue state without executing
+1. `bun run ralph:dry` — see queue state without executing
 2. `git log --oneline -20` — see what was merged to main
 3. Blocked files: `ls scripts/ralph-queue/*.blocked` — check logs for why
 4. Unblock: fix the issue, rename `.blocked` back to `.md`

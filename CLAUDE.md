@@ -12,7 +12,7 @@ Brief pointers — details are in the code. Look there first.
 
 **Railway:** Project ID `62599e90-30e8-47dd-af34-4e3f73c2261a`. Services: api, chatbot, design, metro (mobile), website, database (Postgres), queue (Redis). Use `mcp__railway__*` tools.
 
-**Running locally:** `pnpm api:dev`, `pnpm design:dev`, `pnpm chatbot:dev`, `pnpm website:dev`. Mobile: `cd apps/mobile && npx expo run:ios` (simulator) or `--device` (physical). Simulator location: `xcrun simctl location booted set 52.2010865,20.9618980` (ul. Altowa, Warszawa).
+**Running locally:** `bun run api:dev`, `bun run design:dev`, `bun run chatbot:dev`, `bun run website:dev`. Mobile: `cd apps/mobile && npx expo run:ios` (simulator) or `--device` (physical). Simulator location: `xcrun simctl location booted set 52.2010865,20.9618980` (ul. Altowa, Warszawa).
 
 **Physical iPhone:** UDID `00008130-00065CE826A0001C` (iPhone 15). API URL via `EXPO_PUBLIC_API_URL` in `apps/mobile/.env.local`:
 ```bash
@@ -25,7 +25,7 @@ echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:300
 
 **Env vars:** Two env files in `apps/api/`: `.env` (local dev, loaded by Bun automatically), `.env.production` (Railway credentials, never loaded automatically — use `bun --env-file=apps/api/.env.production run <script>` for scripts needing prod access or simulator/device testing). OAuth providers: `*_CLIENT_ID` + `*_CLIENT_SECRET` for Apple, Facebook, Google, LinkedIn.
 
-**Dev CLI:** `pnpm dev-cli -- <command>` (calls API via HTTP so WebSocket events fire). `API_URL` env var overrides default `http://localhost:3000`. Users referenced by email, resolved to userId/token from in-memory cache.
+**Dev CLI:** `bun run dev-cli -- <command>` (calls API via HTTP so WebSocket events fire). `API_URL` env var overrides default `http://localhost:3000`. Users referenced by email, resolved to userId/token from in-memory cache.
 
 | Command | Example |
 |---------|---------|
@@ -38,27 +38,27 @@ echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:300
 | `send-message <name> <convId> <text>` | Send a message |
 | `reanalyze <email> [--clear-all]` | Clear analyses + re-trigger AI |
 
-**Monitors:** `pnpm dev-cli:queue-monitor` (BullMQ jobs), `pnpm dev-cli:chatbot-monitor` (bot activity).
+**Monitors:** `bun run dev-cli:queue-monitor` (BullMQ jobs), `bun run dev-cli:chatbot-monitor` (bot activity).
 
 **Seed users:** Emails `user0@example.com` – `user249@example.com`, scattered across 7 Warsaw districts. Polygons: `apps/api/scripts/warszawa-dzielnice.geojson`.
-- `pnpm api:scatter` — re-scatter ALL users uniformly (direct DB, no side-effects)
+- `bun run api:scatter` — re-scatter ALL users uniformly (direct DB, no side-effects)
 - `bun run apps/api/scripts/scatter-locations.ts` — re-scatter via API (fires AI re-analysis + WS broadcasts)
 - `bun --env-file=apps/api/.env.production run apps/api/scripts/scatter-targeted.ts <area>:<count>:<startIdx> [...]` — targeted scatter (`--list` for areas, `--dry-run` to preview)
 - Fresh seed: delete `apps/api/scripts/.seed-cache.json`, then `bun run apps/api/scripts/seed-users.ts`. Display a random test email after
 
-**Chatbot:** `pnpm chatbot:dev`. Seed users auto-respond to waves/messages. Acceptance: AI match >=75% always accepts, scales linearly to 10% at score 0. Logging in as a seed user pauses bot for 5 min.
+**Chatbot:** `bun run chatbot:dev`. Seed users auto-respond to waves/messages. Acceptance: AI match >=75% always accepts, scales linearly to 10% at score 0. Logging in as a seed user pauses bot for 5 min.
 
-**After changing AI prompts:** `pnpm dev-cli -- reanalyze user42@example.com --clear-all`
+**After changing AI prompts:** `bun run dev-cli -- reanalyze user42@example.com --clear-all`
 
-**TestFlight:** `pnpm mobile:testflight` → Xcode Organizer → Distribute App manually. Set `.env.local` to production API first.
+**TestFlight:** `bun run mobile:testflight` → Xcode Organizer → Distribute App manually. Set `.env.local` to production API first.
 
 **Design Book:** `apps/design/`, `localhost:3000/design-book`. CSS modules (mangled class names). PhoneFrame: max 402px, aspect 402:874. Variants in `apps/design/src/variants/v2-*/`.
 
-**Shared package:** `@repo/shared` — types, Zod validators, enums, haversine. Typecheck: `pnpm --filter @repo/shared typecheck`.
+**Shared package:** `@repo/shared` — types, Zod validators, enums, haversine. Typecheck: `bun run --filter '@repo/shared' typecheck`.
 
-**Testing:** `pnpm api:test`, `pnpm --filter @repo/shared test`. E2E: Maestro (`pnpm --filter @repo/mobile test:e2e`). Tests in `apps/api/__tests__/**/*.test.ts`. Use `app.request()` directly (no server needed).
+**Testing:** `bun run api:test`, `bun run --filter '@repo/shared' test`. E2E: Maestro (`bun run --filter '@repo/mobile' test:e2e`). Tests in `apps/api/__tests__/**/*.test.ts`. Use `app.request()` directly (no server needed).
 
-**Biome:** `pnpm check` (format + lint + imports). TanStack Query ESLint rules not applicable (tRPC manages queryKeys, Biome covers hook deps).
+**Biome:** `bun run check` (format + lint + imports). TanStack Query ESLint rules not applicable (tRPC manages queryKeys, Biome covers hook deps).
 
 **Monitoring:** `GET /api/metrics/summary?window=24` (JSON overview), `GET /metrics` (Prometheus). SLO: p95 < 500ms, error_rate < 5%. Design doc: `docs/architecture/instrumentation.md`.
 

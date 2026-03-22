@@ -31,10 +31,10 @@ The task file below contains everything you need:
 
 Run typechecks:
 ```
-pnpm --filter @repo/api typecheck
-pnpm --filter @repo/shared typecheck
-pnpm --filter @repo/mobile typecheck
-pnpm --filter @repo/api test
+bun run --filter '@repo/api' typecheck
+bun run --filter '@repo/shared' typecheck
+bun run --filter '@repo/mobile' typecheck
+bun run --filter '@repo/api' test
 ```
 
 - **Only fix errors you introduced.** Pre-existing errors are not your problem.

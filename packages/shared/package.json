@@ -17,10 +17,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "^3.23.0"
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "typescript": "^5.3.0",
-    "vitest": "^2.0.0"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

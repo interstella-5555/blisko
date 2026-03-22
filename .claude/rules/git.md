@@ -6,7 +6,7 @@
 
 - `git/branch-from-main` — Always create branches from latest `origin/main`. The `enforce-branch-from-default` hook enforces this automatically — it rewrites `git checkout -b` / `git worktree add` to fetch and branch from `origin/main`.
 
-- `git/worktree-setup` — After creating a worktree, run `pnpm install` (worktrees share git history but not `node_modules`). Copy `.env` files from the main repo — worktrees don't share untracked files.
+- `git/worktree-setup` — After creating a worktree, run `bun install` (worktrees share git history but not `node_modules`). Copy `.env` files from the main repo — worktrees don't share untracked files.
 
 ## Commit Messages
 
