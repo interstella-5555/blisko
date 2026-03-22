@@ -386,8 +386,8 @@ export default function UserProfileScreen() {
           )}
         </View>
 
-        {/* Social links */}
-        {profile?.socialLinks && Object.values(profile.socialLinks).some(Boolean) && (
+        {/* Social links — visible only after wave acceptance (when conversation exists) */}
+        {conversationId && profile?.socialLinks && Object.values(profile.socialLinks).some(Boolean) && (
           <View style={styles.socialLinksRow}>
             {profile.socialLinks.facebook && (
               <Pressable
