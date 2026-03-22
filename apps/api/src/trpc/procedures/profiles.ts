@@ -12,6 +12,7 @@ import { and, between, eq, isNotNull, isNull, lte, ne, placeholder, sql } from "
 import { z } from "zod";
 import { db, preparedName, schema } from "@/db";
 import { roundDistance, toGridCenter } from "@/lib/grid";
+import { isStatusActive, isStatusPublic } from "@/lib/status";
 import { setTargetUserId } from "@/services/metrics";
 import { moderateContent } from "@/services/moderation";
 import {
@@ -329,8 +330,7 @@ export const profilesRouter = router({
       );
 
       const now = new Date();
-      const myStatusActive =
-        currentProfile?.currentStatus && (!currentProfile.statusExpiresAt || currentProfile.statusExpiresAt > now);
+      const myStatusActive = currentProfile ? isStatusActive(currentProfile) : false;
 
       // Fetch extra rows to account for blocked users being filtered out
       const nearbyUsers = await db
@@ -378,8 +378,7 @@ export const profilesRouter = router({
             : interestScore;
         const rankScore = 0.6 * matchScore + 0.4 * proximity;
 
-        const theirStatusActive =
-          u.profile.currentStatus != null && (!u.profile.statusExpiresAt || u.profile.statusExpiresAt > now);
+        const theirStatusActive = isStatusActive(u.profile);
 
         results.push({
           profile: {
@@ -389,8 +388,7 @@ export const profilesRouter = router({
             bio: u.profile.bio,
             lookingFor: u.profile.lookingFor,
             avatarUrl: u.profile.avatarUrl,
-            currentStatus:
-              theirStatusActive && u.profile.statusVisibility !== "private" ? u.profile.currentStatus : null,
+            currentStatus: isStatusPublic(u.profile) ? u.profile.currentStatus : null,
           },
           distance: roundDistance(u.distance),
           gridLat: gridPos.gridLat,
@@ -491,12 +489,8 @@ export const profilesRouter = router({
     if (!profile) return null;
 
     // Lazy expiry check — treat expired status as null
-    const now = new Date();
-    const hasActiveStatus = profile.currentStatus && (!profile.statusExpiresAt || profile.statusExpiresAt > now);
-
     const isOwnProfile = input.userId === ctx.userId;
-    const isStatusPublic = profile.statusVisibility !== "private"; // null (legacy) treated as public
-    const showStatus = hasActiveStatus && (isOwnProfile || isStatusPublic);
+    const showStatus = isOwnProfile ? isStatusActive(profile) : isStatusPublic(profile);
 
     return {
       ...profile,
