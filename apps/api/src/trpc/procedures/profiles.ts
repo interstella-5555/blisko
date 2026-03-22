@@ -538,6 +538,7 @@ export const profilesRouter = router({
       .set({
         currentStatus: input.text,
         statusExpiresAt: expiresAt,
+        statusVisibility: input.visibility,
         statusSetAt: new Date(),
         updatedAt: new Date(),
       })
@@ -561,6 +562,7 @@ export const profilesRouter = router({
         currentStatus: null,
         statusExpiresAt: null,
         statusEmbedding: null,
+        statusVisibility: null,
         statusSetAt: null,
         updatedAt: new Date(),
       })
