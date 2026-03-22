@@ -492,11 +492,16 @@ export const profilesRouter = router({
     const now = new Date();
     const hasActiveStatus = profile.currentStatus && (!profile.statusExpiresAt || profile.statusExpiresAt > now);
 
+    const isOwnProfile = input.userId === ctx.userId;
+    const isStatusPublic = profile.statusVisibility !== "private"; // null (legacy) treated as public
+    const showStatus = hasActiveStatus && (isOwnProfile || isStatusPublic);
+
     return {
       ...profile,
-      currentStatus: hasActiveStatus ? profile.currentStatus : null,
-      statusExpiresAt: hasActiveStatus ? profile.statusExpiresAt : null,
-      statusSetAt: hasActiveStatus ? profile.statusSetAt : null,
+      currentStatus: showStatus ? profile.currentStatus : null,
+      statusExpiresAt: showStatus ? profile.statusExpiresAt : null,
+      statusSetAt: showStatus ? profile.statusSetAt : null,
+      statusVisibility: isOwnProfile ? profile.statusVisibility : null,
     };
   }),
 
