@@ -14,7 +14,7 @@
     "@tanstack/react-router": "catalog:",
     "@tanstack/react-start": "catalog:",
     "@tanstack/router-plugin": "catalog:",
-    "nitro": "npm:nitro-nightly@latest",
+    "nitro": "^3.0.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "resend": "^6.8.0",
