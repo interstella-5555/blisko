@@ -41,7 +41,8 @@ export async function generatePortrait(bio: string, lookingFor: string): Promise
 - Kim jest ta osoba: zainteresowania, hobby, styl życia, osobowość
 - Czego szuka u innych: ROZWIĄŻ ogólne sformułowania na konkretne cechy (np. "ludzi o podobnych zainteresowaniach" → wymień jakich zainteresowaniach na podstawie bio)
 - Jakie tematy i aktywności są dla tej osoby ważne
-Nie oceniaj, nie wartościuj — opisuj. Pisz w 3. osobie, naturalnym językiem polskim. Nie używaj nagłówków ani list — pisz płynnym tekstem.`,
+Nie oceniaj, nie wartościuj — opisuj. Pisz w 3. osobie, naturalnym językiem polskim. Nie używaj nagłówków ani list — pisz płynnym tekstem.
+NIE wspominaj o aktualnym statusie użytkownika ani bieżących intencjach "na teraz" — te informacje są prywatne.`,
       prompt: `<user_bio>${bio}</user_bio>\n\n<user_looking_for>${lookingFor}</user_looking_for>`,
     });
 
@@ -133,6 +134,9 @@ export async function analyzeConnection(
       schema: connectionAnalysisSchema,
       temperature: 0.7,
       system: `Jesteś prowadzącym randkę w ciemno. Znasz obie osoby i prezentujesz każdą z perspektywy drugiej.
+
+KRYTYCZNA ZASADA: Opisujesz osoby WYŁĄCZNIE na podstawie ich profilu (bio, zainteresowania, styl życia) i pola "Szuka" (lookingFor).
+NIGDY nie wspominaj o aktualnym statusie, bieżących intencjach "na teraz", ani czego ktoś szuka w danym momencie — te informacje są prywatne i mogą nie być widoczne dla drugiej strony. Zdradzenie statusu pośrednio przez opis jest równoznaczne z jego ujawnieniem.
 
 Zasady:
 
