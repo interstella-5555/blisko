@@ -1,10 +1,12 @@
-import { Image, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
 
 export interface ClusterUser {
   id: string;
   userId: string;
   displayName: string;
   avatarUrl: string | null;
+  hasStatusMatch?: boolean;
 }
 
 interface GridClusterMarkerProps {
@@ -12,49 +14,87 @@ interface GridClusterMarkerProps {
   highlighted?: boolean;
 }
 
+function PulsingWrapper({ active, children }: { active: boolean; children: React.ReactNode }) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!active) {
+      scale.setValue(1);
+      return;
+    }
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scale, {
+          toValue: 1.15,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [active, scale]);
+
+  return <Animated.View style={{ transform: [{ scale }] }}>{children}</Animated.View>;
+}
+
 export function GridClusterMarker({ users, highlighted }: GridClusterMarkerProps) {
   const count = users.length;
+  const hasPulsing = users.some((u) => u.hasStatusMatch);
 
   // Single user - show avatar
   if (count === 1) {
     const user = users[0];
     return (
-      <View style={[styles.singleContainer, highlighted && styles.highlighted]}>
-        {user.avatarUrl ? (
-          <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>{user.displayName.charAt(0).toUpperCase()}</Text>
-          </View>
-        )}
-      </View>
+      <PulsingWrapper active={hasPulsing}>
+        <View style={[styles.singleContainer, highlighted && styles.highlighted]}>
+          {user.avatarUrl ? (
+            <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarText}>{user.displayName.charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
+        </View>
+      </PulsingWrapper>
     );
   }
 
   // 2-3 users - show stacked avatars
   if (count <= 3) {
     return (
-      <View style={[styles.stackContainer, highlighted && styles.highlightedStack]}>
-        {users.slice(0, 3).map((user, index) => (
-          <View key={user.id} style={[styles.stackItem, { marginLeft: index * 14, zIndex: 3 - index }]}>
-            {user.avatarUrl ? (
-              <Image source={{ uri: user.avatarUrl }} style={styles.smallAvatar} />
-            ) : (
-              <View style={styles.smallAvatarPlaceholder}>
-                <Text style={styles.smallAvatarText}>{user.displayName.charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
-          </View>
-        ))}
-      </View>
+      <PulsingWrapper active={hasPulsing}>
+        <View style={[styles.stackContainer, highlighted && styles.highlightedStack]}>
+          {users.slice(0, 3).map((user, index) => (
+            <View key={user.id} style={[styles.stackItem, { marginLeft: index * 14, zIndex: 3 - index }]}>
+              {user.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={styles.smallAvatar} />
+              ) : (
+                <View style={styles.smallAvatarPlaceholder}>
+                  <Text style={styles.smallAvatarText}>{user.displayName.charAt(0).toUpperCase()}</Text>
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
+      </PulsingWrapper>
     );
   }
 
   // 4+ users - show count badge
   return (
-    <View style={[styles.badgeContainer, highlighted && styles.highlighted]}>
-      <Text style={styles.badgeText}>{count}</Text>
-    </View>
+    <PulsingWrapper active={hasPulsing}>
+      <View style={[styles.badgeContainer, highlighted && styles.highlighted]}>
+        <Text style={styles.badgeText}>{count}</Text>
+      </View>
+    </PulsingWrapper>
   );
 }
 
