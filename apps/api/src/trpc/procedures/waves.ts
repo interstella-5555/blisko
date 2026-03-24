@@ -1,7 +1,7 @@
 import { blockUserSchema, respondToWaveSchema, sendWaveSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, gte, inArray, isNull, or } from "drizzle-orm";
-import { DECLINE_COOLDOWN_HOURS } from "@/config/pingLimits";
+import { and, desc, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
+import { DAILY_PING_LIMIT_BASIC, DECLINE_COOLDOWN_HOURS, PER_PERSON_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, schema } from "@/db";
 import { setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
@@ -51,6 +51,43 @@ export const wavesRouter = router({
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Cannot send wave to this user",
+        });
+      }
+
+      // Daily ping limit — count waves sent today (UTC midnight reset)
+      const todayMidnight = new Date();
+      todayMidnight.setUTCHours(0, 0, 0, 0);
+      const [dailyCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.waves)
+        .where(and(eq(schema.waves.fromUserId, ctx.userId), gte(schema.waves.createdAt, todayMidnight)));
+      const sentToday = Number(dailyCount?.count ?? 0);
+
+      if (sentToday >= DAILY_PING_LIMIT_BASIC) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "daily_limit",
+        });
+      }
+
+      // Per-person cooldown — max 1 ping per person per 24h (any status)
+      const perPersonCutoff = new Date(Date.now() - PER_PERSON_COOLDOWN_HOURS * 3600000);
+      const recentWaveToSamePerson = await db.query.waves.findFirst({
+        where: and(
+          eq(schema.waves.fromUserId, ctx.userId),
+          eq(schema.waves.toUserId, input.toUserId),
+          gte(schema.waves.createdAt, perPersonCutoff),
+        ),
+        columns: { createdAt: true },
+      });
+
+      if (recentWaveToSamePerson) {
+        const remainingMs =
+          recentWaveToSamePerson.createdAt.getTime() + PER_PERSON_COOLDOWN_HOURS * 3600000 - Date.now();
+        const remainingHours = Math.ceil(remainingMs / 3600000);
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: `per_person:${remainingHours}`,
         });
       }
 

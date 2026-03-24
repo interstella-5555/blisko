@@ -176,6 +176,13 @@ export default function UserProfileScreen() {
       const errorMsg = error instanceof Error ? error.message : String(error);
       if (errorMsg.includes("already waved")) {
         // Already waved — keep pending state, let next sync pick up the real ID
+      } else if (errorMsg.includes("daily_limit")) {
+        setPendingWaveId(null);
+        Alert.alert("Limit dzienny", "Wykorzystałeś dzienny limit pingów. Wróć jutro!");
+      } else if (errorMsg.includes("per_person:")) {
+        const hours = errorMsg.split("per_person:")[1];
+        setPendingWaveId(null);
+        Alert.alert("Jeszcze nie teraz", `Już pingowałeś tę osobę. Spróbuj ponownie za ${hours}h.`);
       } else if (errorMsg.includes("cooldown:")) {
         const hours = errorMsg.split("cooldown:")[1];
         setPendingWaveId(null);
