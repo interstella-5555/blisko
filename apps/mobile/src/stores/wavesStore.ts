@@ -10,6 +10,7 @@ export interface WaveEntry {
   fromUserId: string;
   toUserId: string;
   status: string;
+  senderStatusSnapshot?: string | null;
   createdAt: string;
 }
 

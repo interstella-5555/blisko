@@ -2,10 +2,12 @@ import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View, type ViewToken } from "react-native";
 import { ConversationRow } from "../../src/components/chat/ConversationRow";
+import { Avatar } from "../../src/components/ui/Avatar";
 import { IconChat, IconGroup } from "../../src/components/ui/icons";
 import { usePrefetchMessages } from "../../src/hooks/usePrefetchMessages";
 import { trpc } from "../../src/lib/trpc";
 import { useConversationsStore } from "../../src/stores/conversationsStore";
+import { useWavesStore } from "../../src/stores/wavesStore";
 import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
 type FilterType = "all" | "dm" | "group";
@@ -25,6 +27,9 @@ export default function ChatsScreen() {
   // Read from conversations store (populated by _layout.tsx hydration + WS updates)
   const conversations = useConversationsStore((s) => s.conversations);
   const hydrated = useConversationsStore((s) => s._hydrated);
+
+  // Pending pings (received) — shown above conversations
+  const receivedPings = useWavesStore((s) => s.received.filter((w) => w.wave.status === "pending"));
 
   const filteredConversations = useMemo(() => {
     if (filter === "all") return conversations;
@@ -58,24 +63,60 @@ export default function ChatsScreen() {
         data={filteredConversations}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
-          <View style={styles.filterRow}>
-            {FILTER_CHIPS.map((chip) => (
-              <Pressable
-                key={chip.key}
-                style={[styles.filterChip, filter === chip.key ? styles.filterChipActive : styles.filterChipInactive]}
-                onPress={() => setFilter(chip.key)}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    filter === chip.key ? styles.filterChipTextActive : styles.filterChipTextInactive,
-                  ]}
+          <>
+            <View style={styles.filterRow}>
+              {FILTER_CHIPS.map((chip) => (
+                <Pressable
+                  key={chip.key}
+                  style={[styles.filterChip, filter === chip.key ? styles.filterChipActive : styles.filterChipInactive]}
+                  onPress={() => setFilter(chip.key)}
                 >
-                  {chip.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      filter === chip.key ? styles.filterChipTextActive : styles.filterChipTextInactive,
+                    ]}
+                  >
+                    {chip.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {receivedPings.length > 0 && (
+              <View style={styles.pingsSection}>
+                <Text style={styles.pingsSectionTitle}>OCZEKUJĄCE PINGI</Text>
+                {receivedPings.map((item) => (
+                  <Pressable
+                    key={item.wave.id}
+                    style={styles.pingRow}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(modals)/user/[userId]",
+                        params: {
+                          userId: item.fromProfile.userId,
+                          displayName: item.fromProfile.displayName,
+                          avatarUrl: item.fromProfile.avatarUrl ?? "",
+                        },
+                      })
+                    }
+                  >
+                    <Avatar uri={item.fromProfile.avatarUrl} name={item.fromProfile.displayName} size={40} />
+                    <View style={styles.pingInfo}>
+                      <Text style={styles.pingName}>{item.fromProfile.displayName}</Text>
+                      {item.wave.senderStatusSnapshot && (
+                        <Text style={styles.pingStatus} numberOfLines={1}>
+                          {item.wave.senderStatusSnapshot}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.pingBadge}>
+                      <Text style={styles.pingBadgeText}>NOWY</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </>
         }
         renderItem={({ item }) => (
           <ConversationRow
@@ -182,5 +223,50 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     fontSize: 14,
     color: colors.bg,
+  },
+  pingsSection: {
+    paddingHorizontal: spacing.section,
+    marginBottom: spacing.gutter,
+  },
+  pingsSectionTitle: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: colors.muted,
+    marginBottom: spacing.gutter,
+  },
+  pingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.gutter,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.rule,
+  },
+  pingInfo: {
+    flex: 1,
+    marginLeft: spacing.gutter,
+  },
+  pingName: {
+    fontFamily: fonts.serif,
+    fontSize: 15,
+    color: colors.ink,
+  },
+  pingStatus: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: "#D4851C",
+    marginTop: 2,
+  },
+  pingBadge: {
+    backgroundColor: "#FFF0E0",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  pingBadgeText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 9,
+    letterSpacing: 1,
+    color: "#D4851C",
   },
 });
