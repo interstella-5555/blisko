@@ -115,6 +115,7 @@ export default function TabsLayout() {
         memberCount: null,
         lastMessage: null,
         unreadCount: 0,
+        metadata: null,
         createdAt: now,
         updatedAt: now,
       });
@@ -249,6 +250,7 @@ export default function TabsLayout() {
               }
             : null,
           unreadCount: c.unreadCount,
+          metadata: (c.conversation.metadata as Record<string, unknown> | null) ?? null,
           createdAt: c.conversation.createdAt.toString(),
           updatedAt: c.conversation.updatedAt.toString(),
         })),
