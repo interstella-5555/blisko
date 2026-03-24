@@ -1,0 +1,1 @@
+ALTER TABLE "waves" ADD COLUMN "responded_at" timestamp;

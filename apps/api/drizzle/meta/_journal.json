@@ -57,6 +57,13 @@
       "when": 1774215333257,
       "tag": "0007_add_recipient_snapshot_and_conversation_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1774378834663,
+      "tag": "0008_add_wave_responded_at",
+      "breakpoints": true
     }
   ]
 }

@@ -8,8 +8,9 @@ import {
   updateProfileSchema,
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { and, between, eq, isNotNull, isNull, lte, ne, placeholder, sql } from "drizzle-orm";
+import { and, between, eq, gte, isNotNull, isNull, lte, ne, placeholder, sql } from "drizzle-orm";
 import { z } from "zod";
+import { DECLINE_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, preparedName, schema } from "@/db";
 import { roundDistance, toGridCenter } from "@/lib/grid";
 import { isStatusActive, isStatusPublic } from "@/lib/status";
@@ -291,8 +292,9 @@ export const profilesRouter = router({
         ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
       );
 
-      // Get blocked users + current profile + analyses + status matches + totalCount in parallel
-      const [blockedUsers, blockedByUsers, currentProfile, analyses, myStatusMatchRows, countResult] =
+      // Get blocked users + cooldown users + current profile + analyses + status matches + totalCount in parallel
+      const cooldownCutoff = new Date(Date.now() - DECLINE_COOLDOWN_HOURS * 3600000);
+      const [blockedUsers, blockedByUsers, cooldownDeclines, currentProfile, analyses, myStatusMatchRows, countResult] =
         await Promise.all([
           db
             .select({ blockedId: schema.blocks.blockedId })
@@ -302,6 +304,16 @@ export const profilesRouter = router({
             .select({ blockerId: schema.blocks.blockerId })
             .from(schema.blocks)
             .where(eq(schema.blocks.blockedId, ctx.userId)),
+          db
+            .select({ toUserId: schema.waves.toUserId })
+            .from(schema.waves)
+            .where(
+              and(
+                eq(schema.waves.fromUserId, ctx.userId),
+                eq(schema.waves.status, "declined"),
+                gte(schema.waves.respondedAt, cooldownCutoff),
+              ),
+            ),
           db.query.profiles.findFirst({
             where: eq(schema.profiles.userId, ctx.userId),
           }),
@@ -317,6 +329,7 @@ export const profilesRouter = router({
       const allBlockedIds = new Set([
         ...blockedUsers.map((b) => b.blockedId),
         ...blockedByUsers.map((b) => b.blockerId),
+        ...cooldownDeclines.map((d) => d.toUserId),
       ]);
 
       const rawCount = Number(countResult[0]?.count ?? 0);
