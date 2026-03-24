@@ -347,30 +347,14 @@ export default function TabsLayout() {
           tabBarAccessibilityLabel: "tab-nearby",
         }}
       />
-      <Tabs.Screen
-        name="waves"
-        options={{
-          title: "Pingi",
-          tabBarIcon: ({ color }) => <IconWave size={20} color={color} />,
-          tabBarAccessibilityLabel: "tab-waves",
-          tabBarBadge: pendingWaves > 0 ? pendingWaves : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: colors.accent,
-            fontFamily: fonts.sansSemiBold,
-            fontSize: 10,
-            minWidth: 18,
-            height: 18,
-            lineHeight: 18,
-          },
-        }}
-      />
+      <Tabs.Screen name="waves" options={{ href: null }} />
       <Tabs.Screen
         name="chats"
         options={{
           title: "Czaty",
           tabBarIcon: ({ color }) => <IconChat size={20} color={color} />,
           tabBarAccessibilityLabel: "tab-chats",
-          tabBarBadge: totalUnread > 0 ? totalUnread : undefined,
+          tabBarBadge: totalUnread + pendingWaves > 0 ? totalUnread + pendingWaves : undefined,
           tabBarBadgeStyle: {
             backgroundColor: colors.accent,
             fontFamily: fonts.sansSemiBold,
