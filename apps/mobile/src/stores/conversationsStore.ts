@@ -21,6 +21,7 @@ export interface ConversationEntry {
     senderName?: string | null;
   } | null;
   unreadCount: number;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }

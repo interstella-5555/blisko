@@ -419,6 +419,19 @@ export default function ChatScreen() {
         }}
       />
 
+      {typeof storeConversation?.metadata?.connectedAt === "string" && (
+        <View style={styles.firstContactCard}>
+          <Text style={styles.firstContactText}>
+            {new Date(storeConversation.metadata.connectedAt).toLocaleDateString("pl-PL", {
+              day: "numeric",
+              month: "long",
+            })}
+            {storeConversation.metadata.connectedDistance != null &&
+              ` · ~${storeConversation.metadata.connectedDistance}m od siebie`}
+          </Text>
+        </View>
+      )}
+
       <FlatList
         ref={flatListRef}
         testID="message-list"
@@ -575,6 +588,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  firstContactCard: {
+    paddingVertical: spacing.tight,
+    paddingHorizontal: spacing.section,
+    backgroundColor: "#FAFAF8",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.rule,
+    alignItems: "center",
+  },
+  firstContactText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.muted,
   },
   messageList: {
     paddingHorizontal: spacing.section,
