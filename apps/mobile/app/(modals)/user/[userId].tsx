@@ -176,6 +176,10 @@ export default function UserProfileScreen() {
       const errorMsg = error instanceof Error ? error.message : String(error);
       if (errorMsg.includes("already waved")) {
         // Already waved — keep pending state, let next sync pick up the real ID
+      } else if (errorMsg.includes("cooldown:")) {
+        const hours = errorMsg.split("cooldown:")[1];
+        setPendingWaveId(null);
+        Alert.alert("Jeszcze nie teraz", `Możesz pingować tę osobę ponownie za ${hours}h.`);
       } else {
         setPendingWaveId(null);
         Alert.alert("Błąd", `Nie udało się wysłać pinga: ${errorMsg}`);
