@@ -113,6 +113,7 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
         userId: u.profile.userId,
         displayName: u.profile.displayName,
         avatarUrl: u.profile.avatarUrl,
+        hasStatusMatch: u.hasStatusMatch,
       }));
 
     return (

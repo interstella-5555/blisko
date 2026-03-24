@@ -9,6 +9,7 @@ import { isStatusActive } from "@/lib/status";
 import { ee } from "@/ws/events";
 import { analyzeConnection, evaluateStatusMatch, extractInterests, generateEmbedding, generatePortrait } from "./ai";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
+import { sendPushToUser } from "./push";
 import { recordJobCompleted, recordJobFailed } from "./queue-metrics";
 
 function getConnectionConfig() {
@@ -545,6 +546,24 @@ async function processStatusMatching(userId: string) {
 
   // Emit WS event
   ee.emit("statusMatchesReady", { userId });
+
+  // Send silent ambient push for new matches (max 1 per hour per user)
+  if (matches.length > 0) {
+    const redis = getRedisPub();
+    if (redis) {
+      const cooldownKey = `ambient-push:${userId}`;
+      const alreadySent = await redis.get(cooldownKey);
+      if (!alreadySent) {
+        await redis.send("SET", [cooldownKey, "1", "EX", "3600"]);
+        void sendPushToUser(userId, {
+          title: "Blisko",
+          body: "Ktoś z pasującym profilem jest w pobliżu",
+          data: { type: "ambient_match" },
+          collapseId: "ambient-match",
+        });
+      }
+    }
+  }
 }
 
 // --- Hard delete processor ---
