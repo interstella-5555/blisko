@@ -82,6 +82,13 @@ interface StatusMatchingJob {
   userId: string;
 }
 
+interface ProximityStatusMatchingJob {
+  type: "proximity-status-matching";
+  userId: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface HardDeleteUserJob {
   type: "hard-delete-user";
   userId: string;
@@ -100,6 +107,7 @@ type AIJob =
   | GenerateProfilingQuestionJob
   | GenerateProfileFromQAJob
   | StatusMatchingJob
+  | ProximityStatusMatchingJob
   | HardDeleteUserJob
   | ExportUserDataJob;
 
@@ -568,6 +576,13 @@ async function processStatusMatching(userId: string) {
   }
 }
 
+// --- Proximity status matching processor ---
+
+async function processProximityStatusMatching(userId: string, _latitude: number, _longitude: number) {
+  console.log(`[queue] proximity-status-matching starting for ${userId}`);
+  // Implementation in next task
+}
+
 // --- Hard delete processor ---
 
 async function processHardDeleteUser(userId: string) {
@@ -730,6 +745,9 @@ async function processJob(job: Job<AIJob>) {
       break;
     case "status-matching":
       await processStatusMatching(data.userId);
+      break;
+    case "proximity-status-matching":
+      await processProximityStatusMatching(data.userId, data.latitude, data.longitude);
       break;
     case "hard-delete-user":
       await processHardDeleteUser(data.userId);
@@ -943,6 +961,21 @@ export async function enqueueStatusMatching(userId: string) {
     "status-matching",
     { type: "status-matching", userId },
     { jobId: `status-matching-${userId}`, removeOnComplete: true },
+  );
+}
+
+export async function enqueueProximityStatusMatching(userId: string, latitude: number, longitude: number) {
+  if (!process.env.REDIS_URL) return;
+
+  const queue = getQueue();
+  await queue.add(
+    "proximity-status-matching",
+    { type: "proximity-status-matching", userId, latitude, longitude },
+    {
+      jobId: `proximity-status-${userId}-${Date.now()}`,
+      debounce: { id: `proximity-status-${userId}`, ttl: ms("2m") },
+      removeOnComplete: true,
+    },
   );
 }
 
