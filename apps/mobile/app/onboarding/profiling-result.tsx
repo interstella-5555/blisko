@@ -116,8 +116,8 @@ export default function ProfilingResultScreen() {
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title}>Twój profil</Text>
-      <Text style={styles.subtitle}>Możesz edytować tekst przed zapisaniem</Text>
+      <Text style={styles.title}>Oto jak Cię widzę</Text>
+      <Text style={styles.subtitle}>Powiedz czy trafiłem — możesz edytować zanim zapiszesz</Text>
 
       <Text style={styles.label}>O MNIE</Text>
       <TextInput
@@ -169,7 +169,7 @@ export default function ProfilingResultScreen() {
 
       <View style={styles.buttonContainer}>
         <Button
-          title="Rozpocznij"
+          title="Tak, to ja"
           variant="accent"
           onPress={handleApply}
           disabled={isSubmitting || bio.trim().length < 10 || lookingFor.trim().length < 10}
