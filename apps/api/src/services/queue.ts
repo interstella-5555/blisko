@@ -750,7 +750,7 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
   notifiedUserIds.add(userId);
 
   for (const uid of notifiedUserIds) {
-    ee.emit("statusMatchesReady", { userId: uid });
+    publishEvent("statusMatchesReady", { userId: uid });
   }
 
   for (const uid of notifiedUserIds) {
