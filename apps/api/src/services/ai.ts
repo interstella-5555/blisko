@@ -77,6 +77,39 @@ export async function extractInterests(portrait: string): Promise<string[]> {
   }
 }
 
+export const quickScoreSchema = z.object({
+  scoreForA: z.number().int().min(0).max(100),
+  scoreForB: z.number().int().min(0).max(100),
+});
+
+export type QuickScoreResult = z.infer<typeof quickScoreSchema>;
+
+export async function quickScore(
+  profileA: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
+  profileB: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
+): Promise<QuickScoreResult> {
+  const { object } = await generateObject({
+    model: openai(GPT_MODEL),
+    schema: quickScoreSchema,
+    temperature: 0.3,
+    maxOutputTokens: 50,
+    system: `Oceń kompatybilność dwóch osób. Zwróć asymetryczne scores 0-100 dla każdej strony.
+
+Formuła: spełnienie "czego szukam" drugiej osoby (70%) + wspólne zainteresowania (20%) + zbliżony styl życia (10%).
+
+Score jest ASYMETRYCZNY — osobno dla A i osobno dla B. Jeśli A szuka kogoś na padla, a B nie gra → scoreForA niski, niezależnie od innych wspólnych cech.`,
+    prompt: `A: ${profileA.displayName}
+${profileA.portrait}
+Szuka: ${profileA.lookingFor}${profileA.superpower ? `\nMoże zaoferować: ${profileA.superpower}` : ""}
+
+B: ${profileB.displayName}
+${profileB.portrait}
+Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${profileB.superpower}` : ""}`,
+  });
+
+  return object;
+}
+
 const connectionAnalysisSchema = z.object({
   matchScoreForA: z.number().min(0).max(100),
   matchScoreForB: z.number().min(0).max(100),
