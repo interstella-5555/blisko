@@ -247,6 +247,11 @@ app.onError((err, c) => {
   return c.json({ error: "Internal Server Error" }, 500);
 });
 
+// Redis pub/sub bridge for cross-replica WebSocket events
+import { initWsRedisBridge } from "./ws/redis-bridge";
+
+initWsRedisBridge();
+
 // Start BullMQ worker for connection analysis
 import { startWorker } from "./services/queue";
 

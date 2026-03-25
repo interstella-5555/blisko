@@ -14,7 +14,7 @@ import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
 import { featureGate } from "@/trpc/middleware/featureGate";
 import { protectedProcedure, router } from "@/trpc/trpc";
-import { ee } from "@/ws/events";
+import { publishEvent } from "@/ws/redis-bridge";
 
 function generateInviteCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
@@ -114,7 +114,7 @@ export const groupsRouter = router({
 
         // Notify invited members
         for (const userId of input.memberUserIds) {
-          ee.emit("groupInvited", {
+          publishEvent("groupInvited", {
             userId,
             conversationId: conversation.id,
             groupName: input.name,
@@ -161,7 +161,7 @@ export const groupsRouter = router({
       .where(eq(schema.conversations.id, conversationId))
       .returning();
 
-    ee.emit("groupUpdated", {
+    publishEvent("groupUpdated", {
       conversationId,
       updates: {
         name: updates.name,
@@ -223,7 +223,7 @@ export const groupsRouter = router({
       columns: { displayName: true },
     });
 
-    ee.emit("groupMember", {
+    publishEvent("groupMember", {
       conversationId: conv.id,
       userId: ctx.userId,
       action: "joined",
@@ -282,7 +282,7 @@ export const groupsRouter = router({
         columns: { displayName: true },
       });
 
-      ee.emit("groupMember", {
+      publishEvent("groupMember", {
         conversationId: conv.id,
         userId: ctx.userId,
         action: "joined",
@@ -311,7 +311,7 @@ export const groupsRouter = router({
         ),
       );
 
-    ee.emit("groupMember", {
+    publishEvent("groupMember", {
       conversationId: input.conversationId,
       userId: ctx.userId,
       action: "left",
@@ -402,14 +402,14 @@ export const groupsRouter = router({
       columns: { displayName: true },
     });
 
-    ee.emit("groupMember", {
+    publishEvent("groupMember", {
       conversationId: input.conversationId,
       userId: input.userId,
       action: "joined",
       displayName: profile?.displayName,
     });
 
-    ee.emit("groupInvited", {
+    publishEvent("groupInvited", {
       userId: input.userId,
       conversationId: input.conversationId,
       groupName: conv.name,
@@ -461,7 +461,7 @@ export const groupsRouter = router({
         ),
       );
 
-    ee.emit("groupMember", {
+    publishEvent("groupMember", {
       conversationId: input.conversationId,
       userId: input.userId,
       action: "removed",
@@ -505,7 +505,7 @@ export const groupsRouter = router({
         ),
       );
 
-    ee.emit("groupMember", {
+    publishEvent("groupMember", {
       conversationId: input.conversationId,
       userId: input.userId,
       action: "roleChanged",
@@ -632,14 +632,14 @@ export const groupsRouter = router({
       .set({ creatorId: input.userId })
       .where(eq(schema.conversations.id, input.conversationId));
 
-    ee.emit("groupMember", {
+    publishEvent("groupMember", {
       conversationId: input.conversationId,
       userId: input.userId,
       action: "roleChanged",
       role: "owner",
     });
 
-    ee.emit("groupMember", {
+    publishEvent("groupMember", {
       conversationId: input.conversationId,
       userId: ctx.userId,
       action: "roleChanged",

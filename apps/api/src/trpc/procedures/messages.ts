@@ -8,8 +8,8 @@ import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
-import { ee } from "@/ws/events";
 import { ensureTypingListener } from "@/ws/handler";
+import { publishEvent } from "@/ws/redis-bridge";
 
 const idempotencyRedis = new RedisClient(process.env.REDIS_URL!);
 
@@ -573,7 +573,7 @@ export const messagesRouter = router({
       }
 
       // Emit real-time event
-      ee.emit("newMessage", {
+      publishEvent("newMessage", {
         conversationId: input.conversationId,
         message,
         senderName: senderProfile?.displayName ?? null,
@@ -716,7 +716,7 @@ export const messagesRouter = router({
       // Remove reaction
       await db.delete(schema.messageReactions).where(eq(schema.messageReactions.id, existing.id));
 
-      ee.emit("reaction", {
+      publishEvent("reaction", {
         conversationId: msg.conversationId,
         messageId: input.messageId,
         emoji: input.emoji,
@@ -733,7 +733,7 @@ export const messagesRouter = router({
         emoji: input.emoji,
       });
 
-      ee.emit("reaction", {
+      publishEvent("reaction", {
         conversationId: msg.conversationId,
         messageId: input.messageId,
         emoji: input.emoji,
@@ -755,7 +755,7 @@ export const messagesRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       ensureTypingListener(input.conversationId);
-      ee.emit(`typing:${input.conversationId}`, {
+      publishEvent(`typing:${input.conversationId}`, {
         conversationId: input.conversationId,
         userId: ctx.userId,
         isTyping: input.isTyping,
@@ -838,7 +838,7 @@ export const messagesRouter = router({
         );
 
       for (const p of allParticipants) {
-        ee.emit("conversationDeleted", { userId: p.userId, conversationId: input.conversationId });
+        publishEvent("conversationDeleted", { userId: p.userId, conversationId: input.conversationId });
       }
 
       return { ok: true };
