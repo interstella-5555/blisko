@@ -1,1 +1,1 @@
-ALTER TABLE "profiles" ADD COLUMN "date_of_birth" timestamp;
+ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "date_of_birth" timestamp;
