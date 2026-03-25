@@ -647,7 +647,8 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
         lte(schema.profiles.longitude, longitude + NEARBY_RADIUS_DEG),
         isNull(schema.user.deletedAt),
       ),
-    );
+    )
+    .limit(100);
 
   if (nearbyUsers.length === 0) return;
 
@@ -676,10 +677,13 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
 
   const movingUserHasStatus = isStatusActive(movingUser);
 
+  // Private statuses are matched via profile embedding only — their status text never enters the LLM reason
   const scored = newCandidates
     .map(({ profile: candidate }) => {
+      const hasPublicStatus = isStatusActive(candidate) && candidate.statusVisibility !== "private";
+
       let similarity = 0;
-      if (candidate.statusEmbedding?.length) {
+      if (hasPublicStatus && candidate.statusEmbedding?.length) {
         similarity = cosineSimilarity(movingEmb, candidate.statusEmbedding);
       } else if (candidate.embedding?.length) {
         similarity = cosineSimilarity(movingEmb, candidate.embedding);
@@ -687,7 +691,7 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
       return {
         candidate,
         similarity,
-        matchType: (movingUserHasStatus ? "status" : "profile") as "status" | "profile",
+        matchViaStatus: Boolean(hasPublicStatus),
       };
     })
     .filter((s) => s.similarity > 0.3)
@@ -699,12 +703,16 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
   const matches: { candidateId: string; reason: string; matchedVia: "status" | "profile" }[] = [];
 
   await Promise.all(
-    scored.map(async ({ candidate, matchType }) => {
+    scored.map(async ({ candidate, matchViaStatus }) => {
+      const matchType = matchViaStatus ? "status" : "profile";
       const movingContext = movingUserHasStatus
         ? movingUser.currentStatus!
         : `${movingUser.bio}. Szuka: ${movingUser.lookingFor}`;
+      const candidateContext = matchViaStatus
+        ? candidate.currentStatus!
+        : `${candidate.bio}. Szuka: ${candidate.lookingFor}`;
 
-      const result = await evaluateStatusMatch(candidate.currentStatus!, movingContext, matchType);
+      const result = await evaluateStatusMatch(candidateContext, movingContext, matchType);
 
       if (result.isMatch) {
         matches.push({
