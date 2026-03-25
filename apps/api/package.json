@@ -13,7 +13,7 @@
     "test:watch": "bun --bun vitest",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "bun run src/migrate.ts",
     "db:check": "drizzle-kit check",
     "db:drop": "drizzle-kit drop",
     "scatter": "bun run scripts/scatter-locations-db.ts",
