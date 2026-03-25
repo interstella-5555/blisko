@@ -8,7 +8,7 @@ Schema: `apps/api/src/db/schema.ts`. Migrations: `apps/api/drizzle/`. Config: `a
 
 - `migrations/use-bun-scripts` — Always `bun run --filter '@repo/api' db:generate -- --name=my_change` and `bun run --filter '@repo/api' db:migrate`. Never bare `npx drizzle-kit`.
 
-- `migrations/never-migrate-manually` — `apps/api/.env` points at the **production** database. Running `drizzle-kit migrate` locally hits prod. Migrations run automatically via Railway post-deploy hook. Only generate locally.
+- `migrations/never-migrate-manually` — **NEVER** run migrations against production from a local machine — not `drizzle-kit migrate`, not `bun run src/migrate.ts`, not raw SQL migration files via `psql`. Migrations to production go **only** through Railway's post-deploy hook. When debugging migration failures: use `psql` for read-only inspection, fix migration files in a PR, merge, and let Railway apply them. `apps/api/.env` points at production — treat any local migration command as a production deploy.
 
 - `migrations/underscore-names` — Use underscores: `--name=add_metrics_schema` (not dashes).
 
