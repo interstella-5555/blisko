@@ -80,6 +80,7 @@ export type WSMessage =
       action: "created" | "updated" | "deleted" | "closed";
     }
   | { type: "groupInvited"; conversationId: string; groupName: string | null }
+  | { type: "conversationDeleted"; conversationId: string }
   | { type: "reconnected" };
 
 type MessageHandler = (msg: WSMessage) => void;

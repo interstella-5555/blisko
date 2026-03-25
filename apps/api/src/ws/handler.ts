@@ -13,6 +13,7 @@ import {
 import { sessionByToken } from "@/trpc/context";
 import type {
   AnalysisReadyEvent,
+  ConversationDeletedEvent,
   GroupInvitedEvent,
   GroupMemberEvent,
   GroupUpdatedEvent,
@@ -274,6 +275,10 @@ ee.on("groupUpdated", (event: GroupUpdatedEvent) => {
     type: "groupUpdated",
     ...event,
   });
+});
+
+ee.on("conversationDeleted", (event: ConversationDeletedEvent) => {
+  broadcastToUser(event.userId, { type: "conversationDeleted", conversationId: event.conversationId });
 });
 
 ee.on("topicEvent", (event: TopicEvent) => {

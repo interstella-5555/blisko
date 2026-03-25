@@ -151,6 +151,7 @@ export const conversations = pgTable(
     isDiscoverable: boolean("is_discoverable").default(false),
     discoveryRadiusMeters: integer("discovery_radius_meters").default(5000),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    deletedAt: timestamp("deleted_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -161,6 +162,19 @@ export const conversations = pgTable(
     discoverableIdx: index("conversations_discoverable_idx").on(table.isDiscoverable),
   }),
 );
+
+// Conversation ratings (optional, on delete)
+export const conversationRatings = pgTable("conversation_ratings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  conversationId: uuid("conversation_id")
+    .notNull()
+    .references(() => conversations.id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  rating: integer("rating").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 // Conversation participants
 export const conversationParticipants = pgTable(

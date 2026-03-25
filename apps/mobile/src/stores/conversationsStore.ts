@@ -39,6 +39,7 @@ interface ConversationsStore {
   setActiveConversation(id: string | null): void;
   updateMemberCount(convId: string, delta: number): void;
   updateGroupInfo(convId: string, updates: { name?: string; description?: string; avatarUrl?: string | null }): void;
+  remove(convId: string): void;
   reset(): void;
 }
 
@@ -128,6 +129,12 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
             }
           : c,
       ),
+    }));
+  },
+
+  remove(convId) {
+    set((state) => ({
+      conversations: state.conversations.filter((c) => c.id !== convId),
     }));
   },
 

@@ -33,8 +33,11 @@ export const messagesRouter = router({
 
     // Batch-fetch all data in parallel
     const [conversations, allParticipants, lastMessages, unreadCounts] = await Promise.all([
-      // 1. All conversations
-      db.select().from(schema.conversations).where(inArray(schema.conversations.id, conversationIds)),
+      // 1. All conversations (exclude soft-deleted)
+      db
+        .select()
+        .from(schema.conversations)
+        .where(and(inArray(schema.conversations.id, conversationIds), isNull(schema.conversations.deletedAt))),
 
       // 2. All participants (for DM other-user + group member count)
       db
@@ -792,4 +795,52 @@ export const messagesRouter = router({
 
     return results;
   }),
+
+  // Delete conversation (bilateral — both sides lose access)
+  deleteConversation: protectedProcedure
+    .input(z.object({ conversationId: z.string().uuid(), rating: z.number().int().min(1).max(5).optional() }))
+    .mutation(async ({ ctx, input }) => {
+      // Verify user is participant
+      const participant = await db.query.conversationParticipants.findFirst({
+        where: and(
+          eq(schema.conversationParticipants.conversationId, input.conversationId),
+          eq(schema.conversationParticipants.userId, ctx.userId),
+        ),
+      });
+      if (!participant) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Conversation not found" });
+      }
+
+      // Save optional rating
+      if (input.rating) {
+        await db.insert(schema.conversationRatings).values({
+          conversationId: input.conversationId,
+          userId: ctx.userId,
+          rating: input.rating,
+        });
+      }
+
+      // Soft-delete conversation
+      await db
+        .update(schema.conversations)
+        .set({ deletedAt: new Date() })
+        .where(eq(schema.conversations.id, input.conversationId));
+
+      // Notify other participants via WS
+      const allParticipants = await db
+        .select({ userId: schema.conversationParticipants.userId })
+        .from(schema.conversationParticipants)
+        .where(
+          and(
+            eq(schema.conversationParticipants.conversationId, input.conversationId),
+            ne(schema.conversationParticipants.userId, ctx.userId),
+          ),
+        );
+
+      for (const p of allParticipants) {
+        ee.emit("conversationDeleted", { userId: p.userId, conversationId: input.conversationId });
+      }
+
+      return { ok: true };
+    }),
 });

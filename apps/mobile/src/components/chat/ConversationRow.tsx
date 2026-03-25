@@ -13,6 +13,7 @@ interface ConversationRowProps {
   memberCount?: number;
   unreadCount: number;
   onPress: () => void;
+  onLongPress?: () => void;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -39,6 +40,7 @@ export function ConversationRow({
   lastMessageTime,
   unreadCount,
   onPress,
+  onLongPress,
 }: ConversationRowProps) {
   const isGroup = type === "group";
 
@@ -58,7 +60,7 @@ export function ConversationRow({
   }
 
   return (
-    <Pressable style={styles.row} onPress={onPress} testID="conversation-row">
+    <Pressable style={styles.row} onPress={onPress} onLongPress={onLongPress} testID="conversation-row">
       <Avatar uri={avatarUrl} name={displayName} size={48} />
       <View style={styles.content}>
         <View style={styles.topLine}>
