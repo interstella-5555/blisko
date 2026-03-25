@@ -179,11 +179,13 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       portrait: profileA.portrait,
       displayName: profileA.displayName,
       lookingFor: profileA.lookingFor,
+      superpower: profileA.superpower,
     },
     {
       portrait: profileB.portrait,
       displayName: profileB.displayName,
       lookingFor: profileB.lookingFor,
+      superpower: profileB.superpower,
     },
   );
   const tAi = performance.now();

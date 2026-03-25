@@ -92,6 +92,13 @@
       "when": 1774453335689,
       "tag": "0012_rename_visibility_modes_add_dnd",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1774453871735,
+      "tag": "0013_add_superpower_fields",
+      "breakpoints": true
     }
   ]
 }

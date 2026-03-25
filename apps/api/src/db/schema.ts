@@ -92,6 +92,9 @@ export const profiles = pgTable(
       .default("semi_open")
       .notNull(),
     doNotDisturb: boolean("do_not_disturb").default(false).notNull(),
+    superpower: text("superpower"),
+    superpowerTags: text("superpower_tags").array(),
+    offerType: text("offer_type").$type<"volunteer" | "exchange" | "gig">(),
     interests: text("interests").array(),
     embedding: real("embedding").array(),
     portrait: text("portrait"),
