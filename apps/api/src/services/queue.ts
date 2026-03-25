@@ -578,9 +578,196 @@ async function processStatusMatching(userId: string) {
 
 // --- Proximity status matching processor ---
 
-async function processProximityStatusMatching(userId: string, _latitude: number, _longitude: number) {
+async function processProximityStatusMatching(userId: string, latitude: number, longitude: number) {
   console.log(`[queue] proximity-status-matching starting for ${userId}`);
-  // Implementation in next task
+
+  // 1. Fetch moving user's profile
+  const movingUser = await db.query.profiles.findFirst({
+    where: eq(schema.profiles.userId, userId),
+    columns: {
+      userId: true,
+      isComplete: true,
+      visibilityMode: true,
+      currentStatus: true,
+      statusVisibility: true,
+      statusEmbedding: true,
+      embedding: true,
+      bio: true,
+      lookingFor: true,
+    },
+  });
+
+  if (!movingUser?.isComplete) return;
+  if (movingUser.visibilityMode === "ninja") return;
+
+  // 2. Generate/update status embedding if moving user has status but no embedding
+  let movingUserStatusEmb = movingUser.statusEmbedding;
+  if (movingUser.currentStatus && (!movingUserStatusEmb || !movingUserStatusEmb.length)) {
+    movingUserStatusEmb = await generateEmbedding(movingUser.currentStatus);
+    if (movingUserStatusEmb.length) {
+      await db
+        .update(schema.profiles)
+        .set({ statusEmbedding: movingUserStatusEmb })
+        .where(eq(schema.profiles.userId, userId));
+    }
+  }
+
+  // Need either status embedding or profile embedding to compare
+  const movingEmb = movingUserStatusEmb?.length ? movingUserStatusEmb : movingUser.embedding;
+  if (!movingEmb?.length) return;
+
+  // 3. Find nearby users with active status (~5km bounding box)
+  const nearbyRadius = 0.05;
+  const nearbyUsers = await db
+    .select({
+      profile: {
+        userId: schema.profiles.userId,
+        currentStatus: schema.profiles.currentStatus,
+        statusVisibility: schema.profiles.statusVisibility,
+        statusEmbedding: schema.profiles.statusEmbedding,
+        embedding: schema.profiles.embedding,
+        bio: schema.profiles.bio,
+        lookingFor: schema.profiles.lookingFor,
+      },
+    })
+    .from(schema.profiles)
+    .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+    .where(
+      and(
+        ne(schema.profiles.userId, userId),
+        ne(schema.profiles.visibilityMode, "ninja"),
+        eq(schema.profiles.isComplete, true),
+        isNotNull(schema.profiles.currentStatus),
+        isNotNull(schema.profiles.latitude),
+        isNotNull(schema.profiles.longitude),
+        gte(schema.profiles.latitude, latitude - nearbyRadius),
+        lte(schema.profiles.latitude, latitude + nearbyRadius),
+        gte(schema.profiles.longitude, longitude - nearbyRadius),
+        lte(schema.profiles.longitude, longitude + nearbyRadius),
+        isNull(schema.user.deletedAt),
+      ),
+    );
+
+  if (nearbyUsers.length === 0) return;
+
+  // 4. Filter out already-matched pairs (either direction)
+  const candidateIds = nearbyUsers.map(({ profile }) => profile.userId);
+  const existingMatches = await db
+    .select({
+      userId: schema.statusMatches.userId,
+      matchedUserId: schema.statusMatches.matchedUserId,
+    })
+    .from(schema.statusMatches)
+    .where(
+      and(
+        inArray(schema.statusMatches.userId, [userId, ...candidateIds]),
+        inArray(schema.statusMatches.matchedUserId, [userId, ...candidateIds]),
+      ),
+    );
+
+  const matchedPairs = new Set(existingMatches.map((m) => `${m.userId}:${m.matchedUserId}`));
+
+  const newCandidates = nearbyUsers.filter(({ profile }) => {
+    return !matchedPairs.has(`${userId}:${profile.userId}`) && !matchedPairs.has(`${profile.userId}:${userId}`);
+  });
+
+  if (newCandidates.length === 0) return;
+
+  // 5. Pre-filter by cosine similarity (top 10)
+  const movingUserHasStatus = isStatusActive(movingUser);
+
+  const scored = newCandidates
+    .map(({ profile: candidate }) => {
+      let similarity = 0;
+      if (candidate.statusEmbedding?.length) {
+        similarity = cosineSimilarity(movingEmb, candidate.statusEmbedding);
+      } else if (candidate.embedding?.length) {
+        similarity = cosineSimilarity(movingEmb, candidate.embedding);
+      }
+      return {
+        candidate,
+        similarity,
+        matchType: (movingUserHasStatus ? "status" : "profile") as "status" | "profile",
+      };
+    })
+    .filter((s) => s.similarity > 0.3)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 10);
+
+  if (scored.length === 0) return;
+
+  // 6. LLM evaluation
+  const matches: { candidateId: string; reason: string; matchedVia: "status" | "profile" }[] = [];
+
+  await Promise.all(
+    scored.map(async ({ candidate, matchType }) => {
+      const movingContext = movingUserHasStatus
+        ? movingUser.currentStatus!
+        : `${movingUser.bio}. Szuka: ${movingUser.lookingFor}`;
+
+      const candidateContext = candidate.currentStatus!;
+
+      // Evaluate from candidate's status perspective
+      const result = await evaluateStatusMatch(candidateContext, movingContext, matchType);
+
+      if (result.isMatch) {
+        matches.push({
+          candidateId: candidate.userId,
+          reason: result.reason,
+          matchedVia: matchType,
+        });
+      }
+    }),
+  );
+
+  if (matches.length === 0) {
+    console.log(`[queue] proximity-status-matching for ${userId}: ${scored.length} candidates, 0 matches`);
+    return;
+  }
+
+  console.log(
+    `[queue] proximity-status-matching for ${userId}: ${matches.length} matches from ${scored.length} candidates`,
+  );
+
+  // 7. Insert bidirectional matches (onConflictDoNothing for race safety)
+  const matchRows = matches.flatMap((m) => [
+    { userId: m.candidateId, matchedUserId: userId, reason: m.reason, matchedVia: m.matchedVia },
+    { userId, matchedUserId: m.candidateId, reason: m.reason, matchedVia: m.matchedVia },
+  ]);
+
+  await db
+    .insert(schema.statusMatches)
+    .values(matchRows)
+    .onConflictDoNothing({ target: [schema.statusMatches.userId, schema.statusMatches.matchedUserId] });
+
+  // 8. Emit WS events for both sides
+  const notifiedUserIds = new Set<string>();
+  for (const m of matches) {
+    notifiedUserIds.add(m.candidateId);
+  }
+  notifiedUserIds.add(userId);
+
+  for (const uid of notifiedUserIds) {
+    ee.emit("statusMatchesReady", { userId: uid });
+  }
+
+  // 9. Send ambient push (1-hour cooldown per user)
+  const redis = getRedisPub();
+  if (redis) {
+    for (const uid of notifiedUserIds) {
+      const cooldownKey = `ambient-push:${uid}`;
+      const alreadySent = await redis.get(cooldownKey);
+      if (!alreadySent) {
+        await redis.send("SET", [cooldownKey, "1", "EX", "3600"]);
+        void sendPushToUser(uid, {
+          title: "Blisko",
+          body: "Ktoś z pasującym profilem jest w pobliżu",
+          data: { type: "ambient_match" },
+          collapseId: "ambient-match",
+        });
+      }
+    }
+  }
 }
 
 // --- Hard delete processor ---
