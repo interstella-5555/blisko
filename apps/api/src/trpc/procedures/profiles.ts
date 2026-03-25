@@ -19,6 +19,7 @@ import { moderateContent } from "@/services/moderation";
 import {
   enqueuePairAnalysis,
   enqueueProfileAI,
+  enqueueProximityStatusMatching,
   enqueueStatusMatching,
   enqueueUserPairAnalysis,
 } from "@/services/queue";
@@ -141,6 +142,7 @@ export const profilesRouter = router({
     // Queue connection analyses for new location (debounced 30s by BullMQ)
     if (!input.skipAnalysis) {
       await enqueueUserPairAnalysis(ctx.userId, input.latitude, input.longitude);
+      enqueueProximityStatusMatching(ctx.userId, input.latitude, input.longitude).catch(() => {});
     }
 
     // Notify nearby users that someone's location changed (fire-and-forget — don't fail current user)
