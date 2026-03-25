@@ -350,8 +350,8 @@ export const connectionAnalyses = pgTable(
     toUserId: text("to_user_id")
       .notNull()
       .references(() => user.id),
-    shortSnippet: text("short_snippet").notNull(),
-    longDescription: text("long_description").notNull(),
+    shortSnippet: text("short_snippet"),
+    longDescription: text("long_description"),
     aiMatchScore: real("ai_match_score").notNull(),
     fromProfileHash: varchar("from_profile_hash", { length: 8 }).notNull(),
     toProfileHash: varchar("to_profile_hash", { length: 8 }).notNull(),

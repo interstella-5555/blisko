@@ -7,7 +7,14 @@ import ms from "ms";
 import { db, schema } from "@/db";
 import { isStatusActive } from "@/lib/status";
 import { publishEvent } from "@/ws/redis-bridge";
-import { analyzeConnection, evaluateStatusMatch, extractInterests, generateEmbedding, generatePortrait } from "./ai";
+import {
+  analyzeConnection,
+  evaluateStatusMatch,
+  extractInterests,
+  generateEmbedding,
+  generatePortrait,
+  quickScore,
+} from "./ai";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
 import { sendPushToUser } from "./push";
 import { recordJobCompleted, recordJobFailed } from "./queue-metrics";
@@ -40,6 +47,12 @@ interface AnalyzePairJob {
   userBId: string;
   nameA?: string;
   nameB?: string;
+}
+
+interface QuickScoreJob {
+  type: "quick-score";
+  userAId: string;
+  userBId: string;
 }
 
 interface AnalyzeUserPairsJob {
@@ -102,6 +115,7 @@ interface ExportUserDataJob {
 
 type AIJob =
   | AnalyzePairJob
+  | QuickScoreJob
   | AnalyzeUserPairsJob
   | GenerateProfileAIJob
   | GenerateProfilingQuestionJob
@@ -304,6 +318,102 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
 
   console.log(
     `[queue] analyze-pair done | db-fetch: ${(tFetch - t0).toFixed(0)}ms | ai: ${(tAi - tAi0).toFixed(0)}ms | db-write: ${(tWrite - tWrite0).toFixed(0)}ms | total: ${(tWrite - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB} | skipped: false`,
+  );
+}
+
+async function processQuickScore(userAId: string, userBId: string) {
+  const t0 = performance.now();
+
+  const [profileA, profileB] = await Promise.all([
+    db.query.profiles.findFirst({ where: eq(schema.profiles.userId, userAId) }),
+    db.query.profiles.findFirst({ where: eq(schema.profiles.userId, userBId) }),
+  ]);
+
+  if (!profileA?.portrait || !profileB?.portrait || !profileA.isComplete || !profileB.isComplete) {
+    console.log(
+      `[queue] quick-score skip (incomplete profile) | pair: ${userAId.slice(0, 8)} → ${userBId.slice(0, 8)}`,
+    );
+    return;
+  }
+
+  // Skip if T3 full analysis already exists (has shortSnippet)
+  const [existingAB] = await db
+    .select({ shortSnippet: schema.connectionAnalyses.shortSnippet })
+    .from(schema.connectionAnalyses)
+    .where(and(eq(schema.connectionAnalyses.fromUserId, userAId), eq(schema.connectionAnalyses.toUserId, userBId)));
+
+  if (existingAB?.shortSnippet) {
+    console.log(`[queue] quick-score skip (T3 exists) | pair: ${profileA.displayName} → ${profileB.displayName}`);
+    return;
+  }
+
+  const tAi0 = performance.now();
+  const result = await quickScore(
+    {
+      portrait: profileA.portrait,
+      displayName: profileA.displayName,
+      lookingFor: profileA.lookingFor,
+      superpower: profileA.superpower,
+    },
+    {
+      portrait: profileB.portrait,
+      displayName: profileB.displayName,
+      lookingFor: profileB.lookingFor,
+      superpower: profileB.superpower,
+    },
+  );
+  const tAi = performance.now();
+
+  const now = new Date();
+  const hashA = profileHash(profileA.bio, profileA.lookingFor);
+  const hashB = profileHash(profileB.bio, profileB.lookingFor);
+
+  // Upsert A→B (only if T3 hasn't filled it since we checked)
+  await db
+    .insert(schema.connectionAnalyses)
+    .values({
+      fromUserId: userAId,
+      toUserId: userBId,
+      shortSnippet: null,
+      longDescription: null,
+      aiMatchScore: result.scoreForA,
+      fromProfileHash: hashA,
+      toProfileHash: hashB,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: [schema.connectionAnalyses.fromUserId, schema.connectionAnalyses.toUserId],
+      set: { aiMatchScore: result.scoreForA, fromProfileHash: hashA, toProfileHash: hashB, updatedAt: now },
+      setWhere: isNull(schema.connectionAnalyses.shortSnippet),
+    });
+
+  publishEvent("analysisReady", { forUserId: userAId, aboutUserId: userBId, shortSnippet: null });
+
+  // Upsert B→A
+  await db
+    .insert(schema.connectionAnalyses)
+    .values({
+      fromUserId: userBId,
+      toUserId: userAId,
+      shortSnippet: null,
+      longDescription: null,
+      aiMatchScore: result.scoreForB,
+      fromProfileHash: hashB,
+      toProfileHash: hashA,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: [schema.connectionAnalyses.fromUserId, schema.connectionAnalyses.toUserId],
+      set: { aiMatchScore: result.scoreForB, fromProfileHash: hashB, toProfileHash: hashA, updatedAt: now },
+      setWhere: isNull(schema.connectionAnalyses.shortSnippet),
+    });
+
+  publishEvent("analysisReady", { forUserId: userBId, aboutUserId: userAId, shortSnippet: null });
+
+  console.log(
+    `[queue] quick-score done | ai: ${(tAi - tAi0).toFixed(0)}ms | total: ${(performance.now() - t0).toFixed(0)}ms | pair: ${profileA.displayName} ↔ ${profileB.displayName} | scores: ${result.scoreForA}/${result.scoreForB}`,
   );
 }
 
@@ -906,6 +1016,9 @@ async function processJob(job: Job<AIJob>) {
     case "analyze-pair":
       await processAnalyzePair(job as Job<AnalyzePairJob>, data.userAId, data.userBId);
       break;
+    case "quick-score":
+      await processQuickScore(data.userAId, data.userBId);
+      break;
     case "analyze-user-pairs":
       await processAnalyzeUserPairs(data.userId, data.latitude, data.longitude, data.radiusMeters);
       break;
@@ -1039,6 +1152,15 @@ export async function enqueuePairAnalysis(
     nameB,
     requestedBy: opts?.requestedBy,
   });
+}
+
+export async function enqueueQuickScore(userAId: string, userBId: string) {
+  if (!process.env.REDIS_URL) return;
+
+  const [a, b] = [userAId, userBId].sort();
+  const jobId = `quick-score-${a}-${b}`;
+  const queue = getQueue();
+  await queue.add("quick-score", { type: "quick-score", userAId: a, userBId: b }, { jobId });
 }
 
 /** Promote a pair analysis to highest priority (for wave-triggered urgency) */
