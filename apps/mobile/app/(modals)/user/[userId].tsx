@@ -8,6 +8,7 @@ import { useProfileGate } from "../../../src/hooks/useProfileGate";
 import { formatDistance } from "../../../src/lib/format";
 import { trpc } from "../../../src/lib/trpc";
 import { sendWsMessage, useWebSocket, type WSMessage } from "../../../src/lib/ws";
+import { useAuthStore } from "../../../src/stores/authStore";
 import { useConversationsStore } from "../../../src/stores/conversationsStore";
 import { useProfilesStore } from "../../../src/stores/profilesStore";
 import { useWavesStore } from "../../../src/stores/wavesStore";
@@ -143,9 +144,32 @@ export default function UserProfileScreen() {
     setPendingWaveId(pending?.wave.id ?? null);
   }, [sentWaves, userId]);
 
+  const updateProfileMutation = trpc.profiles.update.useMutation();
+
   const handleWave = async () => {
     if (!gate.requireFullProfile()) return;
     if (busyRef.current || pendingWaveId || conversationId) return;
+
+    // Ninja mode check — hidden users must switch to visible before pinging
+    const myProfile = useAuthStore.getState().profile;
+    if (myProfile?.visibilityMode === "hidden") {
+      Alert.alert("Aby pingować musisz być widoczny", "Przejść w tryb Semi-Open?", [
+        { text: "Anuluj", style: "cancel" },
+        {
+          text: "Tak",
+          onPress: async () => {
+            try {
+              const updated = await updateProfileMutation.mutateAsync({ visibilityMode: "visible" });
+              if (updated) useAuthStore.getState().setProfile(updated);
+              handleWave();
+            } catch {
+              Alert.alert("Błąd", "Nie udało się zmienić trybu widoczności.");
+            }
+          },
+        },
+      ]);
+      return;
+    }
     busyRef.current = true;
     setPendingWaveId("optimistic");
     // Optimistic store update
