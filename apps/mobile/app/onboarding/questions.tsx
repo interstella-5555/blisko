@@ -347,6 +347,16 @@ export default function QuestionsScreen() {
           autoFocus
         />
 
+        {currentQuestion.examples && (
+          <View style={styles.examples}>
+            {currentQuestion.examples.map((ex) => (
+              <Text key={ex} style={styles.exampleText}>
+                np. &ldquo;{ex}&rdquo;
+              </Text>
+            ))}
+          </View>
+        )}
+
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.actions}>
@@ -402,6 +412,17 @@ const styles = StyleSheet.create({
   questionText: {
     ...typ.heading,
     marginBottom: spacing.section,
+  },
+  examples: {
+    marginTop: spacing.gutter,
+    gap: spacing.tick,
+  },
+  exampleText: {
+    fontFamily: fonts.sans,
+    fontStyle: "italic",
+    fontSize: 13,
+    color: colors.muted,
+    lineHeight: 18,
   },
   input: {
     fontFamily: fonts.sans,
