@@ -7,6 +7,5 @@ CREATE TABLE "conversation_ratings" (
 );
 --> statement-breakpoint
 ALTER TABLE "conversations" ADD COLUMN "deleted_at" timestamp;--> statement-breakpoint
-ALTER TABLE "profiles" ADD COLUMN "date_of_birth" timestamp;--> statement-breakpoint
 ALTER TABLE "conversation_ratings" ADD CONSTRAINT "conversation_ratings_conversation_id_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "conversation_ratings" ADD CONSTRAINT "conversation_ratings_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;
