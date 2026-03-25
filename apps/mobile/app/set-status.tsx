@@ -1,3 +1,4 @@
+import { STATUS_CATEGORIES, type StatusCategory } from "@repo/shared";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
@@ -13,11 +14,25 @@ const VISIBILITY_OPTIONS: { value: Visibility; label: string }[] = [
   { value: "private", label: "Prywatny" },
 ];
 
+const CATEGORY_OPTIONS: { value: StatusCategory; label: string; emoji: string }[] = [
+  { value: "project", label: "Projekt", emoji: "⚡" },
+  { value: "networking", label: "Networking", emoji: "🤝" },
+  { value: "dating", label: "Randka", emoji: "🔥" },
+  { value: "casual", label: "Casual", emoji: "☕" },
+];
+
 export default function SetStatusScreen() {
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
   const setProfile = useAuthStore((state) => state.setProfile);
   const [text, setText] = useState(prefill || "");
   const [visibility, setVisibility] = useState<Visibility>("public");
+  const [categories, setCategories] = useState<StatusCategory[]>([]);
+
+  const toggleCategory = (cat: StatusCategory) => {
+    setCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : prev.length < 2 ? [...prev, cat] : prev,
+    );
+  };
 
   const isEditing = !!prefill;
 
@@ -59,7 +74,7 @@ export default function SetStatusScreen() {
     router.back();
 
     setStatus.mutate(
-      { text: trimmed, visibility },
+      { text: trimmed, visibility, categories },
       {
         onError: () => {
           if (previousProfile) setProfile(previousProfile);
@@ -87,11 +102,28 @@ export default function SetStatusScreen() {
     });
   };
 
-  const canSubmit = text.trim().length > 0;
+  const canSubmit = text.trim().length > 0 && categories.length > 0;
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Co teraz?</Text>
+
+      <Text style={styles.sectionLabel}>KATEGORIA (max 2)</Text>
+      <View style={styles.categoryRow}>
+        {CATEGORY_OPTIONS.map((cat) => {
+          const selected = categories.includes(cat.value);
+          return (
+            <Pressable
+              key={cat.value}
+              style={[styles.categoryTile, selected && styles.categoryTileSelected]}
+              onPress={() => toggleCategory(cat.value)}
+            >
+              <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
+              <Text style={[styles.categoryLabel, selected && styles.categoryLabelSelected]}>{cat.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -199,6 +231,35 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: {
     color: "#FFFFFF",
+  },
+  categoryRow: {
+    flexDirection: "row",
+    gap: spacing.gutter,
+    marginBottom: spacing.section,
+  },
+  categoryTile: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: spacing.gutter,
+    borderWidth: 1.5,
+    borderColor: colors.rule,
+    borderRadius: 12,
+  },
+  categoryTileSelected: {
+    borderColor: "#D4851C",
+    backgroundColor: "#FFF8F0",
+  },
+  categoryEmoji: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  categoryLabel: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 11,
+    color: colors.muted,
+  },
+  categoryLabelSelected: {
+    color: "#D4851C",
   },
   submitContainer: {
     marginTop: spacing.column,

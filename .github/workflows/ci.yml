@@ -34,6 +34,15 @@ jobs:
       - run: bun run --filter '@repo/api' test
       - run: bun run --filter '@repo/shared' test
 
+  migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - name: Drizzle schema/migration consistency check
+        run: bun run --filter '@repo/api' db:check
+
   mobile-bundle:
     runs-on: ubuntu-latest
     steps:

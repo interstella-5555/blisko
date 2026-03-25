@@ -85,9 +85,13 @@ export const getNearbyUsersForMapSchema = z.object({
 });
 
 // Status "na teraz" validators
+export const STATUS_CATEGORIES = ["project", "networking", "dating", "casual"] as const;
+export type StatusCategory = (typeof STATUS_CATEGORIES)[number];
+
 export const setStatusSchema = z.object({
   text: z.string().min(1).max(150),
   visibility: z.enum(["public", "private"]),
+  categories: z.array(z.enum(STATUS_CATEGORIES)).min(1).max(2),
 });
 
 // Block validator

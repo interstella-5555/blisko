@@ -27,3 +27,5 @@ Schema: `apps/api/src/db/schema.ts`. Migrations: `apps/api/drizzle/`. Config: `a
 - `migrations/custom-comments` — Custom migrations (`--custom`) must have SQL comments explaining WHY the custom approach is needed.
 
 - `migrations/check-data-export` — After any schema change, check if `apps/api/src/services/data-export.ts` needs updating (GDPR/RODO data export).
+
+- `migrations/rebase-conflicts` — When rebasing a branch with migration conflicts (e.g. duplicate `0009_` numbers), use `npx drizzle-kit drop` to cleanly remove the stale migration (updates journal + snapshot), then `npx drizzle-kit generate --name=...` to regenerate with the correct sequence number. Never manually delete migration files or edit `_journal.json`.

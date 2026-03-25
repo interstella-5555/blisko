@@ -78,6 +78,13 @@
       "when": 1774452694477,
       "tag": "0010_add_conversation_delete_and_ratings",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1774452964986,
+      "tag": "0011_add_status_categories",
+      "breakpoints": true
     }
   ]
 }
