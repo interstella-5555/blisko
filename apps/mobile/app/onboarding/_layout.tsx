@@ -46,7 +46,9 @@ export default function OnboardingLayout() {
         headerShown: false,
         animation: "slide_from_right",
       }}
+      initialRouteName="hook"
     >
+      <Stack.Screen name="hook" options={{ animation: "fade" }} />
       <Stack.Screen name="index" />
       <Stack.Screen name="visibility" />
       <Stack.Screen name="questions" />
