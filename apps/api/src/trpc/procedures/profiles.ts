@@ -23,6 +23,7 @@ import {
   enqueueQuickScore,
   enqueueStatusMatching,
   enqueueUserPairAnalysis,
+  promotePairAnalysis,
 } from "@/services/queue";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
@@ -469,6 +470,33 @@ export const profilesRouter = router({
 
     await enqueuePairAnalysis(ctx.userId, input.userId);
     return { status: "queued" as const };
+  }),
+
+  // On-demand T3: return full analysis if ready, otherwise promote to top of queue
+  getDetailedAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).query(async ({ ctx, input }) => {
+    const analysis = await db.query.connectionAnalyses.findFirst({
+      where: and(
+        eq(schema.connectionAnalyses.fromUserId, ctx.userId),
+        eq(schema.connectionAnalyses.toUserId, input.userId),
+      ),
+      columns: { shortSnippet: true, longDescription: true, aiMatchScore: true },
+    });
+
+    if (analysis?.shortSnippet) {
+      return {
+        status: "ready" as const,
+        matchScore: analysis.aiMatchScore,
+        shortSnippet: analysis.shortSnippet,
+        longDescription: analysis.longDescription,
+      };
+    }
+
+    // No T3 yet — promote to highest priority so it runs next
+    await promotePairAnalysis(ctx.userId, input.userId);
+    return {
+      status: "queued" as const,
+      matchScore: analysis?.aiMatchScore ?? null,
+    };
   }),
 
   // Get AI connection analysis for a specific user
