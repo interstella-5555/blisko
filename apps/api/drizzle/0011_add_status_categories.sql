@@ -1,1 +1,1 @@
-ALTER TABLE "profiles" ADD COLUMN "status_categories" text[];
+ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "status_categories" text[];
