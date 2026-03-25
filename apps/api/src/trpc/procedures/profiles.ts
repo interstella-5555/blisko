@@ -20,6 +20,7 @@ import {
   enqueuePairAnalysis,
   enqueueProfileAI,
   enqueueProximityStatusMatching,
+  enqueueQuickScore,
   enqueueStatusMatching,
   enqueueUserPairAnalysis,
 } from "@/services/queue";
@@ -139,9 +140,8 @@ export const profilesRouter = router({
       .where(eq(schema.profiles.userId, ctx.userId))
       .returning();
 
-    // Queue connection analyses for new location (debounced 30s by BullMQ)
+    // Proximity status matching on location change (debounced 2m by BullMQ)
     if (!input.skipAnalysis) {
-      await enqueueUserPairAnalysis(ctx.userId, input.latitude, input.longitude);
       enqueueProximityStatusMatching(ctx.userId, input.latitude, input.longitude).catch(() => {});
     }
 
@@ -425,7 +425,7 @@ export const profilesRouter = router({
           matchScore: Math.round(matchScore * 100),
           commonInterests,
           shortSnippet: analysis?.shortSnippet ?? null,
-          analysisReady: !!analysis,
+          analysisReady: !!analysis?.shortSnippet,
           hasStatusMatch: myStatusActive && theirStatusActive && statusMatchMap.has(u.profile.userId),
         });
       }
@@ -433,14 +433,14 @@ export const profilesRouter = router({
       // Sort by rankScore descending
       results.sort((a, b) => b.rankScore - a.rankScore);
 
-      // Safety net: queue analyses for users without one
+      // Safety net: queue T2 quick scores for users without any analysis
       const missingAnalysisUserIds = results
         .filter((r) => !analysisMap.has(r.profile.userId))
         .map((r) => r.profile.userId);
 
       for (const theirUserId of missingAnalysisUserIds) {
-        enqueuePairAnalysis(ctx.userId, theirUserId).catch((err) => {
-          console.error("[profiles] Failed to enqueue pair analysis:", err);
+        enqueueQuickScore(ctx.userId, theirUserId).catch((err) => {
+          console.error("[profiles] Failed to enqueue quick score:", err);
         });
       }
 
