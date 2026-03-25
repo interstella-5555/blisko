@@ -6,3 +6,6 @@ export const DAILY_PING_LIMIT_BASIC = 5;
 
 /** Cannot ping the same person again within this window, regardless of outcome. */
 export const PER_PERSON_COOLDOWN_HOURS = 24;
+
+/** If both users ping each other within this window, auto-accept both and open chat. */
+export const MUTUAL_PING_WINDOW_SECONDS = 30;
