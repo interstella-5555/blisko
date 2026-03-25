@@ -13,7 +13,7 @@ export interface Profile {
   bio: string;
   lookingFor: string;
   socialLinks: { facebook?: string; linkedin?: string } | null;
-  visibilityMode: "visible" | "matches_only" | "hidden";
+  visibilityMode: "ninja" | "semi_open" | "full_nomad";
   interests: string[] | null;
   embedding: number[] | null;
   isComplete: boolean;

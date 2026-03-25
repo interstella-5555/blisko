@@ -154,7 +154,7 @@ export const profilesRouter = router({
       .where(
         and(
           ne(schema.profiles.userId, ctx.userId),
-          eq(schema.profiles.visibilityMode, "visible"),
+          ne(schema.profiles.visibilityMode, "ninja"),
           between(schema.profiles.latitude, input.latitude - latDelta, input.latitude + latDelta),
           between(schema.profiles.longitude, input.longitude - lonDelta, input.longitude + lonDelta),
           isNull(schema.user.deletedAt),
@@ -231,7 +231,7 @@ export const profilesRouter = router({
         .where(
           and(
             ne(schema.profiles.userId, ctx.userId),
-            eq(schema.profiles.visibilityMode, "visible"),
+            ne(schema.profiles.visibilityMode, "ninja"),
             // Bounding box filter (uses index)
             between(schema.profiles.latitude, minLat, maxLat),
             between(schema.profiles.longitude, minLon, maxLon),
@@ -296,7 +296,7 @@ export const profilesRouter = router({
       // Base WHERE conditions (reused for count + paginated query)
       const baseWhere = and(
         ne(schema.profiles.userId, ctx.userId),
-        eq(schema.profiles.visibilityMode, "visible"),
+        ne(schema.profiles.visibilityMode, "ninja"),
         between(schema.profiles.latitude, minLat, maxLat),
         between(schema.profiles.longitude, minLon, maxLon),
         lte(distanceFormula, radiusMeters),

@@ -332,7 +332,7 @@ async function processAnalyzeUserPairs(userId: string, latitude: number, longitu
     .where(
       and(
         ne(schema.profiles.userId, userId),
-        eq(schema.profiles.visibilityMode, "visible"),
+        ne(schema.profiles.visibilityMode, "ninja"),
         eq(schema.profiles.isComplete, true),
         between(schema.profiles.latitude, minLat, maxLat),
         between(schema.profiles.longitude, minLon, maxLon),
@@ -473,7 +473,7 @@ async function processStatusMatching(userId: string) {
     .where(
       and(
         ne(schema.profiles.userId, userId),
-        eq(schema.profiles.visibilityMode, "visible"),
+        ne(schema.profiles.visibilityMode, "ninja"),
         eq(schema.profiles.isComplete, true),
         isNotNull(schema.profiles.latitude),
         isNotNull(schema.profiles.longitude),
@@ -640,7 +640,7 @@ async function processHardDeleteUser(userId: string) {
         bio: "",
         lookingFor: "",
         socialLinks: null,
-        visibilityMode: "hidden",
+        visibilityMode: "ninja",
         interests: null,
         embedding: null,
         portrait: null,

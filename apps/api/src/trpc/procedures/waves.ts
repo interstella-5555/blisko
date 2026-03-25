@@ -64,7 +64,7 @@ export const wavesRouter = router({
         where: eq(schema.profiles.userId, ctx.userId),
         columns: { visibilityMode: true },
       });
-      if (senderVisibility?.visibilityMode === "hidden") {
+      if (senderVisibility?.visibilityMode === "ninja") {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "hidden_cannot_ping",

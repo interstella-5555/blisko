@@ -152,14 +152,14 @@ export default function UserProfileScreen() {
 
     // Ninja mode check — hidden users must switch to visible before pinging
     const myProfile = useAuthStore.getState().profile;
-    if (myProfile?.visibilityMode === "hidden") {
+    if (myProfile?.visibilityMode === "ninja") {
       Alert.alert("Aby pingować musisz być widoczny", "Przejść w tryb Semi-Open?", [
         { text: "Anuluj", style: "cancel" },
         {
           text: "Tak",
           onPress: async () => {
             try {
-              const updated = await updateProfileMutation.mutateAsync({ visibilityMode: "visible" });
+              const updated = await updateProfileMutation.mutateAsync({ visibilityMode: "semi_open" });
               if (updated) useAuthStore.getState().setProfile(updated);
               handleWave();
             } catch {
