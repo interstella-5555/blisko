@@ -26,6 +26,8 @@ export default function EditProfileScreen() {
   const [bio, setBio] = useState(profile?.bio || "");
   const [lookingFor, setLookingFor] = useState(profile?.lookingFor || "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || null);
+  const [superpower, setSuperpower] = useState(profile?.superpower || "");
+  const [offerType, setOfferType] = useState<"volunteer" | "exchange" | "gig" | "">(profile?.offerType || "");
   const [uploading, setUploading] = useState(false);
 
   const utils = trpc.useUtils();
@@ -92,6 +94,8 @@ export default function EditProfileScreen() {
     updateProfile.mutate({
       bio: bio.trim(),
       lookingFor: lookingFor.trim(),
+      ...(superpower.trim() ? { superpower: superpower.trim() } : {}),
+      ...(offerType ? { offerType } : {}),
       ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl || undefined } : {}),
     });
   };
@@ -158,6 +162,43 @@ export default function EditProfileScreen() {
           />
           <Text style={styles.charCount}>{lookingFor.length} / 500</Text>
         </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Co mogę dać</Text>
+          <TextInput
+            style={[styles.input, styles.multilineInput]}
+            value={superpower}
+            onChangeText={setSuperpower}
+            placeholder="W czym możesz komuś pomóc od ręki?"
+            placeholderTextColor={colors.muted}
+            spellCheck={false}
+            autoCorrect={false}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+            maxLength={300}
+          />
+          <Text style={styles.charCount}>{superpower.length} / 300</Text>
+        </View>
+
+        {superpower.trim().length > 0 && (
+          <View style={styles.field}>
+            <Text style={styles.label}>Forma</Text>
+            <View style={styles.offerTypeRow}>
+              {(["volunteer", "exchange", "gig"] as const).map((t) => (
+                <Pressable
+                  key={t}
+                  style={[styles.offerTypeChip, offerType === t && styles.offerTypeChipSelected]}
+                  onPress={() => setOfferType(t)}
+                >
+                  <Text style={[styles.offerTypeText, offerType === t && styles.offerTypeTextSelected]}>
+                    {{ volunteer: "Wolontariat", exchange: "Wymiana", gig: "Zlecenie" }[t]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
 
         <View style={styles.saveContainer}>
           <Button
@@ -234,6 +275,29 @@ const styles = StyleSheet.create({
     ...typ.caption,
     textAlign: "right",
     marginTop: spacing.hairline,
+  },
+  offerTypeRow: {
+    flexDirection: "row",
+    gap: spacing.tight,
+  },
+  offerTypeChip: {
+    borderWidth: 1.5,
+    borderColor: colors.rule,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  offerTypeChipSelected: {
+    backgroundColor: "#D4851C",
+    borderColor: "#D4851C",
+  },
+  offerTypeText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 13,
+    color: colors.ink,
+  },
+  offerTypeTextSelected: {
+    color: "#FFFFFF",
   },
   saveContainer: {
     marginTop: spacing.column,

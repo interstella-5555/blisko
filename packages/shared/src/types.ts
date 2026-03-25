@@ -14,6 +14,9 @@ export interface Profile {
   lookingFor: string;
   socialLinks: { facebook?: string; linkedin?: string } | null;
   visibilityMode: "ninja" | "semi_open" | "full_nomad";
+  superpower: string | null;
+  superpowerTags: string[] | null;
+  offerType: "volunteer" | "exchange" | "gig" | null;
   interests: string[] | null;
   embedding: number[] | null;
   isComplete: boolean;

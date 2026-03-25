@@ -29,6 +29,8 @@ interface Profile {
   statusExpiresAt?: string | null;
   statusSetAt?: string | null;
   statusVisibility?: "public" | "private" | null;
+  superpower?: string | null;
+  offerType?: "volunteer" | "exchange" | "gig" | null;
 }
 
 interface AuthState {

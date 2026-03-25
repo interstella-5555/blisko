@@ -125,8 +125,8 @@ Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po pols
 }
 
 export async function analyzeConnection(
-  profileA: { portrait: string; displayName: string; lookingFor: string },
-  profileB: { portrait: string; displayName: string; lookingFor: string },
+  profileA: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
+  profileB: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
 ): Promise<ConnectionAnalysisResult> {
   try {
     const { object } = await generateObject({
@@ -228,14 +228,14 @@ descriptionForB: "Gra w padla 3 razy w tygodniu — szuka kogoś na regularne me
 ${profileA.displayName}:
 ${profileA.portrait}
 
-Szuka: ${profileA.lookingFor}
+Szuka: ${profileA.lookingFor}${profileA.superpower ? `\nMoże zaoferować: ${profileA.superpower}` : ""}
 </user_profile>
 
 <user_profile name="B">
 ${profileB.displayName}:
 ${profileB.portrait}
 
-Szuka: ${profileB.lookingFor}
+Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${profileB.superpower}` : ""}
 </user_profile>`,
     });
     return object;

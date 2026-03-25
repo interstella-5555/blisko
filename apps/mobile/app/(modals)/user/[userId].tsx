@@ -422,6 +422,19 @@ export default function UserProfileScreen() {
           )}
         </View>
 
+        {/* Superpower */}
+        {profile?.superpower && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Co mogę dać</Text>
+            <Text style={styles.sectionContent}>{profile.superpower}</Text>
+            {profile.offerType && (
+              <Text style={styles.offerTypeBadge}>
+                {{ volunteer: "Wolontariat", exchange: "Wymiana", gig: "Zlecenie" }[profile.offerType]}
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* Social links — visible only after wave acceptance */}
         {isConnected && profile?.socialLinks && Object.values(profile.socialLinks).some(Boolean) && (
           <View style={styles.socialLinksRow}>
@@ -618,6 +631,12 @@ const styles = StyleSheet.create({
   },
   sectionContent: {
     ...typ.body,
+  },
+  offerTypeBadge: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 11,
+    color: "#D4851C",
+    marginTop: spacing.tight,
   },
   pillRow: {
     flexDirection: "row",
