@@ -54,6 +54,18 @@ export const wavesRouter = router({
         });
       }
 
+      // Hidden users cannot send pings (server-side safety net — mobile prompts before reaching here)
+      const senderVisibility = await db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, ctx.userId),
+        columns: { visibilityMode: true },
+      });
+      if (senderVisibility?.visibilityMode === "hidden") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "hidden_cannot_ping",
+        });
+      }
+
       // Daily ping limit — count waves sent today (UTC midnight reset)
       const todayMidnight = new Date();
       todayMidnight.setUTCHours(0, 0, 0, 0);
