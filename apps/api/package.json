@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:check": "drizzle-kit check",
     "scatter": "bun run scripts/scatter-locations-db.ts",
     "scatter:production": "bun --env-file=.env.production run scripts/scatter-locations-db.ts",
     "seed:slo": "bun run scripts/seed-slo-targets.ts"

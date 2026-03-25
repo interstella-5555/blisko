@@ -557,6 +557,7 @@ export const profilesRouter = router({
         currentStatus: input.text,
         statusExpiresAt: null,
         statusVisibility: input.visibility,
+        statusCategories: input.categories,
         statusSetAt: new Date(),
         updatedAt: new Date(),
       })
@@ -581,6 +582,7 @@ export const profilesRouter = router({
         statusExpiresAt: null,
         statusEmbedding: null,
         statusVisibility: null,
+        statusCategories: null,
         statusSetAt: null,
         updatedAt: new Date(),
       })
