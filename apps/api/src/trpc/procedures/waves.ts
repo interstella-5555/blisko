@@ -1,7 +1,12 @@
 import { blockUserSchema, respondToWaveSchema, sendWaveSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
-import { DAILY_PING_LIMIT_BASIC, DECLINE_COOLDOWN_HOURS, PER_PERSON_COOLDOWN_HOURS } from "@/config/pingLimits";
+import {
+  DAILY_PING_LIMIT_BASIC,
+  DECLINE_COOLDOWN_HOURS,
+  MUTUAL_PING_WINDOW_SECONDS,
+  PER_PERSON_COOLDOWN_HOURS,
+} from "@/config/pingLimits";
 import { db, schema } from "@/db";
 import { setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
@@ -165,6 +170,79 @@ export const wavesRouter = router({
 
       await promotePairAnalysis(ctx.userId, input.toUserId);
 
+      // Mutual ping detection — check if B already pinged A within the window
+      const mutualCutoff = new Date(Date.now() - MUTUAL_PING_WINDOW_SECONDS * 1000);
+      const reverseWave = await db.query.waves.findFirst({
+        where: and(
+          eq(schema.waves.fromUserId, input.toUserId),
+          eq(schema.waves.toUserId, ctx.userId),
+          eq(schema.waves.status, "pending"),
+          gte(schema.waves.createdAt, mutualCutoff),
+        ),
+      });
+
+      if (reverseWave) {
+        // Mutual ping! Auto-accept both waves and create conversation
+        const now = new Date();
+        const [conversation] = await db.transaction(async (tx) => {
+          await tx
+            .update(schema.waves)
+            .set({ status: "accepted", respondedAt: now })
+            .where(inArray(schema.waves.id, [wave.id, reverseWave.id]));
+
+          const [conv] = await tx
+            .insert(schema.conversations)
+            .values({
+              metadata: {
+                isMutualPing: true,
+                senderStatus: senderProfile?.currentStatus ?? null,
+                recipientStatus: reverseWave.senderStatusSnapshot ?? null,
+                connectedAt: now.toISOString(),
+              },
+            })
+            .returning();
+
+          await tx.insert(schema.conversationParticipants).values([
+            { conversationId: conv.id, userId: ctx.userId },
+            { conversationId: conv.id, userId: input.toUserId },
+          ]);
+
+          return [conv];
+        });
+
+        // Notify both users
+        const mutualMsg = "Pingowaliście się wzajemnie — to rzadkie!";
+        void sendPushToUser(ctx.userId, {
+          title: "Blisko",
+          body: mutualMsg,
+          data: { type: "chat", conversationId: conversation.id },
+        });
+        void sendPushToUser(input.toUserId, {
+          title: "Blisko",
+          body: mutualMsg,
+          data: { type: "chat", conversationId: conversation.id },
+        });
+
+        ee.emit("waveResponded", {
+          fromUserId: ctx.userId,
+          waveId: reverseWave.id,
+          accepted: true,
+          conversationId: conversation.id,
+          responderProfile: senderProfile
+            ? { displayName: senderProfile.displayName, avatarUrl: senderProfile.avatarUrl }
+            : { displayName: "Ktoś", avatarUrl: null },
+        });
+        ee.emit("waveResponded", {
+          fromUserId: input.toUserId,
+          waveId: wave.id,
+          accepted: true,
+          conversationId: conversation.id,
+        });
+
+        return { ...wave, status: "accepted" as const, mutualPing: true, conversationId: conversation.id };
+      }
+
+      // Normal flow — not a mutual ping
       void sendPushToUser(input.toUserId, {
         title: "Blisko",
         body: `${senderProfile?.displayName ?? "Ktoś"} — nowy ping!`,
