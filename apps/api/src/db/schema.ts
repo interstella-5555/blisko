@@ -13,6 +13,7 @@ import {
   smallint,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
   varchar,
@@ -334,6 +335,7 @@ export const statusMatches = pgTable(
   (table) => ({
     userIdIdx: index("sm_user_id_idx").on(table.userId),
     matchedUserIdIdx: index("sm_matched_user_id_idx").on(table.matchedUserId),
+    userMatchedUserUniq: unique("sm_user_matched_user_uniq").on(table.userId, table.matchedUserId),
   }),
 );
 

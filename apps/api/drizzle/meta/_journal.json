@@ -99,6 +99,13 @@
       "when": 1774453871735,
       "tag": "0013_add_superpower_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1774479221998,
+      "tag": "0014_add_status_matches_unique",
+      "breakpoints": true
     }
   ]
 }

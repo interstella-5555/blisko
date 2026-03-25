@@ -8,7 +8,7 @@ import {
   updateProfileSchema,
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { and, between, eq, gte, isNotNull, isNull, lte, ne, placeholder, sql } from "drizzle-orm";
+import { and, between, eq, gte, isNotNull, isNull, lte, ne, or, placeholder, sql } from "drizzle-orm";
 import { z } from "zod";
 import { DECLINE_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, preparedName, schema } from "@/db";
@@ -19,6 +19,7 @@ import { moderateContent } from "@/services/moderation";
 import {
   enqueuePairAnalysis,
   enqueueProfileAI,
+  enqueueProximityStatusMatching,
   enqueueStatusMatching,
   enqueueUserPairAnalysis,
 } from "@/services/queue";
@@ -141,6 +142,7 @@ export const profilesRouter = router({
     // Queue connection analyses for new location (debounced 30s by BullMQ)
     if (!input.skipAnalysis) {
       await enqueueUserPairAnalysis(ctx.userId, input.latitude, input.longitude);
+      enqueueProximityStatusMatching(ctx.userId, input.latitude, input.longitude).catch(() => {});
     }
 
     // Notify nearby users that someone's location changed (fire-and-forget — don't fail current user)
@@ -589,7 +591,9 @@ export const profilesRouter = router({
       .where(eq(schema.profiles.userId, ctx.userId))
       .returning();
 
-    await db.delete(schema.statusMatches).where(eq(schema.statusMatches.userId, ctx.userId));
+    await db
+      .delete(schema.statusMatches)
+      .where(or(eq(schema.statusMatches.userId, ctx.userId), eq(schema.statusMatches.matchedUserId, ctx.userId)));
 
     return profile;
   }),
