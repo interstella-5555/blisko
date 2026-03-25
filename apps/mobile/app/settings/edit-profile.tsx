@@ -80,10 +80,6 @@ export default function EditProfileScreen() {
   };
 
   const handleSave = () => {
-    if (displayName.trim().length < 2) {
-      Alert.alert("Blad", "Imie musi miec co najmniej 2 znaki");
-      return;
-    }
     if (bio.trim().length < 10) {
       Alert.alert("Blad", "Bio musi miec co najmniej 10 znakow");
       return;
@@ -94,14 +90,13 @@ export default function EditProfileScreen() {
     }
 
     updateProfile.mutate({
-      displayName: displayName.trim(),
       bio: bio.trim(),
       lookingFor: lookingFor.trim(),
       ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl || undefined } : {}),
     });
   };
 
-  const canSave = displayName.trim().length >= 2 && bio.trim().length >= 10 && lookingFor.trim().length >= 10;
+  const canSave = bio.trim().length >= 10 && lookingFor.trim().length >= 10;
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -119,15 +114,11 @@ export default function EditProfileScreen() {
           <Text style={styles.label}>Imie</Text>
           <TextInput
             testID="edit-name-input"
-            style={styles.input}
+            style={[styles.input, styles.inputLocked]}
             value={displayName}
-            onChangeText={setDisplayName}
-            placeholder="Twoje imie"
-            placeholderTextColor={colors.muted}
-            spellCheck={false}
-            autoCorrect={false}
-            maxLength={50}
+            editable={false}
           />
+          <Text style={styles.lockedHint}>Imię nie może być zmienione</Text>
         </View>
 
         <View style={styles.field}>
@@ -227,6 +218,16 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.ink,
     paddingVertical: 12,
     paddingHorizontal: 0,
+  },
+  inputLocked: {
+    color: colors.muted,
+    borderBottomColor: colors.rule,
+  },
+  lockedHint: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 4,
   },
   multilineInput: {},
   charCount: {

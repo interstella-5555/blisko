@@ -84,6 +84,18 @@ export const profilesRouter = router({
     .use(rateLimit("profiles.update"))
     .input(updateProfileSchema)
     .mutation(async ({ ctx, input }) => {
+      // Lock displayName after initial setup (5 min grace period)
+      if (input.displayName) {
+        const existing = await db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, ctx.userId),
+          columns: { displayName: true, createdAt: true },
+        });
+        const graceExpired = existing && Date.now() - existing.createdAt.getTime() > 5 * 60 * 1000;
+        if (graceExpired && existing.displayName !== input.displayName) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "display_name_locked" });
+        }
+      }
+
       const fieldsToModerate = [input.displayName, input.bio, input.lookingFor].filter(Boolean);
       if (fieldsToModerate.length > 0) {
         await moderateContent(fieldsToModerate.join("\n\n"));

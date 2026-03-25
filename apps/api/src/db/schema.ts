@@ -98,6 +98,7 @@ export const profiles = pgTable(
     statusEmbedding: real("status_embedding").array(),
     statusSetAt: timestamp("status_set_at"),
     statusVisibility: text("status_visibility").$type<"public" | "private">(),
+    dateOfBirth: timestamp("date_of_birth"),
     latitude: real("latitude"),
     longitude: real("longitude"),
     lastLocationUpdate: timestamp("last_location_update"),
