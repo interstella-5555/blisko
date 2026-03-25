@@ -20,7 +20,8 @@ export const updateProfileSchema = z.object({
   lookingFor: z.string().min(10).max(500).optional(),
   avatarUrl: z.string().url().optional(),
   socialLinks: socialLinksSchema,
-  visibilityMode: z.enum(["visible", "matches_only", "hidden"]).optional(),
+  visibilityMode: z.enum(["ninja", "semi_open", "full_nomad"]).optional(),
+  doNotDisturb: z.boolean().optional(),
 });
 
 export const updateLocationSchema = z.object({

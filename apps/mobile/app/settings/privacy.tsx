@@ -1,27 +1,27 @@
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import Svg, { Polyline } from "react-native-svg";
 import { trpc } from "../../src/lib/trpc";
 import { useAuthStore } from "../../src/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
-type VisibilityMode = "visible" | "matches_only" | "hidden";
+type VisibilityMode = "ninja" | "semi_open" | "full_nomad";
 
 const VISIBILITY_OPTIONS: { key: VisibilityMode; name: string; desc: string }[] = [
   {
-    key: "visible",
-    name: "Widoczny",
-    desc: "Twoj profil jest widoczny na mapie i w wynikach wyszukiwania dla wszystkich.",
+    key: "ninja",
+    name: "Ninja",
+    desc: "Widzisz innych, ale Ciebie nie widać na mapie. Nie możesz pingować.",
   },
   {
-    key: "matches_only",
-    name: "Tylko dopasowania",
-    desc: "Nie pojawisz sie na mapie. Widzisz innych, ale oni Ciebie tylko po wyslaniu wave.",
+    key: "semi_open",
+    name: "Semi-Open",
+    desc: "Widoczny na mapie. Możesz pingować i być pingowany.",
   },
   {
-    key: "hidden",
-    name: "Ukryty",
-    desc: "Twoj profil jest calkowicie niewidoczny. Nikt Cie nie znajdzie ani nie zobaczy.",
+    key: "full_nomad",
+    name: "Full Nomad",
+    desc: 'Widoczny i otwarty — w profilu pojawi się "Podejdź śmiało".',
   },
 ];
 
@@ -46,7 +46,8 @@ export default function PrivacyScreen() {
   const profile = useAuthStore((state) => state.profile);
   const setProfile = useAuthStore((state) => state.setProfile);
 
-  const [mode, setMode] = useState<VisibilityMode>(profile?.visibilityMode ?? "visible");
+  const [mode, setMode] = useState<VisibilityMode>(profile?.visibilityMode ?? "semi_open");
+  const [dnd, setDnd] = useState(profile?.doNotDisturb ?? false);
 
   const utils = trpc.useUtils();
   const updateProfile = trpc.profiles.update.useMutation({
@@ -78,6 +79,25 @@ export default function PrivacyScreen() {
           </Pressable>
         ))}
         <Text style={styles.note}>Zmiana trybu widocznosci nie wplywa na istniejace rozmowy i dopasowania.</Text>
+      </View>
+
+      {/* DND toggle */}
+      <View style={styles.section}>
+        <View style={styles.dndRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.optionName}>Nie przeszkadzać</Text>
+            <Text style={styles.optionDesc}>Pingi dochodzą, ale powiadomienia push wyciszone.</Text>
+          </View>
+          <Switch
+            value={dnd}
+            onValueChange={(v) => {
+              setDnd(v);
+              updateProfile.mutate({ doNotDisturb: v });
+            }}
+            trackColor={{ false: colors.rule, true: "#D4851C" }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
       </View>
 
       {/* Blocked users section */}
@@ -155,6 +175,12 @@ const styles = StyleSheet.create({
     color: colors.muted,
     paddingVertical: spacing.gutter,
     lineHeight: 18,
+  },
+  dndRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.gutter,
+    paddingVertical: spacing.compact,
   },
   blockedRow: {
     flexDirection: "row",

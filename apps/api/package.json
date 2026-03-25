@@ -15,6 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:check": "drizzle-kit check",
+    "db:drop": "drizzle-kit drop",
     "scatter": "bun run scripts/scatter-locations-db.ts",
     "scatter:production": "bun --env-file=.env.production run scripts/scatter-locations-db.ts",
     "seed:slo": "bun run scripts/seed-slo-targets.ts"

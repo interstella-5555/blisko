@@ -473,7 +473,7 @@ export const profilingRouter = router({
         displayName: input.displayName,
         bio: "",
         lookingFor: "",
-        visibilityMode: "hidden",
+        visibilityMode: "ninja",
         ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
       })
       .returning();

@@ -22,7 +22,8 @@ interface Profile {
   lookingFor: string;
   avatarUrl?: string | null;
   socialLinks?: { facebook?: string; linkedin?: string; website?: string } | null;
-  visibilityMode?: "visible" | "matches_only" | "hidden";
+  visibilityMode?: "ninja" | "semi_open" | "full_nomad";
+  doNotDisturb?: boolean;
   isComplete?: boolean;
   currentStatus?: string | null;
   statusExpiresAt?: string | null;
