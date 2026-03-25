@@ -14,7 +14,7 @@ import { promotePairAnalysis } from "@/services/queue";
 import { featureGate } from "@/trpc/middleware/featureGate";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
-import { ee } from "@/ws/events";
+import { publishEvent } from "@/ws/redis-bridge";
 
 export const wavesRouter = router({
   // Send a wave to someone
@@ -223,7 +223,7 @@ export const wavesRouter = router({
           data: { type: "chat", conversationId: conversation.id },
         });
 
-        ee.emit("waveResponded", {
+        publishEvent("waveResponded", {
           fromUserId: ctx.userId,
           waveId: reverseWave.id,
           accepted: true,
@@ -232,7 +232,7 @@ export const wavesRouter = router({
             ? { displayName: senderProfile.displayName, avatarUrl: senderProfile.avatarUrl }
             : { displayName: "Ktoś", avatarUrl: null },
         });
-        ee.emit("waveResponded", {
+        publishEvent("waveResponded", {
           fromUserId: input.toUserId,
           waveId: wave.id,
           accepted: true,
@@ -249,7 +249,7 @@ export const wavesRouter = router({
         data: { type: "wave", userId: ctx.userId },
       });
 
-      ee.emit("newWave", {
+      publishEvent("newWave", {
         toUserId: input.toUserId,
         wave,
         fromProfile: senderProfile
@@ -393,7 +393,7 @@ export const wavesRouter = router({
           data: { type: "chat", conversationId: conversation.id },
         });
 
-        ee.emit("waveResponded", {
+        publishEvent("waveResponded", {
           fromUserId: wave.fromUserId,
           waveId: wave.id,
           accepted: true,
@@ -413,7 +413,7 @@ export const wavesRouter = router({
         .where(eq(schema.waves.id, input.waveId))
         .returning();
 
-      ee.emit("waveResponded", {
+      publishEvent("waveResponded", {
         fromUserId: wave.fromUserId,
         waveId: wave.id,
         accepted: false,

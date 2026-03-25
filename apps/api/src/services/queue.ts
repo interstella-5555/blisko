@@ -6,7 +6,7 @@ import { and, between, eq, gte, inArray, isNotNull, isNull, lte, ne, sql } from 
 import ms from "ms";
 import { db, schema } from "@/db";
 import { isStatusActive } from "@/lib/status";
-import { ee } from "@/ws/events";
+import { publishEvent } from "@/ws/redis-bridge";
 import { analyzeConnection, evaluateStatusMatch, extractInterests, generateEmbedding, generatePortrait } from "./ai";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
 import { sendPushToUser } from "./push";
@@ -219,7 +219,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       },
     });
 
-  ee.emit("analysisReady", {
+  publishEvent("analysisReady", {
     forUserId: userAId,
     aboutUserId: userBId,
     shortSnippet: result.snippetForA,
@@ -258,7 +258,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       },
     });
 
-  ee.emit("analysisReady", {
+  publishEvent("analysisReady", {
     forUserId: userBId,
     aboutUserId: userAId,
     shortSnippet: result.snippetForB,
@@ -396,7 +396,7 @@ async function processGenerateProfileAI(userId: string, bio: string, lookingFor:
     })
     .where(eq(schema.profiles.userId, userId));
 
-  ee.emit("profileReady", { userId });
+  publishEvent("profileReady", { userId });
 }
 
 // --- Profiling question processor ---
@@ -419,7 +419,7 @@ async function processGenerateProfilingQuestion(job: GenerateProfilingQuestionJo
     sufficient: result.sufficient,
   });
 
-  ee.emit("questionReady", {
+  publishEvent("questionReady", {
     userId: job.userId,
     sessionId,
     questionNumber,
@@ -444,7 +444,7 @@ async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
     })
     .where(eq(schema.profilingSessions.id, sessionId));
 
-  ee.emit("profilingComplete", {
+  publishEvent("profilingComplete", {
     userId: job.userId,
     sessionId,
   });
@@ -547,7 +547,7 @@ async function processStatusMatching(userId: string) {
   }
 
   // Emit WS event
-  ee.emit("statusMatchesReady", { userId });
+  publishEvent("statusMatchesReady", { userId });
 
   // Send silent ambient push for new matches (max 1 per hour per user)
   if (matches.length > 0) {

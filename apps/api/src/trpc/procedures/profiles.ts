@@ -24,7 +24,7 @@ import {
 } from "@/services/queue";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
-import { ee } from "@/ws/events";
+import { publishEvent } from "@/ws/redis-bridge";
 
 // Prepared statement — compiled once, reused on every profiles.me call
 const profileByUserId = db
@@ -162,7 +162,7 @@ export const profilesRouter = router({
       )
       .then((nearbyUsers) => {
         for (const u of nearbyUsers) {
-          ee.emit("nearbyChanged", { forUserId: u.userId });
+          publishEvent("nearbyChanged", { forUserId: u.userId });
         }
       })
       .catch((err) => {

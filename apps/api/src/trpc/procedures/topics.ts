@@ -4,7 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { protectedProcedure, router } from "@/trpc/trpc";
-import { ee } from "@/ws/events";
+import { publishEvent } from "@/ws/redis-bridge";
 
 async function requireGroupMember(conversationId: string, userId: string) {
   const participant = await db.query.conversationParticipants.findFirst({
@@ -63,7 +63,7 @@ export const topicsRouter = router({
       })
       .returning();
 
-    ee.emit("topicEvent", {
+    publishEvent("topicEvent", {
       conversationId: input.conversationId,
       topic: { id: topic.id, name: topic.name, emoji: topic.emoji },
       action: "created",
@@ -95,7 +95,7 @@ export const topicsRouter = router({
 
     const [updated] = await db.update(schema.topics).set(setValues).where(eq(schema.topics.id, topicId)).returning();
 
-    ee.emit("topicEvent", {
+    publishEvent("topicEvent", {
       conversationId: topic.conversationId,
       topic: { id: updated.id, name: updated.name, emoji: updated.emoji },
       action: updates.isClosed ? "closed" : "updated",
@@ -120,7 +120,7 @@ export const topicsRouter = router({
 
     await db.delete(schema.topics).where(eq(schema.topics.id, input.topicId));
 
-    ee.emit("topicEvent", {
+    publishEvent("topicEvent", {
       conversationId: topic.conversationId,
       topic: { id: topic.id, name: topic.name, emoji: topic.emoji },
       action: "deleted",
