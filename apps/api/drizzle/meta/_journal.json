@@ -64,6 +64,13 @@
       "when": 1774378834663,
       "tag": "0008_add_wave_responded_at",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774447678334,
+      "tag": "0009_add_date_of_birth",
+      "breakpoints": true
     }
   ]
 }

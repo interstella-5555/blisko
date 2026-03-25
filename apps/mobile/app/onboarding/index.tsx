@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { Button } from "../../src/components/ui/Button";
 import { Input } from "../../src/components/ui/Input";
 import { IconX } from "../../src/components/ui/icons";
@@ -13,13 +13,14 @@ import { useMessagesStore } from "../../src/stores/messagesStore";
 import { useOnboardingStore } from "../../src/stores/onboardingStore";
 import { useProfilesStore } from "../../src/stores/profilesStore";
 import { useWavesStore } from "../../src/stores/wavesStore";
-import { colors, spacing, type as typ } from "../../src/theme";
+import { colors, fonts, spacing, type as typ } from "../../src/theme";
 import { queryClient } from "../_layout";
 
 export default function OnboardingNameScreen() {
   const user = useAuthStore((state) => state.user);
   const { displayName, setDisplayName } = useOnboardingStore();
   const [name, setName] = useState(displayName || user?.name || "");
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -41,8 +42,10 @@ export default function OnboardingNameScreen() {
     router.replace("/(auth)/login");
   };
 
+  const canProceed = name.trim().length >= 2 && ageConfirmed;
+
   const handleNext = () => {
-    if (name.trim().length < 2) return;
+    if (!canProceed) return;
     setDisplayName(name.trim());
     router.push("/onboarding/visibility");
   };
@@ -70,8 +73,18 @@ export default function OnboardingNameScreen() {
           maxLength={30}
         />
 
+        <View style={styles.ageRow}>
+          <Switch
+            value={ageConfirmed}
+            onValueChange={setAgeConfirmed}
+            trackColor={{ false: colors.rule, true: "#D4851C" }}
+            thumbColor="#FFFFFF"
+          />
+          <Text style={styles.ageLabel}>Potwierdzam, że mam ukończone 18 lat</Text>
+        </View>
+
         <View style={{ marginTop: spacing.section }}>
-          <Button title="Dalej" variant="accent" onPress={handleNext} disabled={name.trim().length < 2} />
+          <Button title="Dalej" variant="accent" onPress={handleNext} disabled={!canProceed} />
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -113,5 +126,17 @@ const styles = StyleSheet.create({
     ...typ.body,
     color: colors.muted,
     marginBottom: spacing.block,
+  },
+  ageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.gutter,
+    marginTop: spacing.section,
+  },
+  ageLabel: {
+    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    color: colors.ink,
   },
 });
