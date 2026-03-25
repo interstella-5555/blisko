@@ -141,6 +141,9 @@ export default function TabsLayout() {
     if (msg.type === "groupUpdated") {
       useConversationsStore.getState().updateGroupInfo(msg.conversationId, msg.updates);
     }
+    if (msg.type === "conversationDeleted") {
+      useConversationsStore.getState().remove(msg.conversationId);
+    }
     if (msg.type === "groupInvited") {
       // Subscribe to the new group conversation and refetch
       sendWsMessage({

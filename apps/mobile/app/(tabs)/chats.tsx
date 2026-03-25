@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View, type ViewToken } from "react-native";
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View, type ViewToken } from "react-native";
 import { ConversationRow } from "../../src/components/chat/ConversationRow";
 import { Avatar } from "../../src/components/ui/Avatar";
 import { IconChat, IconGroup } from "../../src/components/ui/icons";
@@ -30,6 +30,27 @@ export default function ChatsScreen() {
 
   // Pending pings (received) — shown above conversations
   const receivedPings = useWavesStore((s) => s.received.filter((w) => w.wave.status === "pending"));
+
+  const deleteConversation = trpc.messages.deleteConversation.useMutation({
+    onSuccess: (_, variables) => {
+      useConversationsStore.getState().remove(variables.conversationId);
+    },
+  });
+
+  const handleDeleteChat = (conversationId: string) => {
+    Alert.alert("Jak było?", "Oceń rozmowę przed usunięciem", [
+      ...[1, 2, 3, 4, 5].map((n) => ({
+        text: "★".repeat(n),
+        onPress: () => deleteConversation.mutate({ conversationId, rating: n }),
+      })),
+      {
+        text: "Pomiń i usuń",
+        style: "destructive" as const,
+        onPress: () => deleteConversation.mutate({ conversationId }),
+      },
+      { text: "Anuluj", style: "cancel" as const },
+    ]);
+  };
 
   const filteredConversations = useMemo(() => {
     if (filter === "all") return conversations;
@@ -129,6 +150,7 @@ export default function ChatsScreen() {
             memberCount={item.memberCount ?? undefined}
             unreadCount={item.unreadCount}
             onPress={() => router.push(`/chat/${item.id}`)}
+            onLongPress={() => handleDeleteChat(item.id)}
           />
         )}
         ListEmptyComponent={

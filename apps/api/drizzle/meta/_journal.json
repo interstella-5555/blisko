@@ -68,8 +68,15 @@
     {
       "idx": 9,
       "version": "7",
-      "when": 1774447678334,
-      "tag": "0009_add_date_of_birth",
+      "when": 1774447924786,
+      "tag": "0009_add_conversation_delete_and_ratings",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774452694477,
+      "tag": "0010_add_conversation_delete_and_ratings",
       "breakpoints": true
     }
   ]

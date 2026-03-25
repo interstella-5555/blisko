@@ -1,5 +1,5 @@
 {
-  "id": "9ef3a1e6-f956-47a3-8b7a-5ebec890bd68",
+  "id": "dfa2b289-79ac-4c88-9b5a-f094e715b54d",
   "prevId": "33fe3894-fe39-4aaa-9887-ca2b35527eec",
   "version": "7",
   "dialect": "postgresql",
@@ -472,6 +472,78 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.conversation_ratings": {
+      "name": "conversation_ratings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "conversation_id": {
+          "name": "conversation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rating": {
+          "name": "rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "conversation_ratings_conversation_id_conversations_id_fk": {
+          "name": "conversation_ratings_conversation_id_conversations_id_fk",
+          "tableFrom": "conversation_ratings",
+          "tableTo": "conversations",
+          "columnsFrom": [
+            "conversation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "conversation_ratings_user_id_user_id_fk": {
+          "name": "conversation_ratings_user_id_user_id_fk",
+          "tableFrom": "conversation_ratings",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.conversations": {
       "name": "conversations",
       "schema": "",
@@ -556,6 +628,12 @@
         "metadata": {
           "name": "metadata",
           "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
