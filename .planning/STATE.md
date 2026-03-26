@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-03-26T18:54:09.170Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-03-26T19:04:36.560Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 6
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 01 (data-layer-match-overview) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-03-26
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01 P01 | 4min | 2 tasks | 12 files |
+| Phase 01 P03 | 5min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ Recent decisions affecting current work:
 - [Research]: Sessions must move from in-memory Map to Redis/DB before building features (lost on every Railway deploy)
 - [Phase 01]: createDb factory returns {db, client} for per-app instrumentation flexibility
 - [Phase 01]: Schema copied verbatim to @repo/db -- no modifications during extraction
+- [Phase 01]: Better Auth with tanstackStartCookies for admin OTP login, DB-backed sessions replacing in-memory Maps
+- [Phase 01]: Admin email allowlist checked at OTP send time AND session validation (defense in depth)
 
 ### Pending Todos
 
@@ -79,6 +82,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T18:54:09.166Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-03-26T19:04:36.558Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
