@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md
+stopped_at: Completed 01-03-PLAN.md
 last_updated: "2026-03-26T19:06:22.626Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 6
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 01 P01 | 4min | 2 tasks | 12 files |
 | Phase 01 P02 | 6min | 2 tasks | 7 files |
+| Phase 01 P03 | 5min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Recent decisions affecting current work:
 - [Phase 01]: Schema copied verbatim to @repo/db -- no modifications during extraction
 - [Phase 01]: All telemetry columns nullable — existing rows lack data, T2 fast-path has no triggeredBy source
 - [Phase 01]: processDurationMs computed via performance.now() delta (more accurate than BullMQ finishedOn)
+- [Phase 01]: Better Auth with tanstackStartCookies for admin OTP login, DB-backed sessions replacing in-memory Maps
+- [Phase 01]: Admin email allowlist checked at OTP send time AND session validation (defense in depth)
 
 ### Pending Todos
 
@@ -83,5 +86,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-26T19:06:22.624Z
-Stopped at: Completed 01-02-PLAN.md
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
