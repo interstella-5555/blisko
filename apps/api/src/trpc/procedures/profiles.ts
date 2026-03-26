@@ -121,7 +121,7 @@ export const profilesRouter = router({
 
         // Also re-analyze connections (profile changed → analyses stale)
         if (profile.latitude && profile.longitude) {
-          await enqueueUserPairAnalysis(ctx.userId, profile.latitude, profile.longitude);
+          await enqueueUserPairAnalysis(ctx.userId, profile.latitude, profile.longitude, undefined, "profile:update");
         }
       }
 
@@ -468,7 +468,7 @@ export const profilesRouter = router({
     });
     if (existing) return { status: "ready" as const };
 
-    await enqueuePairAnalysis(ctx.userId, input.userId);
+    await enqueuePairAnalysis(ctx.userId, input.userId, { triggeredBy: "profile:requestAnalysis" });
     return { status: "queued" as const };
   }),
 
@@ -492,7 +492,7 @@ export const profilesRouter = router({
     }
 
     // No T3 yet — promote to highest priority so it runs next
-    await promotePairAnalysis(ctx.userId, input.userId);
+    await promotePairAnalysis(ctx.userId, input.userId, "profile:requestAnalysis");
     return {
       status: "queued" as const,
       matchScore: analysis?.aiMatchScore ?? null,
@@ -573,7 +573,7 @@ export const profilesRouter = router({
       });
     }
 
-    await enqueueUserPairAnalysis(ctx.userId, profile.latitude, profile.longitude);
+    await enqueueUserPairAnalysis(ctx.userId, profile.latitude, profile.longitude, undefined, "profile:update");
     return { ok: true };
   }),
 
