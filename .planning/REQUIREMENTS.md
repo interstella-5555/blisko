@@ -9,7 +9,8 @@ Match monitoring screen with togglable live feed. The first thing you see after 
 
 ### Foundation
 
-- [ ] **FOUN-01**: Admin app connects to PostgreSQL via Drizzle (shared schema from apps/api)
+- [ ] **FOUN-01**: Drizzle schema extracted to packages/db as a shared workspace package (used by both api and admin)
+- [ ] **FOUN-01a**: Admin app connects to PostgreSQL via Drizzle using shared schema from packages/db
 - [ ] **FOUN-02**: Admin app connects to Redis via Bun RedisClient
 - [ ] **FOUN-03**: Admin app instantiates BullMQ Queue for read-only job inspection
 - [ ] **FOUN-04**: Connection pool sizing is explicit and documented (won't exhaust shared DB connections)
@@ -92,30 +93,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUN-01 | Pending | Pending |
-| FOUN-02 | Pending | Pending |
-| FOUN-03 | Pending | Pending |
-| FOUN-04 | Pending | Pending |
-| FOUN-05 | Pending | Pending |
-| MTCH-01 | Pending | Pending |
-| MTCH-02 | Pending | Pending |
-| MTCH-03 | Pending | Pending |
-| MTCH-04 | Pending | Pending |
-| MTCH-05 | Pending | Pending |
-| MTCH-06 | Pending | Pending |
-| FEED-01 | Pending | Pending |
-| FEED-02 | Pending | Pending |
-| FEED-03 | Pending | Pending |
-| FEED-04 | Pending | Pending |
-| FEED-05 | Pending | Pending |
-| NAVI-01 | Pending | Pending |
-| NAVI-02 | Pending | Pending |
+| FOUN-01 | Phase 1 | Pending |
+| FOUN-01a | Phase 1 | Pending |
+| FOUN-02 | Phase 1 | Pending |
+| FOUN-03 | Phase 1 | Pending |
+| FOUN-04 | Phase 1 | Pending |
+| FOUN-05 | Phase 1 | Pending |
+| MTCH-01 | Phase 1 | Pending |
+| MTCH-02 | Phase 1 | Pending |
+| MTCH-03 | Phase 1 | Pending |
+| MTCH-04 | Phase 2 | Pending |
+| MTCH-05 | Phase 2 | Pending |
+| MTCH-06 | Phase 2 | Pending |
+| FEED-01 | Phase 3 | Pending |
+| FEED-02 | Phase 3 | Pending |
+| FEED-03 | Phase 3 | Pending |
+| FEED-04 | Phase 3 | Pending |
+| FEED-05 | Phase 3 | Pending |
+| NAVI-01 | Phase 1 | Pending |
+| NAVI-02 | Phase 1 | Pending |
 
 **Coverage:**
-- v1 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18
+- v1 requirements: 19 total
+- Mapped to phases: 19
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after initial definition*
+*Last updated: 2026-03-26 after roadmap creation*
