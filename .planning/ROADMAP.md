@@ -28,7 +28,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Dashboard shows analyze-pair queue state: waiting, active, completed, and failed job counts
   4. Admin session survives a Railway redeploy (not lost on restart)
   5. Page layout has navigation structure ready for future sections (sidebar or top nav)
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 01-01-PLAN.md -- Extract Drizzle schema to packages/db shared workspace package
+- [ ] 01-02-PLAN.md -- Add triggeredBy field to queue jobs and connectionAnalyses table
+- [ ] 01-03-PLAN.md -- Replace custom auth with Better Auth + add DB/Redis/BullMQ connections
+- [ ] 01-04-PLAN.md -- Initialize shadcn/ui, build sidebar layout, rebuild login page
+- [ ] 01-05-PLAN.md -- Build match monitoring dashboard (table, queue health, detail sheet)
+
 **UI hint**: yes
 
 ### Phase 2: Match Operations
@@ -61,6 +69,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Data Layer & Match Overview | 0/0 | Not started | - |
+| 1. Data Layer & Match Overview | 0/5 | Planned | - |
 | 2. Match Operations | 0/0 | Not started | - |
 | 3. Live Feed | 0/0 | Not started | - |
