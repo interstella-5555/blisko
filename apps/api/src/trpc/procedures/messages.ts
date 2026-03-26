@@ -1,7 +1,7 @@
 import { deleteMessageSchema, reactToMessageSchema, searchMessagesSchema, sendMessageSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
 import { RedisClient } from "bun";
-import { and, desc, eq, gt, ilike, inArray, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
@@ -453,18 +453,39 @@ export const messagesRouter = router({
         }
       }
 
-      const [message] = await db
-        .insert(schema.messages)
-        .values({
-          conversationId: input.conversationId,
-          senderId: ctx.userId,
-          content: input.content,
-          type: input.type ?? "text",
-          metadata: input.metadata ?? null,
-          replyToId: input.replyToId ?? null,
-          topicId: input.topicId ?? null,
-        })
-        .returning();
+      const message = await db.transaction(async (tx) => {
+        const [msg] = await tx
+          .insert(schema.messages)
+          .values({
+            conversationId: input.conversationId,
+            senderId: ctx.userId,
+            content: input.content,
+            type: input.type ?? "text",
+            metadata: input.metadata ?? null,
+            replyToId: input.replyToId ?? null,
+            topicId: input.topicId ?? null,
+          })
+          .returning();
+
+        // Update conversation updatedAt
+        await tx
+          .update(schema.conversations)
+          .set({ updatedAt: new Date() })
+          .where(eq(schema.conversations.id, input.conversationId));
+
+        // If message belongs to a topic, update topic stats
+        if (input.topicId) {
+          await tx
+            .update(schema.topics)
+            .set({
+              lastMessageAt: new Date(),
+              messageCount: sql`${schema.topics.messageCount} + 1`,
+            })
+            .where(eq(schema.topics.id, input.topicId));
+        }
+
+        return msg;
+      });
 
       // Cache for idempotency (5 min TTL)
       if (input.idempotencyKey) {
@@ -476,42 +497,23 @@ export const messagesRouter = router({
         }
       }
 
-      // Update conversation updatedAt
-      await db
-        .update(schema.conversations)
-        .set({ updatedAt: new Date() })
-        .where(eq(schema.conversations.id, input.conversationId));
-
-      // If message belongs to a topic, update topic stats
-      if (input.topicId) {
-        await db
-          .update(schema.topics)
-          .set({
-            lastMessageAt: new Date(),
-            messageCount: sql`${schema.topics.messageCount} + 1`,
-          })
-          .where(eq(schema.topics.id, input.topicId));
-      }
-
-      // Get sender profile for WS event enrichment
-      const senderProfile = await db.query.profiles.findFirst({
-        where: eq(schema.profiles.userId, ctx.userId),
-        columns: { displayName: true, avatarUrl: true },
-      });
-
-      // Push notifications to other participants
-      const participants = await db
-        .select({ userId: schema.conversationParticipants.userId })
-        .from(schema.conversationParticipants)
-        .where(eq(schema.conversationParticipants.conversationId, input.conversationId));
+      // Fetch sender profile, participants, and conversation type in parallel
+      const [senderProfile, participants, conversation] = await Promise.all([
+        db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, ctx.userId),
+          columns: { displayName: true, avatarUrl: true },
+        }),
+        db
+          .select({ userId: schema.conversationParticipants.userId })
+          .from(schema.conversationParticipants)
+          .where(eq(schema.conversationParticipants.conversationId, input.conversationId)),
+        db.query.conversations.findFirst({
+          where: eq(schema.conversations.id, input.conversationId),
+          columns: { type: true, name: true },
+        }),
+      ]);
 
       const messagePreview = message.content.length > 100 ? `${message.content.slice(0, 97)}...` : message.content;
-
-      // Get conversation type for push strategy
-      const conversation = await db.query.conversations.findFirst({
-        where: eq(schema.conversations.id, input.conversationId),
-        columns: { type: true, name: true },
-      });
 
       const isGroup = conversation?.type === "group";
 
@@ -522,39 +524,36 @@ export const messagesRouter = router({
         if (recipient) setTargetUserId(ctx.req, recipient.userId);
       }
 
-      for (const p of participants) {
-        if (p.userId === ctx.userId) continue;
+      const otherParticipantIds = participants.filter((p) => p.userId !== ctx.userId).map((p) => p.userId);
 
-        if (isGroup) {
-          // Group: check if recipient has unread messages (unread suppression)
-          const recipientParticipant = await db.query.conversationParticipants.findFirst({
-            where: and(
-              eq(schema.conversationParticipants.conversationId, input.conversationId),
-              eq(schema.conversationParticipants.userId, p.userId),
-            ),
-            columns: { lastReadAt: true },
-          });
+      if (isGroup && otherParticipantIds.length > 0) {
+        // Batch: single query to get per-recipient unread counts
+        // Raw SQL: per-recipient unread counts via JOIN has no Drizzle equivalent
+        const unreadCounts = await db.execute(sql`
+          SELECT cp.user_id, count(m.id) AS unread_count
+          FROM conversation_participants cp
+          LEFT JOIN messages m ON m.conversation_id = cp.conversation_id
+            AND m.sender_id != cp.user_id
+            AND m.deleted_at IS NULL
+            AND m.created_at > COALESCE(cp.last_read_at, '1970-01-01'::timestamp)
+          WHERE cp.conversation_id = ${input.conversationId}
+            AND cp.user_id IN (${sql.join(
+              otherParticipantIds.map((id) => sql`${id}`),
+              sql`, `,
+            )})
+          GROUP BY cp.user_id
+        `);
 
-          // Count unread messages for this recipient
-          const lastRead = recipientParticipant?.lastReadAt;
-          const whereConditions = [
-            eq(schema.messages.conversationId, input.conversationId),
-            ne(schema.messages.senderId, p.userId),
-            isNull(schema.messages.deletedAt),
-          ];
-          if (lastRead) {
-            whereConditions.push(gt(schema.messages.createdAt, lastRead));
-          }
+        const unreadMap = new Map<string, number>();
+        for (const row of unreadCounts) {
+          unreadMap.set(row.user_id as string, Number(row.unread_count));
+        }
 
-          const [unreadResult] = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(schema.messages)
-            .where(and(...whereConditions));
+        for (const recipientId of otherParticipantIds) {
+          const unreadCount = unreadMap.get(recipientId) ?? 0;
+          const hasUnread = unreadCount > 1; // >1 because current message already inserted
 
-          const unreadCount = Number(unreadResult?.count || 0);
-          const hasUnread = unreadCount > 1; // >1 because current message is already inserted
-
-          void sendPushToUser(p.userId, {
+          void sendPushToUser(recipientId, {
             title: conversation?.name ?? senderProfile?.displayName ?? "Blisko",
             body: hasUnread
               ? `${unreadCount} nowych wiadomości`
@@ -562,8 +561,11 @@ export const messagesRouter = router({
             data: { type: "chat", conversationId: input.conversationId },
             collapseId: hasUnread ? `group:${input.conversationId}` : undefined,
           });
-        } else {
-          // DM: push every message (like iMessage)
+        }
+      } else {
+        // DM: push every message
+        for (const p of participants) {
+          if (p.userId === ctx.userId) continue;
           void sendPushToUser(p.userId, {
             title: senderProfile?.displayName ?? "Ktoś",
             body: messagePreview,

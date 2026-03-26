@@ -79,64 +79,68 @@ export const groupsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const inviteCode = generateInviteCode();
 
-      const [conversation] = await db
-        .insert(schema.conversations)
-        .values({
-          type: "group",
-          name: input.name,
-          description: input.description ?? null,
-          inviteCode,
+      const conversation = await db.transaction(async (tx) => {
+        const [conv] = await tx
+          .insert(schema.conversations)
+          .values({
+            type: "group",
+            name: input.name,
+            description: input.description ?? null,
+            inviteCode,
+            creatorId: ctx.userId,
+            latitude: input.latitude ?? null,
+            longitude: input.longitude ?? null,
+            isDiscoverable: input.isDiscoverable,
+          })
+          .returning();
+
+        // Add creator as owner
+        await tx.insert(schema.conversationParticipants).values({
+          conversationId: conv.id,
+          userId: ctx.userId,
+          role: "owner",
+        });
+
+        // Add initial members
+        if (input.memberUserIds.length > 0) {
+          await tx.insert(schema.conversationParticipants).values(
+            input.memberUserIds.map((userId) => ({
+              conversationId: conv.id,
+              userId,
+              role: "member" as const,
+            })),
+          );
+        }
+
+        // Create default topic
+        await tx.insert(schema.topics).values({
+          conversationId: conv.id,
+          name: "Ogólny",
+          emoji: "💬",
           creatorId: ctx.userId,
-          latitude: input.latitude ?? null,
-          longitude: input.longitude ?? null,
-          isDiscoverable: input.isDiscoverable,
-        })
-        .returning();
+          isPinned: true,
+          sortOrder: 0,
+        });
+
+        return conv;
+      });
 
       setTargetGroupId(ctx.req, conversation.id);
 
-      // Add creator as owner
-      await db.insert(schema.conversationParticipants).values({
-        conversationId: conversation.id,
-        userId: ctx.userId,
-        role: "owner",
-      });
+      // Notify invited members (outside transaction — non-critical side effects)
+      for (const userId of input.memberUserIds) {
+        publishEvent("groupInvited", {
+          userId,
+          conversationId: conversation.id,
+          groupName: input.name,
+        });
 
-      // Add initial members
-      if (input.memberUserIds.length > 0) {
-        await db.insert(schema.conversationParticipants).values(
-          input.memberUserIds.map((userId) => ({
-            conversationId: conversation.id,
-            userId,
-            role: "member" as const,
-          })),
-        );
-
-        // Notify invited members
-        for (const userId of input.memberUserIds) {
-          publishEvent("groupInvited", {
-            userId,
-            conversationId: conversation.id,
-            groupName: input.name,
-          });
-
-          void sendPushToUser(userId, {
-            title: input.name ?? "Grupa",
-            body: "Nowe zaproszenie do grupy",
-            data: { type: "group", conversationId: conversation.id },
-          });
-        }
+        void sendPushToUser(userId, {
+          title: input.name ?? "Grupa",
+          body: "Nowe zaproszenie do grupy",
+          data: { type: "group", conversationId: conversation.id },
+        });
       }
-
-      // Create default topic
-      await db.insert(schema.topics).values({
-        conversationId: conversation.id,
-        name: "Ogólny",
-        emoji: "💬",
-        creatorId: ctx.userId,
-        isPinned: true,
-        sortOrder: 0,
-      });
 
       return conversation;
     }),
@@ -187,37 +191,43 @@ export const groupsRouter = router({
 
     setTargetGroupId(ctx.req, conv.id);
 
-    // Check if already a member
-    const existing = await db.query.conversationParticipants.findFirst({
-      where: and(
-        eq(schema.conversationParticipants.conversationId, conv.id),
-        eq(schema.conversationParticipants.userId, ctx.userId),
-      ),
-    });
+    const joined = await db.transaction(
+      async (tx) => {
+        const existing = await tx.query.conversationParticipants.findFirst({
+          where: and(
+            eq(schema.conversationParticipants.conversationId, conv.id),
+            eq(schema.conversationParticipants.userId, ctx.userId),
+          ),
+        });
 
-    if (existing) {
-      return conv;
-    }
+        if (existing) return false;
 
-    // Check member limit
-    const [countResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(schema.conversationParticipants)
-      .where(eq(schema.conversationParticipants.conversationId, conv.id));
+        const [countResult] = await tx
+          .select({ count: sql<number>`count(*)` })
+          .from(schema.conversationParticipants)
+          .where(eq(schema.conversationParticipants.conversationId, conv.id));
 
-    if (Number(countResult.count) >= (conv.maxMembers ?? 200)) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Group is full",
-      });
-    }
+        if (Number(countResult.count) >= (conv.maxMembers ?? 200)) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Group is full",
+          });
+        }
 
-    await db.insert(schema.conversationParticipants).values({
-      conversationId: conv.id,
-      userId: ctx.userId,
-      role: "member",
-    });
+        await tx.insert(schema.conversationParticipants).values({
+          conversationId: conv.id,
+          userId: ctx.userId,
+          role: "member",
+        });
 
+        return true;
+      },
+      { isolationLevel: "serializable" },
+    );
+
+    if (!joined) return conv;
+
+    // Notifications outside transaction
     const profile = await db.query.profiles.findFirst({
       where: eq(schema.profiles.userId, ctx.userId),
       columns: { displayName: true },
@@ -246,37 +256,43 @@ export const groupsRouter = router({
         });
       }
 
-      // Check if already a member
-      const existing = await db.query.conversationParticipants.findFirst({
-        where: and(
-          eq(schema.conversationParticipants.conversationId, conv.id),
-          eq(schema.conversationParticipants.userId, ctx.userId),
-        ),
-      });
+      const joined = await db.transaction(
+        async (tx) => {
+          const existing = await tx.query.conversationParticipants.findFirst({
+            where: and(
+              eq(schema.conversationParticipants.conversationId, conv.id),
+              eq(schema.conversationParticipants.userId, ctx.userId),
+            ),
+          });
 
-      if (existing) {
-        return conv;
-      }
+          if (existing) return false;
 
-      // Check member limit
-      const [countResult] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(schema.conversationParticipants)
-        .where(eq(schema.conversationParticipants.conversationId, conv.id));
+          const [countResult] = await tx
+            .select({ count: sql<number>`count(*)` })
+            .from(schema.conversationParticipants)
+            .where(eq(schema.conversationParticipants.conversationId, conv.id));
 
-      if (Number(countResult.count) >= (conv.maxMembers ?? 200)) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Group is full",
-        });
-      }
+          if (Number(countResult.count) >= (conv.maxMembers ?? 200)) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Group is full",
+            });
+          }
 
-      await db.insert(schema.conversationParticipants).values({
-        conversationId: conv.id,
-        userId: ctx.userId,
-        role: "member",
-      });
+          await tx.insert(schema.conversationParticipants).values({
+            conversationId: conv.id,
+            userId: ctx.userId,
+            role: "member",
+          });
 
+          return true;
+        },
+        { isolationLevel: "serializable" },
+      );
+
+      if (!joined) return conv;
+
+      // Notifications outside transaction
       const profile = await db.query.profiles.findFirst({
         where: eq(schema.profiles.userId, ctx.userId),
         columns: { displayName: true },
@@ -359,44 +375,47 @@ export const groupsRouter = router({
   addMember: protectedProcedure.input(groupMemberActionSchema).mutation(async ({ ctx, input }) => {
     setTargetUserId(ctx.req, input.userId);
     setTargetGroupId(ctx.req, input.conversationId);
-    await requireGroup(input.conversationId);
+    const conv = await requireGroup(input.conversationId);
     await requireGroupParticipant(input.conversationId, ctx.userId, "admin");
 
-    // Check if already a member
-    const existing = await db.query.conversationParticipants.findFirst({
-      where: and(
-        eq(schema.conversationParticipants.conversationId, input.conversationId),
-        eq(schema.conversationParticipants.userId, input.userId),
-      ),
-    });
+    await db.transaction(
+      async (tx) => {
+        const existing = await tx.query.conversationParticipants.findFirst({
+          where: and(
+            eq(schema.conversationParticipants.conversationId, input.conversationId),
+            eq(schema.conversationParticipants.userId, input.userId),
+          ),
+        });
 
-    if (existing) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "User is already a member",
-      });
-    }
+        if (existing) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "User is already a member",
+          });
+        }
 
-    // Check member limit
-    const conv = await requireGroup(input.conversationId);
-    const [countResult] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(schema.conversationParticipants)
-      .where(eq(schema.conversationParticipants.conversationId, input.conversationId));
+        const [countResult] = await tx
+          .select({ count: sql<number>`count(*)` })
+          .from(schema.conversationParticipants)
+          .where(eq(schema.conversationParticipants.conversationId, input.conversationId));
 
-    if (Number(countResult.count) >= (conv.maxMembers ?? 200)) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Group is full",
-      });
-    }
+        if (Number(countResult.count) >= (conv.maxMembers ?? 200)) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Group is full",
+          });
+        }
 
-    await db.insert(schema.conversationParticipants).values({
-      conversationId: input.conversationId,
-      userId: input.userId,
-      role: "member",
-    });
+        await tx.insert(schema.conversationParticipants).values({
+          conversationId: input.conversationId,
+          userId: input.userId,
+          role: "member",
+        });
+      },
+      { isolationLevel: "serializable" },
+    );
 
+    // Notifications outside transaction
     const profile = await db.query.profiles.findFirst({
       where: eq(schema.profiles.userId, input.userId),
       columns: { displayName: true },
