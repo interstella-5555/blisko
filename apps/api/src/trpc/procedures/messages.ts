@@ -497,25 +497,23 @@ export const messagesRouter = router({
         }
       }
 
-      // Get sender profile for WS event enrichment
-      const senderProfile = await db.query.profiles.findFirst({
-        where: eq(schema.profiles.userId, ctx.userId),
-        columns: { displayName: true, avatarUrl: true },
-      });
-
-      // Push notifications to other participants
-      const participants = await db
-        .select({ userId: schema.conversationParticipants.userId })
-        .from(schema.conversationParticipants)
-        .where(eq(schema.conversationParticipants.conversationId, input.conversationId));
+      // Fetch sender profile, participants, and conversation type in parallel
+      const [senderProfile, participants, conversation] = await Promise.all([
+        db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, ctx.userId),
+          columns: { displayName: true, avatarUrl: true },
+        }),
+        db
+          .select({ userId: schema.conversationParticipants.userId })
+          .from(schema.conversationParticipants)
+          .where(eq(schema.conversationParticipants.conversationId, input.conversationId)),
+        db.query.conversations.findFirst({
+          where: eq(schema.conversations.id, input.conversationId),
+          columns: { type: true, name: true },
+        }),
+      ]);
 
       const messagePreview = message.content.length > 100 ? `${message.content.slice(0, 97)}...` : message.content;
-
-      // Get conversation type for push strategy
-      const conversation = await db.query.conversations.findFirst({
-        where: eq(schema.conversations.id, input.conversationId),
-        columns: { type: true, name: true },
-      });
 
       const isGroup = conversation?.type === "group";
 
