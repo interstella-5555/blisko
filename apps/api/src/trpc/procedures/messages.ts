@@ -453,18 +453,39 @@ export const messagesRouter = router({
         }
       }
 
-      const [message] = await db
-        .insert(schema.messages)
-        .values({
-          conversationId: input.conversationId,
-          senderId: ctx.userId,
-          content: input.content,
-          type: input.type ?? "text",
-          metadata: input.metadata ?? null,
-          replyToId: input.replyToId ?? null,
-          topicId: input.topicId ?? null,
-        })
-        .returning();
+      const message = await db.transaction(async (tx) => {
+        const [msg] = await tx
+          .insert(schema.messages)
+          .values({
+            conversationId: input.conversationId,
+            senderId: ctx.userId,
+            content: input.content,
+            type: input.type ?? "text",
+            metadata: input.metadata ?? null,
+            replyToId: input.replyToId ?? null,
+            topicId: input.topicId ?? null,
+          })
+          .returning();
+
+        // Update conversation updatedAt
+        await tx
+          .update(schema.conversations)
+          .set({ updatedAt: new Date() })
+          .where(eq(schema.conversations.id, input.conversationId));
+
+        // If message belongs to a topic, update topic stats
+        if (input.topicId) {
+          await tx
+            .update(schema.topics)
+            .set({
+              lastMessageAt: new Date(),
+              messageCount: sql`${schema.topics.messageCount} + 1`,
+            })
+            .where(eq(schema.topics.id, input.topicId));
+        }
+
+        return msg;
+      });
 
       // Cache for idempotency (5 min TTL)
       if (input.idempotencyKey) {
@@ -474,23 +495,6 @@ export const messagesRouter = router({
         } catch {
           // Redis failure — non-critical, just skip caching
         }
-      }
-
-      // Update conversation updatedAt
-      await db
-        .update(schema.conversations)
-        .set({ updatedAt: new Date() })
-        .where(eq(schema.conversations.id, input.conversationId));
-
-      // If message belongs to a topic, update topic stats
-      if (input.topicId) {
-        await db
-          .update(schema.topics)
-          .set({
-            lastMessageAt: new Date(),
-            messageCount: sql`${schema.topics.messageCount} + 1`,
-          })
-          .where(eq(schema.topics.id, input.topicId));
       }
 
       // Get sender profile for WS event enrichment
