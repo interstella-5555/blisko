@@ -1,4 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { AppSidebar } from "~/components/app-sidebar";
+import { SidebarProvider } from "~/components/ui/sidebar";
 import { getAuthSession } from "~/lib/auth-session";
 
 export const Route = createFileRoute("/_authed")({
@@ -13,5 +15,13 @@ export const Route = createFileRoute("/_authed")({
 });
 
 function AuthedLayout() {
-  return <Outlet />;
+  const { email } = Route.useRouteContext();
+  return (
+    <SidebarProvider>
+      <AppSidebar email={email} />
+      <main className="min-h-screen flex-1 bg-[#f5f4f1]">
+        <Outlet />
+      </main>
+    </SidebarProvider>
+  );
 }
