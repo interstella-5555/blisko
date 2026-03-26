@@ -1,5 +1,9 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { authClient } from "~/lib/auth-client";
 import { getAuthSession } from "~/lib/auth-session";
 
 export const Route = createFileRoute("/login")({
@@ -26,19 +30,17 @@ function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/request-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+      const { error: sendError } = await authClient.emailOtp.sendVerificationOtp({
+        email,
+        type: "sign-in",
       });
-      const result = await res.json();
-      if (result.ok) {
-        setStep("otp");
+      if (sendError) {
+        setError("Wystapil blad. Sprobuj ponownie.");
       } else {
-        setError(result.error);
+        setStep("otp");
       }
     } catch {
-      setError("Wystąpił błąd. Spróbuj ponownie.");
+      setError("Wystapil blad. Sprobuj ponownie.");
     } finally {
       setLoading(false);
     }
@@ -49,58 +51,65 @@ function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/verify-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
+      const { error: verifyError } = await authClient.emailOtp.verifyEmail({
+        email,
+        otp,
       });
-      const result = await res.json();
-      if (result.ok) {
-        router.navigate({ to: "/dashboard" });
+      if (verifyError) {
+        setError("Nieprawidlowy kod. Sprobuj ponownie.");
       } else {
-        setError(result.error);
+        router.navigate({ to: "/dashboard" });
       }
     } catch {
-      setError("Wystąpił błąd. Spróbuj ponownie.");
+      setError("Wystapil blad. Sprobuj ponownie.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-header">
-          <h1 className="login-logo">BLISKO</h1>
-          <p className="login-subtitle">Panel administracyjny</p>
+    <div className="flex min-h-screen items-center justify-center bg-[#f5f4f1] p-5">
+      <div className="w-full max-w-[380px] rounded-xl border border-[#e5e2dc] bg-white p-8 pt-10 shadow-sm">
+        <div className="mb-8 text-center">
+          <h1 className="text-[22px] font-semibold tracking-[6px] text-[#1a1a1a]">BLISKO</h1>
+          <p className="mt-1.5 text-[13px] tracking-wide text-[#8b8680]">Panel administracyjny</p>
         </div>
 
         {step === "email" ? (
           <form onSubmit={handleEmailSubmit}>
-            <div className="form-group">
-              <label htmlFor="email">Adres email</label>
-              <input
+            <div className="mb-4">
+              <Label htmlFor="email" className="mb-1.5 text-[13px] font-medium text-[#555]">
+                Adres email
+              </Label>
+              <Input
                 id="email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@blisko.app"
+                className="rounded-lg border-[#d9d5cf] bg-[#fafaf8] text-sm focus:border-[#999] focus:bg-white"
               />
             </div>
-            {error && <p className="form-error">{error}</p>}
-            <button type="submit" className="btn" disabled={loading}>
-              {loading ? "Wysyłanie..." : "Wyślij kod"}
-            </button>
+            {error && <p className="mb-3 text-[13px] text-[#c0392b]">{error}</p>}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-[#1a1a1a] text-sm font-medium hover:bg-[#333]"
+            >
+              {loading ? "Wysylanie..." : "Wyslij kod"}
+            </Button>
           </form>
         ) : (
           <form onSubmit={handleOtpSubmit}>
-            <p className="otp-info">
-              Kod wysłany na <strong>{email}</strong>
+            <p className="mb-4 text-[13px] leading-relaxed text-[#666]">
+              Kod wyslany na <strong className="text-[#1a1a1a]">{email}</strong>
             </p>
-            <div className="form-group">
-              <label htmlFor="otp">Kod weryfikacyjny</label>
-              <input
+            <div className="mb-4">
+              <Label htmlFor="otp" className="mb-1.5 text-[13px] font-medium text-[#555]">
+                Kod weryfikacyjny
+              </Label>
+              <Input
                 id="otp"
                 type="text"
                 required
@@ -109,23 +118,27 @@ function LoginPage() {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="000000"
-                className="otp-input"
+                className="rounded-lg border-[#d9d5cf] bg-[#fafaf8] text-center text-xl tracking-[8px] tabular-nums focus:border-[#999] focus:bg-white"
               />
             </div>
-            {error && <p className="form-error">{error}</p>}
-            <button type="submit" className="btn" disabled={loading}>
-              {loading ? "Weryfikacja..." : "Zaloguj się"}
-            </button>
+            {error && <p className="mb-3 text-[13px] text-[#c0392b]">{error}</p>}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-lg bg-[#1a1a1a] text-sm font-medium hover:bg-[#333]"
+            >
+              {loading ? "Weryfikacja..." : "Zaloguj sie"}
+            </Button>
             <button
               type="button"
-              className="btn-link"
+              className="mt-3 block w-full cursor-pointer border-none bg-transparent p-2 text-[13px] text-[#888] transition-colors hover:text-[#555]"
               onClick={() => {
                 setStep("email");
                 setOtp("");
                 setError("");
               }}
             >
-              Zmień adres email
+              Zmien adres email
             </button>
           </form>
         )}
