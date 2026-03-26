@@ -522,39 +522,36 @@ export const messagesRouter = router({
         if (recipient) setTargetUserId(ctx.req, recipient.userId);
       }
 
-      for (const p of participants) {
-        if (p.userId === ctx.userId) continue;
+      const otherParticipantIds = participants.filter((p) => p.userId !== ctx.userId).map((p) => p.userId);
 
-        if (isGroup) {
-          // Group: check if recipient has unread messages (unread suppression)
-          const recipientParticipant = await db.query.conversationParticipants.findFirst({
-            where: and(
-              eq(schema.conversationParticipants.conversationId, input.conversationId),
-              eq(schema.conversationParticipants.userId, p.userId),
-            ),
-            columns: { lastReadAt: true },
-          });
+      if (isGroup && otherParticipantIds.length > 0) {
+        // Batch: single query to get per-recipient unread counts
+        // Raw SQL: per-recipient unread counts via JOIN has no Drizzle equivalent
+        const unreadCounts = await db.execute(sql`
+          SELECT cp.user_id, count(m.id) AS unread_count
+          FROM conversation_participants cp
+          LEFT JOIN messages m ON m.conversation_id = cp.conversation_id
+            AND m.sender_id != cp.user_id
+            AND m.deleted_at IS NULL
+            AND m.created_at > COALESCE(cp.last_read_at, '1970-01-01'::timestamp)
+          WHERE cp.conversation_id = ${input.conversationId}
+            AND cp.user_id IN (${sql.join(
+              otherParticipantIds.map((id) => sql`${id}`),
+              sql`, `,
+            )})
+          GROUP BY cp.user_id
+        `);
 
-          // Count unread messages for this recipient
-          const lastRead = recipientParticipant?.lastReadAt;
-          const whereConditions = [
-            eq(schema.messages.conversationId, input.conversationId),
-            ne(schema.messages.senderId, p.userId),
-            isNull(schema.messages.deletedAt),
-          ];
-          if (lastRead) {
-            whereConditions.push(gt(schema.messages.createdAt, lastRead));
-          }
+        const unreadMap = new Map<string, number>();
+        for (const row of unreadCounts) {
+          unreadMap.set(row.user_id as string, Number(row.unread_count));
+        }
 
-          const [unreadResult] = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(schema.messages)
-            .where(and(...whereConditions));
+        for (const recipientId of otherParticipantIds) {
+          const unreadCount = unreadMap.get(recipientId) ?? 0;
+          const hasUnread = unreadCount > 1; // >1 because current message already inserted
 
-          const unreadCount = Number(unreadResult?.count || 0);
-          const hasUnread = unreadCount > 1; // >1 because current message is already inserted
-
-          void sendPushToUser(p.userId, {
+          void sendPushToUser(recipientId, {
             title: conversation?.name ?? senderProfile?.displayName ?? "Blisko",
             body: hasUnread
               ? `${unreadCount} nowych wiadomości`
@@ -562,8 +559,11 @@ export const messagesRouter = router({
             data: { type: "chat", conversationId: input.conversationId },
             collapseId: hasUnread ? `group:${input.conversationId}` : undefined,
           });
-        } else {
-          // DM: push every message (like iMessage)
+        }
+      } else {
+        // DM: push every message
+        for (const p of participants) {
+          if (p.userId === ctx.userId) continue;
           void sendPushToUser(p.userId, {
             title: senderProfile?.displayName ?? "Ktoś",
             body: messagePreview,
