@@ -19,7 +19,7 @@ Match monitoring screen with togglable live feed. The first thing you see after 
 ### Match Monitoring
 
 - [ ] **MTCH-01**: Dashboard shows overview of recent match analyses — pairs analyzed, scores, completion status
-- [ ] **MTCH-02**: User can see match analysis details: who was paired, match score, AI reasoning summary, time taken
+- [x] **MTCH-02**: User can see match analysis details: who was paired, match score, AI reasoning summary, time taken
 - [ ] **MTCH-03**: User can see queue state for analyze-pair jobs: waiting, active, completed, failed counts
 - [ ] **MTCH-04**: User can inspect a failed match analysis — error message, stack trace, job data
 - [ ] **MTCH-05**: User can retry a failed match analysis job
@@ -100,7 +100,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOUN-04 | Phase 1 | Complete |
 | FOUN-05 | Phase 1 | Pending |
 | MTCH-01 | Phase 1 | Pending |
-| MTCH-02 | Phase 1 | Pending |
+| MTCH-02 | Phase 1 | Complete |
 | MTCH-03 | Phase 1 | Pending |
 | MTCH-04 | Phase 2 | Pending |
 | MTCH-05 | Phase 2 | Pending |

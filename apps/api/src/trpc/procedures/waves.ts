@@ -168,7 +168,7 @@ export const wavesRouter = router({
         { isolationLevel: "serializable" },
       );
 
-      await promotePairAnalysis(ctx.userId, input.toUserId);
+      await promotePairAnalysis(ctx.userId, input.toUserId, "wave:send");
 
       // Mutual ping detection — check if B already pinged A within the window
       const mutualCutoff = new Date(Date.now() - MUTUAL_PING_WINDOW_SECONDS * 1000);
