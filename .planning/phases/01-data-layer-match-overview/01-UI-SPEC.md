@@ -52,15 +52,17 @@ Exceptions: none
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 (regular) | 1.5 |
-| Label | 13px | 500 (medium) | 1.4 |
+| Label | 14px | 400 (regular) | 1.4 |
 | Heading | 20px | 600 (semibold) | 1.2 |
 | Display | 28px | 600 (semibold) | 1.2 |
 
-**Weights used:** 400 (body text, table cells, descriptions), 500 (labels, sidebar items), 600 (headings, stat values, logo)
+**Weights used (2 total):** 400 (body text, table cells, descriptions, labels, sidebar items, timestamps, secondary info) and 600 (headings, stat card values, logo, section titles in sheet panel).
+
+**Label vs Body differentiation:** Both are 14px/400. Labels are distinguished from body text via `text-secondary` color (`#6b6560`) and contextual placement (above inputs, as table column headers, as section headers in the sheet panel). No weight difference needed -- color and position provide sufficient distinction.
 
 **Monospace:** Tabular nums for all numeric values in the match table (scores, job counts, durations). Use `font-variant-numeric: tabular-nums` on table columns with numbers.
 
-**Source:** Existing `app.css` uses 13/14/20/22px range. Standardized to 4 roles. Label at 13px matches existing form labels and sidebar item patterns.
+**Source:** Existing `app.css` uses 13/14/20/22px range. Collapsed 13px and 14px into a single 14px step to maintain perceptible scale separation. Label/body differentiation handled by color, not weight.
 
 ---
 
@@ -74,7 +76,7 @@ Exceptions: none
 | Surface | `#ffffff` | Cards, table container, sheet panel |
 | Border | `#e5e2dc` | Card borders, table row dividers |
 | Text primary | `#1a1a1a` | Headings, table text, primary copy |
-| Text secondary | `#6b6560` | Timestamps, secondary info, descriptions |
+| Text secondary | `#6b6560` | Timestamps, secondary info, descriptions, labels |
 | Text muted | `#8b8680` | Placeholders, disabled text |
 
 ### Sidebar (dark region -- 30% of layout)
@@ -185,7 +187,7 @@ Exceptions: none
 | Completed | Zakonczone | `CheckCircle` | `text-green-600` |
 | Failed | Nieudane | `XCircle` | `text-red-600` |
 
-Each card: white background, border `#e5e2dc`, rounded-8px, padding 16px. Label at 13px/500, value at 28px/600 (display size).
+Each card: white background, border `#e5e2dc`, rounded-8px, padding 16px. Label at 14px/400 `text-secondary`, value at 28px/600 (display size).
 
 Auto-refresh: poll every 15 seconds via `setInterval` + fetch. Show subtle pulse animation on the card that changed.
 
@@ -196,7 +198,7 @@ Auto-refresh: poll every 15 seconds via `setInterval` + fetch. Show subtle pulse
 | Pair | flex-1 | `{fromName} -> {toName}` | 14px/400 |
 | Score | 80px | `{aiMatchScore}%` | Score badge (color-coded) |
 | Status | 100px | Badge: `Completed` / `Failed` | Status badge |
-| Time | 140px | Relative time (`2 min ago`) | 13px/400, `text-secondary` |
+| Time | 140px | Relative time (`2 min ago`) | 14px/400, `text-secondary` |
 
 - Page size: 25 rows (discretion per CONTEXT.md -- 25 keeps the table compact without excessive scrolling)
 - Pagination: Previous/Next buttons at bottom right, page indicator `Strona 1 z N`
@@ -212,15 +214,15 @@ Slides in from the right. Width: `w-[480px]`.
 
 1. **Header:** `{fromName} & {toName}` as SheetTitle
 2. **Score:** Score badge (large, color-coded) with percentage
-3. **Summary** (section label 13px/500 `text-secondary`):
+3. **Summary** (section label 14px/400 `text-secondary`):
    - `shortSnippet` text, 14px/400
 4. **Full Analysis** (section label):
    - `longDescription` text, 14px/400, `whitespace-pre-wrap`
 5. **Profile Hashes** (section label):
-   - Two-column layout: `From: {hash}` / `To: {hash}`, monospace, 13px
+   - Two-column layout: `From: {hash}` / `To: {hash}`, monospace, 14px
 6. **Telemetry** (section label):
    - For completed analyses (from DB): `createdAt` and `updatedAt` timestamps
-   - For failed jobs (from BullMQ): enqueued time, wait time, processing time, total duration, attempts count, job ID, error message, stack trace in `pre` block with `bg-red-50 p-16px rounded-8px text-13px overflow-x-auto`
+   - For failed jobs (from BullMQ): enqueued time, wait time, processing time, total duration, attempts count, job ID, error message, stack trace in `pre` block with `bg-red-50 p-16px rounded-8px text-14px overflow-x-auto`
 7. **Trigger** (section label, if `triggeredBy` available):
    - Badge showing trigger source: `wave:send`, `profile:update`, `script:scatter`
 
