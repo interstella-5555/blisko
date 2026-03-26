@@ -1,7 +1,7 @@
 import { deleteMessageSchema, reactToMessageSchema, searchMessagesSchema, sendMessageSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
 import { RedisClient } from "bun";
-import { and, desc, eq, gt, ilike, inArray, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, lt, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
