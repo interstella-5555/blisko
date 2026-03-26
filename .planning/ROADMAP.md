@@ -35,7 +35,7 @@ Plans:
 - [x] 01-02-PLAN.md -- Add triggeredBy + BullMQ lifecycle telemetry to queue jobs and connectionAnalyses table
 - [x] 01-03-PLAN.md -- Replace custom auth with Better Auth + add DB/Redis/BullMQ connections
 - [x] 01-04-PLAN.md -- Initialize shadcn/ui and install UI component primitives
-- [ ] 01-05-PLAN.md -- Build sidebar layout, rebuild login page, create dashboard shell
+- [x] 01-05-PLAN.md -- Build sidebar layout, rebuild login page, create dashboard shell
 - [ ] 01-06-PLAN.md -- Build match monitoring dashboard (table, queue health, detail sheet with telemetry)
 
 **UI hint**: yes

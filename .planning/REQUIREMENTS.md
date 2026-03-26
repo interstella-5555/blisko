@@ -36,7 +36,7 @@ Match monitoring screen with togglable live feed. The first thing you see after 
 ### Navigation & Layout
 
 - [x] **NAVI-01**: Dashboard replaces "Panel w budowie" placeholder after login
-- [ ] **NAVI-02**: Clean, functional layout — sidebar or top nav for future sections, main content area for match monitoring
+- [x] **NAVI-02**: Clean, functional layout — sidebar or top nav for future sections, main content area for match monitoring
 
 ## v2 Requirements
 
@@ -111,7 +111,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FEED-04 | Phase 3 | Pending |
 | FEED-05 | Phase 3 | Pending |
 | NAVI-01 | Phase 1 | Complete |
-| NAVI-02 | Phase 1 | Pending |
+| NAVI-02 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 19 total
