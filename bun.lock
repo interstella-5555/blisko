@@ -44,6 +44,7 @@
         "@better-auth/expo": "^1.5.4",
         "@hono/node-server": "^1.19.9",
         "@hono/trpc-server": "^0.3.0",
+        "@repo/db": "workspace:*",
         "@repo/shared": "workspace:*",
         "@trpc/server": "^11.0.0-rc.0",
         "ai": "catalog:",
@@ -216,6 +217,17 @@
         "vite": "catalog:",
         "vite-tsconfig-paths": "^5.1.4",
         "vitest": "catalog:",
+      },
+    },
+    "packages/db": {
+      "name": "@repo/db",
+      "version": "0.0.1",
+      "dependencies": {
+        "drizzle-orm": "catalog:",
+        "postgres": "catalog:",
+      },
+      "devDependencies": {
+        "typescript": "catalog:",
       },
     },
     "packages/dev-cli": {
@@ -930,6 +942,8 @@
     "@repo/api": ["@repo/api@workspace:apps/api"],
 
     "@repo/chatbot": ["@repo/chatbot@workspace:apps/chatbot"],
+
+    "@repo/db": ["@repo/db@workspace:packages/db"],
 
     "@repo/design": ["@repo/design@workspace:apps/design"],
 
