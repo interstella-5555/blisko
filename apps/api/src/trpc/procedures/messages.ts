@@ -62,31 +62,30 @@ export const messagesRouter = router({
       `),
 
       // 4. Unread counts per conversation
-      // Raw SQL: CASE WHEN group/DM unread logic has no Drizzle equivalent (BLI-88)
-      db.execute(sql`
-        SELECT
-          m.conversation_id,
-          count(*) AS count
-        FROM messages m
-        JOIN conversations c ON c.id = m.conversation_id
-        JOIN conversation_participants cp
-          ON cp.conversation_id = m.conversation_id AND cp.user_id = ${ctx.userId}
-        WHERE m.conversation_id IN (${sql.join(
-          conversationIds.map((id) => sql`${id}`),
-          sql`, `,
-        )})
-          AND m.sender_id != ${ctx.userId}
-          AND m.deleted_at IS NULL
-          AND (
-            CASE
-              WHEN c.type = 'group' THEN
-                m.created_at > COALESCE(cp.last_read_at, '1970-01-01'::timestamp)
-              ELSE
-                m.read_at IS NULL
-            END
-          )
-        GROUP BY m.conversation_id
-      `),
+      db
+        .select({
+          conversationId: schema.messages.conversationId,
+          count: sql<number>`count(*)`,
+        })
+        .from(schema.messages)
+        .innerJoin(schema.conversations, eq(schema.conversations.id, schema.messages.conversationId))
+        .innerJoin(
+          schema.conversationParticipants,
+          and(
+            eq(schema.conversationParticipants.conversationId, schema.messages.conversationId),
+            eq(schema.conversationParticipants.userId, ctx.userId),
+          ),
+        )
+        .where(
+          and(
+            inArray(schema.messages.conversationId, conversationIds),
+            ne(schema.messages.senderId, ctx.userId),
+            isNull(schema.messages.deletedAt),
+            // CASE WHEN: groups use lastReadAt cursor, DMs use per-message readAt
+            sql`CASE WHEN ${schema.conversations.type} = 'group' THEN ${schema.messages.createdAt} > COALESCE(${schema.conversationParticipants.lastReadAt}, '1970-01-01'::timestamp) ELSE ${schema.messages.readAt} IS NULL END`,
+          ),
+        )
+        .groupBy(schema.messages.conversationId),
     ]);
 
     // Build lookup maps
@@ -109,7 +108,7 @@ export const messagesRouter = router({
     // Unread counts map
     const unreadMap = new Map<string, number>();
     for (const row of unreadCounts) {
-      unreadMap.set(row.conversation_id as string, Number(row.count));
+      unreadMap.set(row.conversationId, Number(row.count));
     }
 
     // For DMs: batch-fetch other participant profiles (filter soft-deleted)
