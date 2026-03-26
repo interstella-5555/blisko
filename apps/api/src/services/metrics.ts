@@ -1,6 +1,6 @@
 import type { Context, MiddlewareHandler } from "hono";
+import type { NewRequestEvent } from "@/db";
 import { db, schema } from "@/db";
-import type { NewRequestEvent } from "@/db/schema";
 import { createQueryContext, getQueryStats, queryTracker } from "@/services/query-tracker";
 import { httpRequestDuration, httpRequestsTotal } from "./prometheus";
 

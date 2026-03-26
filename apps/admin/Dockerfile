@@ -11,6 +11,7 @@ COPY apps/mobile/package.json apps/mobile/package.json
 COPY apps/website/package.json apps/website/package.json
 COPY apps/admin/package.json apps/admin/package.json
 COPY packages/shared/package.json packages/shared/package.json
+COPY packages/db/package.json packages/db/package.json
 COPY packages/dev-cli/package.json packages/dev-cli/package.json
 
 RUN bun install --frozen-lockfile
@@ -18,6 +19,8 @@ RUN bun install --frozen-lockfile
 # ── Stage 2: Build ───────────────────────────
 FROM deps AS build
 
+COPY packages/db/ packages/db/
+COPY packages/shared/ packages/shared/
 COPY apps/admin/ apps/admin/
 
 RUN bun run --filter '@repo/admin' build
