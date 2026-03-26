@@ -1,11 +1,13 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { createDb, schema } from "@repo/db";
 import { recordQuery } from "@/services/query-tracker";
-import * as schema from "./schema";
 
-const connectionString = process.env.DATABASE_URL!;
+export { preparedName } from "@repo/db";
+export type { NewRequestEvent } from "@repo/db/src/schema";
+export { schema };
 
-const client = postgres(connectionString);
+const { db: rawDb, client } = createDb({
+  connectionString: process.env.DATABASE_URL!,
+});
 
 // Instrument client.unsafe() to track query count + duration per request.
 // drizzle-orm/postgres-js calls client.unsafe() for all queries.
@@ -62,6 +64,4 @@ function instrumentedUnsafe(query: string, parameters?: any[], queryOptions?: an
 // @ts-expect-error — monkey-patching for query instrumentation
 client.unsafe = instrumentedUnsafe;
 
-export const db = drizzle(client, { schema });
-export { preparedName } from "./prepare";
-export { schema };
+export const db = rawDb;
