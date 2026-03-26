@@ -1,94 +1,38 @@
-import { timingSafeEqual } from "node:crypto";
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { emailOTP } from "better-auth/plugins";
+import { tanstackStartCookies } from "better-auth/tanstack-start";
+import { db } from "./db";
+import { adminOtp, sendEmail } from "./email";
 
-const OTP_TTL_MS = 5 * 60 * 1000;
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
-const MAX_OTP_ATTEMPTS = 5;
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
-
-const otpStore = new Map<string, { otp: string; expiresAt: number; attempts: number }>();
-const sessionStore = new Map<string, { email: string; expiresAt: number }>();
-
-// Periodic cleanup of expired entries
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of otpStore) {
-    if (now > entry.expiresAt) otpStore.delete(key);
-  }
-  for (const [key, entry] of sessionStore) {
-    if (now > entry.expiresAt) sessionStore.delete(key);
-  }
-}, CLEANUP_INTERVAL_MS);
-
-function getAllowedEmails(): string[] {
-  const raw = process.env.ADMIN_EMAILS || "";
-  return raw
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
+const ALLOWED_EMAILS = (process.env.ADMIN_EMAILS || "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 export function isAllowedEmail(email: string): boolean {
-  return getAllowedEmails().includes(email.toLowerCase().trim());
+  return ALLOWED_EMAILS.includes(email.toLowerCase().trim());
 }
 
-const OTP_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // 30 chars, no 0/O/1/I/l
-const OTP_LENGTH = 6; // 30^6 ≈ 729M combinations
-
-export function generateOtp(email: string): string {
-  const array = new Uint8Array(OTP_LENGTH);
-  crypto.getRandomValues(array);
-  const otp = Array.from(array, (b) => OTP_ALPHABET[b % OTP_ALPHABET.length]).join("");
-  otpStore.set(email.toLowerCase(), {
-    otp,
-    expiresAt: Date.now() + OTP_TTL_MS,
-    attempts: 0,
-  });
-  return otp;
-}
-
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
-}
-
-export function verifyOtp(email: string, otp: string): boolean {
-  const key = email.toLowerCase();
-  const entry = otpStore.get(key);
-  if (!entry) return false;
-  if (Date.now() > entry.expiresAt || entry.attempts >= MAX_OTP_ATTEMPTS) {
-    otpStore.delete(key);
-    return false;
-  }
-  entry.attempts++;
-  if (!safeEqual(entry.otp, otp.toUpperCase())) return false;
-  otpStore.delete(key);
-  return true;
-}
-
-export function createSession(email: string): string {
-  const token = crypto.randomUUID();
-  sessionStore.set(token, {
-    email: email.toLowerCase(),
-    expiresAt: Date.now() + SESSION_TTL_MS,
-  });
-  return token;
-}
-
-export function getSession(token: string): { email: string } | null {
-  const entry = sessionStore.get(token);
-  if (!entry) return null;
-  if (Date.now() > entry.expiresAt) {
-    sessionStore.delete(token);
-    return null;
-  }
-  return { email: entry.email };
-}
-
-export function deleteSession(token: string): void {
-  sessionStore.delete(token);
-}
-
-export function parseSessionToken(cookieHeader: string): string | null {
-  const match = cookieHeader.match(/(?:^|;\s*)admin-session=([^;]+)/);
-  return match ? match[1] : null;
-}
+export const auth = betterAuth({
+  database: drizzleAdapter(db, { provider: "pg" }),
+  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3001",
+  plugins: [
+    emailOTP({
+      async sendVerificationOTP({ email, otp, type }) {
+        if (type !== "sign-in") return;
+        // Defense in depth: don't send OTP to non-admin emails
+        if (!ALLOWED_EMAILS.includes(email.toLowerCase())) {
+          console.log(`[admin] OTP blocked for non-admin email: ${email}`);
+          return;
+        }
+        console.log(`[admin] OTP for ${email}: ${otp}`);
+        await sendEmail(email, adminOtp(otp));
+      },
+      otpLength: 6,
+      expiresIn: 300,
+    }),
+    tanstackStartCookies(), // MUST be last plugin (Pitfall 8)
+  ],
+});
