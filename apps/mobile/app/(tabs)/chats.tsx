@@ -29,7 +29,8 @@ export default function ChatsScreen() {
   const hydrated = useConversationsStore((s) => s._hydrated);
 
   // Pending pings (received) — shown above conversations
-  const receivedPings = useWavesStore((s) => s.received.filter((w) => w.wave.status === "pending"));
+  const received = useWavesStore((s) => s.received);
+  const receivedPings = useMemo(() => received.filter((w) => w.wave.status === "pending"), [received]);
 
   const deleteConversation = trpc.messages.deleteConversation.useMutation({
     onSuccess: (_, variables) => {
