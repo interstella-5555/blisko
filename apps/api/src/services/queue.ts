@@ -47,6 +47,7 @@ interface AnalyzePairJob {
   userBId: string;
   nameA?: string;
   nameB?: string;
+  triggeredBy?: string;
 }
 
 interface QuickScoreJob {
@@ -61,6 +62,7 @@ interface AnalyzeUserPairsJob {
   latitude: number;
   longitude: number;
   radiusMeters: number;
+  triggeredBy?: string;
 }
 
 interface GenerateProfileAIJob {
@@ -236,6 +238,17 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
   const tWrite0 = performance.now();
   const now = new Date();
 
+  // BullMQ lifecycle telemetry
+  const telemetry = {
+    triggeredBy: job.data.triggeredBy ?? null,
+    jobId: job.id ?? null,
+    enqueuedAt: job.timestamp ? new Date(job.timestamp) : null,
+    processedAt: job.processedOn ? new Date(job.processedOn) : null,
+    processDurationMs: Math.round(performance.now() - t0),
+    waitDurationMs: job.processedOn && job.timestamp ? job.processedOn - job.timestamp : null,
+    attemptsMade: job.attemptsMade ?? null,
+  };
+
   await db
     .insert(schema.connectionAnalyses)
     .values({
@@ -246,6 +259,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       aiMatchScore: result.matchScoreForA,
       fromProfileHash: hashA,
       toProfileHash: hashB,
+      ...telemetry,
       createdAt: now,
       updatedAt: now,
     })
@@ -257,6 +271,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
         aiMatchScore: result.matchScoreForA,
         fromProfileHash: hashA,
         toProfileHash: hashB,
+        ...telemetry,
         updatedAt: now,
       },
     });
@@ -285,6 +300,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       aiMatchScore: result.matchScoreForB,
       fromProfileHash: hashB,
       toProfileHash: hashA,
+      ...telemetry,
       createdAt: now,
       updatedAt: now,
     })
@@ -296,6 +312,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
         aiMatchScore: result.matchScoreForB,
         fromProfileHash: hashB,
         toProfileHash: hashA,
+        ...telemetry,
         updatedAt: now,
       },
     });
@@ -321,7 +338,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
   );
 }
 
-async function processQuickScore(userAId: string, userBId: string) {
+async function processQuickScore(job: Job<QuickScoreJob>, userAId: string, userBId: string) {
   const t0 = performance.now();
 
   const [profileA, profileB] = await Promise.all([
@@ -368,6 +385,17 @@ async function processQuickScore(userAId: string, userBId: string) {
   const hashA = profileHash(profileA.bio, profileA.lookingFor);
   const hashB = profileHash(profileB.bio, profileB.lookingFor);
 
+  // BullMQ lifecycle telemetry for T2 quick-score
+  const telemetry = {
+    triggeredBy: null as string | null,
+    jobId: job.id ?? null,
+    enqueuedAt: job.timestamp ? new Date(job.timestamp) : null,
+    processedAt: job.processedOn ? new Date(job.processedOn) : null,
+    processDurationMs: Math.round(performance.now() - t0),
+    waitDurationMs: job.processedOn && job.timestamp ? job.processedOn - job.timestamp : null,
+    attemptsMade: job.attemptsMade ?? null,
+  };
+
   // Upsert A→B (only if T3 hasn't filled it since we checked)
   await db
     .insert(schema.connectionAnalyses)
@@ -379,12 +407,19 @@ async function processQuickScore(userAId: string, userBId: string) {
       aiMatchScore: result.scoreForA,
       fromProfileHash: hashA,
       toProfileHash: hashB,
+      ...telemetry,
       createdAt: now,
       updatedAt: now,
     })
     .onConflictDoUpdate({
       target: [schema.connectionAnalyses.fromUserId, schema.connectionAnalyses.toUserId],
-      set: { aiMatchScore: result.scoreForA, fromProfileHash: hashA, toProfileHash: hashB, updatedAt: now },
+      set: {
+        aiMatchScore: result.scoreForA,
+        fromProfileHash: hashA,
+        toProfileHash: hashB,
+        ...telemetry,
+        updatedAt: now,
+      },
       setWhere: isNull(schema.connectionAnalyses.shortSnippet),
     });
 
@@ -401,12 +436,19 @@ async function processQuickScore(userAId: string, userBId: string) {
       aiMatchScore: result.scoreForB,
       fromProfileHash: hashB,
       toProfileHash: hashA,
+      ...telemetry,
       createdAt: now,
       updatedAt: now,
     })
     .onConflictDoUpdate({
       target: [schema.connectionAnalyses.fromUserId, schema.connectionAnalyses.toUserId],
-      set: { aiMatchScore: result.scoreForB, fromProfileHash: hashB, toProfileHash: hashA, updatedAt: now },
+      set: {
+        aiMatchScore: result.scoreForB,
+        fromProfileHash: hashB,
+        toProfileHash: hashA,
+        ...telemetry,
+        updatedAt: now,
+      },
       setWhere: isNull(schema.connectionAnalyses.shortSnippet),
     });
 
@@ -417,7 +459,13 @@ async function processQuickScore(userAId: string, userBId: string) {
   );
 }
 
-async function processAnalyzeUserPairs(userId: string, latitude: number, longitude: number, radiusMeters: number) {
+async function processAnalyzeUserPairs(
+  userId: string,
+  latitude: number,
+  longitude: number,
+  radiusMeters: number,
+  triggeredBy?: string,
+) {
   const queue = getQueue();
 
   const latDelta = radiusMeters / 111000;
@@ -512,7 +560,7 @@ async function processAnalyzeUserPairs(userId: string, latitude: number, longitu
     const nameB = b === userId ? myName : other.displayName;
     await safeEnqueuePairJob(
       queue,
-      { type: "analyze-pair", userAId: a, userBId: b, nameA, nameB, requestedBy: myName },
+      { type: "analyze-pair", userAId: a, userBId: b, nameA, nameB, requestedBy: myName, triggeredBy },
       { priority: i + 1 },
     );
   }
@@ -1017,10 +1065,10 @@ async function processJob(job: Job<AIJob>) {
       await processAnalyzePair(job as Job<AnalyzePairJob>, data.userAId, data.userBId);
       break;
     case "quick-score":
-      await processQuickScore(data.userAId, data.userBId);
+      await processQuickScore(job as Job<QuickScoreJob>, data.userAId, data.userBId);
       break;
     case "analyze-user-pairs":
-      await processAnalyzeUserPairs(data.userId, data.latitude, data.longitude, data.radiusMeters);
+      await processAnalyzeUserPairs(data.userId, data.latitude, data.longitude, data.radiusMeters, data.triggeredBy);
       break;
     case "generate-profile-ai":
       await processGenerateProfileAI(data.userId, data.bio, data.lookingFor);
@@ -1086,6 +1134,7 @@ async function safeEnqueuePairJob(
     nameA?: string;
     nameB?: string;
     requestedBy?: string;
+    triggeredBy?: string;
   },
   opts?: { priority?: number },
 ) {
@@ -1112,6 +1161,7 @@ export async function enqueueUserPairAnalysis(
   latitude: number,
   longitude: number,
   radiusMeters: number = 5000,
+  triggeredBy?: string,
 ) {
   if (!process.env.REDIS_URL) return;
 
@@ -1124,6 +1174,7 @@ export async function enqueueUserPairAnalysis(
       latitude,
       longitude,
       radiusMeters,
+      triggeredBy,
     },
     {
       jobId: `user-pairs-${userId}-${Date.now()}`,
@@ -1135,7 +1186,7 @@ export async function enqueueUserPairAnalysis(
 export async function enqueuePairAnalysis(
   userAId: string,
   userBId: string,
-  opts?: { nameA?: string; nameB?: string; requestedBy?: string },
+  opts?: { nameA?: string; nameB?: string; requestedBy?: string; triggeredBy?: string },
 ) {
   if (!process.env.REDIS_URL) return;
 
@@ -1151,6 +1202,7 @@ export async function enqueuePairAnalysis(
     nameA,
     nameB,
     requestedBy: opts?.requestedBy,
+    triggeredBy: opts?.triggeredBy,
   });
 }
 
@@ -1164,7 +1216,7 @@ export async function enqueueQuickScore(userAId: string, userBId: string) {
 }
 
 /** Promote a pair analysis to highest priority (for wave-triggered urgency) */
-export async function promotePairAnalysis(userAId: string, userBId: string) {
+export async function promotePairAnalysis(userAId: string, userBId: string, triggeredBy?: string) {
   if (!process.env.REDIS_URL) return;
 
   const [a, b] = [userAId, userBId].sort();
@@ -1179,7 +1231,7 @@ export async function promotePairAnalysis(userAId: string, userBId: string) {
   }
 
   // Add without priority → FIFO queue, processed before all prioritized jobs
-  await queue.add("analyze-pair", { type: "analyze-pair", userAId: a, userBId: b }, { jobId });
+  await queue.add("analyze-pair", { type: "analyze-pair", userAId: a, userBId: b, triggeredBy }, { jobId });
 }
 
 export async function enqueueProfileAI(userId: string, bio: string, lookingFor: string) {
