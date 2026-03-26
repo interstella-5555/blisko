@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 6 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Extract Drizzle schema to packages/db shared workspace package
+- [x] 01-01-PLAN.md -- Extract Drizzle schema to packages/db shared workspace package
 - [ ] 01-02-PLAN.md -- Add triggeredBy + BullMQ lifecycle telemetry to queue jobs and connectionAnalyses table
 - [ ] 01-03-PLAN.md -- Replace custom auth with Better Auth + add DB/Redis/BullMQ connections
 - [ ] 01-04-PLAN.md -- Initialize shadcn/ui and install UI component primitives
@@ -70,6 +70,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Data Layer & Match Overview | 0/6 | Planned | - |
+| 1. Data Layer & Match Overview | 1/6 | In Progress|  |
 | 2. Match Operations | 0/0 | Not started | - |
 | 3. Live Feed | 0/0 | Not started | - |

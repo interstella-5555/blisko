@@ -9,11 +9,11 @@ Match monitoring screen with togglable live feed. The first thing you see after 
 
 ### Foundation
 
-- [ ] **FOUN-01**: Drizzle schema extracted to packages/db as a shared workspace package (used by both api and admin)
+- [x] **FOUN-01**: Drizzle schema extracted to packages/db as a shared workspace package (used by both api and admin)
 - [ ] **FOUN-01a**: Admin app connects to PostgreSQL via Drizzle using shared schema from packages/db
 - [ ] **FOUN-02**: Admin app connects to Redis via Bun RedisClient
 - [ ] **FOUN-03**: Admin app instantiates BullMQ Queue for read-only job inspection
-- [ ] **FOUN-04**: Connection pool sizing is explicit and documented (won't exhaust shared DB connections)
+- [x] **FOUN-04**: Connection pool sizing is explicit and documented (won't exhaust shared DB connections)
 - [ ] **FOUN-05**: Admin sessions persist across Railway redeploys (not in-memory Map)
 
 ### Match Monitoring
@@ -93,11 +93,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUN-01 | Phase 1 | Pending |
+| FOUN-01 | Phase 1 | Complete |
 | FOUN-01a | Phase 1 | Pending |
 | FOUN-02 | Phase 1 | Pending |
 | FOUN-03 | Phase 1 | Pending |
-| FOUN-04 | Phase 1 | Pending |
+| FOUN-04 | Phase 1 | Complete |
 | FOUN-05 | Phase 1 | Pending |
 | MTCH-01 | Phase 1 | Pending |
 | MTCH-02 | Phase 1 | Pending |
