@@ -527,25 +527,32 @@ export const messagesRouter = router({
 
       if (isGroup && otherParticipantIds.length > 0) {
         // Batch: single query to get per-recipient unread counts
-        // Raw SQL: per-recipient unread counts via JOIN has no Drizzle equivalent
-        const unreadCounts = await db.execute(sql`
-          SELECT cp.user_id, count(m.id) AS unread_count
-          FROM conversation_participants cp
-          LEFT JOIN messages m ON m.conversation_id = cp.conversation_id
-            AND m.sender_id != cp.user_id
-            AND m.deleted_at IS NULL
-            AND m.created_at > COALESCE(cp.last_read_at, '1970-01-01'::timestamp)
-          WHERE cp.conversation_id = ${input.conversationId}
-            AND cp.user_id IN (${sql.join(
-              otherParticipantIds.map((id) => sql`${id}`),
-              sql`, `,
-            )})
-          GROUP BY cp.user_id
-        `);
+        const unreadCounts = await db
+          .select({
+            userId: schema.conversationParticipants.userId,
+            unreadCount: sql<number>`count(${schema.messages.id})`,
+          })
+          .from(schema.conversationParticipants)
+          .leftJoin(
+            schema.messages,
+            and(
+              eq(schema.messages.conversationId, schema.conversationParticipants.conversationId),
+              ne(schema.messages.senderId, schema.conversationParticipants.userId),
+              isNull(schema.messages.deletedAt),
+              sql`${schema.messages.createdAt} > COALESCE(${schema.conversationParticipants.lastReadAt}, '1970-01-01'::timestamp)`,
+            ),
+          )
+          .where(
+            and(
+              eq(schema.conversationParticipants.conversationId, input.conversationId),
+              inArray(schema.conversationParticipants.userId, otherParticipantIds),
+            ),
+          )
+          .groupBy(schema.conversationParticipants.userId);
 
         const unreadMap = new Map<string, number>();
         for (const row of unreadCounts) {
-          unreadMap.set(row.user_id as string, Number(row.unread_count));
+          unreadMap.set(row.userId, Number(row.unreadCount));
         }
 
         for (const recipientId of otherParticipantIds) {
