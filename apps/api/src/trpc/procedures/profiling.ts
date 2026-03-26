@@ -365,21 +365,20 @@ export const profilingRouter = router({
     // Create new session
     const [session] = await db.insert(schema.profilingSessions).values({ userId: ctx.userId }).returning();
 
-    // Insert all standard answers as profilingQA rows
     const questionMap = new Map(ONBOARDING_QUESTIONS.map((q) => [q.id, q.question]));
-    let questionNumber = 0;
 
-    for (const a of input.answers) {
-      questionNumber++;
-      const questionText = questionMap.get(a.questionId) ?? a.questionId;
-      await db.insert(schema.profilingQA).values({
+    // Batch insert all standard answers
+    await db.insert(schema.profilingQA).values(
+      input.answers.map((a, idx) => ({
         sessionId: session.id,
-        questionNumber,
-        question: questionText,
+        questionNumber: idx + 1,
+        question: questionMap.get(a.questionId) ?? a.questionId,
         answer: a.answer,
         sufficient: false,
-      });
-    }
+      })),
+    );
+
+    const questionNumber = input.answers.length;
 
     // Generate follow-up questions inline (~2-3s)
     const displayName = await getDisplayName(ctx.userId);
@@ -390,22 +389,22 @@ export const profilingRouter = router({
 
     const followUps = await generateFollowUpQuestions(displayName, answeredQA, input.skipped);
 
-    // Insert follow-up questions as additional profilingQA rows
-    const followUpEntries: { id: string; question: string }[] = [];
-    for (const fq of followUps.questions) {
-      questionNumber++;
-      const [row] = await db
-        .insert(schema.profilingQA)
-        .values({
-          sessionId: session.id,
-          questionNumber,
-          question: fq,
-          answer: null,
-          sufficient: false,
-        })
-        .returning({ id: schema.profilingQA.id, question: schema.profilingQA.question });
-      followUpEntries.push(row);
-    }
+    // Batch insert follow-up questions
+    const followUpEntries =
+      followUps.questions.length > 0
+        ? await db
+            .insert(schema.profilingQA)
+            .values(
+              followUps.questions.map((fq, idx) => ({
+                sessionId: session.id,
+                questionNumber: questionNumber + idx + 1,
+                question: fq,
+                answer: null,
+                sufficient: false,
+              })),
+            )
+            .returning({ id: schema.profilingQA.id, question: schema.profilingQA.question })
+        : [];
 
     return {
       sessionId: session.id,
