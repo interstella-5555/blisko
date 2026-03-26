@@ -24,9 +24,11 @@ xcodebuild \
   -workspace Blisko.xcworkspace \
   -scheme Blisko \
   -configuration Release \
+  -destination "generic/platform=iOS" \
   -archivePath "$ARCHIVE_PATH" \
   -allowProvisioningUpdates \
   -quiet \
+  DEVELOPMENT_TEAM=7FU6K9GR6T \
   archive
 
 echo "[3/3] Opening archive in Xcode Organizer..."
