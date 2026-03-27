@@ -51,11 +51,11 @@ function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const { error: verifyError } = await authClient.emailOtp.verifyEmail({
+      const { error: signInError } = await authClient.signIn.emailOtp({
         email,
         otp,
       });
-      if (verifyError) {
+      if (signInError) {
         setError("Nieprawidlowy kod. Sprobuj ponownie.");
       } else {
         router.navigate({ to: "/dashboard" });
