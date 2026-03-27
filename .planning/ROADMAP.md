@@ -36,7 +36,7 @@ Plans:
 - [x] 01-03-PLAN.md -- Replace custom auth with Better Auth + add DB/Redis/BullMQ connections
 - [x] 01-04-PLAN.md -- Initialize shadcn/ui and install UI component primitives
 - [x] 01-05-PLAN.md -- Build sidebar layout, rebuild login page, create dashboard shell
-- [ ] 01-06-PLAN.md -- Build match monitoring dashboard (table, queue health, detail sheet with telemetry)
+- [x] 01-06-PLAN.md -- Build match monitoring dashboard (table, queue health, detail sheet with telemetry)
 
 **UI hint**: yes
 
