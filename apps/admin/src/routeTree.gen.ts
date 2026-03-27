@@ -10,20 +10,20 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiVerifyOtpRouteImport } from './routes/api/verify-otp'
-import { Route as ApiRequestOtpRouteImport } from './routes/api/request-otp'
-import { Route as ApiLogoutRouteImport } from './routes/api/logout'
+import { Route as ApiQueueHealthRouteImport } from './routes/api/queue-health'
+import { Route as ApiMatchesRouteImport } from './routes/api/matches'
+import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthedRoute = AuthedRouteImport.update({
+  id: '/_authed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,81 +31,88 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiVerifyOtpRoute = ApiVerifyOtpRouteImport.update({
-  id: '/api/verify-otp',
-  path: '/api/verify-otp',
+const ApiQueueHealthRoute = ApiQueueHealthRouteImport.update({
+  id: '/api/queue-health',
+  path: '/api/queue-health',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiRequestOtpRoute = ApiRequestOtpRouteImport.update({
-  id: '/api/request-otp',
-  path: '/api/request-otp',
+const ApiMatchesRoute = ApiMatchesRouteImport.update({
+  id: '/api/matches',
+  path: '/api/matches',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiLogoutRoute = ApiLogoutRouteImport.update({
-  id: '/api/logout',
-  path: '/api/logout',
+const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
-  '/api/logout': typeof ApiLogoutRoute
-  '/api/request-otp': typeof ApiRequestOtpRoute
-  '/api/verify-otp': typeof ApiVerifyOtpRoute
+  '/dashboard': typeof AuthedDashboardRoute
+  '/api/matches': typeof ApiMatchesRoute
+  '/api/queue-health': typeof ApiQueueHealthRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
-  '/api/logout': typeof ApiLogoutRoute
-  '/api/request-otp': typeof ApiRequestOtpRoute
-  '/api/verify-otp': typeof ApiVerifyOtpRoute
+  '/dashboard': typeof AuthedDashboardRoute
+  '/api/matches': typeof ApiMatchesRoute
+  '/api/queue-health': typeof ApiQueueHealthRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/_authed': typeof AuthedRouteWithChildren
   '/login': typeof LoginRoute
-  '/api/logout': typeof ApiLogoutRoute
-  '/api/request-otp': typeof ApiRequestOtpRoute
-  '/api/verify-otp': typeof ApiVerifyOtpRoute
+  '/_authed/dashboard': typeof AuthedDashboardRoute
+  '/api/matches': typeof ApiMatchesRoute
+  '/api/queue-health': typeof ApiQueueHealthRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/dashboard'
     | '/login'
-    | '/api/logout'
-    | '/api/request-otp'
-    | '/api/verify-otp'
+    | '/dashboard'
+    | '/api/matches'
+    | '/api/queue-health'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/dashboard'
     | '/login'
-    | '/api/logout'
-    | '/api/request-otp'
-    | '/api/verify-otp'
+    | '/dashboard'
+    | '/api/matches'
+    | '/api/queue-health'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
-    | '/dashboard'
+    | '/_authed'
     | '/login'
-    | '/api/logout'
-    | '/api/request-otp'
-    | '/api/verify-otp'
+    | '/_authed/dashboard'
+    | '/api/matches'
+    | '/api/queue-health'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRoute
+  AuthedRoute: typeof AuthedRouteWithChildren
   LoginRoute: typeof LoginRoute
-  ApiLogoutRoute: typeof ApiLogoutRoute
-  ApiRequestOtpRoute: typeof ApiRequestOtpRoute
-  ApiVerifyOtpRoute: typeof ApiVerifyOtpRoute
+  ApiMatchesRoute: typeof ApiMatchesRoute
+  ApiQueueHealthRoute: typeof ApiQueueHealthRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -117,11 +124,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
+    '/_authed': {
+      id: '/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -131,37 +138,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/verify-otp': {
-      id: '/api/verify-otp'
-      path: '/api/verify-otp'
-      fullPath: '/api/verify-otp'
-      preLoaderRoute: typeof ApiVerifyOtpRouteImport
+    '/api/queue-health': {
+      id: '/api/queue-health'
+      path: '/api/queue-health'
+      fullPath: '/api/queue-health'
+      preLoaderRoute: typeof ApiQueueHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/request-otp': {
-      id: '/api/request-otp'
-      path: '/api/request-otp'
-      fullPath: '/api/request-otp'
-      preLoaderRoute: typeof ApiRequestOtpRouteImport
+    '/api/matches': {
+      id: '/api/matches'
+      path: '/api/matches'
+      fullPath: '/api/matches'
+      preLoaderRoute: typeof ApiMatchesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/logout': {
-      id: '/api/logout'
-      path: '/api/logout'
-      fullPath: '/api/logout'
-      preLoaderRoute: typeof ApiLogoutRouteImport
+    '/_authed/dashboard': {
+      id: '/_authed/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthedDashboardRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
+interface AuthedRouteChildren {
+  AuthedDashboardRoute: typeof AuthedDashboardRoute
+}
+
+const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedDashboardRoute: AuthedDashboardRoute,
+}
+
+const AuthedRouteWithChildren =
+  AuthedRoute._addFileChildren(AuthedRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRoute,
+  AuthedRoute: AuthedRouteWithChildren,
   LoginRoute: LoginRoute,
-  ApiLogoutRoute: ApiLogoutRoute,
-  ApiRequestOtpRoute: ApiRequestOtpRoute,
-  ApiVerifyOtpRoute: ApiVerifyOtpRoute,
+  ApiMatchesRoute: ApiMatchesRoute,
+  ApiQueueHealthRoute: ApiQueueHealthRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
