@@ -23,14 +23,33 @@ interface ExportData {
     portraitUrl: string | null;
     status: string | null;
     statusVisibility: string | null;
+    superpower: string | null;
+    superpowerTags: string[] | null;
+    offerType: string | null;
+    dateOfBirth: string | null;
+    doNotDisturb: boolean;
     location: { lat: number; lng: number } | null;
     createdAt: string;
     updatedAt: string;
   } | null;
   connectedAccounts: { provider: string; scope: string | null }[];
   waves: {
-    sent: { toUser: string; status: string; createdAt: string }[];
-    received: { fromUser: string; status: string; createdAt: string }[];
+    sent: {
+      toUser: string;
+      status: string;
+      senderStatusSnapshot: string | null;
+      recipientStatusSnapshot: string | null;
+      respondedAt: string | null;
+      createdAt: string;
+    }[];
+    received: {
+      fromUser: string;
+      status: string;
+      senderStatusSnapshot: string | null;
+      recipientStatusSnapshot: string | null;
+      respondedAt: string | null;
+      createdAt: string;
+    }[];
   };
   conversations: {
     id: string;
@@ -58,6 +77,11 @@ interface ExportData {
   statusMatches: {
     otherUser: string;
     status: string;
+    createdAt: string;
+  }[];
+  conversationRatings: {
+    conversationId: string;
+    rating: number;
     createdAt: string;
   }[];
 }
@@ -216,6 +240,16 @@ export async function collectAndExportUserData(userId: string, email: string) {
   const statusMatches = await db.select().from(schema.statusMatches).where(eq(schema.statusMatches.userId, userId));
   for (const m of statusMatches) otherUserIds.add(m.matchedUserId);
 
+  // 11. Conversation ratings
+  const ratings = await db
+    .select({
+      conversationId: schema.conversationRatings.conversationId,
+      rating: schema.conversationRatings.rating,
+      createdAt: schema.conversationRatings.createdAt,
+    })
+    .from(schema.conversationRatings)
+    .where(eq(schema.conversationRatings.userId, userId));
+
   // Build label map: "Ania (a3f8c2)" format
   const labelMap = buildUserLabelMap([...otherUserIds]);
   const label = (id: string) => labelMap.get(id) ?? `Użytkownik (${shortHash(id)})`;
@@ -242,6 +276,11 @@ export async function collectAndExportUserData(userId: string, email: string) {
           portraitUrl: profile.portrait,
           status: profile.currentStatus,
           statusVisibility: profile.statusVisibility,
+          superpower: profile.superpower,
+          superpowerTags: profile.superpowerTags,
+          offerType: profile.offerType,
+          dateOfBirth: profile.dateOfBirth?.toISOString() ?? null,
+          doNotDisturb: profile.doNotDisturb,
           location: profile.latitude && profile.longitude ? { lat: profile.latitude, lng: profile.longitude } : null,
           createdAt: profile.createdAt.toISOString(),
           updatedAt: profile.updatedAt.toISOString(),
@@ -254,11 +293,17 @@ export async function collectAndExportUserData(userId: string, email: string) {
       sent: sentWaves.map((w) => ({
         toUser: label(w.toUserId),
         status: w.status,
+        senderStatusSnapshot: w.senderStatusSnapshot,
+        recipientStatusSnapshot: w.recipientStatusSnapshot,
+        respondedAt: w.respondedAt?.toISOString() ?? null,
         createdAt: w.createdAt.toISOString(),
       })),
       received: receivedWaves.map((w) => ({
         fromUser: label(w.fromUserId),
         status: w.status,
+        senderStatusSnapshot: w.senderStatusSnapshot,
+        recipientStatusSnapshot: w.recipientStatusSnapshot,
+        respondedAt: w.respondedAt?.toISOString() ?? null,
         createdAt: w.createdAt.toISOString(),
       })),
     },
@@ -293,6 +338,11 @@ export async function collectAndExportUserData(userId: string, email: string) {
       otherUser: label(m.matchedUserId),
       status: m.reason,
       createdAt: m.createdAt.toISOString(),
+    })),
+    conversationRatings: ratings.map((r) => ({
+      conversationId: r.conversationId,
+      rating: r.rating,
+      createdAt: r.createdAt.toISOString(),
     })),
   };
 
