@@ -623,33 +623,35 @@ export const groupsRouter = router({
       });
     }
 
-    // Transfer: new owner
-    await db
-      .update(schema.conversationParticipants)
-      .set({ role: "owner" })
-      .where(
-        and(
-          eq(schema.conversationParticipants.conversationId, input.conversationId),
-          eq(schema.conversationParticipants.userId, input.userId),
-        ),
-      );
+    await db.transaction(async (tx) => {
+      // Transfer: new owner
+      await tx
+        .update(schema.conversationParticipants)
+        .set({ role: "owner" })
+        .where(
+          and(
+            eq(schema.conversationParticipants.conversationId, input.conversationId),
+            eq(schema.conversationParticipants.userId, input.userId),
+          ),
+        );
 
-    // Demote old owner to admin
-    await db
-      .update(schema.conversationParticipants)
-      .set({ role: "admin" })
-      .where(
-        and(
-          eq(schema.conversationParticipants.conversationId, input.conversationId),
-          eq(schema.conversationParticipants.userId, ctx.userId),
-        ),
-      );
+      // Demote old owner to admin
+      await tx
+        .update(schema.conversationParticipants)
+        .set({ role: "admin" })
+        .where(
+          and(
+            eq(schema.conversationParticipants.conversationId, input.conversationId),
+            eq(schema.conversationParticipants.userId, ctx.userId),
+          ),
+        );
 
-    // Update creatorId
-    await db
-      .update(schema.conversations)
-      .set({ creatorId: input.userId })
-      .where(eq(schema.conversations.id, input.conversationId));
+      // Update creatorId
+      await tx
+        .update(schema.conversations)
+        .set({ creatorId: input.userId })
+        .where(eq(schema.conversations.id, input.conversationId));
+    });
 
     publishEvent("groupMember", {
       conversationId: input.conversationId,
