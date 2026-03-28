@@ -233,6 +233,7 @@ ee.on("newWave", (event: NewWaveEvent) => {
 ee.on("waveResponded", (event: WaveRespondedEvent) => {
   broadcastToUser(event.fromUserId, {
     type: "waveResponded",
+    responderId: event.responderId,
     waveId: event.waveId,
     accepted: event.accepted,
     conversationId: event.conversationId,
