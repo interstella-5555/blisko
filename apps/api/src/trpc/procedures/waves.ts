@@ -364,8 +364,15 @@ export const wavesRouter = router({
               recipientStatusSnapshot: responderProfile?.currentStatus ?? null,
               respondedAt: new Date(),
             })
-            .where(eq(schema.waves.id, input.waveId))
+            .where(and(eq(schema.waves.id, input.waveId), eq(schema.waves.status, "pending")))
             .returning();
+
+          if (!updatedWave) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Wave already responded to",
+            });
+          }
 
           const [conversation] = await tx
             .insert(schema.conversations)
@@ -407,12 +414,19 @@ export const wavesRouter = router({
         return { wave: updatedWave, conversationId: conversation.id };
       }
 
-      // Decline path (no transaction needed — single update)
+      // Decline path (single atomic update)
       const [updatedWave] = await db
         .update(schema.waves)
         .set({ status: "declined", respondedAt: new Date() })
-        .where(eq(schema.waves.id, input.waveId))
+        .where(and(eq(schema.waves.id, input.waveId), eq(schema.waves.status, "pending")))
         .returning();
+
+      if (!updatedWave) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Wave already responded to",
+        });
+      }
 
       publishEvent("waveResponded", {
         fromUserId: wave.fromUserId,
