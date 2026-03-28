@@ -34,29 +34,29 @@ export async function sendPushToUser(
 
     if (tokens.length === 0) return;
 
-    const messages: ExpoPushMessage[] = tokens
-      .filter((t) => Expo.isExpoPushToken(t.token))
-      .map((t) => ({
-        to: t.token,
-        sound: payload.collapseId ? undefined : ("default" as const),
-        title: payload.title,
-        body: payload.body,
-        data: payload.data,
-        ...(payload.collapseId && { _id: payload.collapseId }),
-      }));
+    const validTokens = tokens.filter((t) => Expo.isExpoPushToken(t.token));
+    if (validTokens.length === 0) return;
 
-    if (messages.length === 0) return;
+    const messages: ExpoPushMessage[] = validTokens.map((t) => ({
+      to: t.token,
+      sound: payload.collapseId ? undefined : ("default" as const),
+      title: payload.title,
+      body: payload.body,
+      data: payload.data,
+      ...(payload.collapseId && { _id: payload.collapseId }),
+    }));
 
     const chunks = expo.chunkPushNotifications(messages);
+    let globalIdx = 0;
 
     for (const chunk of chunks) {
       const tickets: ExpoPushTicket[] = await expo.sendPushNotificationsAsync(chunk);
 
       // Clean up invalid tokens
-      for (let i = 0; i < tickets.length; i++) {
+      for (let i = 0; i < tickets.length; i++, globalIdx++) {
         const ticket = tickets[i];
         if (ticket.status === "error" && ticket.details?.error === "DeviceNotRegistered") {
-          const invalidToken = tokens[i];
+          const invalidToken = validTokens[globalIdx];
           if (invalidToken) {
             await db.delete(schema.pushTokens).where(eq(schema.pushTokens.id, invalidToken.id));
           }
