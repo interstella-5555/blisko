@@ -182,6 +182,7 @@ export default function TabsLayout() {
             fromUserId: w.wave.fromUserId,
             toUserId: w.wave.toUserId,
             status: w.wave.status,
+            senderStatusSnapshot: w.wave.senderStatusSnapshot ?? null,
             createdAt: w.wave.createdAt.toString(),
           },
           fromProfile: {
@@ -204,6 +205,7 @@ export default function TabsLayout() {
             fromUserId: w.wave.fromUserId,
             toUserId: w.wave.toUserId,
             status: w.wave.status,
+            senderStatusSnapshot: w.wave.senderStatusSnapshot ?? null,
             createdAt: w.wave.createdAt.toString(),
           },
           toProfile: {
