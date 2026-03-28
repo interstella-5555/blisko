@@ -52,6 +52,7 @@ export interface NewWaveEvent {
 
 export interface WaveRespondedEvent {
   fromUserId: string;
+  responderId: string;
   waveId: string;
   accepted: boolean;
   conversationId: string | null;

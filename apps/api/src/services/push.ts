@@ -20,6 +20,13 @@ export async function sendPushToUser(
     // Don't send push if user is connected via WebSocket (in-app banner handles it)
     if (isUserConnected(userId)) return;
 
+    // Respect Do Not Disturb — suppress push delivery, data is still stored
+    const profile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, userId),
+      columns: { doNotDisturb: true },
+    });
+    if (profile?.doNotDisturb) return;
+
     const tokens = await db
       .select({ id: schema.pushTokens.id, token: schema.pushTokens.token })
       .from(schema.pushTokens)

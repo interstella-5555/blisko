@@ -395,6 +395,7 @@ export const wavesRouter = router({
 
         publishEvent("waveResponded", {
           fromUserId: wave.fromUserId,
+          responderId: wave.toUserId,
           waveId: wave.id,
           accepted: true,
           conversationId: conversation.id,
@@ -415,6 +416,7 @@ export const wavesRouter = router({
 
       publishEvent("waveResponded", {
         fromUserId: wave.fromUserId,
+        responderId: wave.toUserId,
         waveId: wave.id,
         accepted: false,
         conversationId: null,

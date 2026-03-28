@@ -1,5 +1,5 @@
 import type { ServerWebSocket } from "bun";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import {
   wsAuthResult,
@@ -129,8 +129,18 @@ export const wsHandler = {
         return;
       }
 
-      // Subscribe to a specific conversation
-      if (data.type === "subscribe" && data.conversationId) {
+      // Subscribe to a specific conversation (verify membership first)
+      if (data.type === "subscribe" && ws.data.userId && data.conversationId) {
+        const participant = await db.query.conversationParticipants.findFirst({
+          where: and(
+            eq(schema.conversationParticipants.conversationId, data.conversationId),
+            eq(schema.conversationParticipants.userId, ws.data.userId),
+          ),
+          columns: { conversationId: true },
+        });
+
+        if (!participant) return;
+
         ws.data.subscriptions.add(data.conversationId);
         wsInbound("subscribe");
         wsSubscribed();
@@ -220,6 +230,7 @@ ee.on("newWave", (event: NewWaveEvent) => {
 ee.on("waveResponded", (event: WaveRespondedEvent) => {
   broadcastToUser(event.fromUserId, {
     type: "waveResponded",
+    responderId: event.responderId,
     waveId: event.waveId,
     accepted: event.accepted,
     conversationId: event.conversationId,

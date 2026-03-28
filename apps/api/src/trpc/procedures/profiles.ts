@@ -553,15 +553,21 @@ export const profilesRouter = router({
     };
   }),
 
-  // Dev: clear all connection analyses
+  // Dev: clear all connection analyses (dev-only — disabled in production)
   clearAnalyses: protectedProcedure.mutation(async () => {
+    if (process.env.NODE_ENV === "production") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Dev-only endpoint" });
+    }
     // Raw SQL: TRUNCATE has no Drizzle query builder equivalent (dev-only endpoint)
     await db.execute(sql`TRUNCATE connection_analyses`);
     return { ok: true };
   }),
 
-  // Dev: re-trigger connection analyses for current user
+  // Dev: re-trigger connection analyses for current user (dev-only — disabled in production)
   reanalyze: protectedProcedure.mutation(async ({ ctx }) => {
+    if (process.env.NODE_ENV === "production") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Dev-only endpoint" });
+    }
     const profile = await db.query.profiles.findFirst({
       where: eq(schema.profiles.userId, ctx.userId),
     });
