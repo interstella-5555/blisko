@@ -265,7 +265,12 @@ export const wavesRouter = router({
     const receivedWaves = await db
       .select({
         wave: schema.waves,
-        fromProfile: schema.profiles,
+        fromProfile: {
+          userId: schema.profiles.userId,
+          displayName: schema.profiles.displayName,
+          avatarUrl: schema.profiles.avatarUrl,
+          bio: schema.profiles.bio,
+        },
       })
       .from(schema.waves)
       .innerJoin(schema.profiles, eq(schema.waves.fromUserId, schema.profiles.userId))
@@ -287,7 +292,12 @@ export const wavesRouter = router({
     const sentWaves = await db
       .select({
         wave: schema.waves,
-        toProfile: schema.profiles,
+        toProfile: {
+          userId: schema.profiles.userId,
+          displayName: schema.profiles.displayName,
+          avatarUrl: schema.profiles.avatarUrl,
+          bio: schema.profiles.bio,
+        },
       })
       .from(schema.waves)
       .innerJoin(schema.profiles, eq(schema.waves.toUserId, schema.profiles.userId))
