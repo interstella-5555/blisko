@@ -1,5 +1,5 @@
 import type { ServerWebSocket } from "bun";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import {
   wsAuthResult,
@@ -129,8 +129,21 @@ export const wsHandler = {
         return;
       }
 
-      // Subscribe to a specific conversation
-      if (data.type === "subscribe" && data.conversationId) {
+      // Subscribe to a specific conversation (verify membership first)
+      if (data.type === "subscribe" && ws.data.userId && data.conversationId) {
+        const [participant] = await db
+          .select({ conversationId: schema.conversationParticipants.conversationId })
+          .from(schema.conversationParticipants)
+          .where(
+            and(
+              eq(schema.conversationParticipants.conversationId, data.conversationId),
+              eq(schema.conversationParticipants.userId, ws.data.userId),
+            ),
+          )
+          .limit(1);
+
+        if (!participant) return;
+
         ws.data.subscriptions.add(data.conversationId);
         wsInbound("subscribe");
         wsSubscribed();
