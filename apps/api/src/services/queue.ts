@@ -597,6 +597,7 @@ async function processStatusMatching(userId: string) {
 
   if (!user?.currentStatus) return;
   if (!user.isComplete) return;
+  if (user.visibilityMode === "ninja") return;
 
   // Generate embedding for status text
   const statusEmb = await generateEmbedding(user.currentStatus);
