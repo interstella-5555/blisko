@@ -819,6 +819,15 @@ export const messagesRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Conversation not found" });
       }
 
+      // Only DMs can be deleted — group chats require leave, not delete
+      const conversation = await db.query.conversations.findFirst({
+        where: eq(schema.conversations.id, input.conversationId),
+        columns: { type: true },
+      });
+      if (conversation?.type === "group") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Group conversations cannot be deleted" });
+      }
+
       // Save optional rating
       if (input.rating) {
         await db.insert(schema.conversationRatings).values({
