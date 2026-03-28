@@ -59,7 +59,11 @@ async function requireGroupParticipant(conversationId: string, userId: string, m
 
 async function requireGroup(conversationId: string) {
   const conv = await db.query.conversations.findFirst({
-    where: and(eq(schema.conversations.id, conversationId), eq(schema.conversations.type, "group")),
+    where: and(
+      eq(schema.conversations.id, conversationId),
+      eq(schema.conversations.type, "group"),
+      isNull(schema.conversations.deletedAt),
+    ),
   });
 
   if (!conv) {
@@ -574,6 +578,7 @@ export const groupsRouter = router({
         and(
           eq(schema.conversations.type, "group"),
           eq(schema.conversations.isDiscoverable, true),
+          isNull(schema.conversations.deletedAt),
           lte(distanceSql, radiusMeters),
         ),
       )
