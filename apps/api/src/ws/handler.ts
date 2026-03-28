@@ -131,16 +131,13 @@ export const wsHandler = {
 
       // Subscribe to a specific conversation (verify membership first)
       if (data.type === "subscribe" && ws.data.userId && data.conversationId) {
-        const [participant] = await db
-          .select({ conversationId: schema.conversationParticipants.conversationId })
-          .from(schema.conversationParticipants)
-          .where(
-            and(
-              eq(schema.conversationParticipants.conversationId, data.conversationId),
-              eq(schema.conversationParticipants.userId, ws.data.userId),
-            ),
-          )
-          .limit(1);
+        const participant = await db.query.conversationParticipants.findFirst({
+          where: and(
+            eq(schema.conversationParticipants.conversationId, data.conversationId),
+            eq(schema.conversationParticipants.userId, ws.data.userId),
+          ),
+          columns: { conversationId: true },
+        });
 
         if (!participant) return;
 
