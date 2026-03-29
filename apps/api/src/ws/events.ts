@@ -121,3 +121,7 @@ export interface GroupInvitedEvent {
   conversationId: string;
   groupName: string | null;
 }
+
+export interface ForceDisconnectEvent {
+  userId: string;
+}

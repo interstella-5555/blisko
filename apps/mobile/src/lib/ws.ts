@@ -81,6 +81,7 @@ export type WSMessage =
     }
   | { type: "groupInvited"; conversationId: string; groupName: string | null }
   | { type: "conversationDeleted"; conversationId: string }
+  | { type: "forceDisconnect" }
   | { type: "reconnected" };
 
 type MessageHandler = (msg: WSMessage) => void;
@@ -95,6 +96,7 @@ const handlers = new Set<MessageHandler>();
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let isConnecting = false;
 let hasConnectedBefore = false;
+let forceDisconnected = false;
 
 async function getToken(): Promise<string | null> {
   // 1. Zustand store — already has token from login, no network needed
@@ -120,6 +122,7 @@ async function getToken(): Promise<string | null> {
 }
 
 function connect() {
+  if (forceDisconnected) return;
   if (isConnecting || (globalWs && globalWs.readyState === WebSocket.OPEN)) return;
   isConnecting = true;
 
@@ -161,6 +164,11 @@ function connect() {
       for (const handler of handlers) {
         handler(data);
       }
+
+      // After dispatching to handlers, suppress reconnect for force disconnect
+      if (data.type === "forceDisconnect") {
+        forceDisconnected = true;
+      }
     } catch (e) {
       console.warn("[WS] message parse error:", e);
     }
@@ -169,6 +177,10 @@ function connect() {
   ws.onclose = (event) => {
     isConnecting = false;
     globalWs = null;
+    if (forceDisconnected) {
+      console.log("[WS] closed after forceDisconnect, not reconnecting");
+      return;
+    }
     console.log("[WS] closed (code:", event.code, "), reconnecting in 3s");
     if (reconnectTimer) clearTimeout(reconnectTimer);
     reconnectTimer = setTimeout(connect, 3000);
@@ -186,6 +198,7 @@ function disconnect() {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
   }
+  forceDisconnected = false;
   if (globalWs) {
     globalWs.close();
     globalWs = null;
