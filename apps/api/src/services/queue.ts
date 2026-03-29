@@ -658,7 +658,13 @@ async function processStatusMatching(userId: string) {
         ? otherUser.currentStatus!
         : `${otherUser.bio}. Szuka: ${otherUser.lookingFor}`;
 
-      const result = await evaluateStatusMatch(user.currentStatus!, otherContext, matchType);
+      const result = await evaluateStatusMatch(
+        user.currentStatus!,
+        otherContext,
+        matchType,
+        user.statusCategories,
+        matchViaStatus ? otherUser.statusCategories : null,
+      );
 
       if (result.isMatch) {
         matches.push({
@@ -705,6 +711,7 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
       visibilityMode: true,
       currentStatus: true,
       statusVisibility: true,
+      statusCategories: true,
       statusEmbedding: true,
       embedding: true,
       bio: true,
@@ -736,6 +743,7 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
         userId: schema.profiles.userId,
         currentStatus: schema.profiles.currentStatus,
         statusVisibility: schema.profiles.statusVisibility,
+        statusCategories: schema.profiles.statusCategories,
         statusEmbedding: schema.profiles.statusEmbedding,
         embedding: schema.profiles.embedding,
         bio: schema.profiles.bio,
@@ -823,7 +831,13 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
         ? candidate.currentStatus!
         : `${candidate.bio}. Szuka: ${candidate.lookingFor}`;
 
-      const result = await evaluateStatusMatch(candidateContext, movingContext, matchType);
+      const result = await evaluateStatusMatch(
+        candidateContext,
+        movingContext,
+        matchType,
+        matchViaStatus ? candidate.statusCategories : null,
+        movingUserHasStatus ? movingUser.statusCategories : null,
+      );
 
       if (result.isMatch) {
         matches.push({
