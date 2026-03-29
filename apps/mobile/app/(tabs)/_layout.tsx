@@ -1,7 +1,7 @@
 import { Redirect, router, Tabs } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { IconChat, IconPerson, IconPin, IconPlus, IconSettings, IconWave } from "../../src/components/ui/icons";
+import { IconChat, IconPerson, IconPin, IconPlus, IconSettings } from "../../src/components/ui/icons";
 import { useBackgroundSync } from "../../src/hooks/useBackgroundSync";
 import { useInAppNotifications } from "../../src/hooks/useInAppNotifications";
 import { usePushNotifications } from "../../src/hooks/usePushNotifications";
@@ -225,9 +225,6 @@ export default function TabsLayout() {
     }
   }, [sentWavesData]);
 
-  // Read wave badge from store
-  const pendingWaves = useWavesStore((s) => s.received.filter((w) => w.wave.status === "pending").length);
-
   // Unread messages badge — hydration query, store is the source of truth
   const { data: chatConversations } = trpc.messages.getConversations.useQuery(undefined, {
     enabled: !!user && !!profile,
@@ -360,14 +357,13 @@ export default function TabsLayout() {
           tabBarAccessibilityLabel: "tab-nearby",
         }}
       />
-      <Tabs.Screen name="waves" options={{ href: null }} />
       <Tabs.Screen
         name="chats"
         options={{
           title: "Czaty",
           tabBarIcon: ({ color }) => <IconChat size={20} color={color} />,
           tabBarAccessibilityLabel: "tab-chats",
-          tabBarBadge: totalUnread + pendingWaves > 0 ? totalUnread + pendingWaves : undefined,
+          tabBarBadge: totalUnread > 0 ? totalUnread : undefined,
           tabBarBadgeStyle: {
             backgroundColor: colors.accent,
             fontFamily: fonts.sansSemiBold,
