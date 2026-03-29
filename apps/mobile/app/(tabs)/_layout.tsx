@@ -137,7 +137,11 @@ export default function TabsLayout() {
       if (msg.action === "joined") {
         convStore.updateMemberCount(msg.conversationId, 1);
       } else if (msg.action === "left" || msg.action === "removed") {
-        convStore.updateMemberCount(msg.conversationId, -1);
+        if (msg.userId === userIdRef.current) {
+          convStore.remove(msg.conversationId);
+        } else {
+          convStore.updateMemberCount(msg.conversationId, -1);
+        }
       }
     }
     if (msg.type === "groupUpdated") {

@@ -279,6 +279,15 @@ ee.on("groupMember", (event: GroupMemberEvent) => {
     type: "groupMember",
     ...event,
   });
+
+  // Remove WS subscription for users who left or were kicked
+  if (event.action === "left" || event.action === "removed") {
+    for (const ws of clients) {
+      if (ws.data.userId === event.userId) {
+        ws.data.subscriptions.delete(event.conversationId);
+      }
+    }
+  }
 });
 
 ee.on("groupUpdated", (event: GroupUpdatedEvent) => {
