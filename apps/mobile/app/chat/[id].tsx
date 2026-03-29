@@ -448,6 +448,29 @@ export default function ChatScreen() {
               Pingowaliście się wzajemnie w tym samym momencie. To rzadkie. To zostaje.
             </Text>
           )}
+          {(typeof storeConversation.metadata.senderStatus === "string" ||
+            typeof storeConversation.metadata.recipientStatus === "string") && (
+            <View style={styles.snapshotStatuses}>
+              {typeof storeConversation.metadata.recipientStatus === "string" && (
+                <View style={styles.snapshotRow}>
+                  <Text style={styles.snapshotLabel}>{participantName}</Text>
+                  <View style={styles.snapshotPillTheirs}>
+                    <Text style={styles.snapshotPillTheirsText}>
+                      {storeConversation.metadata.recipientStatus as string}
+                    </Text>
+                  </View>
+                </View>
+              )}
+              {typeof storeConversation.metadata.senderStatus === "string" && (
+                <View style={styles.snapshotRowMine}>
+                  <Text style={styles.snapshotLabel}>Ty</Text>
+                  <View style={styles.snapshotPillMine}>
+                    <Text style={styles.snapshotPillMineText}>{storeConversation.metadata.senderStatus as string}</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
         </View>
       )}
 
@@ -628,6 +651,57 @@ const styles = StyleSheet.create({
     color: "#D4851C",
     marginTop: 4,
     textAlign: "center",
+  },
+  snapshotStatuses: {
+    marginTop: spacing.tight,
+    gap: spacing.hairline,
+    paddingHorizontal: spacing.tight,
+  },
+  snapshotRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.tick,
+  },
+  snapshotRowMine: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: spacing.tick,
+  },
+  snapshotLabel: {
+    fontFamily: fonts.sans,
+    fontSize: 9,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+    color: "#D4851C",
+  },
+  snapshotPillTheirs: {
+    backgroundColor: colors.mapBg,
+    borderRadius: 12,
+    paddingVertical: spacing.hairline,
+    paddingHorizontal: spacing.compact,
+    maxWidth: "70%",
+    opacity: 0.6,
+  },
+  snapshotPillTheirsText: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.ink,
+  },
+  snapshotPillMine: {
+    backgroundColor: colors.accent,
+    borderRadius: 12,
+    paddingVertical: spacing.hairline,
+    paddingHorizontal: spacing.compact,
+    maxWidth: "70%",
+    opacity: 0.35,
+  },
+  snapshotPillMineText: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.bg,
   },
   messageList: {
     paddingHorizontal: spacing.section,
