@@ -634,6 +634,25 @@ export const profilesRouter = router({
 
   // Get my status matches
   getMyStatusMatches: protectedProcedure.query(async ({ ctx }) => {
-    return db.select().from(schema.statusMatches).where(eq(schema.statusMatches.userId, ctx.userId));
+    const rows = await db
+      .select({
+        id: schema.statusMatches.id,
+        matchedUserId: schema.statusMatches.matchedUserId,
+        reason: schema.statusMatches.reason,
+        matchedVia: schema.statusMatches.matchedVia,
+        createdAt: schema.statusMatches.createdAt,
+        statusVisibility: schema.profiles.statusVisibility,
+      })
+      .from(schema.statusMatches)
+      .innerJoin(schema.profiles, eq(schema.statusMatches.matchedUserId, schema.profiles.userId))
+      .where(eq(schema.statusMatches.userId, ctx.userId));
+
+    return rows.map((row) => ({
+      id: row.id,
+      matchedUserId: row.matchedUserId,
+      reason: row.statusVisibility === "private" ? "Na podstawie profilu" : row.reason,
+      matchedVia: row.matchedVia,
+      createdAt: row.createdAt,
+    }));
   }),
 });
