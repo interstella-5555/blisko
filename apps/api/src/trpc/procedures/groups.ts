@@ -556,16 +556,16 @@ export const groupsRouter = router({
         distance: distanceSql.as("distance"),
         memberCount: sql<number>`(
             SELECT count(*) FROM conversation_participants cp2
+            INNER JOIN "user" u ON cp2.user_id = u.id AND u.deleted_at IS NULL
             WHERE cp2.conversation_id = ${schema.conversations.id}
-              AND cp2.user_id NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)
           )`.as("member_count"),
         nearbyMemberCount: sql<number>`(
             SELECT count(*) FROM conversation_participants cp
+            INNER JOIN "user" u ON cp.user_id = u.id AND u.deleted_at IS NULL
             INNER JOIN profiles p ON cp.user_id = p.user_id
             WHERE cp.conversation_id = ${schema.conversations.id}
               AND cp.location_visible = true
               AND p.latitude IS NOT NULL
-              AND cp.user_id NOT IN (SELECT id FROM "user" WHERE deleted_at IS NOT NULL)
               AND 6371000 * acos(
                 cos(radians(${latitude})) * cos(radians(p.latitude)) *
                 cos(radians(p.longitude) - radians(${longitude})) +
