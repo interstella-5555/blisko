@@ -38,6 +38,7 @@ interface WavesStore {
   received: ReceivedWaveEntry[];
   sent: SentWaveEntry[];
   waveStatusByUserId: Map<string, WaveStatus>;
+  viewedWaveIds: Set<string>;
   _hydrated: boolean;
 
   setReceived(waves: ReceivedWaveEntry[]): void;
@@ -45,6 +46,7 @@ interface WavesStore {
   addReceived(wave: WaveEntry, fromProfile: { displayName: string; avatarUrl: string | null }): void;
   addSent(wave: WaveEntry, toProfile?: Partial<SentWaveEntry["toProfile"]>): void;
   removeSent(waveId: string): void;
+  markViewed(waveId: string): void;
   reset(): void;
   updateStatus(waveId: string, accepted: boolean, statusOverride?: string): void;
 }
@@ -75,6 +77,7 @@ export const useWavesStore = create<WavesStore>((set, _get) => ({
   received: [],
   sent: [],
   waveStatusByUserId: new Map(),
+  viewedWaveIds: new Set(),
   _hydrated: false,
 
   setReceived(waves) {
@@ -143,8 +146,17 @@ export const useWavesStore = create<WavesStore>((set, _get) => ({
     });
   },
 
+  markViewed(waveId) {
+    set((state) => {
+      if (state.viewedWaveIds.has(waveId)) return state;
+      const viewedWaveIds = new Set(state.viewedWaveIds);
+      viewedWaveIds.add(waveId);
+      return { viewedWaveIds };
+    });
+  },
+
   reset() {
-    set({ received: [], sent: [], waveStatusByUserId: new Map(), _hydrated: false });
+    set({ received: [], sent: [], waveStatusByUserId: new Map(), viewedWaveIds: new Set(), _hydrated: false });
   },
 
   updateStatus(waveId, accepted, statusOverride) {
