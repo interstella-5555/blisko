@@ -182,13 +182,22 @@ export const wavesRouter = router({
       });
 
       if (reverseWave) {
-        // Mutual ping! Auto-accept both waves and create conversation
+        // Mutual ping! Auto-accept both waves and create conversation.
+        // Guard against race: two concurrent sends (A→B, B→A) can both detect
+        // the reverse wave. The UPDATE locks rows — the second tx waits, then
+        // finds 0 pending rows and skips conversation creation.
         const now = new Date();
-        const [conversation] = await db.transaction(async (tx) => {
-          await tx
+        const conversation = await db.transaction(async (tx) => {
+          const accepted = await tx
             .update(schema.waves)
             .set({ status: "accepted", respondedAt: now })
-            .where(inArray(schema.waves.id, [wave.id, reverseWave.id]));
+            .where(and(inArray(schema.waves.id, [wave.id, reverseWave.id]), eq(schema.waves.status, "pending")))
+            .returning({ id: schema.waves.id });
+
+          if (accepted.length < 2) {
+            // Other process already handled this mutual ping
+            return null;
+          }
 
           const [conv] = await tx
             .insert(schema.conversations)
@@ -207,8 +216,14 @@ export const wavesRouter = router({
             { conversationId: conv.id, userId: input.toUserId },
           ]);
 
-          return [conv];
+          return conv;
         });
+
+        if (!conversation) {
+          // Race lost — other process already created the conversation
+          // and sent WS events. Return wave as-is; client updates via WS.
+          return wave;
+        }
 
         // Notify both users
         const mutualMsg = "Pingowaliście się wzajemnie — to rzadkie!";
