@@ -1,10 +1,11 @@
 import { Redirect, router, Tabs } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { IconChat, IconPerson, IconPin, IconPlus, IconSettings, IconWave } from "../../src/components/ui/icons";
 import { useBackgroundSync } from "../../src/hooks/useBackgroundSync";
 import { useInAppNotifications } from "../../src/hooks/useInAppNotifications";
 import { usePushNotifications } from "../../src/hooks/usePushNotifications";
+import { authClient } from "../../src/lib/auth";
 import { getLastFailedRequestId, trpc } from "../../src/lib/trpc";
 import { sendWsMessage, useWebSocket, type WSMessage } from "../../src/lib/ws";
 import { useAuthStore } from "../../src/stores/authStore";
@@ -149,6 +150,19 @@ export default function TabsLayout() {
     }
     if (msg.type === "conversationDeleted") {
       useConversationsStore.getState().remove(msg.conversationId);
+    }
+    if (msg.type === "forceDisconnect") {
+      Alert.alert("Konto usunięte", "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.", [
+        {
+          text: "OK",
+          onPress: () => {
+            authClient.signOut();
+            useAuthStore.getState().reset();
+            router.replace("/(auth)/login");
+          },
+        },
+      ]);
+      return;
     }
     if (msg.type === "groupInvited") {
       // Subscribe to the new group conversation and refetch

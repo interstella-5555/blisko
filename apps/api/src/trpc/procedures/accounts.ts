@@ -6,6 +6,7 @@ import { db, schema } from "@/db";
 import { enqueueDataExport, enqueueHardDeleteUser } from "@/services/queue";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
+import { ee } from "@/ws/events";
 
 export const accountsRouter = router({
   listConnected: protectedProcedure.query(async ({ ctx }) => {
@@ -101,7 +102,10 @@ export const accountsRouter = router({
         await tx.delete(schema.pushTokens).where(eq(schema.pushTokens.userId, ctx.userId));
       });
 
-      // 4. Schedule hard delete outside transaction (queue job, not DB)
+      // 4. Close active WebSocket connections (sessions deleted, no reconnect possible)
+      ee.emit("forceDisconnect", { userId: ctx.userId });
+
+      // 5. Schedule hard delete outside transaction (queue job, not DB)
       await enqueueHardDeleteUser(ctx.userId);
 
       return { ok: true };

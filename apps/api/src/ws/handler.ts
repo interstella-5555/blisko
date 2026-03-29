@@ -14,6 +14,7 @@ import { sessionByToken } from "@/trpc/context";
 import type {
   AnalysisReadyEvent,
   ConversationDeletedEvent,
+  ForceDisconnectEvent,
   GroupInvitedEvent,
   GroupMemberEvent,
   GroupUpdatedEvent,
@@ -314,6 +315,17 @@ ee.on("groupInvited", (event: GroupInvitedEvent) => {
     conversationId: event.conversationId,
     groupName: event.groupName,
   });
+});
+
+ee.on("forceDisconnect", (event: ForceDisconnectEvent) => {
+  // Notify client before closing so it can suppress auto-reconnect
+  broadcastToUser(event.userId, { type: "forceDisconnect" });
+  // Close all WS connections for this user
+  for (const ws of clients) {
+    if (ws.data.userId === event.userId) {
+      ws.close(1000, "account_deleted");
+    }
+  }
 });
 
 // Forward per-conversation typing events
