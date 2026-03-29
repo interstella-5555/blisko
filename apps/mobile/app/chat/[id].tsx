@@ -401,7 +401,21 @@ export default function ChatScreen() {
                 </Pressable>
                 <Pressable
                   style={styles.headerLeft}
-                  onPress={isGroup ? () => router.push(`/(modals)/group/${conversationId}`) : undefined}
+                  onPress={
+                    isGroup
+                      ? () => router.push(`/(modals)/group/${conversationId}`)
+                      : storeConversation?.participant?.userId
+                        ? () =>
+                            router.push({
+                              pathname: "/(modals)/user/[userId]",
+                              params: {
+                                userId: storeConversation.participant!.userId,
+                                displayName: storeConversation.participant!.displayName,
+                                avatarUrl: storeConversation.participant!.avatarUrl ?? "",
+                              },
+                            })
+                        : undefined
+                  }
                 >
                   <Avatar uri={headerAvatarUrl} name={participantName} size={32} />
                   <View>

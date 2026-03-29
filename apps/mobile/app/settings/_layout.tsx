@@ -31,6 +31,7 @@ export default function SettingsLayout() {
       <Stack.Screen name="change-email" options={{ title: "Zmień email" }} />
       <Stack.Screen name="verify-email" options={{ title: "Weryfikacja" }} />
       <Stack.Screen name="privacy" options={{ title: "Prywatność" }} />
+      <Stack.Screen name="blocked-users" options={{ title: "Zablokowani" }} />
       <Stack.Screen name="notifications" options={{ title: "Powiadomienia" }} />
       <Stack.Screen name="help" options={{ title: "Pomoc" }} />
     </Stack>

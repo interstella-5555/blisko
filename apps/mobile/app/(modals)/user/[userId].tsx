@@ -14,6 +14,45 @@ import { useProfilesStore } from "../../../src/stores/profilesStore";
 import { useWavesStore } from "../../../src/stores/wavesStore";
 import { colors, fonts, spacing, type as typ } from "../../../src/theme";
 
+function BlockAction({ userId, displayName }: { userId: string; displayName: string }) {
+  const blockMutation = trpc.waves.block.useMutation();
+  const utils = trpc.useUtils();
+
+  const handleBlock = () => {
+    Alert.alert("Zablokuj", `Czy na pewno chcesz zablokowac ${displayName}?`, [
+      { text: "Anuluj", style: "cancel" },
+      {
+        text: "Zablokuj",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await blockMutation.mutateAsync({ userId });
+            // Remove any pending waves involving this user
+            const wavesStore = useWavesStore.getState();
+            const pendingSent = wavesStore.sent.find((w) => w.wave.toUserId === userId && w.wave.status === "pending");
+            if (pendingSent) wavesStore.removeSent(pendingSent.wave.id);
+            const pendingReceived = wavesStore.received.find(
+              (w) => w.wave.fromUserId === userId && w.wave.status === "pending",
+            );
+            if (pendingReceived) wavesStore.updateStatus(pendingReceived.wave.id, false);
+
+            await Promise.all([utils.waves.getSent.invalidate(), utils.waves.getReceived.invalidate()]);
+            router.back();
+          } catch {
+            Alert.alert("Blad", "Nie udalo sie zablokowac uzytkownika.");
+          }
+        },
+      },
+    ]);
+  };
+
+  return (
+    <Pressable style={styles.blockAction} onPress={handleBlock} disabled={blockMutation.isPending}>
+      <Text style={styles.blockActionText}>{blockMutation.isPending ? "Blokowanie..." : "Zablokuj uzytkownika"}</Text>
+    </Pressable>
+  );
+}
+
 function SkeletonLines({ count }: { count: number }) {
   const opacity = useRef(new Animated.Value(0.3)).current;
 
@@ -60,6 +99,7 @@ export default function UserProfileScreen() {
   }>();
 
   const userId = params.userId;
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const distance = Number(params.distance) || 0;
   const _rankScore = Number(params.rankScore) || 0;
   const matchScore = Number(params.matchScore) || 0;
@@ -463,6 +503,9 @@ export default function UserProfileScreen() {
             )}
           </View>
         )}
+
+        {/* Block action — hidden for own profile */}
+        {currentUserId && currentUserId !== userId && <BlockAction userId={userId} displayName={displayName} />}
       </ScrollView>
       <ProfileGateSheet visible={gate.sheetVisible} onDismiss={() => gate.setSheetVisible(false)} />
     </>
@@ -682,5 +725,15 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansMedium,
     fontSize: 12,
     color: colors.ink,
+  },
+  blockAction: {
+    alignItems: "center",
+    paddingVertical: spacing.column,
+    paddingHorizontal: spacing.section,
+  },
+  blockActionText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 14,
+    color: colors.accent,
   },
 });

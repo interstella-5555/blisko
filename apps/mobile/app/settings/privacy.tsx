@@ -1,5 +1,6 @@
+import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import Svg, { Polyline } from "react-native-svg";
 import { trpc } from "../../src/lib/trpc";
 import { useAuthStore } from "../../src/stores/authStore";
@@ -102,10 +103,7 @@ export default function PrivacyScreen() {
 
       {/* Blocked users section */}
       <View style={styles.section}>
-        <Pressable
-          style={styles.blockedRow}
-          onPress={() => Alert.alert("Zablokowani uzytkownicy", "Brak zablokowanych uzytkownikow")}
-        >
+        <Pressable style={styles.blockedRow} onPress={() => router.push("/settings/blocked-users" as never)}>
           <Text style={styles.blockedLabel}>Zablokowani uzytkownicy</Text>
           <IconChevronRight />
         </Pressable>
