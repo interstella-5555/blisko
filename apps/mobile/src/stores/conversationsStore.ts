@@ -97,16 +97,24 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
   },
 
   markAsRead(convId) {
+    const conv = get().conversations.find((c) => c.id === convId);
+    if (!conv || conv.unreadCount === 0) return;
     set((state) => ({
       conversations: state.conversations.map((c) => (c.id === convId ? { ...c, unreadCount: 0 } : c)),
     }));
   },
 
   setActiveConversation(id) {
-    set({ activeConversationId: id });
-    // Auto-mark as read when opening
-    if (id) {
-      get().markAsRead(id);
+    const state = get();
+    if (state.activeConversationId === id) return;
+    const conv = id ? state.conversations.find((c) => c.id === id) : null;
+    if (id && conv && conv.unreadCount > 0) {
+      set({
+        activeConversationId: id,
+        conversations: state.conversations.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c)),
+      });
+    } else {
+      set({ activeConversationId: id });
     }
   },
 

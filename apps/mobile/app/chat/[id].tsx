@@ -162,20 +162,18 @@ export default function ChatScreen() {
   const markAsReadRef = useRef(markAsRead);
   markAsReadRef.current = markAsRead;
 
-  const setActiveConversation = useConversationsStore((s) => s.setActiveConversation);
-
   useEffect(() => {
     if (conversationId) {
       markAsReadRef.current.mutate({ conversationId });
-      setActiveConversation(conversationId);
+      useConversationsStore.getState().setActiveConversation(conversationId);
     }
     return () => {
       if (conversationId) {
         markAsReadRef.current.mutate({ conversationId });
       }
-      setActiveConversation(null);
+      useConversationsStore.getState().setActiveConversation(null);
     };
-  }, [conversationId, setActiveConversation]);
+  }, [conversationId]);
 
   // Send message with optimistic update via messagesStore
   const replyingToRef = useRef(replyingTo);
@@ -656,6 +654,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.tight,
     gap: spacing.hairline,
     paddingHorizontal: spacing.tight,
+    alignSelf: "stretch",
   },
   snapshotRow: {
     flexDirection: "row",
