@@ -125,17 +125,23 @@ export async function evaluateStatusMatch(
   statusText: string,
   otherContext: string,
   matchType: "status" | "profile",
+  categoriesA?: string[] | null,
+  categoriesB?: string[] | null,
 ): Promise<{ isMatch: boolean; reason: string }> {
   if (!isConfigured()) return { isMatch: false, reason: "" };
 
+  const catA = categoriesA?.length ? ` [kontekst: ${categoriesA.join(", ")}]` : "";
+  const catB = categoriesB?.length ? ` [kontekst: ${categoriesB.join(", ")}]` : "";
+
   const prompt =
     matchType === "status"
-      ? `Osoba A szuka: "${statusText}"
-Osoba B szuka: "${otherContext}"
+      ? `Osoba A szuka: "${statusText}"${catA}
+Osoba B szuka: "${otherContext}"${catB}
 
 Czy te dwie potrzeby/oferty się uzupełniają? Jedna osoba może pomóc drugiej lub mogą coś zrobić razem?
+Weź pod uwagę kontekst kategorii — osoby szukające w różnych kontekstach (np. randka vs projekt) raczej się nie uzupełniają.
 Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po polsku, max 60 znaków"}`
-      : `Osoba A szuka teraz: "${statusText}"
+      : `Osoba A szuka teraz: "${statusText}"${catA}
 Profil osoby B: "${otherContext}"
 
 Czy profil osoby B pasuje do tego czego szuka osoba A?

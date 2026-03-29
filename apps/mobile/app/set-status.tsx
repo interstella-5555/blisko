@@ -25,7 +25,7 @@ export default function SetStatusScreen() {
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
   const setProfile = useAuthStore((state) => state.setProfile);
   const [text, setText] = useState(prefill || "");
-  const [visibility, setVisibility] = useState<Visibility>("public");
+  const [visibility, setVisibility] = useState<Visibility | null>(null);
   const [categories, setCategories] = useState<StatusCategory[]>([]);
 
   const toggleCategory = (cat: StatusCategory) => {
@@ -74,7 +74,7 @@ export default function SetStatusScreen() {
     router.back();
 
     setStatus.mutate(
-      { text: trimmed, visibility, categories },
+      { text: trimmed, visibility: visibility!, categories },
       {
         onError: () => {
           if (previousProfile) setProfile(previousProfile);
@@ -102,7 +102,7 @@ export default function SetStatusScreen() {
     });
   };
 
-  const canSubmit = text.trim().length > 0 && categories.length > 0;
+  const canSubmit = text.trim().length > 0 && categories.length > 0 && visibility !== null;
 
   return (
     <View style={styles.container}>
