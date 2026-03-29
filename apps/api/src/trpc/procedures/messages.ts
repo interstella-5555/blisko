@@ -788,14 +788,22 @@ export const messagesRouter = router({
       });
     }
 
+    const escapedQuery = input.query.replace(/[%_\\]/g, "\\$&");
+
     const results = await db
-      .select()
+      .select({
+        id: schema.messages.id,
+        conversationId: schema.messages.conversationId,
+        senderId: schema.messages.senderId,
+        content: schema.messages.content,
+        createdAt: schema.messages.createdAt,
+      })
       .from(schema.messages)
       .where(
         and(
           eq(schema.messages.conversationId, input.conversationId),
           isNull(schema.messages.deletedAt),
-          ilike(schema.messages.content, `%${input.query}%`),
+          ilike(schema.messages.content, `%${escapedQuery}%`),
         ),
       )
       .orderBy(desc(schema.messages.createdAt))
