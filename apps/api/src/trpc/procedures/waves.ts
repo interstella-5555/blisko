@@ -504,8 +504,10 @@ export const wavesRouter = router({
   getBlocked: protectedProcedure.query(async ({ ctx }) => {
     const blockedUsers = await db
       .select({
-        block: schema.blocks,
-        profile: schema.profiles,
+        userId: schema.profiles.userId,
+        displayName: schema.profiles.displayName,
+        avatarUrl: schema.profiles.avatarUrl,
+        blockedAt: schema.blocks.createdAt,
       })
       .from(schema.blocks)
       .innerJoin(schema.profiles, eq(schema.blocks.blockedId, schema.profiles.userId))
