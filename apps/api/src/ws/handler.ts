@@ -300,6 +300,7 @@ ee.on("groupUpdated", (event: GroupUpdatedEvent) => {
 
 ee.on("conversationDeleted", (event: ConversationDeletedEvent) => {
   broadcastToUser(event.userId, { type: "conversationDeleted", conversationId: event.conversationId });
+  removeTypingListener(event.conversationId);
 });
 
 ee.on("topicEvent", (event: TopicEvent) => {
@@ -328,24 +329,28 @@ ee.on("forceDisconnect", (event: ForceDisconnectEvent) => {
   }
 });
 
-// Forward per-conversation typing events
-ee.on("typing", (_event: TypingEvent) => {
-  // Use a wildcard pattern — typing events come as typing:<id>
-});
-
-// Set up dynamic typing listeners
-const typingListenerSetup = new Set<string>();
+// Set up dynamic typing listeners (Map stores handler ref for cleanup)
+const typingListeners = new Map<string, (event: TypingEvent) => void>();
 
 export function ensureTypingListener(conversationId: string) {
-  if (typingListenerSetup.has(conversationId)) return;
-  typingListenerSetup.add(conversationId);
+  if (typingListeners.has(conversationId)) return;
 
-  ee.on(`typing:${conversationId}`, (event: TypingEvent) => {
+  const handler = (event: TypingEvent) => {
     broadcastToConversation(conversationId, {
       type: "typing",
       ...event,
     });
-  });
+  };
+
+  typingListeners.set(conversationId, handler);
+  ee.on(`typing:${conversationId}`, handler);
+}
+
+function removeTypingListener(conversationId: string) {
+  const handler = typingListeners.get(conversationId);
+  if (!handler) return;
+  ee.removeListener(`typing:${conversationId}`, handler);
+  typingListeners.delete(conversationId);
 }
 
 export { clients };
