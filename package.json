@@ -31,6 +31,7 @@
     "admin:build": "bun run --filter '@repo/admin' build",
     "admin:start": "bun run --filter '@repo/admin' start",
     "admin:typecheck": "bun run --filter '@repo/admin' typecheck",
+    "mobile:simulator": "bash scripts/dev-simulator-cleanup.sh && npx -y concurrently --kill-others-on-fail --names redis,api,metro,build --prefix-colors blue,green,yellow,cyan 'docker run --rm --name blisko-redis -p 6379:6379 redis:7-alpine' 'npx -y wait-on tcp:localhost:6379 -t 10s && bun run api:dev' 'cd apps/mobile && npx expo start --dev-client' 'npx -y wait-on tcp:localhost:8081 -t 30s && cd apps/mobile && npx expo run:ios --no-bundler && xcrun simctl location booted set 52.2010865,20.9618980'",
     "ralph": "bash scripts/ralph.sh",
     "ralph:dry": "bash scripts/ralph.sh --dry-run",
     "prepare": "husky",

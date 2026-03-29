@@ -12,15 +12,17 @@ Brief pointers — details are in the code. Look there first.
 
 **Railway:** Project ID `62599e90-30e8-47dd-af34-4e3f73c2261a`. Services: api, chatbot, design, metro (mobile), website, database (Postgres), queue (Redis). Use `mcp__railway__*` tools.
 
-**Running locally:** `bun run api:dev`, `bun run design:dev`, `bun run chatbot:dev`, `bun run website:dev`. Mobile: `cd apps/mobile && npx expo run:ios` (simulator) or `--device` (physical). Simulator location: `xcrun simctl location booted set 52.2010865,20.9618980` (ul. Altowa, Warszawa).
+**Running locally:** `bun run api:dev`, `bun run design:dev`, `bun run chatbot:dev`, `bun run website:dev`.
+
+**Mobile on simulator:** `bun run mobile:simulator` — one command that kills old API/Simulator, sets `.env.local` to localhost, starts API, waits for health check, builds and launches on simulator, sets location to Warsaw. Never use `npx expo start` or `npx expo run:ios` directly.
 
 **Physical iPhone:** UDID `00008130-00065CE826A0001C` (iPhone 15). API URL via `EXPO_PUBLIC_API_URL` in `apps/mobile/.env.local`:
 ```bash
 # Production (Railway API)
 echo 'EXPO_PUBLIC_API_URL=https://api.blisko.app' > apps/mobile/.env.local
 
-# Local dev
-echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:3000' > apps/mobile/.env.local
+# Local dev (physical device — use LAN IP, not localhost)
+echo 'EXPO_PUBLIC_API_URL=http://192.168.50.120:3000' > apps/mobile/.env.local
 ```
 
 **Env vars:** Two env files in `apps/api/`: `.env` (local dev, loaded by Bun automatically), `.env.production` (Railway credentials, never loaded automatically — use `bun --env-file=apps/api/.env.production run <script>` for scripts needing prod access or simulator/device testing). OAuth providers: `*_CLIENT_ID` + `*_CLIENT_SECRET` for Apple, Facebook, Google, LinkedIn.
