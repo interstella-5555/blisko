@@ -119,6 +119,8 @@ export default function TabsLayout() {
         createdAt: now,
         updatedAt: now,
       });
+      // Refetch to get full conversation data (metadata with connectedAt, connectedDistance, isMutualPing)
+      utilsRef.current.messages.getConversations.invalidate();
     }
     if (msg.type === "reconnected") {
       // Reconcile after WS reconnection — may have missed events
