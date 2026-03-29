@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { usePreferencesStore } from "@/stores/preferencesStore";
 import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
 interface ToggleRowProps {
@@ -23,20 +23,34 @@ function ToggleRow({ label, value, onValueChange }: ToggleRowProps) {
 }
 
 export default function NotificationsScreen() {
-  const [newWaves, setNewWaves] = useState(true);
-  const [waveResponses, setWaveResponses] = useState(true);
-  const [newMessages, setNewMessages] = useState(true);
-  const [groupInvites, setGroupInvites] = useState(true);
+  const notificationPrefs = usePreferencesStore((s) => s.notificationPrefs);
+  const setNotificationPref = usePreferencesStore((s) => s.setNotificationPref);
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>PUSH</Text>
 
-        <ToggleRow label="Nowe pingi" value={newWaves} onValueChange={setNewWaves} />
-        <ToggleRow label="Odpowiedzi na pingi" value={waveResponses} onValueChange={setWaveResponses} />
-        <ToggleRow label="Nowe wiadomosci" value={newMessages} onValueChange={setNewMessages} />
-        <ToggleRow label="Zaproszenia do grup" value={groupInvites} onValueChange={setGroupInvites} />
+        <ToggleRow
+          label="Nowe pingi"
+          value={notificationPrefs.newWaves}
+          onValueChange={(v) => setNotificationPref("newWaves", v)}
+        />
+        <ToggleRow
+          label="Odpowiedzi na pingi"
+          value={notificationPrefs.waveResponses}
+          onValueChange={(v) => setNotificationPref("waveResponses", v)}
+        />
+        <ToggleRow
+          label="Nowe wiadomosci"
+          value={notificationPrefs.newMessages}
+          onValueChange={(v) => setNotificationPref("newMessages", v)}
+        />
+        <ToggleRow
+          label="Zaproszenia do grup"
+          value={notificationPrefs.groupInvites}
+          onValueChange={(v) => setNotificationPref("groupInvites", v)}
+        />
 
         <Text style={styles.helperText}>
           Powiadomienia push wymagaja zgody systemowej. Jesli je wylaczyles, wlacz je w Ustawieniach iPhone'a {">"}{" "}
