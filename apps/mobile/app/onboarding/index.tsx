@@ -54,7 +54,7 @@ export default function OnboardingNameScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
         <View style={styles.stepRow}>
-          <Text style={styles.step}>Krok 1</Text>
+          <View />
           <Pressable onPress={handleLogout} hitSlop={12} style={styles.logoutButton}>
             <IconX size={12} color={colors.muted} />
             <Text style={styles.logoutText}>Wyloguj</Text>
@@ -106,9 +106,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: spacing.tight,
-  },
-  step: {
-    ...typ.caption,
   },
   logoutButton: {
     flexDirection: "row",

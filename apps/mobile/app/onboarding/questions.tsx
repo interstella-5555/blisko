@@ -327,7 +327,7 @@ export default function QuestionsScreen() {
             <IconChevronLeft size={24} color={colors.ink} />
           </Pressable>
           <Text style={styles.counter}>
-            {questionIndex + 1} / {totalQuestions}
+            Krok 3 z 3 · {questionIndex + 1} / {totalQuestions}
           </Text>
         </View>
 

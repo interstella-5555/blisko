@@ -11,6 +11,8 @@ import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
 export default function ProfilingResultScreen() {
   const { profilingSessionId, displayName, complete } = useOnboardingStore();
+  const { visibilityMode, superpower, offerTypes, statusText, statusCategories, statusVisibility } =
+    useOnboardingStore();
   const setProfile = useAuthStore((s) => s.setProfile);
   const setHasCheckedProfile = useAuthStore((s) => s.setHasCheckedProfile);
 
@@ -36,6 +38,7 @@ export default function ProfilingResultScreen() {
   );
 
   const applyProfile = trpc.profiling.applyProfile.useMutation();
+  const setStatusMutation = trpc.profiles.setStatus.useMutation();
 
   // Load generated profile data when session completes
   useEffect(() => {
@@ -84,9 +87,22 @@ export default function ProfilingResultScreen() {
         portraitSharedForMatching: portraitShared,
         bio: bio.trim() || undefined,
         lookingFor: lookingFor.trim() || undefined,
+        visibilityMode,
+        superpower: superpower || undefined,
+        offerType: offerTypes.length > 0 ? offerTypes : undefined,
       });
       setProfile(profile);
       setHasCheckedProfile(true);
+
+      // Set status if user filled it during onboarding
+      if (statusText.length >= 10 && statusCategories.length > 0) {
+        setStatusMutation.mutate({
+          text: statusText,
+          visibility: statusVisibility,
+          categories: statusCategories,
+        });
+      }
+
       complete();
       setTimeout(() => {
         router.replace("/(tabs)");
