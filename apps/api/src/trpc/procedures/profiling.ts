@@ -306,6 +306,9 @@ export const profilingRouter = router({
         portrait: session.generatedPortrait,
         portraitSharedForMatching: input.portraitSharedForMatching,
         isComplete: true,
+        ...(input.visibilityMode ? { visibilityMode: input.visibilityMode } : {}),
+        ...(input.superpower ? { superpower: input.superpower } : {}),
+        ...(input.offerType?.length ? { offerType: input.offerType } : {}),
         ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
       })
       .onConflictDoUpdate({
@@ -317,6 +320,9 @@ export const profilingRouter = router({
           portrait: session.generatedPortrait,
           portraitSharedForMatching: input.portraitSharedForMatching,
           isComplete: true,
+          ...(input.visibilityMode ? { visibilityMode: input.visibilityMode } : {}),
+          ...(input.superpower !== undefined ? { superpower: input.superpower } : {}),
+          ...(input.offerType ? { offerType: input.offerType } : {}),
           updatedAt: new Date(),
         },
       })
@@ -472,7 +478,9 @@ export const profilingRouter = router({
         displayName: input.displayName,
         bio: "",
         lookingFor: "",
-        visibilityMode: "ninja",
+        visibilityMode: input.visibilityMode ?? "ninja",
+        ...(input.superpower ? { superpower: input.superpower } : {}),
+        ...(input.offerType?.length ? { offerType: input.offerType } : {}),
         ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
       })
       .returning();
