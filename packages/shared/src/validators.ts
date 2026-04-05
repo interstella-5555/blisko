@@ -14,6 +14,9 @@ export const socialLinksSchema = z
   })
   .optional();
 
+export const OFFER_TYPES = ["help", "exchange", "gig", "collaboration"] as const;
+export type OfferType = (typeof OFFER_TYPES)[number];
+
 export const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(50).optional(),
   bio: z.string().min(10).max(500).optional(),
@@ -23,7 +26,7 @@ export const updateProfileSchema = z.object({
   visibilityMode: z.enum(["ninja", "semi_open", "full_nomad"]).optional(),
   doNotDisturb: z.boolean().optional(),
   superpower: z.string().max(300).optional(),
-  offerType: z.array(z.enum(["help", "exchange", "gig", "collaboration"])).optional(),
+  offerType: z.array(z.enum(OFFER_TYPES)).max(4).optional(),
 });
 
 export const updateLocationSchema = z.object({
@@ -92,7 +95,7 @@ export const STATUS_CATEGORIES = ["project", "networking", "dating", "casual"] a
 export type StatusCategory = (typeof STATUS_CATEGORIES)[number];
 
 export const setStatusSchema = z.object({
-  text: z.string().min(1).max(150),
+  text: z.string().min(10).max(150),
   visibility: z.enum(["public", "private"]),
   categories: z.array(z.enum(STATUS_CATEGORIES)).min(1).max(2),
 });
@@ -127,6 +130,9 @@ export const applyProfilingSchema = z.object({
   portraitSharedForMatching: z.boolean(),
   bio: z.string().min(10).max(500).optional(),
   lookingFor: z.string().min(10).max(500).optional(),
+  visibilityMode: z.enum(["ninja", "semi_open", "full_nomad"]).optional(),
+  superpower: z.string().max(300).optional(),
+  offerType: z.array(z.enum(OFFER_TYPES)).max(4).optional(),
 });
 
 // New onboarding validators
@@ -148,6 +154,9 @@ export const answerFollowUpSchema = z.object({
 
 export const createGhostProfileSchema = z.object({
   displayName: z.string().min(2).max(50),
+  visibilityMode: z.enum(["ninja", "semi_open", "full_nomad"]).optional(),
+  superpower: z.string().max(300).optional(),
+  offerType: z.array(z.enum(OFFER_TYPES)).max(4).optional(),
 });
 
 // Group validators
