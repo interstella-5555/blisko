@@ -467,9 +467,11 @@ export default function UserProfileScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Co mogę dać</Text>
             <Text style={styles.sectionContent}>{profile.superpower}</Text>
-            {profile.offerType && (
+            {profile.offerType && profile.offerType.length > 0 && (
               <Text style={styles.offerTypeBadge}>
-                {{ volunteer: "Wolontariat", exchange: "Wymiana", gig: "Zlecenie" }[profile.offerType]}
+                {profile.offerType
+                  .map((t) => ({ help: "Pomoc", exchange: "Wymiana", gig: "Zlecenie", collaboration: "Współpraca" })[t])
+                  .join(", ")}
               </Text>
             )}
           </View>

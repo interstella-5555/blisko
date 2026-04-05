@@ -27,7 +27,9 @@ export default function EditProfileScreen() {
   const [lookingFor, setLookingFor] = useState(profile?.lookingFor || "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || null);
   const [superpower, setSuperpower] = useState(profile?.superpower || "");
-  const [offerType, setOfferType] = useState<"volunteer" | "exchange" | "gig" | "">(profile?.offerType || "");
+  const [offerTypes, setOfferTypes] = useState<("help" | "exchange" | "gig" | "collaboration")[]>(
+    profile?.offerType ?? [],
+  );
   const [uploading, setUploading] = useState(false);
 
   const utils = trpc.useUtils();
@@ -95,7 +97,7 @@ export default function EditProfileScreen() {
       bio: bio.trim(),
       lookingFor: lookingFor.trim(),
       ...(superpower.trim() ? { superpower: superpower.trim() } : {}),
-      ...(offerType ? { offerType } : {}),
+      ...(offerTypes.length > 0 ? { offerType: offerTypes } : {}),
       ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl || undefined } : {}),
     });
   };
@@ -185,14 +187,16 @@ export default function EditProfileScreen() {
           <View style={styles.field}>
             <Text style={styles.label}>Forma</Text>
             <View style={styles.offerTypeRow}>
-              {(["volunteer", "exchange", "gig"] as const).map((t) => (
+              {(["help", "exchange", "gig", "collaboration"] as const).map((t) => (
                 <Pressable
                   key={t}
-                  style={[styles.offerTypeChip, offerType === t && styles.offerTypeChipSelected]}
-                  onPress={() => setOfferType(t)}
+                  style={[styles.offerTypeChip, offerTypes.includes(t) && styles.offerTypeChipSelected]}
+                  onPress={() =>
+                    setOfferTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
+                  }
                 >
-                  <Text style={[styles.offerTypeText, offerType === t && styles.offerTypeTextSelected]}>
-                    {{ volunteer: "Wolontariat", exchange: "Wymiana", gig: "Zlecenie" }[t]}
+                  <Text style={[styles.offerTypeText, offerTypes.includes(t) && styles.offerTypeTextSelected]}>
+                    {{ help: "Pomoc", exchange: "Wymiana", gig: "Zlecenie", collaboration: "Współpraca" }[t]}
                   </Text>
                 </Pressable>
               ))}

@@ -1,4 +1,8 @@
+import type { StatusCategory } from "@repo/shared";
 import { create } from "zustand";
+
+type VisibilityMode = "ninja" | "semi_open" | "full_nomad";
+type OfferType = "help" | "exchange" | "gig" | "collaboration";
 
 interface OnboardingState {
   displayName: string;
@@ -7,10 +11,17 @@ interface OnboardingState {
   profilingSessionId: string | null;
   step: number;
   isComplete: boolean;
-  // New onboarding flow
   answers: Record<string, string>;
   skipped: string[];
   isGhost: boolean;
+  // New fields for redesigned onboarding
+  visibilityMode: VisibilityMode;
+  superpower: string;
+  offerTypes: OfferType[];
+  statusText: string;
+  statusCategories: StatusCategory[];
+  statusVisibility: "public" | "private";
+
   setDisplayName: (name: string) => void;
   setBio: (bio: string) => void;
   setLookingFor: (lookingFor: string) => void;
@@ -20,10 +31,17 @@ interface OnboardingState {
   setStep: (step: number) => void;
   complete: () => void;
   reset: () => void;
-  // New onboarding flow
   setAnswer: (questionId: string, answer: string) => void;
   addSkipped: (questionId: string) => void;
   setGhost: (isGhost: boolean) => void;
+  setVisibilityMode: (mode: VisibilityMode) => void;
+  setSuperpower: (text: string) => void;
+  setOfferTypes: (types: OfferType[]) => void;
+  toggleOfferType: (type: OfferType) => void;
+  setStatusText: (text: string) => void;
+  setStatusCategories: (categories: StatusCategory[]) => void;
+  toggleStatusCategory: (category: StatusCategory) => void;
+  setStatusVisibility: (visibility: "public" | "private") => void;
 }
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({
@@ -36,6 +54,13 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   answers: {},
   skipped: [],
   isGhost: false,
+  visibilityMode: "semi_open",
+  superpower: "",
+  offerTypes: [],
+  statusText: "",
+  statusCategories: [],
+  statusVisibility: "public",
+
   setDisplayName: (displayName) => set({ displayName }),
   setBio: (bio) => set({ bio }),
   setLookingFor: (lookingFor) => set({ lookingFor }),
@@ -55,6 +80,12 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
       answers: {},
       skipped: [],
       isGhost: false,
+      visibilityMode: "semi_open",
+      superpower: "",
+      offerTypes: [],
+      statusText: "",
+      statusCategories: [],
+      statusVisibility: "public",
     }),
   setAnswer: (questionId, answer) =>
     set((state) => ({
@@ -70,4 +101,24 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
       })(),
     })),
   setGhost: (isGhost) => set({ isGhost }),
+  setVisibilityMode: (visibilityMode) => set({ visibilityMode }),
+  setSuperpower: (superpower) => set({ superpower }),
+  setOfferTypes: (offerTypes) => set({ offerTypes }),
+  toggleOfferType: (type) =>
+    set((state) => ({
+      offerTypes: state.offerTypes.includes(type)
+        ? state.offerTypes.filter((t) => t !== type)
+        : [...state.offerTypes, type],
+    })),
+  setStatusText: (statusText) => set({ statusText }),
+  setStatusCategories: (statusCategories) => set({ statusCategories }),
+  toggleStatusCategory: (category) =>
+    set((state) => ({
+      statusCategories: state.statusCategories.includes(category)
+        ? state.statusCategories.filter((c) => c !== category)
+        : state.statusCategories.length < 2
+          ? [...state.statusCategories, category]
+          : state.statusCategories,
+    })),
+  setStatusVisibility: (statusVisibility) => set({ statusVisibility }),
 }));

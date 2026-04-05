@@ -30,7 +30,7 @@ interface Profile {
   statusSetAt?: string | null;
   statusVisibility?: "public" | "private" | null;
   superpower?: string | null;
-  offerType?: "volunteer" | "exchange" | "gig" | null;
+  offerType?: ("help" | "exchange" | "gig" | "collaboration")[] | null;
 }
 
 interface AuthState {
