@@ -14,8 +14,8 @@ export default function OnboardingLayout() {
   });
 
   useEffect(() => {
-    // If profile exists, user already completed onboarding - redirect to tabs
-    if (profile) {
+    // Only redirect if profile is complete — ghost/Ninja profiles have isComplete: false
+    if (profile?.isComplete) {
       setProfile(profile);
       setHasCheckedProfile(true);
       router.replace("/(tabs)");
@@ -31,8 +31,8 @@ export default function OnboardingLayout() {
     );
   }
 
-  // If profile exists, don't render onboarding (redirect will happen)
-  if (profile) {
+  // If profile is complete, don't render onboarding (redirect will happen)
+  if (profile?.isComplete) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />

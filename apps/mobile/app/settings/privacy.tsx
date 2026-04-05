@@ -2,10 +2,10 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import Svg, { Polyline } from "react-native-svg";
-import { trpc } from "../../src/lib/trpc";
-import { useAuthStore } from "../../src/stores/authStore";
-import { useOnboardingStore } from "../../src/stores/onboardingStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { trpc } from "@/lib/trpc";
+import { useAuthStore } from "@/stores/authStore";
+import { useOnboardingStore } from "@/stores/onboardingStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 type VisibilityMode = "ninja" | "semi_open" | "full_nomad";
 
@@ -62,8 +62,9 @@ export default function PrivacyScreen() {
   const handleChangeMode = (newMode: VisibilityMode) => {
     // If profile is incomplete (Ninja user who skipped onboarding), redirect to complete it
     const currentProfile = useAuthStore.getState().profile;
-    if (!currentProfile?.isComplete && newMode !== "ninja") {
+    if (currentProfile && !currentProfile.isComplete && newMode !== "ninja") {
       useOnboardingStore.getState().setVisibilityMode(newMode);
+      useOnboardingStore.getState().setDisplayName(currentProfile.displayName);
       router.push("/onboarding/superpower");
       return;
     }

@@ -102,7 +102,7 @@ export default function SetStatusScreen() {
     });
   };
 
-  const canSubmit = text.trim().length > 0 && categories.length > 0 && visibility !== null;
+  const canSubmit = text.trim().length >= 10 && categories.length > 0 && visibility !== null;
 
   return (
     <View style={styles.container}>
