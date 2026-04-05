@@ -23,7 +23,7 @@ export const updateProfileSchema = z.object({
   visibilityMode: z.enum(["ninja", "semi_open", "full_nomad"]).optional(),
   doNotDisturb: z.boolean().optional(),
   superpower: z.string().max(300).optional(),
-  offerType: z.enum(["volunteer", "exchange", "gig"]).optional(),
+  offerType: z.array(z.enum(["help", "exchange", "gig", "collaboration"])).optional(),
 });
 
 export const updateLocationSchema = z.object({

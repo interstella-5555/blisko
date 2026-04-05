@@ -120,6 +120,13 @@
       "when": 1774483837482,
       "tag": "0016_add_missing_fk_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1775423023127,
+      "tag": "0017_offer_type_to_array",
+      "breakpoints": true
     }
   ]
 }

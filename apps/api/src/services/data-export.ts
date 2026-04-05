@@ -25,7 +25,7 @@ interface ExportData {
     statusVisibility: string | null;
     superpower: string | null;
     superpowerTags: string[] | null;
-    offerType: string | null;
+    offerType: string[] | null;
     dateOfBirth: string | null;
     doNotDisturb: boolean;
     location: { lat: number; lng: number } | null;
