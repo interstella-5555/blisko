@@ -2,7 +2,9 @@
 
 Social proximity app — connects nearby people in Warsaw based on location, interests, and AI-generated compatibility analysis. Monorepo: API (Bun/Hono/tRPC), Mobile (Expo/React Native), Design Book (TanStack Start), Chatbot (seed user AI responder).
 
-Rules are in `.claude/rules/` — one file per category: `drizzle.md`, `migrations.md`, `mobile.md`, `security.md`, `infra.md`, `api.md` (also imports + style), `linear.md`, `git.md`, `style.md`. All loaded automatically by Claude Code. When adding a new rule, put it in the matching category file. If no category fits, propose a new one (new `.md` file in `.claude/rules/`).
+Rules are in `.claude/rules/` — one file per category: `drizzle.md`, `migrations.md`, `mobile.md`, `security.md`, `infra.md`, `api.md` (also imports + style), `linear.md`, `git.md`, `style.md`, `architect.md`. All loaded automatically by Claude Code. When adding a new rule, put it in the matching category file. If no category fits, propose a new one (new `.md` file in `.claude/rules/`).
+
+**Architecture docs:** `docs/architecture/` — deep reference for system design, decisions, rationale, and cross-system impact. See `.claude/rules/architect.md` for full index. Skills: `/architecture-review` (code review gate), `/architecture-update` (sync docs after changes), `/architecture-compile` (deep maintenance scan).
 
 ---
 
@@ -10,8 +12,10 @@ Rules are in `.claude/rules/` — one file per category: `drizzle.md`, `migratio
 
 Brief pointers — details are in the code. Look there first.
 
+<!-- arch-ref: infrastructure.md -->
 **Railway:** Project ID `62599e90-30e8-47dd-af34-4e3f73c2261a`. Services: api, chatbot, design, metro (mobile), website, database (Postgres), queue (Redis). Use `mcp__railway__*` tools.
 
+<!-- arch-ref: infrastructure.md -->
 **Running locally:** `bun run api:dev`, `bun run design:dev`, `bun run chatbot:dev`, `bun run website:dev`. Mobile: `cd apps/mobile && npx expo run:ios` (simulator) or `--device` (physical). Simulator location: `xcrun simctl location booted set 52.2010865,20.9618980` (ul. Altowa, Warszawa).
 
 **Physical iPhone:** UDID `00008130-00065CE826A0001C` (iPhone 15). API URL via `EXPO_PUBLIC_API_URL` in `apps/mobile/.env.local`:
@@ -23,8 +27,10 @@ echo 'EXPO_PUBLIC_API_URL=https://api.blisko.app' > apps/mobile/.env.local
 echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:3000' > apps/mobile/.env.local
 ```
 
+<!-- arch-ref: infrastructure.md, auth-sessions.md -->
 **Env vars:** Two env files in `apps/api/`: `.env` (local dev, loaded by Bun automatically), `.env.production` (Railway credentials, never loaded automatically — use `bun --env-file=apps/api/.env.production run <script>` for scripts needing prod access or simulator/device testing). OAuth providers: `*_CLIENT_ID` + `*_CLIENT_SECRET` for Apple, Facebook, Google, LinkedIn.
 
+<!-- arch-ref: demo-chatbot.md -->
 **Dev CLI:** `bun run dev-cli -- <command>` (calls API via HTTP so WebSocket events fire). `API_URL` env var overrides default `http://localhost:3000`. Users referenced by email, resolved to userId/token from in-memory cache.
 
 | Command | Example |
@@ -40,26 +46,32 @@ echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:300
 
 **Monitors:** `bun run dev-cli:queue-monitor` (BullMQ jobs), `bun run dev-cli:chatbot-monitor` (bot activity).
 
+<!-- arch-ref: demo-chatbot.md -->
 **Seed users:** Emails `user0@example.com` – `user249@example.com`, scattered across 7 Warsaw districts. Polygons: `apps/api/scripts/warszawa-dzielnice.geojson`.
 - `bun run api:scatter` — re-scatter ALL users uniformly (direct DB, no side-effects)
 - `bun run apps/api/scripts/scatter-locations.ts` — re-scatter via API (fires AI re-analysis + WS broadcasts)
 - `bun --env-file=apps/api/.env.production run apps/api/scripts/scatter-targeted.ts <area>:<count>:<startIdx> [...]` — targeted scatter (`--list` for areas, `--dry-run` to preview)
 - Fresh seed: delete `apps/api/scripts/.seed-cache.json`, then `bun run apps/api/scripts/seed-users.ts`. Display a random test email after
 
+<!-- arch-ref: demo-chatbot.md -->
 **Chatbot:** `bun run chatbot:dev`. Seed users auto-respond to waves/messages. Acceptance: AI match >=75% always accepts, scales linearly to 10% at score 0. Logging in as a seed user pauses bot for 5 min.
 
 **After changing AI prompts:** `bun run dev-cli -- reanalyze user42@example.com --clear-all`
 
 **TestFlight:** `bun run mobile:testflight` → Xcode Organizer → Distribute App manually. Set `.env.local` to production API first.
 
+<!-- arch-ref: infrastructure.md -->
 **Design Book:** `apps/design/`, `localhost:3000/design-book`. CSS modules (mangled class names). PhoneFrame: max 402px, aspect 402:874. Variants in `apps/design/src/variants/v2-*/`.
 
+<!-- arch-ref: infrastructure.md -->
 **Shared package:** `@repo/shared` — types, Zod validators, enums, haversine. Typecheck: `bun run --filter '@repo/shared' typecheck`.
 
+<!-- arch-ref: infrastructure.md -->
 **Testing:** `bun run api:test`, `bun run --filter '@repo/shared' test`. E2E: Maestro (`bun run --filter '@repo/mobile' test:e2e`). Tests in `apps/api/__tests__/**/*.test.ts`. Use `app.request()` directly (no server needed).
 
 **Biome:** `bun run check` (format + lint + imports). TanStack Query ESLint rules not applicable (tRPC manages queryKeys, Biome covers hook deps).
 
+<!-- arch-ref: instrumentation.md -->
 **Monitoring:** `GET /api/metrics/summary?window=24` (JSON overview), `GET /metrics` (Prometheus). SLO: p95 < 500ms, error_rate < 5%. Design doc: `docs/architecture/instrumentation.md`.
 
 **Schema inspection:** `npx drizzle-kit export --sql`
@@ -102,14 +114,17 @@ Skills are **mandatory** at each stage, not optional:
 | Stage | Skill |
 |-------|-------|
 | New idea / feature design | `brainstorming` → `writing-plans` |
+| Before implementation | Read relevant `docs/architecture/` docs (rule + hook enforce) |
 | Executing plan with sub-tasks | `executing-plans` |
 | Parallel independent tasks | `dispatching-parallel-agents` |
 | Writing code | `test-driven-development` |
 | Bug / test failure | `systematic-debugging` |
+| After implementation | `/architecture-update` (sync docs with code changes) |
 | Before Done / PR | `verification-before-completion` |
-| After implementation | `requesting-code-review` |
+| Code review | `/architecture-review` + `/code-review:code-review` |
 | Receiving feedback | `receiving-code-review` |
 | Branch complete | `finishing-a-development-branch` |
+| Periodic maintenance | `/architecture-compile` (deep scan) |
 
 **Plans (`docs/plans/`) — overrides for `writing-plans` skill:**
 

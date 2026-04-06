@@ -1,0 +1,334 @@
+# Infrastructure & Deployment
+
+> v1 — AI-generated from source analysis, 2026-04-06.
+
+Monorepo hosted on Railway. Runtime: Bun. Package manager: Bun workspaces. No Turborepo config file -- task orchestration uses Bun's `--filter` flag and root-level script aliases.
+
+## Terminology & Product Alignment
+
+| PRODUCT.md | Code / Infra | Notes |
+|------------|-------------|-------|
+| Ping | `wave` | PRODUCT.md says "ping" everywhere |
+| Status ("na teraz") | `currentStatus` on profiles | Ephemeral user intent |
+| "Co nas laczy" | `connectionAnalyses` table, AI queue jobs | AI-generated compatibility text |
+| Profile Match (%) | `aiMatchScore` on `connectionAnalyses` | 0-100, asymmetric |
+| Status Match | `statusMatches` table, `status-matching` queue job | Server-side matching |
+| Chatbot | `@repo/chatbot` service | Seed user auto-responder |
+| Design Book | `@repo/design` service | Component gallery, not production UI |
+
+## Railway
+
+**Project ID:** `62599e90-30e8-47dd-af34-4e3f73c2261a`
+
+| Service | Purpose | Runtime | Port |
+|---------|---------|---------|------|
+| **api** | Hono HTTP + tRPC + WebSocket + BullMQ worker (all in one process) | Bun | 3000 |
+| **chatbot** | Seed user auto-responder. Polls for pending waves/messages, responds via AI. | Bun | -- |
+| **design** | Design book / component gallery (TanStack Start + Vite) | Node (Nitro output) | 3000 |
+| **metro** | Mobile metro bundler (dev only, not always running) | Bun | -- |
+| **website** | Marketing website (TanStack Start + Vite) | Bun (Nitro output) | 4000 |
+| **admin** | Admin panel (TanStack Start + Vite) | Node (Nitro output) | 3001 |
+| **database** | PostgreSQL | -- | -- |
+| **queue** | Redis (BullMQ job queue, pub/sub for WebSocket cross-replica events, rate limiting sliding window counters) | -- | -- |
+
+**Why everything in one `api` process:** At current scale (<1000 users), splitting the BullMQ worker into a separate service would double Railway costs and add deployment complexity. The worker shares the same Drizzle `db` instance and WebSocket `publishEvent()` function. When scale demands it, the worker can be extracted -- it already uses `REDIS_URL` for all communication.
+
+## Monorepo Structure
+
+```
+blisko/
+  apps/
+    api/          @repo/api       Hono + tRPC + Better Auth + BullMQ
+    mobile/       @repo/mobile    Expo + React Native (iOS)
+    chatbot/      @repo/chatbot   Seed user AI auto-responder
+    design/       @repo/design    Design book (TanStack Start)
+    website/      @repo/website   Marketing site (TanStack Start)
+    admin/        @repo/admin     Admin panel (TanStack Start)
+  packages/
+    shared/       @repo/shared    Types, Zod validators, AI model constants, haversine
+    dev-cli/      @repo/dev-cli   CLI for development (user management, monitoring)
+```
+
+**Workspace config** in root `package.json`: `"workspaces": ["apps/*", "packages/*"]`.
+
+**Version catalog** in root `package.json` `"catalog"` field pins shared dependency versions across workspaces:
+
+| Dependency | Catalog Version |
+|------------|----------------|
+| `react` | `19.1.0` |
+| `typescript` | `^6.0.2` |
+| `zod` | `^4.3.5` |
+| `vitest` | `^3.0.5` |
+| `vite` | `^7.3.1` |
+| `drizzle-orm` | `^0.45.1` |
+| `postgres` | `^3.4.0` |
+| `better-auth` | `^1.5.4` |
+| `ai` (Vercel AI SDK) | `^6.0.86` |
+| `@ai-sdk/openai` | `^3.0.29` |
+| `tailwindcss` | `^4.2.2` |
+| `@tanstack/react-router` | `^1.167.5` |
+| `@tanstack/react-start` | `^1.166.17` |
+
+### Script Convention
+
+Every script exists in both the package's own `package.json` AND the root `package.json` with `<pkg>:<script>` naming. All scripts are run from the root via `bun run <pkg>:<script>`.
+
+Key root scripts:
+
+| Script | Maps To |
+|--------|---------|
+| `api:dev` | `bun run --filter '@repo/api' dev` (watch mode) |
+| `api:test` | `bun run --filter '@repo/api' test` |
+| `chatbot:dev` | `bun run --filter '@repo/chatbot' dev` |
+| `design:dev` | `bun run --filter '@repo/design' dev` |
+| `website:dev` | `bun run --filter '@repo/website' dev` |
+| `admin:dev` | `bun run --filter '@repo/admin' dev` |
+| `dev-cli` | `bun run --filter '@repo/dev-cli' cli` |
+| `mobile:testflight` | `bun run --filter '@repo/mobile' testflight` |
+| `check` | `biome check .` |
+| `check:fix` | `biome check --fix .` |
+
+### `@repo/shared` Package
+
+Source-only package (`"main": "./src/index.ts"`), no build step. Exports:
+
+- **`validators.ts`** -- Zod schemas for all API inputs (profile, wave, message, group, topic, status, profiling, nearby queries). Defines limits: `displayName` 2-50 chars, `bio` 10-500 chars, `message.content` 1-2000 chars, `status.text` 1-150 chars, `status.categories` 1-2 items, `nearbyUsers.radiusMeters` 100-50000 (default 5000), `nearbyUsersForMap.limit` 1-100 (default 50), `group.memberUserIds` max 199.
+- **`models.ts`** -- AI model constants: `GPT_MODEL = "gpt-4.1-mini"`, `EMBEDDING_MODEL = "text-embedding-3-small"`.
+- **`math.ts`** -- `cosineSimilarity(a, b)` function for embedding comparison.
+
+### `@repo/dev-cli` Package
+
+Development CLI (`commander`). Dependencies: `bullmq`, `drizzle-orm`, `postgres`. Commands documented in root CLAUDE.md.
+
+## Deployment
+
+### Post-Deploy Migration
+
+The Railway API service has a post-deploy hook that runs `bun run src/migrate.ts`. This is the ONLY way migrations reach production. Never run migration commands locally against production -- `apps/api/.env` points at the production database.
+
+Migration script (`apps/api/src/migrate.ts`): imports `drizzle-orm/node-postgres/migrator`, runs `migrate(db, { migrationsFolder: "./drizzle" })`, exits 0 on success or 1 on failure. Uses the `pg` package (not postgres.js) for the migrator because `drizzle-orm/postgres-js/migrator` has compatibility issues with Bun.
+
+### Env Files
+
+| File | Loaded By | Points At | Used For |
+|------|-----------|-----------|----------|
+| `apps/api/.env` | Bun automatically | **Production DB** | Local dev. Treat migration commands as prod deploys. |
+| `apps/api/.env.production` | Manual: `bun --env-file=.env.production run ...` | Production (all services) | Scripts needing prod access, simulator testing |
+| `apps/mobile/.env.local` | Expo | Configurable | `EXPO_PUBLIC_API_URL` -- production or local dev |
+
+**Why `.env` points at production DB:** Railway's Postgres is the only database instance. There is no separate dev database. This is a deliberate simplicity choice -- the seed users provide a safe testing environment. The risk is mitigated by the migration workflow rule: never run `drizzle-kit migrate` locally.
+
+### Env Var Inventory (API Service)
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_URL` | Redis connection string (BullMQ, pub/sub, rate limiting) |
+| `BETTER_AUTH_SECRET` | Session signing key |
+| `BETTER_AUTH_URL` | Base URL for OAuth callbacks |
+| `OPENAI_API_KEY` | OpenAI API access |
+| `RESEND_API_KEY` | Resend email service |
+| `EMAIL_FROM` | Sender address (default: `Blisko <noreply@blisko.app>`) |
+| `BUCKET_ACCESS_KEY_ID` | Tigris S3-compatible storage |
+| `BUCKET_SECRET_ACCESS_KEY` | Tigris S3-compatible storage |
+| `BUCKET_ENDPOINT` | Tigris S3-compatible storage |
+| `BUCKET_NAME` | Tigris S3-compatible storage |
+| `IP_HASH_SALT` | Salt for hashing client IPs in metrics (default: `dev-salt`) |
+| `ENABLE_DEV_LOGIN` | `true` enables `/dev/auto-login` for @example.com emails |
+| `PORT` | HTTP port (default: 3000) |
+| `APPLE_CLIENT_ID` / `APPLE_CLIENT_SECRET` | Apple OAuth |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth |
+| `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET` | Facebook OAuth |
+| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | LinkedIn OAuth |
+
+**After changing any env var on a Railway service, immediately redeploy that service.**
+
+## External Services
+
+### OpenAI
+
+| Model | Constant | Used For |
+|-------|----------|----------|
+| `gpt-4.1-mini` | `GPT_MODEL` | Connection analysis, status match evaluation, profile portrait generation, interest extraction, profiling Q&A generation, profiling completion, quick-score |
+| `text-embedding-3-small` | `EMBEDDING_MODEL` | Profile embeddings, status embeddings |
+| Moderation API | direct fetch | Content moderation (bio, status, messages, group names) |
+
+All AI calls go through `@ai-sdk/openai` + Vercel AI SDK (`ai` package) except moderation which uses raw `fetch` to `https://api.openai.com/v1/moderations`.
+
+Graceful degradation: if `OPENAI_API_KEY` is not set, AI functions return empty results or skip processing. Moderation returns without blocking.
+
+### BullMQ (Redis)
+
+Queue name: `ai-jobs`. Single queue for all job types.
+
+**Config:**
+
+| Setting | Value |
+|---------|-------|
+| Queue name | `ai-jobs` |
+| Worker concurrency | `50` |
+| Default attempts | `3` |
+| Backoff | Exponential, 5000ms base delay |
+| `removeOnComplete` | `true` |
+| `removeOnFail.count` | `100` (keep last 100 failed jobs) |
+
+**Job types:**
+
+| Type | Priority | Description |
+|------|----------|-------------|
+| `analyze-pair` | 1-N (ranked) | Full bidirectional AI connection analysis (T3). Deduped by `pair-{userAId}-{userBId}` job ID. |
+| `quick-score` | default | Numeric-only AI score (T2). Skips if T3 already exists. |
+| `analyze-user-pairs` | default | Fan-out: finds nearby users, enqueues `analyze-pair` jobs ranked by similarity. |
+| `generate-profile-ai` | default | Generates portrait, embedding, interests from bio+lookingFor. |
+| `generate-profiling-question` | default | AI generates next Q&A question. |
+| `generate-profile-from-qa` | default | AI generates bio/lookingFor/portrait from Q&A history. |
+| `status-matching` | default | Evaluates status matches for a user against nearby users. |
+| `proximity-status-matching` | default | Triggered by location update -- matches moving user against nearby status-setters. |
+| `hard-delete-user` | default | GDPR anonymization. Delayed 14 days (1,209,600,000ms). |
+| `export-user-data` | default | GDPR data export. Collects all user data, uploads JSON to S3, emails download link. |
+
+**Ambient push cooldown:** After status match is found, push notification is sent with 1-hour Redis cooldown per user (`ambient-push:{userId}`, TTL 3600s) to prevent notification fatigue.
+
+### Resend (Email)
+
+Transactional email only. Falls back to `console.log` when `RESEND_API_KEY` is not set.
+
+**From address:** `process.env.EMAIL_FROM || "Blisko <noreply@blisko.app>"`
+
+Templates: `signInOtp`, `changeEmailOtp`, `dataExportReady`. All wrapped in `layout()` with branded header/footer.
+
+### Expo Push Notifications
+
+`expo-server-sdk` (`^6.0.0`). Sends via `sendPushNotificationsAsync()` in chunks. Smart suppression:
+
+- **WebSocket connected:** If user has an active WS connection, push is skipped (in-app banner handles it)
+- **Do Not Disturb:** If `profiles.doNotDisturb` is true, push is suppressed
+- **Group collapse:** Group notifications use `collapseId` for unread batching
+
+Invalid tokens (failed delivery) are cleaned up on ticket check.
+
+### Tigris / S3-Compatible Storage
+
+Uses Bun's built-in `S3Client`. Three usage points in the codebase:
+
+1. **File uploads** (`POST /uploads` in `index.ts`): Max 5MB, images only. Presigned URLs with 7-day expiry.
+2. **GDPR data export** (`data-export.ts`): JSON file uploaded, presigned URL emailed. 7-day link expiry.
+3. **Anonymization** (`queue.ts` hard-delete): Deletes avatar and portrait S3 files.
+
+### WebSocket (Bun native)
+
+Bun's native WebSocket server at `/ws`. No external library.
+
+**Auth:** Client sends `{ type: "auth", token: "..." }` after connection. Server validates via `sessionByToken` prepared statement. On success, auto-subscribes to all user's conversations.
+
+**Rate limiting (in-memory):**
+- Global: 30 messages per 60 seconds per user (silent drop)
+- Typing: 10 indicators per 10 seconds per user (silent drop)
+- Cleanup interval: expired rate limit entries purged every 5 minutes
+
+**Redis pub/sub bridge** (`ws/redis-bridge.ts`): For cross-replica event delivery. Publishes to `ws-events` Redis channel. Without `REDIS_URL`, falls back to local `EventEmitter`. Currently single-replica, so the bridge is a future-proofing measure.
+
+**Events:** `newMessage`, `reaction`, `typing`, `newWave`, `waveResponded`, `analysisReady`, `nearbyChanged`, `profileReady`, `statusMatchesReady`, `questionReady`, `profilingComplete`, `groupMember`, `groupUpdated`, `conversationDeleted`, `topicEvent`, `groupInvited`, `forceDisconnect`.
+
+## Monitoring & Metrics
+
+### Hono Metrics Middleware
+
+`apps/api/src/services/metrics.ts`. First middleware in the chain -- captures full request duration.
+
+**Config:**
+
+| Setting | Value |
+|---------|-------|
+| Buffer hard cap | 5000 events |
+| Flush threshold | 500 events |
+| Flush interval | 10,000ms (10s) |
+| Skip paths | `/metrics`, `/api/metrics/summary` |
+
+Buffer safety: if flush fails and buffer hits hard cap, oldest 10% of events are dropped with a warning. Flush runs in `try/catch` -- DB errors don't crash the server.
+
+### Prometheus Metrics
+
+`apps/api/src/services/prometheus.ts`. Custom `prom-client` registry (not default).
+
+**HTTP metrics:**
+- `http_request_duration_ms` histogram (buckets: 10, 25, 50, 100, 200, 500, 1000, 2500, 5000)
+- `http_requests_total` counter (labels: method, endpoint, status_code)
+
+**BullMQ metrics:**
+- `bullmq_jobs_total` counter (labels: queue, status)
+- `bullmq_job_duration_ms` histogram (buckets: 100, 500, 1000, 2500, 5000, 10000, 30000, 60000)
+- `bullmq_queue_depth` gauge (labels: queue, state)
+
+**WebSocket metrics:**
+- `ws_connections_active` gauge
+- `ws_subscriptions_active` gauge
+- `ws_auth_total` counter (labels: result)
+- `ws_events_inbound_total` counter (labels: type)
+- `ws_events_outbound_total` counter (labels: event_type)
+- `ws_rate_limit_hits_total` counter (labels: limit)
+
+### API Endpoints
+
+- **`GET /api/metrics/summary?window=24`** -- AI-readable JSON overview. IP rate limited (30/60s).
+- **`GET /metrics`** -- Prometheus text format. IP rate limited (30/60s).
+- **`GET /health`** -- Simple health check (always returns `{ status: "ok" }`).
+
+### SLO Targets
+
+Stored in `metrics.slo_targets` table. Default: p95 < 500ms, error_rate < 5%.
+
+## Testing
+
+| Type | Command | Framework | Pattern |
+|------|---------|-----------|---------|
+| API unit/integration | `bun run api:test` | Vitest (`bun --bun vitest run`) | `app.request()` directly, no HTTP server needed |
+| Shared package | `bun run --filter '@repo/shared' test` | Vitest | Pure function tests |
+| Design book | `bun run --filter '@repo/design' test` | Vitest + jsdom + Testing Library | Component tests |
+| Website | `bun run website:test` | Vitest + jsdom + Testing Library | Component tests |
+| E2E mobile | `bun run --filter '@repo/mobile' test:e2e` | Maestro | YAML flows in `.maestro/` |
+
+**Why `app.request()` instead of a running server:** Hono's `app.request()` method lets tests call routes directly without starting an HTTP server. This means tests are fast, no port conflicts, no server lifecycle management. The `app` export from `apps/api/src/index.ts` is imported directly.
+
+**Why `bun --bun vitest`:** Forces Vitest to use Bun's runtime instead of Node, which is needed for Bun-specific APIs (`RedisClient`, `S3Client`, `Bun.CryptoHasher`).
+
+## Code Quality
+
+### Biome
+
+`@biomejs/biome` `^2.4.6`. Handles formatting, linting, and import ordering.
+
+- `bun run check` -- check only
+- `bun run check:fix` -- auto-fix
+
+### Husky + lint-staged
+
+Pre-commit hook via `husky` `^9.1.7` + `lint-staged` `^16.3.1`.
+
+**Staged file handlers:**
+- `*.{ts,tsx,js,jsx,json,css}` -- `biome check --fix --no-errors-on-unmatched`
+- `apps/api/src/**/*.ts` -- `bun run --filter @repo/api typecheck`
+- `apps/mobile/**/*.{ts,tsx}` -- `bun run --filter @repo/mobile typecheck`
+- `packages/shared/src/**/*.ts` -- `bun run --filter @repo/shared typecheck`
+- `apps/admin/**/*.{ts,tsx}` -- `bun run --filter @repo/admin typecheck`
+
+TypeScript `^6.0.2` used across all packages.
+
+### TestFlight Deployment
+
+`bun run mobile:testflight` runs `apps/mobile/scripts/testflight.sh`. This creates a local Xcode build. After the script completes, the archive is manually uploaded via Xcode Organizer -> Distribute App. No EAS Build -- local builds only.
+
+**Before TestFlight:** Set `apps/mobile/.env.local` to `EXPO_PUBLIC_API_URL=https://api.blisko.app` (production API).
+
+## Impact Map
+
+If you change this system, also check:
+- `database.md` -- migration workflow, Drizzle config, connection pooling
+- `auth-sessions.md` -- env vars, Better Auth config, session management
+- `queues-jobs.md` -- BullMQ worker config, job types, concurrency
+- `websockets-realtime.md` -- Redis pub/sub bridge, WebSocket handler
+- `rate-limiting.md` -- Redis-based sliding window, rate limit config
+- `push-notifications.md` -- Expo push, suppression logic
+- `gdpr-compliance.md` -- data export, anonymization job
+- `instrumentation.md` -- metrics middleware, Prometheus, query tracking
+- `mobile-architecture.md` -- Expo dependencies, env vars, build process

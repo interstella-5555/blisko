@@ -1,0 +1,203 @@
+# Blocking & Content Moderation
+
+> v1 — AI-generated from source analysis, 2026-04-06.
+
+Source: `apps/api/src/services/moderation.ts`, `apps/api/src/trpc/procedures/waves.ts` (block/unblock/getBlocked), `apps/api/src/trpc/procedures/profiles.ts` (block filtering in nearby queries), `apps/api/src/db/schema.ts`.
+
+## Terminology & Product Alignment
+
+| PRODUCT.md term | Code term | UI (Polish) |
+|-----------------|-----------|-------------|
+| Blokowanie | `blocks` table, `waves.block` mutation | "Zablokuj" button |
+| Raportowanie (spam/nękanie/nieodpowiednie) | Not implemented | -- |
+| Eskalacja automatyczna (2/5/10 zgłoszeń) | Not implemented | -- |
+| Moderacja treści (AI) | `moderateContent()` via OpenAI Moderation API | Error toast on flagged content |
+| Zablokowane osoby | `waves.getBlocked` query | Settings > "Zablokowani" list |
+
+---
+
+## Block Model
+
+**What:** The `blocks` table records one-directional block relationships. A blocks B creates one row. The effect is bidirectional in queries (neither sees the other).
+
+**Why one-directional storage with bidirectional effect:** A blocks B means A doesn't want to interact with B. For safety, B also shouldn't see A — if B could still see and wave at A, the block provides incomplete protection.
+
+**Config — blocks table:**
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| `id` | uuid PK | Block identifier |
+| `blockerId` | text FK → user | Who initiated the block |
+| `blockedId` | text FK → user | Who was blocked |
+| `createdAt` | timestamp | When block was created |
+
+Indexes: `blocks_blocker_idx` (blockerId), `blocks_blocked_idx` (blockedId).
+
+No unique constraint on (blockerId, blockedId) — duplicate prevention is done in application code via `existingBlock` check before insert.
+
+---
+
+## Block Mutation (`waves.block`)
+
+**What:** Creates a block row and auto-declines any pending waves from the blocked user — atomically in one transaction.
+
+**Why atomic with wave decline:** If A blocks B while B has a pending wave to A, leaving the wave pending would be confusing. The block should immediately clean up any in-flight interactions.
+
+**Config:**
+- Input: `blockUserSchema` — `{ userId: string }`
+- Duplicate check: returns CONFLICT if block already exists
+- Transaction: insert block + update all pending waves from blocked user to `status = 'declined'`
+
+---
+
+## Unblock Mutation (`waves.unblock`)
+
+**What:** Hard-deletes the block row. No side effects — previously blocked user can now send waves again, appear in nearby, etc.
+
+**Config:** Simple DELETE query, no transaction needed. No notification sent to the unblocked user.
+
+---
+
+## Blocked Users List (`waves.getBlocked`)
+
+**What:** Returns all users blocked by the current user, with display name, avatar, and block timestamp.
+
+**Config:** INNER JOIN to profiles and user tables. Filters out soft-deleted users (`user.deletedAt IS NULL`).
+
+---
+
+## All Effects of Blocking
+
+Every query that surfaces users to other users checks the blocks table. Here is the complete list of places where blocks are enforced:
+
+#### 1. Nearby users — `profiles.getNearby`
+**Where:** `apps/api/src/trpc/procedures/profiles.ts`, getNearby query.
+**How:** Two parallel queries fetch `blockedId` (users I blocked) and `blockerId` (users who blocked me). Results merged into a `Set<string>`. After the nearby query returns, blocked users are filtered out in a loop. Extra rows fetched (`limit + allBlockedIds.size`) to compensate for filtered results.
+**Note:** This is in-memory filtering, not a SQL JOIN or subquery.
+
+#### 2. Nearby users for map — `profiles.getNearbyUsersForMap`
+**Where:** `apps/api/src/trpc/procedures/profiles.ts`, getNearbyUsersForMap query.
+**How:** Same pattern as getNearby — two queries for blocked/blockedBy, merged into a Set, post-query filtering. Additionally includes `cooldownDeclines` (users who declined within DECLINE_COOLDOWN_HOURS) in the exclusion set.
+
+#### 3. Sending waves — `waves.send`
+**Where:** `apps/api/src/trpc/procedures/waves.ts`, send mutation.
+**How:** Single `findFirst` query on blocks table checking both directions (`OR` clause: I blocked them, or they blocked me). If any block exists, returns FORBIDDEN "Cannot send wave to this user".
+
+#### 4. Wave lists — `waves.getReceived`, `waves.getSent`
+**Where:** `apps/api/src/trpc/procedures/waves.ts`.
+**How:** No explicit block check. Blocked users' waves still appear in history if they were sent before the block. However, since blocks prevent new waves (point 3), this only affects historical data.
+
+#### Places where blocks are NOT checked (gaps)
+
+| Feature | File | Status |
+|---------|------|--------|
+| Messages (send, getMessages) | `messages.ts` | No block check. Blocked users in the same DM can still send messages. The DM was created before the block, and no send-time verification exists. |
+| Group member operations | `groups.ts` | No block check. Blocked users can be in the same group, see each other in group member lists, and exchange messages in group chat. |
+| Group discovery | `groups.ts` getDiscoverable | No block check. Blocked users' groups appear in discovery results. |
+| Status matching | Queue workers | Not verified — status matching may surface blocked users as matches. |
+
+---
+
+## Content Moderation
+
+**What:** `moderateContent(text)` calls the OpenAI Moderation API to check text for policy violations before saving.
+
+**Why pre-save, not post-save:** Rejecting content before it's written to the database means flagged content never enters the system. No need for retroactive cleanup or content hiding.
+
+**Config:**
+- API endpoint: `https://api.openai.com/v1/moderations`
+- Auth: `OPENAI_API_KEY` environment variable
+- Input: concatenated text fields (e.g., displayName + bio + lookingFor joined by `\n\n`)
+- On flag: throws `TRPCError` with code `BAD_REQUEST`, message "Treść narusza regulamin" (Polish: "Content violates terms of service")
+
+#### Graceful degradation
+**What:** If `OPENAI_API_KEY` is not set, moderation is silently skipped (function returns immediately). If the API returns a non-200 response, the error is logged and the function returns without throwing.
+
+**Why:** Moderation is a safety layer, not a critical path. Users should not be blocked from posting because OpenAI is down. The risk of letting through occasional flagged content during an outage is lower than the risk of making the entire app unusable.
+
+#### Categories flagged
+OpenAI's Moderation API returns `categories` object with boolean flags for: `sexual`, `hate`, `harassment`, `self-harm`, `sexual/minors`, `hate/threatening`, `violence/graphic`, `self-harm/intent`, `self-harm/instructions`, `harassment/threatening`, `violence`. Any `true` value triggers rejection.
+
+Flagged categories are logged to console: `[moderation] Content flagged: harassment, violence`.
+
+---
+
+## Where Moderation Is Called
+
+Complete list of every trigger point in the codebase:
+
+#### profiles.ts
+| Endpoint | What's moderated |
+|----------|-----------------|
+| `profiles.create` | displayName + bio + lookingFor (concatenated) |
+| `profiles.update` | Only changed fields among displayName, bio, lookingFor, superpower (if none changed, moderation skipped) |
+| `profiles.setStatus` | Status text |
+
+#### profiling.ts (AI Q&A profiling)
+| Endpoint | What's moderated |
+|----------|-----------------|
+| `profiling.answer` | Individual Q&A answer |
+| `profiling.requestMoreQuestions` | Direction hint (if provided) |
+| `profiling.applyProfiling` | displayName + generated bio + generated lookingFor |
+| `profiling.submitOnboarding` | All answers concatenated |
+| `profiling.answerFollowUp` | Follow-up answer |
+| `profiling.createGhostProfile` | Display name |
+
+#### NOT moderated (gaps vs PRODUCT.md)
+| Content | Where | PRODUCT.md says |
+|---------|-------|-----------------|
+| Chat messages | `messages.send` | "Automatyczny filtr (AI) przy każdym zapisie: ... wiadomość" |
+| Group names | `groups.create`, `groups.update` | "Automatyczny filtr (AI) przy każdym zapisie: ... nazwa grupy" |
+| Group descriptions | `groups.create`, `groups.update` | Implied by "każdym zapisie" |
+| Topic names | `topics.create`, `topics.update` | Implied |
+
+---
+
+## Product Vision vs Implementation
+
+PRODUCT.md describes a full report/escalation system that is **planned but not implemented**:
+
+#### Report system (not built)
+- Report categories: spam, inappropriate behavior, harassment
+- Each user can report another user
+
+#### Auto-escalation thresholds (not built)
+| Reports | Consequence |
+|---------|-------------|
+| 2 reports total | 1-day account suspension |
+| 5 reports total | 7-day suspension + email notification |
+| 10 reports total | Permanent ban |
+| 2 harassment reports from different users | 7-day suspension |
+| 3 harassment reports from different users | Permanent ban |
+
+#### Content hiding (not built)
+- 2 content reports → automatic content hiding (content invisible to others until manual review)
+
+#### Current state
+Only the AI-powered pre-save moderation is implemented. There is no report button in the UI, no report storage in the database, no escalation logic, and no suspension mechanism. Users who encounter problematic content can only block the user.
+
+---
+
+## Blocking + Moderation Interaction
+
+Blocking and moderation are independent systems with no interaction:
+- Blocking is user-initiated, moderation is automatic
+- A blocked user's existing content is not moderated or hidden
+- Moderation does not trigger blocks
+- There is no "n blocks from different users = auto-ban" logic
+
+---
+
+## Impact Map
+
+If you change this system, also check:
+- **`apps/api/src/trpc/procedures/profiles.ts`** — nearby queries use block filtering; profile create/update calls moderateContent
+- **`apps/api/src/trpc/procedures/waves.ts`** — wave send checks blocks; block/unblock/getBlocked endpoints live here
+- **`apps/api/src/trpc/procedures/profiling.ts`** — profiling Q&A answers and generated profiles call moderateContent
+- **`apps/api/src/trpc/procedures/messages.ts`** — currently has NO block check and NO moderation (gap)
+- **`apps/api/src/trpc/procedures/groups.ts`** — currently has NO block check and NO moderation (gap)
+- **`apps/api/src/db/schema.ts`** — `blocks` table definition
+- **`packages/shared/src/validators.ts`** — `blockUserSchema`
+- **`apps/api/src/services/data-export.ts`** — GDPR export should include blocks (user's own blocks)
+- **`apps/mobile/src/screens/settings/`** — blocked users list UI, unblock action
+- **`PRODUCT.md` § Safety** — the source of truth for the full vision (report system, escalation, content hiding)

@@ -16,6 +16,18 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"ARCHITECT: Before planning or implementing, read relevant architecture docs (docs/architecture/) and state which you consulted. After implementation, run /architecture-update before PR. During code review, run /architecture-review alongside /code-review.\"",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }
