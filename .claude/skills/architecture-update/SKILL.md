@@ -1,6 +1,6 @@
 ---
 name: architecture-update
-description: "Use after implementing code changes, before creating a PR, to update architecture documentation to reflect what changed. Reads git diff, maps changes to architecture docs, and edits the relevant docs. Run this after implementation is complete. Triggers: 'update architecture', 'update docs', 'architecture update', '/architecture-update'."
+description: "Use after implementing code changes, before creating a PR, to sync architecture documentation with what changed in the code. Triggers: 'update architecture', 'update docs', 'architecture update', '/architecture-update'."
 ---
 
 # Architecture Update — Post-Implementation Doc Sync
@@ -18,7 +18,7 @@ git log origin/main...HEAD --oneline
 
 ### 2. Map changes to architecture docs
 
-Use the file→doc mapping from `.claude/rules/architect.md` to identify which architecture docs need updating.
+Use the file->doc mapping from `.claude/rules/architect.md` to identify which architecture docs need updating.
 
 ### 3. Read affected architecture docs
 
@@ -80,8 +80,8 @@ After updating, check:
 - [ ] Every schema change reflected in `database.md`
 - [ ] Every new queue job type in `queues-jobs.md`
 - [ ] Every new WS event in `websockets-realtime.md`
-- [ ] New tables → GDPR checklist in `gdpr-compliance.md`
-- [ ] New PII fields → anonymization section updated
+- [ ] New tables -> GDPR checklist in `gdpr-compliance.md`
+- [ ] New PII fields -> anonymization section updated
 - [ ] Impact Maps updated in all affected docs
 - [ ] CLAUDE.md `<!-- arch-ref: -->` sections still aligned
 

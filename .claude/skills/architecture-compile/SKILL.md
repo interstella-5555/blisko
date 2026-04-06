@@ -1,6 +1,6 @@
 ---
 name: architecture-compile
-description: "Use for deep maintenance scan of architecture documentation. Reads entire codebase and all architecture docs, finds gaps, outdated sections, and missing domains. Self-improving: learns from review history, detects drift from documented invariants, discovers undocumented code, verifies Impact Maps against real imports. Heavy operation — run periodically, not on every task. Triggers: 'compile architecture', 'architecture audit', 'deep architecture scan', 'verify architecture docs', '/architecture-compile'."
+description: "Use for periodic deep maintenance scan of all architecture docs against the full codebase. Heavy operation — run monthly or after major refactors, not on every task. Triggers: 'compile architecture', 'architecture audit', 'deep scan', '/architecture-compile'."
 ---
 
 # Architecture Compile — Deep Verification Scan
@@ -29,8 +29,8 @@ cat docs/architecture/.review-log.md 2>/dev/null
 ```
 
 Also scan recent Linear tickets for architecture-related bugs or gaps. Look for patterns:
-- Same type of issue found repeatedly → that domain needs deeper scrutiny
-- Specific checks that keep failing (e.g., "missing soft-delete filter", "no rate limit on new endpoint") → add to that domain agent's checklist
+- Same type of issue found repeatedly -> that domain needs deeper scrutiny
+- Specific checks that keep failing (e.g., "missing soft-delete filter", "no rate limit on new endpoint") -> add to that domain agent's checklist
 
 Pass these patterns to domain agents as **priority checks** — things to look for first.
 
@@ -83,7 +83,7 @@ ls apps/*/src/**/*.ts 2>/dev/null
 
 For each file found:
 1. Check if it maps to an existing architecture doc (use the Domain table above)
-2. If no doc covers it → report as "Undocumented code"
+2. If no doc covers it -> report as "Undocumented code"
 3. Suggest: new architecture doc category, or extend an existing doc
 
 Also check for new directories:
@@ -105,8 +105,8 @@ grep -r "from.*ws\|publishEvent\|ee.emit" apps/api/src/trpc/procedures/waves.ts
 ```
 
 Compare found dependencies with Impact Map entries:
-- Import exists but not in Impact Map → **missing cross-reference** (add it)
-- Impact Map entry exists but no import → **stale cross-reference** (verify, may be indirect dependency)
+- Import exists but not in Impact Map -> **missing cross-reference** (add it)
+- Impact Map entry exists but no import -> **stale cross-reference** (verify, may be indirect dependency)
 
 Report as:
 ```markdown
@@ -174,11 +174,11 @@ Analyze doc sizes and overlaps:
 wc -l docs/architecture/*.md | sort -rn
 ```
 
-**Split candidates:** Docs > 500 lines → suggest extracting sub-domains into separate files.
+**Split candidates:** Docs > 500 lines -> suggest extracting sub-domains into separate files.
 
-**Merge candidates:** Docs < 50 lines (excluding placeholders) → suggest merging into a parent domain.
+**Merge candidates:** Docs < 50 lines (excluding placeholders) -> suggest merging into a parent domain.
 
-**Overlap detection:** For each pair of docs, check if the same source file appears in both domains' key source files. If >3 shared source files → flag potential overlap, suggest consolidation.
+**Overlap detection:** For each pair of docs, check if the same source file appears in both domains' key source files. If >3 shared source files -> flag potential overlap, suggest consolidation.
 
 ### 9. Doc quality scoring
 
@@ -188,7 +188,7 @@ Score every architecture doc on 4 dimensions. Read and update `docs/architecture
 
 | Dimension | Weight | How to compute |
 |-----------|--------|----------------|
-| **Freshness** | 30% | Compare `git log -1 --format=%aI docs/architecture/X.md` with `git log -1 --format=%aI <source files>`. Score: `100 - max(0, days_source_ahead_of_doc) * 10`. Source changed 3 days after doc → 70. |
+| **Freshness** | 30% | Compare `git log -1 --format=%aI docs/architecture/X.md` with `git log -1 --format=%aI <source files>`. Score: `100 - max(0, days_source_ahead_of_doc) * 10`. Source changed 3 days after doc -> 70. |
 | **Coverage** | 25% | Count source files the doc references (mentioned in text or mapped in domain table) vs total files in that domain. `referenced / total * 100`. |
 | **Depth** | 25% | Checklist: has Terminology table (+20), has Why sections (+30), has concrete Config values (+20), has Impact Map (+30). |
 | **Consistency** | 20% | Matches template: starts with `# Title` + version tag (+25), has `## Terminology & Product Alignment` (+25), no line numbers in text (+25), has `## Impact Map` at end (+25). |
@@ -221,10 +221,10 @@ Analyze `.review-log.md` entries for recurring issue patterns.
 
 **Pattern detection:**
 1. Parse all review log entries
-2. Group findings by type (normalize: "missing soft-delete filter", "no soft-delete check", "deletedAt not filtered" → same pattern)
+2. Group findings by type (normalize: "missing soft-delete filter", "no soft-delete check", "deletedAt not filtered" -> same pattern)
 3. Count occurrences across compiles and reviews
 
-**Threshold:** Pattern appears >= 3 times across reviews/compiles → propose a rule.
+**Threshold:** Pattern appears >= 3 times across reviews/compiles -> propose a rule.
 
 **Rule draft format:**
 ```markdown
@@ -238,20 +238,11 @@ Analyze `.review-log.md` entries for recurring issue patterns.
 - 2026-04-06: compile (status matching)
 
 **Proposed rule for `.claude/rules/architect.md`:**
-```
 - `architect/soft-delete-on-discovery` — Every query that returns users to other users
   MUST include an INNER JOIN to `user` with `isNull(schema.user.deletedAt)`. No exceptions.
   This applies to: nearby queries, group discovery, wave lists, status matching candidates.
-```
 
 **Add this rule?** [waiting for user decision]
-```
-
-**Persystencja:** Track proposed rules in `.review-log.md` to avoid re-proposing:
-```markdown
-## Proposed Rules
-- 2026-04-06: "soft-delete-on-discovery" — ACCEPTED, added to architect.md
-- 2026-04-06: "rate-limit-on-external" — DEFERRED, user said "not yet for beta"
 ```
 
 **Never auto-add rules.** Always present to user and wait for explicit approval. False rules are worse than no rules.
@@ -302,7 +293,7 @@ Merge all findings into a single report:
 Priority rewrite: [lowest-scoring docs]
 
 ### Proposed Rules
-- [pattern]: found N times → proposed rule draft → [waiting for user]
+- [pattern]: found N times -> proposed rule draft -> [waiting for user]
 
 ### Patterns from Past Reviews
 - [recurring issues that should become rules or stronger doc coverage]
@@ -337,7 +328,7 @@ After compile completes:
 - X docs accurate, Y outdated, Z missing
 - Key drift: [summary]
 - New patterns: [summary]
-- Lowest scoring: [doc] at [score] (was [previous] → trend [up/down])
+- Lowest scoring: [doc] at [score] (was [previous] -> trend [up/down])
 - Actions taken: [what was fixed]
 
 ### Proposed Rules

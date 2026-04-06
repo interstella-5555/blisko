@@ -1,6 +1,6 @@
 ---
 name: e2e-flow-testing
-description: "Use when creating E2E tests for user flows. Guided process: reads PRODUCT.md + architecture docs, describes expected flow behavior, asks user for approval before writing Maestro test. Prevents false positives by confirming intended behavior first. Triggers: 'e2e test', 'test flow', 'maestro test', 'create e2e', 'flow testing', '/e2e-flow-testing'."
+description: "Use when creating or adding E2E tests for user flows in the mobile app. Confirms expected behavior with user before writing Maestro tests. Triggers: 'e2e test', 'test flow', 'maestro test', 'create e2e', '/e2e-flow-testing'."
 ---
 
 # E2E Flow Testing — Guided Test Creation
@@ -33,10 +33,10 @@ Describe the flow step-by-step:
 ## Flow: [Name]
 
 ### Steps:
-1. User opens app → sees [screen]
-2. User taps [element] → navigates to [screen]
-3. User enters [data] → [validation happens]
-4. System [does X] → user sees [result]
+1. User opens app -> sees [screen]
+2. User taps [element] -> navigates to [screen]
+3. User enters [data] -> [validation happens]
+4. System [does X] -> user sees [result]
 
 ### What this test verifies:
 - [assertion 1]
@@ -46,13 +46,13 @@ Describe the flow step-by-step:
 - [edge case 1]
 ```
 
-**Ask:** "Czy ten flow tak powinien wyglądać? Coś do zmiany?"
+**Ask:** "Czy ten flow tak powinien wygladac? Cos do zmiany?"
 
 ### 4. Wait for approval
 
-- **"tak"** → proceed to write test
-- **"nie, powinno być X"** → update flow description, re-present
-- **"skip this flow"** → mark as skipped in coverage doc, move to next
+- **"tak"** -> proceed to write test
+- **"nie, powinno byc X"** -> update flow description, re-present
+- **"skip this flow"** -> mark as skipped in coverage doc, move to next
 
 ### 5. Write Maestro test
 
@@ -68,11 +68,11 @@ Follow existing patterns in `.maestro/`. Use:
 cd apps/mobile && maestro test .maestro/[test-name].yaml
 ```
 
-Fix until passing. If the test reveals a bug in the app → report to user, don't "fix" the test to pass on broken behavior.
+Fix until passing. If the test reveals a bug in the app -> report to user, don't "fix" the test to pass on broken behavior.
 
 ### 7. Show to user for final approval
 
-Show the passing test. User approves → commit. User rejects → revise.
+Show the passing test. User approves -> commit. User rejects -> revise.
 
 ### 8. Update coverage doc
 
@@ -81,8 +81,8 @@ Mark flow as tested in `docs/architecture/e2e-test-coverage.md`.
 ## Flow Discovery
 
 To find flows to test, check these sources:
-- `PRODUCT.md` § "System interakcji" — core interaction flows
-- `PRODUCT.md` § "Profil użytkownika" — onboarding flows
+- `PRODUCT.md` — "System interakcji" — core interaction flows
+- `PRODUCT.md` — "Profil uzytkownika" — onboarding flows
 - `docs/architecture/waves-connections.md` — ping/wave flows
 - `docs/architecture/messaging.md` — chat flows
 - `docs/architecture/groups-discovery.md` — group flows
