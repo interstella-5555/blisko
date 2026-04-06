@@ -477,6 +477,7 @@ Hot-path prepared statements:
 - `session_by_token` in `apps/api/src/trpc/context.ts` -- session lookup on every authenticated request
 - `user_deleted_at` in `apps/api/src/trpc/trpc.ts` -- soft-delete check in `isAuthed` middleware
 - `profile_is_complete` in `apps/api/src/trpc/middleware/featureGate.ts` -- feature gate attribute check
+- `profile_by_user_id` in `apps/api/src/trpc/procedures/profiles.ts` -- hot-path `profiles.me` lookup
 
 ## Migration History
 

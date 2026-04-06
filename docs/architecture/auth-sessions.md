@@ -207,13 +207,13 @@ If the user logs in during the grace period, the `hard-delete-user` job is cance
 The `hard-delete-user` queue job runs. In a transaction:
 
 **User table:**
-- `name` -> `"Usuniety uzytkownik"`
+- `name` -> `"Usunięty użytkownik"`
 - `email` -> `{uuid}@deleted.localhost`
 - `emailVerified` -> `false`
 - `image` -> `null`
 - `anonymizedAt` -> `now()`
 
-**Profiles table:** All fields overwritten -- `displayName` -> `"Usuniety uzytkownik"`, all text/array/jsonb fields -> `null` or empty, `visibilityMode` -> `ninja`, `isComplete` -> `false`.
+**Profiles table:** All fields overwritten -- `displayName` -> `"Usunięty użytkownik"`, all text/array/jsonb fields -> `null` or empty, `visibilityMode` -> `ninja`, `isComplete` -> `false`.
 
 **Profiling sessions:** `generatedBio`, `generatedLookingFor`, `generatedPortrait` -> `null`. All `profilingQA.answer` -> `null`.
 
@@ -221,7 +221,7 @@ The `hard-delete-user` queue job runs. In a transaction:
 
 **Metrics:** `user_id` and `target_user_id` nullified in `metrics.request_events` (outside transaction, non-critical).
 
-**What is NOT deleted:** Waves, messages, conversation participations, reactions, connection analyses, status matches, blocks. These reference the user via FK -- the user now displays as "Usuniety uzytkownik" to other users who had interactions.
+**What is NOT deleted:** Waves, messages, conversation participations, reactions, connection analyses, status matches, blocks. These reference the user via FK -- the user now displays as "Usunięty użytkownik" to other users who had interactions.
 
 ## Email Service
 

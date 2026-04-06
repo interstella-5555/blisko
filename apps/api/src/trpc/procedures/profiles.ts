@@ -332,8 +332,14 @@ export const profilesRouter = router({
           db.query.profiles.findFirst({
             where: eq(schema.profiles.userId, ctx.userId),
           }),
-          db.select().from(schema.connectionAnalyses).where(eq(schema.connectionAnalyses.fromUserId, ctx.userId)),
-          db.select().from(schema.statusMatches).where(eq(schema.statusMatches.userId, ctx.userId)),
+          db.query.connectionAnalyses.findMany({
+            where: eq(schema.connectionAnalyses.fromUserId, ctx.userId),
+            columns: { toUserId: true, aiMatchScore: true, shortSnippet: true },
+          }),
+          db.query.statusMatches.findMany({
+            where: eq(schema.statusMatches.userId, ctx.userId),
+            columns: { matchedUserId: true, reason: true, matchedVia: true },
+          }),
           db
             .select({ count: sql<number>`count(*)` })
             .from(schema.profiles)

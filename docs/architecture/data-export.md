@@ -13,7 +13,7 @@ Parent doc: `docs/architecture/gdpr-compliance.md`
 | GDPR data export | `requestDataExport` mutation, `export-user-data` BullMQ job | "Pobierz moje dane" button |
 | -- | `collectAndExportUserData()` in `data-export.ts` | "Eksport danych" section header |
 | -- | `dataExportReady()` email template | "Twoje dane z Blisko sa gotowe do pobrania" (email subject) |
-| Anonimizacja w eksporcie | `buildUserLabelMap()` + `shortHash()` | "Uzytkownik (a3f8c2)" labels |
+| Anonimizacja w eksporcie | `buildUserLabelMap()` + `shortHash()` | "Użytkownik (a3f8c2)" labels |
 
 ## Trigger Flow
 
@@ -82,6 +82,7 @@ The export queries 12 database tables. All data belonging to the requesting user
 | `visibilityMode` | `profile.visibilityMode` | `"ninja"` / `"semi_open"` / `"full_nomad"` |
 | `portrait` | `profile.portraitUrl` | Mapped from `portrait` column |
 | `currentStatus` | `profile.status` | |
+| `statusCategories` | `profile.statusCategories` | String array (e.g. `["projekt", "networking"]`) |
 | `statusVisibility` | `profile.statusVisibility` | `"public"` / `"private"` |
 | `superpower` | `profile.superpower` | |
 | `superpowerTags` | `profile.superpowerTags` | String array |
@@ -91,6 +92,8 @@ The export queries 12 database tables. All data belonging to the requesting user
 | `latitude` + `longitude` | `profile.location` | `{ lat, lng }` object or null |
 | `createdAt` | `profile.createdAt` | ISO 8601 |
 | `updatedAt` | `profile.updatedAt` | ISO 8601 |
+
+**Not exported (intentional):** `embedding` and `statusEmbedding` (machine-generated vector arrays, not human-readable), `isComplete` flag, `lastLocationUpdate` timestamp, `portraitSharedForMatching` consent flag, profile hashes.
 
 #### `account` table (connected OAuth accounts)
 
@@ -178,7 +181,7 @@ Conversations are exported with full message history. Only conversations where t
 
 #### What
 
-Other users' identities are replaced with deterministic anonymous labels in the format `"Uzytkownik (a3f8c2)"` where `a3f8c2` is the first 6 characters of the SHA-256 hash of their user ID.
+Other users' identities are replaced with deterministic anonymous labels in the format `"Użytkownik (a3f8c2)"` where `a3f8c2` is the first 6 characters of the SHA-256 hash of their user ID.
 
 **Implementation:** `buildUserLabelMap()` and `shortHash()` in `data-export.ts`. All other-user IDs are collected during data gathering (from waves, conversations, messages, analyses, blocks, status matches). A single `Map<userId, label>` is built, and the `label()` helper replaces user IDs consistently across all sections.
 
@@ -190,7 +193,7 @@ Other users' avatars, portraits, and real identities must not appear in another 
 
 - Hash algorithm: SHA-256
 - Hash truncation: first 6 hex characters
-- Label format: `"Uzytkownik (XXXXXX)"`
+- Label format: `"Użytkownik (XXXXXX)"`
 - Hash is per-export deterministic (same user ID always produces the same label)
 
 ## S3 Upload & Email Delivery

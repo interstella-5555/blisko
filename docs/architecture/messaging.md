@@ -251,4 +251,4 @@ If you change this system, also check:
 - **`apps/api/src/db/schema.ts`** — messages, messageReactions, conversations, conversationParticipants, conversationRatings, topics tables
 - **`packages/shared/src/validators.ts`** — sendMessageSchema, deleteMessageSchema, reactToMessageSchema, searchMessagesSchema
 - **`apps/api/src/services/data-export.ts`** — GDPR export includes messages
-- **Content moderation** — `moderateContent` is NOT called on messages (only on profiles, statuses, and profiling answers). This is a gap vs PRODUCT.md which specifies moderation on every text write including messages.
+- **`apps/api/src/services/moderation.ts`** — `moderateContent` called on text messages before insert (images/locations skipped)
