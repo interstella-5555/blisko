@@ -34,7 +34,11 @@ PR titles and descriptions are read by humans who skim quickly — write for how
 
 - `git/pre-pr-simplify` — Before creating a PR, run the `/simplify` skill on the changed code to clean up quality, reuse, and efficiency issues.
 
-- `git/pre-pr-code-review` — After `/simplify`, run `/code-review:code-review` on the PR branch. One of the review subagents MUST analyze the **impact of changes on the rest of the application** — side effects, broken assumptions, things we might not have predicted. Don't comment on the PR — fix issues immediately, then re-run `/code-review:code-review`. Maximum 3 iterations. If issues remain after 3 rounds, stop and present the remaining findings to the user.
+- `git/pre-pr-architecture-update` — After `/simplify`, run `/architecture-update` to sync architecture docs with code changes. This ensures docs are current before review.
+
+- `git/pre-pr-code-review` — After `/architecture-update`, run `/code-review:code-review` on the PR branch. One of the review subagents MUST analyze the **impact of changes on the rest of the application** — side effects, broken assumptions, things we might not have predicted. Don't comment on the PR — fix issues immediately, then re-run `/code-review:code-review`. Maximum 3 iterations. If issues remain after 3 rounds, stop and present the remaining findings to the user.
+
+- `git/pre-pr-architecture-review` — Alongside `/code-review:code-review`, run `/architecture-review` to verify changes align with documented architecture. Fix any CRITICAL/HIGH findings before creating the PR.
 
 ## Protected Branches
 

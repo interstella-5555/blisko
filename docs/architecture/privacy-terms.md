@@ -1,157 +1,195 @@
-# Privacy Policy & Terms of Service — Design Doc (BLI-67)
+# Privacy Policy & Terms of Service
 
-## Overview
+> v1 — AI-generated from source analysis, 2026-04-06.
 
-Blisko needs a privacy policy (polityka prywatności) and terms of service (regulamin) to comply with RODO/GDPR before public release. Both documents will be in Polish only, served as static HTML pages from the website service, and linked from the mobile app's registration screen and settings.
+Polish-language privacy policy and terms of service, served as web pages from the website app, linked from the mobile app. Required for RODO/GDPR compliance before public release.
 
-## Implementation plan
+Parent doc: `docs/architecture/gdpr-compliance.md`
 
-1. Add `/privacy` and `/terms` routes to the website Bun server
-2. Write privacy policy content (Polish)
-3. Write terms of service content (Polish)
-4. Add acceptance text with links on the mobile login screen
-5. Update help screen links to point to correct URLs
-6. Verify all links work end-to-end
+## Terminology & Product Alignment
 
-## Website routes
+| PRODUCT.md | Code / Route | UI (Polish) |
+|------------|-------------|-------------|
+| Prywatnosc | `/privacy` route in `apps/website/src/routes/privacy.tsx` | "Polityka Prywatnosci" |
+| Regulamin | `/terms` route in `apps/website/src/routes/terms.tsx` | "Regulamin" |
+| Wave / ping | `waves` table | "Wave" (terms: "zaproszenie do kontaktu") |
+| Status | `profiles.currentStatus` | "Status" (terms: "intencja") |
+| Grupy | `conversations` (type=group) | "Grupy" |
 
-**File:** `apps/website/src/index.ts`
+## Where Served
 
-Add two new routes (`/privacy`, `/terms`) following the existing pattern. Each returns a full HTML page with inline CSS for a clean reading experience. No external dependencies — just a `text/html` response with the document content.
+#### What
 
-Page style should match the existing website aesthetic: clean, minimal, mobile-friendly. Include a back link to `blisko.app` at the top.
+Both documents are TanStack Start routes in the website app (`apps/website/`), rendered as React components using shared `LegalPage` layout components (`apps/website/src/components/LegalPage.tsx`).
 
-Both pages need:
-- `<html lang="pl">` attribute
-- Proper `<meta>` tags (viewport, description, charset)
-- `<title>` — "Polityka Prywatności — Blisko" / "Regulamin — Blisko"
-- Last-updated date at the top of each document
-- Responsive layout (readable on mobile and desktop)
+- Privacy policy: `https://blisko.app/privacy`
+- Terms of service: `https://blisko.app/terms`
 
-## Privacy policy content outline
+Both pages set `<html lang="pl">`, have proper meta tags (title, viewport), display a last-updated date, and use a clean, mobile-friendly layout.
 
-### 1. Administrator danych
-- Operator: individual developer (Karol Wypchło), contact email: kontakt@blisko.app
-- Data controller under Art. 4(7) RODO
+#### Config
 
-### 2. Jakie dane zbieramy
-- **Dane konta:** email, imię, bio, zainteresowania, linki społecznościowe, status, tryb widoczności
-- **Lokalizacja:** ostatnia znana pozycja (tylko w trakcie używania aplikacji, foreground)
-- **Pliki:** avatar, portret (przechowywane w chmurze)
-- **Wiadomości i zaproszenia:** treść wiadomości, wave'y (zaproszenia do kontaktu)
-- **Analiza AI:** embeddingi profilu, wyniki kompatybilności między użytkownikami
-- **Sesje profilowania:** historia pytań i odpowiedzi
-- **Konta OAuth:** powiązania z dostawcami (Apple, Google, Facebook, LinkedIn) — nie przechowujemy haseł
+- Last updated date: "7 marca 2026" (hardcoded in component)
+- Privacy title meta: "Polityka Prywatnosci -- Blisko"
+- Terms title meta: "Regulamin -- Blisko"
 
-### 3. Cel i podstawa przetwarzania
-- Wykonanie umowy (Art. 6(1)(b)) — świadczenie usługi, dopasowywanie użytkowników
-- Prawnie uzasadniony interes (Art. 6(1)(f)) — bezpieczeństwo, zapobieganie nadużyciom
-- Zgoda (Art. 6(1)(a)) — przetwarzanie lokalizacji, analiza AI
+## Mobile Integration
 
-### 4. Podmioty przetwarzające (procesory danych)
-- **OpenAI** (USA, DPA) — analiza profili AI, scoring kompatybilności
-- **Railway** (hosting, region EU) — PostgreSQL, Redis
-- **Resend** (USA, DPA) — emaile transakcyjne (kody OTP)
-- **Tigris/S3** — przechowywanie plików (avatary, portrety)
+#### What
 
-### 5. Transfer danych poza EOG
-- OpenAI i Resend — USA, na podstawie standardowych klauzul umownych (SCC)
+The legal documents are linked from two places in the mobile app:
 
-### 6. Okres przechowywania
-- Dane konta — do usunięcia konta
-- Po usunięciu konta — 14-dniowy okres karencji (grace period), potem trwałe usunięcie
-- Logi serwera — do 90 dni
-- Dane analityki AI — usuwane wraz z kontem
+**Login screen** (`apps/mobile/app/(auth)/login.tsx`): Acceptance text below all OAuth buttons: "Rejestrujac sie akceptujesz Regulamin i Polityke Prywatnosci". Both terms are tappable links that open in the system browser via `Linking.openURL()`.
 
-### 7. Prawa użytkownika
-- **Prawo dostępu (Art. 15)** — można zażądać eksportu danych
-- **Prawo do sprostowania (Art. 16)** — edycja profilu w aplikacji
-- **Prawo do usunięcia (Art. 17)** — usunięcie konta z 14-dniowym okresem karencji
-- **Prawo do przenoszenia danych (Art. 20)** — eksport w formacie JSON
-- **Prawo do sprzeciwu wobec profilowania (Art. 22)** — AI generuje rekomendacje, użytkownik podejmuje decyzje; brak w pełni zautomatyzowanego podejmowania decyzji
+**Help screen** (`apps/mobile/app/settings/help.tsx`): Two rows: "Regulamin" and "Polityka prywatnosci", each opening the corresponding URL via `Linking.openURL()`.
 
-### 8. Kontakt
-- Email: kontakt@blisko.app
-- Prawo wniesienia skargi do UODO (Urząd Ochrony Danych Osobowych)
+#### Why
 
-### 9. Pliki cookies i lokalne przechowywanie
-- Aplikacja mobilna nie używa cookies
-- Strona www — minimalne cookies techniczne (jeśli są)
+Registration implies acceptance of both documents (no separate checkbox). This is standard practice for mobile apps under RODO -- explicit acceptance of privacy policy is required via consent mechanism at the point of registration.
 
-### 10. Zmiany w polityce prywatności
-- Powiadomienie w aplikacji o istotnych zmianach
-- Data ostatniej aktualizacji na górze dokumentu
+#### Config
 
-## Terms of service content outline
+- Regulamin URL: `https://blisko.app/terms`
+- Privacy URL: `https://blisko.app/privacy`
+- Support email: `support@blisko.app` (help screen)
+- Contact email: `kontakt@blisko.app` (privacy policy, terms)
 
-### 1. Postanowienia ogólne
-- Definicje: Aplikacja, Użytkownik, Usługodawca, Wave, Profil
-- Akceptacja regulaminu przez rejestrację
+## Privacy Policy Content
 
-### 2. Warunki korzystania
-- **Minimalny wiek: 16 lat** — deklaratywna klauzula, rejestracja oznacza potwierdzenie ukończenia 16 lat
-- Jedno konto na osobę
-- Prawdziwe dane w profilu
+The privacy policy (`privacy.tsx`) has 11 sections covering all required RODO disclosures:
 
-### 3. Opis usługi
-- Łączenie osób w pobliżu na podstawie lokalizacji, zainteresowań i analizy AI
-- Wave'y (zaproszenia do kontaktu), czat po zaakceptowaniu
-- Analiza kompatybilności z wykorzystaniem AI
+#### Section 1 — Administrator danych
+Data controller: Karol Wypchlo (individual developer). Contact: kontakt@blisko.app. Controller under Art. 4(7) RODO.
 
-### 4. Zasady korzystania (akceptowalne użycie)
-- Zakaz: spam, nękanie, treści nielegalne, podszywanie się
-- Zakaz: zbieranie danych innych użytkowników, scraping
-- Zakaz: używanie botów lub automatyzacji (poza oficjalnymi)
+#### Section 2 — Jakie dane zbieramy
+Seven data categories disclosed:
+- **Dane konta:** email, name, bio, interests, social links, status, visibility mode
+- **Lokalizacja:** last known position (foreground only, not background tracking)
+- **Pliki:** avatar photo, AI-generated portrait (cloud-stored on Tigris/S3)
+- **Wiadomosci:** chat message content, waves (contact invitations)
+- **Analiza AI:** profile embeddings, compatibility scores between users
+- **Sesje profilowania:** question-and-answer history from AI questionnaire
+- **Konta OAuth:** provider connections (Apple, Google, Facebook, LinkedIn) -- no passwords stored
 
-### 5. Konto i bezpieczeństwo
-- Odpowiedzialność za bezpieczeństwo konta
-- Logowanie przez OAuth lub email + OTP (bez haseł)
+#### Section 3 — Cel i podstawa przetwarzania
+Three legal bases:
+- Art. 6(1)(b) -- contract performance (service delivery, user matching, chat)
+- Art. 6(1)(f) -- legitimate interest (security, abuse prevention)
+- Art. 6(1)(a) -- consent (location processing, AI compatibility analysis)
 
-### 6. Treści użytkownika
-- Użytkownik zachowuje prawa do swoich treści
-- Licencja dla Blisko na przetwarzanie treści w ramach usługi
-- Prawo do usunięcia treści naruszających regulamin
+#### Section 4 — Podmioty przetwarzajace
+Four data processors disclosed:
+- **OpenAI** (USA) -- AI profile analysis, compatibility scoring
+- **Railway** (EU hosting) -- PostgreSQL, Redis
+- **Resend** (USA) -- transactional email (OTP codes)
+- **Tigris/S3** -- file storage (avatars, portraits)
 
-### 7. Usunięcie konta
-- Możliwość usunięcia w ustawieniach aplikacji
-- 14-dniowy okres karencji — można anulować
-- Po 14 dniach — trwałe usunięcie danych (soft delete, potem hard delete)
+#### Section 5 — Transfer danych poza EOG
+OpenAI and Resend are US-based. Transfer on the basis of Standard Contractual Clauses (SCC) per Art. 46(2)(c) RODO.
 
-### 8. Ograniczenie odpowiedzialności
-- Usługa "as is" — brak gwarancji ciągłości
-- Brak odpowiedzialności za zachowania innych użytkowników
-- Brak odpowiedzialności za dokładność analizy AI
+#### Section 6 — Okres przechowywania
+- Account data: until account deletion
+- Post-deletion: 14-day grace period, then permanent deletion of all data
+- AI analytics data: deleted with account
 
-### 9. Zmiany regulaminu
-- Powiadomienie z wyprzedzeniem o istotnych zmianach
-- Kontynuacja korzystania = akceptacja zmian
+#### Section 7 — Twoje prawa
+Five rights disclosed:
+- Access (Art. 15) -- request a data copy
+- Rectification (Art. 16) -- edit profile in-app
+- Erasure (Art. 17) -- delete account in settings (14-day grace period)
+- Portability (Art. 20) -- download data as JSON
+- Object to profiling (Art. 22) -- AI generates recommendations, user makes decisions
 
-### 10. Prawo właściwe
-- Prawo polskie
-- Sąd właściwy: Warszawa
+#### Section 8 — Profilowanie AI
+Disclosure that AI generates compatibility scores. These are recommendations only. No fully automated decision-making under Art. 22 RODO. User always decides whether to send a wave.
 
-## Mobile changes
+#### Section 9 — Pliki cookies
+Mobile app does not use cookies. Website (blisko.app) does not use tracking or analytics cookies.
 
-### Login screen (`apps/mobile/app/(auth)/login.tsx`)
+#### Section 10 — Kontakt i skargi
+Contact: kontakt@blisko.app. Right to file complaint with UODO (Urzad Ochrony Danych Osobowych), ul. Stawki 2, 00-193 Warszawa.
 
-Add a small text block below all OAuth buttons and the email input:
+#### Section 11 — Zmiany polityki prywatnosci
+Significant changes announced in-app. Last update date displayed at top of document.
 
-> "Rejestrując się akceptujesz [Regulamin](https://blisko.app/terms) i [Politykę Prywatności](https://blisko.app/privacy)"
+## Terms of Service Content
 
-- Use `Text` with nested `Text` components for links (or `Linking.openURL`)
-- Style: small font (12-13px), muted color (`colors.ink50` or similar), centered
-- Links open in the system browser via `Linking.openURL`
+The terms of service (`terms.tsx`) has 10 sections plus a contact section:
 
-### Help screen (`apps/mobile/app/settings/help.tsx`)
+#### Section 1 — Postanowienia ogolne
+Operator: Karol Wypchlo. Registration implies acceptance.
 
-Lines 45-55 have TODO links pointing to `blisko.app/regulamin` and `blisko.app/prywatnosc`. Update:
-- Regulamin link: `https://blisko.app/terms`
-- Polityka prywatności link: `https://blisko.app/privacy`
+#### Section 2 — Warunki korzystania
+- Minimum age: 16 years (declarative clause, registration = confirmation)
+- One account per person
+- Truthful profile data required
 
-## Files to modify/create
+#### Section 3 — Opis uslugi
+Service description: connecting nearby people based on location, interests, and AI compatibility. Features: waves (contact invitations), chat after acceptance, groups, status with discovery.
 
-| File | Action | Description |
-|------|--------|-------------|
-| `apps/website/src/index.ts` | Modify | Add `/privacy` and `/terms` routes with HTML content |
-| `apps/mobile/app/(auth)/login.tsx` | Modify | Add acceptance text with links below OAuth buttons |
-| `apps/mobile/app/settings/help.tsx` | Modify | Update TODO links to correct URLs |
+#### Section 4 — Zasady korzystania
+Prohibited: spam, harassment, illegal content, impersonation, scraping, bots/automation.
+
+#### Section 5 — Konto i bezpieczenstwo
+User responsible for account security. Login via OAuth or email + OTP. No passwords stored.
+
+#### Section 6 — Tresci uzytkownika
+User retains rights to their content. License granted to operator for service operation. Right to remove content violating terms.
+
+#### Section 7 — Usuniecie konta
+Account deletion available in app settings. After OTP confirmation: immediate logout and profile hiding. 14-day grace period (can contact support to cancel). After 14 days: permanent data deletion.
+
+#### Section 8 — Ograniczenie odpowiedzialnosci
+Service provided "as is". No guarantee of uninterrupted operation. No responsibility for other users' behavior. AI analysis results are approximate.
+
+#### Section 9 — Zmiany regulaminu
+Advance notice in-app for significant changes. Continued use = acceptance.
+
+#### Section 10 — Prawo wlasciwe
+Polish law. Competent court: Warsaw.
+
+#### Contact section
+Questions: kontakt@blisko.app.
+
+## Data Categories & Legal Basis (Cross-Reference)
+
+| Data category | Schema table(s) | Legal basis | Retention | Disclosed in policy section |
+|---------------|----------------|-------------|-----------|---------------------------|
+| Account identity | `user` | Contract (b) | Until deletion | 2 |
+| Profile content | `profiles` | Contract (b) | Until deletion | 2 |
+| Location | `profiles` (lat/lng) | Consent (a) | Overwritten on update | 2 |
+| Files | `profiles` (avatarUrl, portrait) + S3 | Contract (b) | Until deletion (S3 deleted) | 2 |
+| Messages | `messages` | Contract (b) | Preserved (anonymized user) | 2 |
+| Waves | `waves` | Contract (b) | Preserved (anonymized user) | 2 |
+| AI embeddings | `profiles` (embedding, statusEmbedding) | Consent (a) | Cleared on deletion | 2 |
+| AI analyses | `connectionAnalyses` | Consent (a) | Preserved (anonymized user) | 2, 8 |
+| Profiling Q&A | `profilingSessions`, `profilingQA` | Contract (b) | Answers nullified on deletion | 2 |
+| OAuth connections | `account` | Contract (b) | Until disconnect or deletion | 2 |
+| Blocks | `blocks` | Legitimate interest (f) | Preserved | Not explicitly disclosed |
+| Status matches | `statusMatches` | Contract (b) | Preserved (anonymized user) | Not explicitly disclosed |
+| Behavioral metrics | `metrics.requestEvents` | Legitimate interest (f) | userId nullified on deletion | Not explicitly disclosed |
+
+## Gaps
+
+The following data categories exist in the database but are not explicitly mentioned in the current privacy policy:
+
+- **Blocks** (`blocks` table) -- user-initiated block relationships
+- **Status matches** (`statusMatches` table) -- AI-evaluated status compatibility records
+- **Conversation ratings** (`conversationRatings` table) -- optional feedback on conversations
+- **Behavioral metrics** (`metrics.requestEvents`) -- request logs with userId, endpoint, duration
+
+These are covered implicitly under "service delivery" (contract) or "security" (legitimate interest), but explicit disclosure would strengthen compliance.
+
+## Impact Map
+
+If you change this system, also check:
+
+- **Adding new data categories** -- update privacy policy section 2 (data collected) and the cross-reference table in this doc
+- **Adding new data processors** -- update privacy policy section 4 and `gdpr-compliance.md` processor table
+- **Changing deletion behavior** -- update terms section 7 and privacy policy section 6
+- **Changing AI usage** -- update privacy policy section 8 (profiling disclosure)
+- **Changing minimum age** -- update terms section 2
+- **Adding cookies or analytics** -- update privacy policy section 9
+- **Changing contact info** -- update both documents' contact sections and mobile help screen URLs
+- **Changing the last-updated date** -- hardcoded in both `privacy.tsx` and `terms.tsx` component props
+- **New legal requirements** -- consider whether terms or privacy policy need new sections

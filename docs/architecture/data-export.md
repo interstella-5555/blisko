@@ -1,215 +1,222 @@
-# User Data Export — Design Doc (BLI-66)
+# Data Export
 
-RODO Art. 15 (right of access) and Art. 20 (data portability). User requests export from mobile app, receives email with download link within minutes.
+> v1 — AI-generated from source analysis, 2026-04-06.
 
-## 1. Architecture
+GDPR/RODO Art. 15 (right of access) and Art. 20 (right to data portability). User requests export from mobile app settings, receives an email with a presigned S3 download link within minutes.
 
-```
-User taps "Pobierz moje dane"
-  → tRPC mutation `account.requestDataExport`
-  → enqueue BullMQ job `export-user-data` with { userId, email }
-  → worker collects all user data from DB
-  → serializes to JSON
-  → uploads to S3 at `exports/{userId}/{uuid}.json`
-  → generates presigned URL (7-day expiry)
-  → sends email via Resend with download link
-  → mobile shows success toast
-```
+Parent doc: `docs/architecture/gdpr-compliance.md`
 
-No OTP required — user is already authenticated. One export at a time: if a job is already queued/active for this user, return early with a message.
+## Terminology & Product Alignment
 
-## 2. JSON Export Schema
+| PRODUCT.md | Code | UI (Polish) |
+|------------|------|-------------|
+| GDPR data export | `requestDataExport` mutation, `export-user-data` BullMQ job | "Pobierz moje dane" button |
+| -- | `collectAndExportUserData()` in `data-export.ts` | "Eksport danych" section header |
+| -- | `dataExportReady()` email template | "Twoje dane z Blisko sa gotowe do pobrania" (email subject) |
+| Anonimizacja w eksporcie | `buildUserLabelMap()` + `shortHash()` | "Uzytkownik (a3f8c2)" labels |
 
-```json
-{
-  "exportedAt": "2026-03-07T12:00:00.000Z",
-  "user": {
-    "id": "uuid",
-    "name": "string",
-    "email": "string",
-    "createdAt": "iso8601",
-    "updatedAt": "iso8601"
-  },
-  "profile": {
-    "displayName": "string",
-    "avatarUrl": "https://...",
-    "bio": "string",
-    "lookingFor": "string",
-    "interests": ["string"],
-    "socialLinks": {},
-    "visibilityMode": "string",
-    "portraitUrl": "https://...",
-    "status": "string",
-    "location": { "lat": 52.20, "lng": 20.96 },
-    "createdAt": "iso8601",
-    "updatedAt": "iso8601"
-  },
-  "connectedAccounts": [
-    { "provider": "google", "providerId": "123", "scope": "email profile" }
-  ],
-  "waves": {
-    "sent": [
-      { "toUser": "Anonymized User #1", "status": "accepted", "createdAt": "iso8601" }
-    ],
-    "received": [
-      { "fromUser": "Anonymized User #2", "status": "pending", "createdAt": "iso8601" }
-    ]
-  },
-  "conversations": [
-    {
-      "id": "uuid",
-      "participants": ["Anonymized User #1"],
-      "messages": [
-        {
-          "content": "Cześć!",
-          "type": "text",
-          "sentByMe": true,
-          "createdAt": "iso8601"
-        },
-        {
-          "content": "Hej!",
-          "type": "text",
-          "sentByMe": false,
-          "senderName": "Anonymized User #1",
-          "createdAt": "iso8601"
-        }
-      ]
-    }
-  ],
-  "reactions": [
-    { "messageId": "uuid", "reaction": "heart", "createdAt": "iso8601" }
-  ],
-  "connectionAnalyses": [
-    {
-      "otherUser": "Anonymized User #1",
-      "matchScore": 85,
-      "description": "string",
-      "createdAt": "iso8601"
-    }
-  ],
-  "profilingSessions": [
-    {
-      "createdAt": "iso8601",
-      "questions": [
-        { "question": "string", "answer": "string" }
-      ]
-    }
-  ],
-  "blocks": [
-    { "blockedUser": "Anonymized User #3", "createdAt": "iso8601" }
-  ],
-  "statusMatches": [
-    { "otherUser": "Anonymized User #4", "status": "string", "createdAt": "iso8601" }
-  ]
-}
-```
+## Trigger Flow
 
-## 3. Data Anonymization Rules
+#### What
 
-Other users' data must not be personally identifiable in the export:
+The `accounts.requestDataExport` tRPC mutation (in `apps/api/src/trpc/procedures/accounts.ts`) is a protected procedure with rate limiting. No OTP required -- the user is already authenticated.
 
-- **Display names replaced** with stable anonymous labels: `Anonymized User #N` where N is a per-export sequential ID derived from deterministic ordering of other-user UUIDs. Same user gets the same label across all sections within one export.
-- **Other users' avatars/portraits**: omitted entirely.
-- **Message content**: included for all messages in the user's conversations (both sent and received) — content is part of the requesting user's data. Only the sender identity is anonymized.
-- **Account tokens/secrets**: never included (OAuth tokens are excluded, only provider name and scope).
-- **Connection analysis text**: included as-is (it describes the relationship, which is the user's data), but the other user's name is replaced with the anonymous label.
+**Flow:**
+1. User taps "Pobierz moje dane" in mobile settings
+2. Backend checks for existing recent export job (24h cooldown)
+3. If no recent job, enqueues `export-user-data` BullMQ job with `{ userId, email }`
+4. Returns `{ status: "queued" }` or `{ status: "already_requested" }`
+5. Mobile shows success toast: "Eksport zostal zlecony. Sprawdz swoj e-mail."
 
-Implementation: build a `Map<userId, string>` at the start of the job. For each distinct other-user ID encountered, assign the next sequential label.
+**Duplicate detection:** Queries BullMQ for jobs in `completed`, `active`, `waiting`, `delayed` states matching this userId and `export-user-data` type within the last 24 hours.
 
-## 4. API Endpoint
+#### Why
 
-```
-tRPC mutation: account.requestDataExport
-```
+No OTP because the user is already authenticated (unlike deletion, which is irreversible). Rate limiting prevents abuse of a heavy database operation.
 
-- **Auth**: requires `isAuthed` middleware (standard)
-- **Input**: none (userId from context)
-- **Logic**:
-  1. Check for existing pending/active `export-user-data` job for this userId (query BullMQ). If found, return `{ status: 'already_requested' }`.
-  2. Enqueue `export-user-data` job with `{ userId, email }`.
-  3. Return `{ status: 'queued' }`.
-- **Rate limit**: one export per 24 hours per user. Store `lastExportRequestedAt` in the `user` table or check job completion timestamps.
+#### Config
 
-## 5. BullMQ Job
+- Rate limit: 1 request per 24 hours (`rateLimits.dataExport` in `apps/api/src/config/rateLimits.ts`)
+- Rate limit message: "Eksport danych jest dostepny raz na 24 godziny."
+- BullMQ job ID: `export-${userId}-${Date.now()}` (unique per request)
+- Queue name: `ai-jobs` (shared queue)
 
-Job type: `export-user-data`
+## BullMQ Job Processing
 
-Payload:
-```ts
-interface ExportUserDataJob {
-  type: 'export-user-data'
-  userId: string
-  email: string
-}
-```
+#### What
 
-Processor outline:
-1. Query all tables listed in section 2 for the given userId.
-2. Build anonymization map from all other-user IDs encountered.
-3. Assemble the JSON object.
-4. Upload to S3: `exports/{userId}/{jobId}.json` with `type: 'application/json'`.
-5. Generate presigned URL with 7-day expiry.
-6. Send email via Resend with the download link.
-7. Log completion.
+The `processExportUserData()` function in `queue.ts` delegates to `collectAndExportUserData()` in `apps/api/src/services/data-export.ts`. This function:
 
-Add the job type to `processJob` switch in `apps/api/src/services/queue.ts` and export an `enqueueDataExport(userId, email)` function.
+1. Queries all user-related tables from the database
+2. Collects all other-user IDs encountered across all tables
+3. Builds an anonymization label map for other users
+4. Assembles a typed `ExportData` JSON object
+5. Uploads JSON to S3
+6. Generates a presigned download URL (7-day expiry)
+7. Sends notification email with the download link
 
-## 6. Email Template
+## Data Collected
 
-**Subject:** Twoje dane z Blisko sa gotowe do pobrania
+The export queries 12 database tables. All data belonging to the requesting user is included. Other users' identities are anonymized.
 
-**Body (HTML):**
-```
-Cześć!
+#### `user` table
 
-Twoje dane są gotowe. Kliknij poniższy link, aby pobrać plik JSON
-z eksportem wszystkich Twoich danych z aplikacji Blisko.
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| `id` | `user.id` | |
+| `name` | `user.name` | |
+| `email` | `user.email` | |
+| `createdAt` | `user.createdAt` | ISO 8601 |
+| `updatedAt` | `user.updatedAt` | ISO 8601 |
 
-[Pobierz dane] ← presigned S3 link
+#### `profiles` table
 
-Link jest ważny przez 7 dni. Po tym czasie musisz złożyć nowe żądanie
-w ustawieniach aplikacji.
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| `displayName` | `profile.displayName` | |
+| `avatarUrl` | `profile.avatarUrl` | Direct URL |
+| `bio` | `profile.bio` | |
+| `lookingFor` | `profile.lookingFor` | |
+| `interests` | `profile.interests` | String array |
+| `socialLinks` | `profile.socialLinks` | JSON object |
+| `visibilityMode` | `profile.visibilityMode` | `"ninja"` / `"semi_open"` / `"full_nomad"` |
+| `portrait` | `profile.portraitUrl` | Mapped from `portrait` column |
+| `currentStatus` | `profile.status` | |
+| `statusVisibility` | `profile.statusVisibility` | `"public"` / `"private"` |
+| `superpower` | `profile.superpower` | |
+| `superpowerTags` | `profile.superpowerTags` | String array |
+| `offerType` | `profile.offerType` | `"volunteer"` / `"exchange"` / `"gig"` |
+| `dateOfBirth` | `profile.dateOfBirth` | ISO 8601 or null |
+| `doNotDisturb` | `profile.doNotDisturb` | Boolean |
+| `latitude` + `longitude` | `profile.location` | `{ lat, lng }` object or null |
+| `createdAt` | `profile.createdAt` | ISO 8601 |
+| `updatedAt` | `profile.updatedAt` | ISO 8601 |
 
-Jeśli nie prosiłeś/aś o eksport danych, zignoruj tę wiadomość.
+#### `account` table (connected OAuth accounts)
 
-Pozdrawiamy,
-Zespół Blisko
-```
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| `providerId` | `connectedAccounts[].provider` | Filtered to apple/google/facebook/linkedin only |
+| `scope` | `connectedAccounts[].scope` | OAuth scope string |
 
-Use the same `from` address pattern as existing emails: `process.env.EMAIL_FROM || "Blisko <noreply@blisko.app>"`.
+Tokens (`accessToken`, `refreshToken`, `idToken`) are never exported.
 
-## 7. Mobile UI
+#### `waves` table
 
-**Location:** `apps/mobile/app/settings/account.tsx` — new section above the "Usuń konto" (delete account) section.
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| `toUserId` / `fromUserId` | `waves.sent[].toUser` / `waves.received[].fromUser` | Anonymized label |
+| `status` | `status` | `"pending"` / `"accepted"` / `"declined"` |
+| `senderStatusSnapshot` | `senderStatusSnapshot` | Status text at time of wave |
+| `recipientStatusSnapshot` | `recipientStatusSnapshot` | Status text at time of wave |
+| `respondedAt` | `respondedAt` | ISO 8601 or null |
+| `createdAt` | `createdAt` | ISO 8601 |
 
-**Components:**
-- Section header: "Eksport danych"
-- Description text: "Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania zostanie wysłany na Twój adres e-mail."
-- Button: `Pressable` labeled "Pobierz moje dane"
-- Loading state: button disabled + ActivityIndicator while mutation is in flight
-- Success: toast "Eksport został zlecony. Sprawdź swój e-mail." (use existing toast system)
-- Already requested: toast "Eksport jest już w trakcie przygotowywania."
-- Error: toast "Nie udało się zlecić eksportu. Spróbuj ponownie."
+#### `conversations` + `conversationParticipants` + `messages`
 
-Follow existing patterns from the delete account section for styling and spacing.
+Conversations are exported with full message history. Only conversations where the user is a participant are included. Soft-deleted messages (`deletedAt IS NOT NULL`) are excluded.
 
-## 8. Files to Modify/Create
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| `conversationId` | `conversations[].id` | |
+| participant userIds | `conversations[].participants` | Other participants only, anonymized |
+| `content` | `messages[].content` | Full message text for all participants |
+| `type` | `messages[].type` | `"text"` / etc. |
+| `senderId` | `messages[].sentByMe` | Boolean (true if requesting user) |
+| `senderId` | `messages[].senderName` | Anonymized label (null if sentByMe) |
+| `createdAt` | `messages[].createdAt` | ISO 8601 |
 
-**Modify:**
-- `apps/api/src/services/queue.ts` — add `export-user-data` job type, enqueue function, processor case
-- `apps/api/src/trpc/procedures/accounts.ts` — add `requestDataExport` mutation
-- `apps/api/src/trpc/router.ts` — wire up if needed (likely already includes accounts)
-- `apps/mobile/app/settings/account.tsx` — add export section UI
+#### `messageReactions` table
 
-**Create:**
-- `apps/api/src/services/data-export.ts` — data collection, anonymization, JSON assembly, S3 upload, email sending
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| `messageId` | `reactions[].messageId` | |
+| `emoji` | `reactions[].reaction` | |
+| `createdAt` | `reactions[].createdAt` | ISO 8601 |
 
-## 9. Implementation Steps
+#### `connectionAnalyses` table
 
-1. **Schema/types** — add `ExportUserDataJob` interface to queue types in `queue.ts`.
-2. **Data collector** — create `apps/api/src/services/data-export.ts` with a function that queries all tables, builds the anonymization map, and returns the JSON object.
-3. **Job processor** — add `export-user-data` case to `processJob` in `queue.ts`. Calls data collector, uploads to S3, sends email.
-4. **Enqueue function** — export `enqueueDataExport(userId, email)` from `queue.ts`.
-5. **tRPC mutation** — add `requestDataExport` to `accounts.ts`. Checks for duplicate requests, enqueues job.
-6. **Mobile UI** — add "Eksport danych" section to `account.tsx` with button, loading state, and toast feedback.
-7. **Test** — trigger export for a test user, verify JSON content, download link, and email delivery.
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| `fromUserId` / `toUserId` | `connectionAnalyses[].otherUser` | Anonymized label |
+| `aiMatchScore` | `connectionAnalyses[].matchScore` | Float 0-100 or null |
+| `longDescription` | `connectionAnalyses[].description` | AI-generated text |
+| `createdAt` | `connectionAnalyses[].createdAt` | ISO 8601 |
+
+#### `profilingSessions` + `profilingQA` tables
+
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| session `createdAt` | `profilingSessions[].createdAt` | ISO 8601 |
+| `question` | `profilingSessions[].questions[].question` | AI-generated question text |
+| `answer` | `profilingSessions[].questions[].answer` | User's answer or null |
+
+#### `blocks` table
+
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| `blockedId` | `blocks[].blockedUser` | Anonymized label |
+| `createdAt` | `blocks[].createdAt` | ISO 8601 |
+
+#### `statusMatches` table
+
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| `matchedUserId` | `statusMatches[].otherUser` | Anonymized label |
+| `reason` | `statusMatches[].status` | Match reason text |
+| `createdAt` | `statusMatches[].createdAt` | ISO 8601 |
+
+#### `conversationRatings` table
+
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| `conversationId` | `conversationRatings[].conversationId` | |
+| `rating` | `conversationRatings[].rating` | Integer |
+| `createdAt` | `conversationRatings[].createdAt` | ISO 8601 |
+
+## Other-User Anonymization
+
+#### What
+
+Other users' identities are replaced with deterministic anonymous labels in the format `"Uzytkownik (a3f8c2)"` where `a3f8c2` is the first 6 characters of the SHA-256 hash of their user ID.
+
+**Implementation:** `buildUserLabelMap()` and `shortHash()` in `data-export.ts`. All other-user IDs are collected during data gathering (from waves, conversations, messages, analyses, blocks, status matches). A single `Map<userId, label>` is built, and the `label()` helper replaces user IDs consistently across all sections.
+
+#### Why
+
+Other users' avatars, portraits, and real identities must not appear in another user's export (privacy of third parties). The deterministic hash ensures the same user gets the same label across all sections within one export, making the data cross-referenceable without revealing identity.
+
+#### Config
+
+- Hash algorithm: SHA-256
+- Hash truncation: first 6 hex characters
+- Label format: `"Uzytkownik (XXXXXX)"`
+- Hash is per-export deterministic (same user ID always produces the same label)
+
+## S3 Upload & Email Delivery
+
+#### What
+
+The assembled JSON is uploaded to Tigris/S3, a presigned URL is generated, and a notification email is sent via Resend.
+
+#### Config
+
+- S3 key pattern: `exports/${userId}/${Date.now()}.json`
+- Content type: `application/json`
+- Presigned URL expiry: 7 days (`7 * 24 * 60 * 60` seconds)
+- Email template: `dataExportReady(downloadUrl)` in `apps/api/src/services/email.ts`
+- Email subject: "Twoje dane z Blisko sa gotowe do pobrania"
+- Email body includes: download button, 7-day expiry notice, ignore notice for unsolicited requests
+- S3 client credentials: `BUCKET_ACCESS_KEY_ID`, `BUCKET_SECRET_ACCESS_KEY`, `BUCKET_ENDPOINT`, `BUCKET_NAME` env vars
+
+## Impact Map
+
+If you change this system, also check:
+
+- **Adding new tables with user data** -- add queries and mapping to `collectAndExportUserData()` in `data-export.ts`, update the `ExportData` interface, update this doc
+- **Adding fields to existing tables** -- decide if the field should be in the export, update the mapping in `data-export.ts`
+- **Fields referencing other users** -- ensure the new field uses the `label()` anonymization helper
+- **Changing S3 bucket config** -- verify `data-export.ts` uses the same env vars as other S3 operations
+- **Changing email templates** -- `dataExportReady()` in `apps/api/src/services/email.ts`
+- **Changing rate limits** -- `rateLimits.dataExport` in `apps/api/src/config/rateLimits.ts` and the 24h job dedup check in `accounts.requestDataExport`
+- **Privacy policy** -- section 7 discloses the right to data export; update if export scope changes
