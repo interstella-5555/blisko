@@ -27,6 +27,9 @@ export async function moderateContent(text: string): Promise<void> {
       .filter(([, v]) => v)
       .map(([k]) => k);
     console.warn("[moderation] Content flagged:", flaggedCategories.join(", "));
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Treść narusza regulamin" });
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: JSON.stringify({ error: "CONTENT_MODERATED" }),
+    });
   }
 }

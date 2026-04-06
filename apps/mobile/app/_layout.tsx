@@ -58,9 +58,27 @@ function handleRateLimitError(error: unknown) {
   }
 }
 
+function handleContentModeration(error: unknown) {
+  const err = error as { data?: { code?: string }; message?: string };
+  if (err?.data?.code !== "BAD_REQUEST") return;
+
+  try {
+    const parsed = JSON.parse(err.message ?? "");
+    if (parsed.error === "CONTENT_MODERATED") {
+      showToastGlobal({
+        type: "error",
+        title: "Treść narusza regulamin",
+      });
+    }
+  } catch {
+    // Not a moderation error — ignore
+  }
+}
+
 function handleGlobalError(error: unknown) {
   handleAccountDeleted(error);
   handleRateLimitError(error);
+  handleContentModeration(error);
 }
 
 export const queryClient = new QueryClient({

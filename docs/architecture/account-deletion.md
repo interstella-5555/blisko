@@ -12,7 +12,7 @@ Parent doc: `docs/architecture/gdpr-compliance.md`
 |------------|------|-------------|
 | Usuwanie konta / dwufazowe | `requestDeletion` mutation | "Usun konto" button in settings |
 | Okres karencji / grace period | `user.deletedAt` + 14-day `hard-delete-user` delayed job | "Twoje konto jest w trakcie usuwania. Moze to potrwac do 14 dni." |
-| Anonimizacja | `processHardDeleteUser()` in `queue.ts` | "Usuniety uzytkownik" (seen by other users) |
+| Anonimizacja | `processHardDeleteUser()` in `queue.ts` | "Usunięty użytkownik" (seen by other users) |
 | Ping / wave | `waves` table | "Ping" (UI), "wave" (code) |
 
 ## Phase 1: Soft-Delete
@@ -103,7 +103,7 @@ All PII overwrites happen in a single database transaction. If any step fails, e
 
 | Field | Anonymized value |
 |-------|-----------------|
-| `name` | `"Usuniety uzytkownik"` |
+| `name` | `"Usunięty użytkownik"` |
 | `email` | `"${crypto.randomUUID()}@deleted.localhost"` |
 | `emailVerified` | `false` |
 | `image` | `null` |
@@ -114,7 +114,7 @@ All PII overwrites happen in a single database transaction. If any step fails, e
 
 | Field | Anonymized value |
 |-------|-----------------|
-| `displayName` | `"Usuniety uzytkownik"` |
+| `displayName` | `"Usunięty użytkownik"` |
 | `avatarUrl` | `null` |
 | `bio` | `""` (empty string) |
 | `lookingFor` | `""` (empty string) |
@@ -176,7 +176,7 @@ The following tables are **not touched** by the anonymization job. All rows rema
 
 | Table | Why preserved |
 |-------|---------------|
-| `waves` | Other users' sent/received wave history. FK to `user.id` now points to "Usuniety uzytkownik". |
+| `waves` | Other users' sent/received wave history. FK to `user.id` now points to "Usunięty użytkownik". |
 | `messages` | Conversation history for other participants. `senderId` FK resolves to anonymized user name. |
 | `conversations` | Conversation metadata. `creatorId` FK resolves to anonymized user. |
 | `conversationParticipants` | Membership records. Preserved so conversations remain navigable. |
@@ -188,11 +188,11 @@ The following tables are **not touched** by the anonymization job. All rows rema
 
 #### Why
 
-Preserving relational data maintains conversation history for other users. The deleted user appears as "Usuniety uzytkownik" everywhere via FK references to `user.name`. This is the same pattern used by Slack, Discord, and other messaging platforms.
+Preserving relational data maintains conversation history for other users. The deleted user appears as "Usunięty użytkownik" everywhere via FK references to `user.name`. This is the same pattern used by Slack, Discord, and other messaging platforms.
 
 #### Config
 
-- Anonymized display name: `"Usuniety uzytkownik"` (Polish for "Deleted user")
+- Anonymized display name: `"Usunięty użytkownik"` (Polish for "Deleted user")
 - Anonymized email domain: `@deleted.localhost` (not a deliverable domain)
 - Anonymized visibility mode: `"ninja"` (most restrictive)
 - S3 key extraction regex: `/uploads\/[^?]+/`

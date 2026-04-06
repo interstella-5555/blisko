@@ -6,7 +6,7 @@ import { db, schema } from "@/db";
 import { enqueueDataExport, enqueueHardDeleteUser } from "@/services/queue";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
-import { ee } from "@/ws/events";
+import { publishEvent } from "@/ws/redis-bridge";
 
 export const accountsRouter = router({
   listConnected: protectedProcedure.query(async ({ ctx }) => {
@@ -103,7 +103,7 @@ export const accountsRouter = router({
       });
 
       // 4. Close active WebSocket connections (sessions deleted, no reconnect possible)
-      ee.emit("forceDisconnect", { userId: ctx.userId });
+      publishEvent("forceDisconnect", { userId: ctx.userId });
 
       // 5. Schedule hard delete outside transaction (queue job, not DB)
       await enqueueHardDeleteUser(ctx.userId);

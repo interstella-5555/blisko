@@ -22,6 +22,7 @@ interface ExportData {
     visibilityMode: string;
     portraitUrl: string | null;
     status: string | null;
+    statusCategories: string[] | null;
     statusVisibility: string | null;
     superpower: string | null;
     superpowerTags: string[] | null;
@@ -275,6 +276,7 @@ export async function collectAndExportUserData(userId: string, email: string) {
           visibilityMode: profile.visibilityMode,
           portraitUrl: profile.portrait,
           status: profile.currentStatus,
+          statusCategories: profile.statusCategories,
           statusVisibility: profile.statusVisibility,
           superpower: profile.superpower,
           superpowerTags: profile.superpowerTags,

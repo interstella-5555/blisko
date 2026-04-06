@@ -143,10 +143,14 @@ Complete list of every trigger point in the codebase:
 | `profiling.answerFollowUp` | Follow-up answer |
 | `profiling.createGhostProfile` | Display name |
 
+#### messages.ts
+| Endpoint | What's moderated |
+|----------|-----------------|
+| `messages.send` | Text message content (skipped for image/location types) |
+
 #### NOT moderated (gaps vs PRODUCT.md)
 | Content | Where | PRODUCT.md says |
 |---------|-------|-----------------|
-| Chat messages | `messages.send` | "Automatyczny filtr (AI) przy każdym zapisie: ... wiadomość" |
 | Group names | `groups.create`, `groups.update` | "Automatyczny filtr (AI) przy każdym zapisie: ... nazwa grupy" |
 | Group descriptions | `groups.create`, `groups.update` | Implied by "każdym zapisie" |
 | Topic names | `topics.create`, `topics.update` | Implied |

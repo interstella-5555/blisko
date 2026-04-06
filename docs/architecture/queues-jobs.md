@@ -14,7 +14,7 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 | Ambient notification | `sendAmbientPushWithCooldown()` | "Ktos z pasujacym profilem jest w poblizu" |
 | AI profiling Q&A | `generate-profiling-question` / `generate-profile-from-qa` jobs | Onboarding konwersacja |
 | Portrait | `profiles.portrait` — AI-generated profile summary | (internal, feeds matching) |
-| Account deletion (soft + hard) | `hard-delete-user` delayed job | "Usuniety uzytkownik" |
+| Account deletion (soft + hard) | `hard-delete-user` delayed job | "Usunięty użytkownik" |
 | Data export (GDPR) | `export-user-data` job | Export danych |
 
 ## Queue Configuration
@@ -197,7 +197,7 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 **Processor logic:**
 1. Skip if already anonymized (`anonymizedAt` set)
 2. Delete S3 files (avatar, portrait)
-3. In transaction: overwrite user table (name -> "Usuniety uzytkownik", random email), nullify all profile fields, set ninja mode, clear profiling Q&A answers
+3. In transaction: overwrite user table (name -> "Usunięty użytkownik", random email), nullify all profile fields, set ninja mode, clear profiling Q&A answers
 4. Outside transaction: anonymize metrics (`requestEvents.userId` / `targetUserId` -> null)
 
 **Delay:** 14 days (1,209,600,000 ms) — allows account recovery during grace period.

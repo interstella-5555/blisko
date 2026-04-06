@@ -5,6 +5,7 @@ import { and, desc, eq, ilike, inArray, isNull, lt, ne, sql } from "drizzle-orm"
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
+import { moderateContent } from "@/services/moderation";
 import { sendPushToUser } from "@/services/push";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
@@ -450,6 +451,11 @@ export const messagesRouter = router({
         } catch {
           // Redis failure — proceed without idempotency (fail open)
         }
+      }
+
+      // Content moderation (text messages only — skip images, locations, etc.)
+      if (!input.type || input.type === "text") {
+        await moderateContent(input.content);
       }
 
       const message = await db.transaction(async (tx) => {

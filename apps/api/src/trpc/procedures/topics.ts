@@ -133,7 +133,19 @@ export const topicsRouter = router({
     await requireGroupMember(input.conversationId, ctx.userId);
 
     const result = await db
-      .select()
+      .select({
+        id: schema.topics.id,
+        conversationId: schema.topics.conversationId,
+        name: schema.topics.name,
+        emoji: schema.topics.emoji,
+        creatorId: schema.topics.creatorId,
+        isPinned: schema.topics.isPinned,
+        isClosed: schema.topics.isClosed,
+        sortOrder: schema.topics.sortOrder,
+        lastMessageAt: schema.topics.lastMessageAt,
+        messageCount: schema.topics.messageCount,
+        createdAt: schema.topics.createdAt,
+      })
       .from(schema.topics)
       .where(eq(schema.topics.conversationId, input.conversationId))
       .orderBy(

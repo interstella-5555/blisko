@@ -10,7 +10,7 @@ Blisko processes personal data under RODO (Polish implementation of GDPR). Polis
 |------------|------|-------------|
 | Usuwanie konta | `requestDeletion` mutation, `hard-delete-user` BullMQ job | "Usun konto" |
 | Grace period / okres karencji | `user.deletedAt` + 14-day delayed job | "Twoje konto jest w trakcie usuwania" |
-| Anonimizacja | `processHardDeleteUser()` in `queue.ts`, `user.anonymizedAt` | "Usuniety uzytkownik" (displayed to others) |
+| Anonimizacja | `processHardDeleteUser()` in `queue.ts`, `user.anonymizedAt` | "Usunięty użytkownik" (displayed to others) |
 | Eksport danych | `requestDataExport` mutation, `export-user-data` BullMQ job | "Pobierz moje dane" |
 | Polityka prywatnosci | `/privacy` route in website | "Polityka Prywatnosci" |
 | Regulamin | `/terms` route in website | "Regulamin" |
@@ -22,7 +22,7 @@ Blisko processes personal data under RODO (Polish implementation of GDPR). Polis
 1. **Phase 1 — Soft-delete (immediate):** `user.deletedAt` set. `isAuthed` middleware blocks all API calls. Sessions, push tokens deleted. WebSocket force-disconnected. User invisible in discovery.
 2. **Phase 2 — Anonymization (14 days later):** BullMQ delayed job fires. PII overwritten with generic values in `user` and `profiles` tables. Profiling Q&A answers nullified. S3 files (avatar, portrait) deleted. Metrics anonymized. `user.anonymizedAt` set.
 
-**Why not hard delete:** Deleting user rows would cascade-delete or orphan relational data (messages, waves, conversations). Other users would lose conversation history. Anonymization preserves relational integrity while removing all PII. The deleted user appears as "Usuniety uzytkownik" via FK references to `user.name`.
+**Why not hard delete:** Deleting user rows would cascade-delete or orphan relational data (messages, waves, conversations). Other users would lose conversation history. Anonymization preserves relational integrity while removing all PII. The deleted user appears as "Usunięty użytkownik" via FK references to `user.name`.
 
 **Why not hashing:** Hashing without salt is pseudonymization, which still falls under GDPR scope. Salted hashing adds complexity for no privacy benefit over plain overwrite. Per Recital 26 (Motyw 26), anonymized data falls entirely outside GDPR scope. Plain overwrite with generic values achieves true anonymization with zero complexity.
 

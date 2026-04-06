@@ -1,0 +1,33 @@
+{
+  "scoredAt": "2026-04-06",
+  "docs": {
+    "database.md": { "freshness": 100, "coverage": 95, "depth": 100, "consistency": 100, "overall": 99 },
+    "ai-matching.md": { "freshness": 100, "coverage": 90, "depth": 100, "consistency": 100, "overall": 98 },
+    "ai-profiling.md": { "freshness": 100, "coverage": 90, "depth": 100, "consistency": 100, "overall": 98 },
+    "queues-jobs.md": { "freshness": 100, "coverage": 95, "depth": 100, "consistency": 100, "overall": 99 },
+    "push-notifications.md": { "freshness": 100, "coverage": 100, "depth": 100, "consistency": 100, "overall": 100 },
+    "websockets-realtime.md": { "freshness": 100, "coverage": 85, "depth": 100, "consistency": 100, "overall": 96 },
+    "messaging.md": { "freshness": 100, "coverage": 95, "depth": 100, "consistency": 100, "overall": 99 },
+    "auth-sessions.md": { "freshness": 100, "coverage": 100, "depth": 100, "consistency": 100, "overall": 100 },
+    "user-profiles.md": { "freshness": 100, "coverage": 90, "depth": 100, "consistency": 100, "overall": 98 },
+    "onboarding-flow.md": { "freshness": 100, "coverage": 95, "depth": 100, "consistency": 100, "overall": 99 },
+    "waves-connections.md": { "freshness": 100, "coverage": 95, "depth": 100, "consistency": 100, "overall": 99 },
+    "status-matching.md": { "freshness": 100, "coverage": 95, "depth": 100, "consistency": 100, "overall": 99 },
+    "groups-discovery.md": { "freshness": 100, "coverage": 90, "depth": 100, "consistency": 100, "overall": 98 },
+    "nearby-group-members.md": { "freshness": 100, "coverage": 95, "depth": 100, "consistency": 100, "overall": 99 },
+    "location-privacy.md": { "freshness": 100, "coverage": 90, "depth": 100, "consistency": 100, "overall": 98 },
+    "blocking-moderation.md": { "freshness": 100, "coverage": 90, "depth": 100, "consistency": 100, "overall": 98 },
+    "privacy-terms.md": { "freshness": 100, "coverage": 85, "depth": 100, "consistency": 100, "overall": 96 },
+    "gdpr-compliance.md": { "freshness": 100, "coverage": 90, "depth": 100, "consistency": 100, "overall": 98 },
+    "account-deletion.md": { "freshness": 100, "coverage": 95, "depth": 100, "consistency": 100, "overall": 99 },
+    "data-export.md": { "freshness": 100, "coverage": 95, "depth": 100, "consistency": 100, "overall": 99 },
+    "infrastructure.md": { "freshness": 100, "coverage": 90, "depth": 100, "consistency": 100, "overall": 98 },
+    "rate-limiting.md": { "freshness": 100, "coverage": 100, "depth": 100, "consistency": 100, "overall": 100 },
+    "instrumentation.md": { "freshness": 100, "coverage": 100, "depth": 100, "consistency": 100, "overall": 100 },
+    "mobile-architecture.md": { "freshness": 100, "coverage": 85, "depth": 100, "consistency": 100, "overall": 96 },
+    "demo-chatbot.md": { "freshness": 100, "coverage": 85, "depth": 100, "consistency": 100, "overall": 96 },
+    "e2e-test-coverage.md": { "freshness": 100, "coverage": 95, "depth": 80, "consistency": 100, "overall": 94 },
+    "monetization.md": { "freshness": 100, "coverage": 70, "depth": 20, "consistency": 25, "overall": 58 },
+    "friends-system.md": { "freshness": 100, "coverage": 80, "depth": 0, "consistency": 25, "overall": 55 }
+  }
+}
