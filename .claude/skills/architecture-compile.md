@@ -180,7 +180,83 @@ wc -l docs/architecture/*.md | sort -rn
 
 **Overlap detection:** For each pair of docs, check if the same source file appears in both domains' key source files. If >3 shared source files → flag potential overlap, suggest consolidation.
 
-### 9. Compile report
+### 9. Doc quality scoring
+
+Score every architecture doc on 4 dimensions. Read and update `docs/architecture/.quality-scores.json`.
+
+**Scoring formulas:**
+
+| Dimension | Weight | How to compute |
+|-----------|--------|----------------|
+| **Freshness** | 30% | Compare `git log -1 --format=%aI docs/architecture/X.md` with `git log -1 --format=%aI <source files>`. Score: `100 - max(0, days_source_ahead_of_doc) * 10`. Source changed 3 days after doc → 70. |
+| **Coverage** | 25% | Count source files the doc references (mentioned in text or mapped in domain table) vs total files in that domain. `referenced / total * 100`. |
+| **Depth** | 25% | Checklist: has Terminology table (+20), has Why sections (+30), has concrete Config values (+20), has Impact Map (+30). |
+| **Consistency** | 20% | Matches template: starts with `# Title` + version tag (+25), has `## Terminology & Product Alignment` (+25), no line numbers in text (+25), has `## Impact Map` at end (+25). |
+
+**Overall** = weighted sum: `0.3 * freshness + 0.25 * coverage + 0.25 * depth + 0.2 * consistency`.
+
+**Output format** (`docs/architecture/.quality-scores.json`):
+```json
+{
+  "scoredAt": "2026-04-06",
+  "docs": {
+    "database.md": {
+      "freshness": 95,
+      "coverage": 80,
+      "depth": 100,
+      "consistency": 100,
+      "overall": 94
+    }
+  }
+}
+```
+
+**Trend detection:** If previous scores exist, compare. Flag docs where overall dropped > 10 points since last compile. Flag docs that have been below 70 for 2+ consecutive compiles — they need priority rewrite.
+
+**Priority queue:** Sort docs by overall score ascending. Lowest-scoring docs should be fixed first during the auto-fix step.
+
+### 10. Rule suggestion from patterns
+
+Analyze `.review-log.md` entries for recurring issue patterns.
+
+**Pattern detection:**
+1. Parse all review log entries
+2. Group findings by type (normalize: "missing soft-delete filter", "no soft-delete check", "deletedAt not filtered" → same pattern)
+3. Count occurrences across compiles and reviews
+
+**Threshold:** Pattern appears >= 3 times across reviews/compiles → propose a rule.
+
+**Rule draft format:**
+```markdown
+### Proposed Rule
+
+**Pattern:** "missing soft-delete filter" — found 4 times (2 reviews, 2 compiles)
+**Occurrences:**
+- 2026-03-28: audit-B8 (groups discovery)
+- 2026-04-01: review of PR #85 (nearby query)
+- 2026-04-06: compile (new endpoint)
+- 2026-04-06: compile (status matching)
+
+**Proposed rule for `.claude/rules/architect.md`:**
+```
+- `architect/soft-delete-on-discovery` — Every query that returns users to other users
+  MUST include an INNER JOIN to `user` with `isNull(schema.user.deletedAt)`. No exceptions.
+  This applies to: nearby queries, group discovery, wave lists, status matching candidates.
+```
+
+**Add this rule?** [waiting for user decision]
+```
+
+**Persystencja:** Track proposed rules in `.review-log.md` to avoid re-proposing:
+```markdown
+## Proposed Rules
+- 2026-04-06: "soft-delete-on-discovery" — ACCEPTED, added to architect.md
+- 2026-04-06: "rate-limit-on-external" — DEFERRED, user said "not yet for beta"
+```
+
+**Never auto-add rules.** Always present to user and wait for explicit approval. False rules are worse than no rules.
+
+### 11. Compile report (all findings)
 
 Merge all findings into a single report:
 
@@ -219,11 +295,20 @@ Merge all findings into a single report:
 ### Doc Structure
 - [split/merge suggestions]
 
+### Doc Quality Scores
+| Doc | Freshness | Coverage | Depth | Consistency | Overall | Trend |
+|-----|-----------|----------|-------|-------------|---------|-------|
+| `database.md` | 95 | 80 | 100 | 100 | 94 | -- |
+Priority rewrite: [lowest-scoring docs]
+
+### Proposed Rules
+- [pattern]: found N times → proposed rule draft → [waiting for user]
+
 ### Patterns from Past Reviews
 - [recurring issues that should become rules or stronger doc coverage]
 ```
 
-### 10. Present to user
+### 12. Present to user
 
 Show the full report. Let user decide:
 - Which outdated sections to fix now
@@ -231,15 +316,20 @@ Show the full report. Let user decide:
 - Which PRODUCT.md gaps to create Linear tickets for
 - Which CLAUDE.md sections to sync
 - Which architectural drift items are bugs vs intentional deviations
-- Which recurring patterns should become new rules in `.claude/rules/`
+- Which proposed rules to accept, defer, or reject
+- Which low-scoring docs to prioritize for rewrite
 
-### 11. Optionally: auto-fix
+### 13. Optionally: auto-fix
 
 If user approves, run `/architecture-update` style edits for each outdated section. For new categories, create placeholder docs following the standard template.
 
-### 12. Update review log
+### 14. Update review log and quality scores
 
-After compile completes, append key findings to `docs/architecture/.review-log.md`:
+After compile completes:
+
+**1. Write quality scores** to `docs/architecture/.quality-scores.json`. Overwrite the entire file with fresh scores from step 9.
+
+**2. Append to review log** (`docs/architecture/.review-log.md`):
 
 ```markdown
 ## YYYY-MM-DD Compile
@@ -247,7 +337,13 @@ After compile completes, append key findings to `docs/architecture/.review-log.m
 - X docs accurate, Y outdated, Z missing
 - Key drift: [summary]
 - New patterns: [summary]
+- Lowest scoring: [doc] at [score] (was [previous] → trend [up/down])
 - Actions taken: [what was fixed]
+
+### Proposed Rules
+- "rule-name" — [ACCEPTED/DEFERRED/REJECTED] — [reason if deferred/rejected]
 ```
 
-This log feeds into step 1 of the next compile run — closing the feedback loop.
+**3. Commit** both `.quality-scores.json` and `.review-log.md` in the same branch as any doc fixes.
+
+This log + scores feed into step 1 of the next compile run — closing the feedback loop.
