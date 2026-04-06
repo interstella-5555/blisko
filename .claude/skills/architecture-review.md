@@ -103,3 +103,18 @@ Format findings as:
 ```
 
 Severity levels: **CRITICAL** (privacy/GDPR/data integrity), **HIGH** (undocumented behavior change), **MEDIUM** (missing doc update), **LOW** (style/convention).
+
+### 6. Append to review log
+
+After reporting, append a summary to `docs/architecture/.review-log.md` (create if doesn't exist). This feeds the `/architecture-compile` feedback loop.
+
+```markdown
+## YYYY-MM-DD — Review of [branch/PR]
+
+**Issues found:** N (X critical, Y high, Z medium)
+**Key findings:**
+- [one-line summary per issue]
+**Patterns:** [any recurring issue type, e.g., "missing soft-delete filter" — 3rd time in 5 reviews]
+```
+
+Keep entries concise — one review = one section. The compile skill reads this log to prioritize its checks.
