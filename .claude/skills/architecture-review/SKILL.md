@@ -1,6 +1,6 @@
 ---
 name: architecture-review
-description: "Use during code review to check if code changes align with documented architecture. Invoke alongside /code-review:code-review, or independently when reviewing a PR or branch. Checks for: architecture violations, undocumented changes, GDPR gaps, privacy leaks, missing Impact Map updates. Produces findings — does not edit docs. Triggers: 'architecture review', 'check architecture', 'review architecture', 'architecture compliance'."
+description: "Use when reviewing code changes or PRs to verify alignment with documented architecture. Read-only — produces findings, does not edit docs. Triggers: 'architecture review', 'check architecture', '/architecture-review'."
 ---
 
 # Architecture Review — Code Review Gate
@@ -53,7 +53,7 @@ For each change, verify:
 
 **Schema changes:**
 - [ ] New table/column documented in `database.md`?
-- [ ] New table → GDPR checklist: anonymization job? data export? soft-delete filtering?
+- [ ] New table -> GDPR checklist: anonymization job? data export? soft-delete filtering?
 - [ ] Index strategy makes sense per documented patterns?
 
 **AI changes:**
