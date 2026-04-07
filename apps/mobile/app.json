@@ -45,7 +45,13 @@
           "locationAlwaysAndWhenInUsePermission": "Blisko potrzebuje dostępu do lokalizacji, aby powiadamiać Cię o osobach w okolicy."
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "react-native-maps",
+        {
+          "androidGoogleMapsApiKey": "AIzaSyBWYmzrZOetQdR_rpTCFCECBGyOEhqkga0"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
