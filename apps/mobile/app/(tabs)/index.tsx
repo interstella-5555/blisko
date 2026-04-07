@@ -283,18 +283,19 @@ export default function NearbyScreen() {
       });
     } catch (error) {
       console.warn("Error getting location:", error);
-      if (__DEV__) {
-        // Fallback: centrum Warszawy w symulatorze
-        const fallbackLat = 52.2297;
-        const fallbackLng = 21.0122;
-        setLocation(fallbackLat, fallbackLng);
-        await updateLocationAsync({
-          latitude: fallbackLat,
-          longitude: fallbackLng,
-        });
-      } else {
-        setPermissionStatus("denied");
-      }
+      // Location fetch failed but permission may still be granted — retry after delay
+      // Don't set permissionStatus to "denied" here (that's a permission issue, not a GPS issue)
+      setTimeout(() => {
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+          .then((loc) => {
+            setLocation(loc.coords.latitude, loc.coords.longitude);
+            updateLocationAsync({ latitude: loc.coords.latitude, longitude: loc.coords.longitude }).catch(() => {});
+          })
+          .catch(() => {
+            // Still no location — show error state but don't claim permission denied
+            console.warn("Location retry failed");
+          });
+      }, 3000);
     }
   }, [setLocation, setPermissionStatus, updateLocationAsync]);
 

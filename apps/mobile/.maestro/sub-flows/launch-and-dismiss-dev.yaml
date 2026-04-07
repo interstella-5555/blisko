@@ -7,8 +7,7 @@ appId: com.blisko.app
 - launchApp:
     clearState: true
     permissions:
-      location: allow
-      notifications: allow
+      all: allow
 
 - runFlow:
     when:
