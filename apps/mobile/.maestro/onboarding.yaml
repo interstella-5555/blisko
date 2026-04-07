@@ -1,116 +1,191 @@
 appId: com.blisko.app
 ---
-# Onboarding E2E Test (Development Build)
-# Logs in with @example.com email, completes onboarding, lands on W okolicy tab
+# Full Onboarding E2E Test
+# Login → Hook → Name+Age → Full Profile → 7 Questions → AI Follow-ups → Review → W okolicy
 
-- launchApp:
-    clearState: true
-    permissions:
-      location: always
+- runFlow: sub-flows/launch-and-dismiss-dev.yaml
 
-# Dev build shows launcher - tap on localhost to connect
+# --- AUTH: Email login with dev shortcut ---
+
 - extendedWaitUntil:
-    visible: "http://localhost:8081"
-    timeout: 15000
-- tapOn: "http://localhost:8081"
-
-# Wait for app to load and developer menu to appear
-- extendedWaitUntil:
-    visible: "Continue"
+    visible: "(?i)Kontynuuj z Email"
     timeout: 30000
+- tapOn: "(?i)Kontynuuj z Email"
 
-# Dismiss first developer menu
-- tapOn: "Continue"
-
-# Wait for second developer menu (with Go home)
-- extendedWaitUntil:
-    visible: "Go home"
-    timeout: 10000
-
-# Tap outside modal to dismiss it
-- tapOn:
-    point: "50%,10%"
-- waitForAnimationToEnd
-
-# Wait for login screen
 - extendedWaitUntil:
     visible:
       id: "email-input"
-    timeout: 30000
-
-# Enter unique email - use inputRandomNumber for unique ID
+    timeout: 10000
 - tapOn:
     id: "email-input"
 - inputRandomNumber
 - inputText: "@example.com"
-# Tap outside to dismiss keyboard without using hideKeyboard
+- hideKeyboard
 - tapOn:
-    point: "50%,30%"
+    id: "send-link-button"
 
-# Submit login
-- tapOn: "Wyślij link"
+# --- HOOK SCREEN (auto-advances in 5s) ---
 
-# Wait for onboarding step 1 (1/3)
+- runFlow:
+    when:
+      visible:
+        id: "hook-start-button"
+    commands:
+      - tapOn:
+          id: "hook-start-button"
+
+# --- STEP 1: Name + Age ---
+
 - extendedWaitUntil:
-    visible: "1 / 3"
+    visible: "Krok 1"
     timeout: 30000
 
-# Step 1: Name
 - tapOn:
     id: "name-input"
+- eraseText: 30
 - inputText: "Test User E2E"
-# Tap outside input to dismiss keyboard
-- tapOn:
-    point: "50%,30%"
+- hideKeyboard
 - waitForAnimationToEnd
-- tapOn: "Dalej"
 
-# Wait for step 2 (2/3) - MUST see this before proceeding
-- extendedWaitUntil:
-    visible: "2 / 3"
-    timeout: 10000
-
-# Step 2: Bio
 - tapOn:
+    id: "age-confirm-toggle"
+
+- extendedWaitUntil:
+    visible: "(?i)Dalej"
+    timeout: 5000
+- tapOn: "(?i)Dalej"
+
+# --- STEP 2: Visibility — choose full profile ---
+
+- extendedWaitUntil:
+    visible:
+      id: "fill-profile-button"
+    timeout: 10000
+- tapOn:
+    id: "fill-profile-button"
+
+# --- STEP 3: Answer 7 questions (ASCII only — Maestro limitation) ---
+
+# Q1 (required) — intro
+- extendedWaitUntil:
+    visible: "1 / 7"
+    timeout: 15000
+- tapOn:
+    id: "question-input"
+- inputText: "Programista, w wolnym czasie gram na gitarze i biegam po parku"
+- tapOn: "(?i)Dalej"
+
+# Q2 (optional) — recent_obsession
+- extendedWaitUntil:
+    visible: "2 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Serial o kosmosie i nowa gra planszowa"
+- tapOn: "(?i)Dalej"
+
+# Q3 (required) — looking_for
+- extendedWaitUntil:
+    visible: "3 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Szukam ludzi do wspolnych projektow i aktywnosci sportowych"
+- tapOn: "(?i)Dalej"
+
+# Q4 (optional) — activities
+- extendedWaitUntil:
+    visible: "4 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Bieganie, gry planszowe, jam session"
+- tapOn: "(?i)Dalej"
+
+# Q5 (optional) — offer
+- extendedWaitUntil:
+    visible: "5 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Pomoc z programowaniem i gitara basowa"
+- tapOn: "(?i)Dalej"
+
+# Q6 (optional) — conversation_trigger
+- extendedWaitUntil:
+    visible: "6 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Wspolne zainteresowania albo ciekawy pomysl na projekt"
+- tapOn: "(?i)Dalej"
+
+# Q7 (optional) — public_self
+- extendedWaitUntil:
+    visible: "7 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Otwarty na nowe znajomosci i przygody w okolicy"
+- tapOn: "(?i)Dalej"
+
+# --- SUBMISSION + FOLLOW-UPS (0-3, non-deterministic) ---
+
+# After question 7, submission happens. Then either follow-ups or generation.
+# Wait for the question input to reappear (follow-up) or review screen.
+- extendedWaitUntil:
+    visible:
+      id: "question-input"
+    timeout: 60000
+
+# Follow-up 1
+- tapOn:
+    id: "question-input"
+- inputText: "Lubie poznawac nowych ludzi i pracowac razem nad projektami"
+- tapOn: "(?i)Dalej"
+
+# Follow-up 2 (if present)
+- runFlow:
+    when:
+      visible:
+        id: "question-input"
+    commands:
+      - tapOn:
+          id: "question-input"
+      - inputText: "Interesuje mnie muzyka, sport i gry planszowe"
+      - tapOn: "(?i)Dalej"
+
+# Follow-up 3 (if present)
+- runFlow:
+    when:
+      visible:
+        id: "question-input"
+    commands:
+      - tapOn:
+          id: "question-input"
+      - inputText: "Szukam ludzi do wspolnych projektow i inicjatyw"
+      - tapOn: "(?i)Dalej"
+
+# --- AI PROFILE GENERATION + REVIEW ---
+
+# Wait for review screen (AI generation may take a while)
+- extendedWaitUntil:
+    visible:
+      id: "profiling-review-screen"
+    timeout: 600000
+
+# Verify editable fields are present
+- assertVisible:
     id: "bio-input"
-- inputText: "Jestem testowym uzytkownikiem e2e do automatycznych testow"
-# Tap on title area to dismiss keyboard (not on Dalej button)
-- tapOn:
-    point: "50%,20%"
-- waitForAnimationToEnd
-
-# Now tap the Dalej button
-- extendedWaitUntil:
-    visible: "Dalej"
-    timeout: 5000
-- tapOn: "Dalej"
-
-# Wait for step 3 (3/3) - MUST see this before proceeding
-- extendedWaitUntil:
-    visible: "3 / 3"
-    timeout: 10000
-
-# Step 3: Looking for
-- tapOn:
+- assertVisible:
     id: "looking-for-input"
-- inputText: "Szukam znajomych do testowania aplikacji mobilnych"
-# Tap on title area to dismiss keyboard
+
+# Confirm profile
 - tapOn:
-    point: "50%,20%"
-- waitForAnimationToEnd
+    id: "confirm-profile-button"
 
-# Set simulated location (Warsaw) before submitting
-- setLocation:
-    latitude: 52.2297
-    longitude: 21.0122
+# --- VERIFY: Landed on main tab ---
 
-# Now tap Rozpocznij
-- extendedWaitUntil:
-    visible: "Rozpocznij"
-    timeout: 5000
-- tapOn: "Rozpocznij"
-
-# Verify we landed on W okolicy tab
 - extendedWaitUntil:
     visible: "W okolicy"
     timeout: 30000

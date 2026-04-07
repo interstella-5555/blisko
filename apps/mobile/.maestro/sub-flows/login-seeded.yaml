@@ -5,11 +5,17 @@ appId: com.blisko.app
 
 - runFlow: ../sub-flows/launch-and-dismiss-dev.yaml
 
-# Wait for login screen
+# Wait for login screen and navigate to email login
+- extendedWaitUntil:
+    visible: "(?i)Kontynuuj z Email"
+    timeout: 30000
+- tapOn: "(?i)Kontynuuj z Email"
+
+# Wait for email input screen
 - extendedWaitUntil:
     visible:
       id: "email-input"
-    timeout: 30000
+    timeout: 10000
 
 # Enter seeded email
 - tapOn:
@@ -18,7 +24,7 @@ appId: com.blisko.app
 - hideKeyboard
 
 # Submit login
-- tapOn: "Wyślij link"
+- tapOn: "(?i)Wyślij kod"
 
 # Seeded user has profile → goes straight to tabs
 - extendedWaitUntil:

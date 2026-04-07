@@ -46,12 +46,18 @@ export default function VisibilityScreen() {
 
         <View style={styles.options}>
           <View style={styles.option}>
-            <Button title="Wypełnij profil" variant="accent" onPress={handleFillProfile} />
+            <Button testID="fill-profile-button" title="Wypełnij profil" variant="accent" onPress={handleFillProfile} />
             <Text style={styles.optionDesc}>Inni zobaczą Twój profil i będą mogli Cię znaleźć</Text>
           </View>
 
           <View style={styles.option}>
-            <Button title="Na razie tylko imię" variant="ghost" onPress={handleGhost} loading={isCreating} />
+            <Button
+              testID="ghost-profile-button"
+              title="Na razie tylko imię"
+              variant="ghost"
+              onPress={handleGhost}
+              loading={isCreating}
+            />
             <Text style={styles.optionDesc}>
               Nie będziesz widoczny. Możesz dołączać do grup tylko przez zaproszenie.
             </Text>

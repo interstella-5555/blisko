@@ -95,7 +95,11 @@ export default function HookScreen() {
       <View style={styles.overlay}>
         <Text style={styles.headline}>Świat jest pełen ludzi, których potrzebujesz.</Text>
         <Animated.View style={{ opacity: ctaOpacity }}>
-          <Pressable style={styles.cta} onPress={() => router.replace("/onboarding" as never)}>
+          <Pressable
+            testID="hook-start-button"
+            style={styles.cta}
+            onPress={() => router.replace("/onboarding" as never)}
+          >
             <Text style={styles.ctaText}>Zacznij</Text>
           </Pressable>
         </Animated.View>

@@ -117,8 +117,9 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
       }));
 
     return (
-      <View style={styles.container}>
+      <View testID="nearby-map-container" style={styles.container}>
         <MapView
+          testID="nearby-map"
           ref={mapRef}
           style={styles.map}
           initialRegion={{

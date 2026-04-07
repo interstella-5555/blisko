@@ -280,6 +280,7 @@ export default function QuestionsScreen() {
           <Text style={styles.questionText}>{currentFU.question}</Text>
 
           <TextInput
+            testID="question-input"
             ref={inputRef}
             style={styles.input}
             value={followUpText}
@@ -334,6 +335,7 @@ export default function QuestionsScreen() {
         <Text style={styles.questionText}>{currentQuestion.question}</Text>
 
         <TextInput
+          testID="question-input"
           ref={inputRef}
           style={styles.input}
           value={currentText}
@@ -367,7 +369,7 @@ export default function QuestionsScreen() {
             disabled={!currentText.trim() && currentQuestion.required}
           />
           {!currentQuestion.required && (
-            <Pressable onPress={handleSkip} hitSlop={8}>
+            <Pressable testID="skip-question-button" onPress={handleSkip} hitSlop={8}>
               <Text style={styles.skipText}>Pomiń</Text>
             </Pressable>
           )}

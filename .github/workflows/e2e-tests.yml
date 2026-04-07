@@ -10,7 +10,7 @@ on:
 jobs:
   e2e-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -75,11 +75,11 @@ jobs:
         run: |
           echo "EXPO_PUBLIC_API_URL=https://api.blisko.app" > apps/mobile/.env.local
 
-      - name: Build Expo dev client (Android)
+      - name: Build Expo release (Android)
         working-directory: apps/mobile
         run: |
           npx expo prebuild --platform android --clean
-          cd android && ./gradlew assembleDebug
+          cd android && ./gradlew assembleRelease
         env:
           EXPO_PUBLIC_API_URL: https://api.blisko.app
 
@@ -93,11 +93,8 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            adb install apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
-            cd apps/mobile && npx expo start --port 8081 &
-            npx wait-on http://localhost:8081 --timeout 60000
-            cd ../..
-            maestro test apps/mobile/.maestro/onboarding.yaml
+            adb install apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+            maestro test -e RELEASE_BUILD=true apps/mobile/.maestro/onboarding.yaml
 
       - name: Upload Maestro artifacts
         if: always()

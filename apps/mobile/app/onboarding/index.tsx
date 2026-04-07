@@ -75,6 +75,7 @@ export default function OnboardingNameScreen() {
 
         <View style={styles.ageRow}>
           <Switch
+            testID="age-confirm-toggle"
             value={ageConfirmed}
             onValueChange={setAgeConfirmed}
             trackColor={{ false: colors.rule, true: "#D4851C" }}

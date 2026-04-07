@@ -112,6 +112,7 @@ export default function ProfilingResultScreen() {
 
   return (
     <ScrollView
+      testID="profiling-review-screen"
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
@@ -121,6 +122,7 @@ export default function ProfilingResultScreen() {
 
       <Text style={styles.label}>O MNIE</Text>
       <TextInput
+        testID="bio-input"
         style={styles.input}
         value={bio}
         onChangeText={setBio}
@@ -134,6 +136,7 @@ export default function ProfilingResultScreen() {
 
       <Text style={styles.label}>KOGO SZUKAM</Text>
       <TextInput
+        testID="looking-for-input"
         style={styles.input}
         value={lookingFor}
         onChangeText={setLookingFor}
@@ -169,6 +172,7 @@ export default function ProfilingResultScreen() {
 
       <View style={styles.buttonContainer}>
         <Button
+          testID="confirm-profile-button"
           title="Tak, to ja"
           variant="accent"
           onPress={handleApply}

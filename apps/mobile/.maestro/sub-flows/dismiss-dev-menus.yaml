@@ -1,0 +1,25 @@
+appId: com.blisko.app
+---
+# Connect to Metro dev server and dismiss developer menus
+# Only run for dev client builds (not release/CI builds)
+
+- extendedWaitUntil:
+    visible: "http://localhost:8081"
+    timeout: 15000
+- tapOn: "http://localhost:8081"
+
+# Wait for app to load and developer menu to appear
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 30000
+
+# Dismiss first developer menu
+- tapOn: "Continue"
+
+# Wait for second developer menu (with Go home) and dismiss
+- extendedWaitUntil:
+    visible: "Go home"
+    timeout: 10000
+- tapOn:
+    point: "50%,10%"
+- waitForAnimationToEnd
