@@ -46,12 +46,7 @@
         }
       ],
       "expo-web-browser",
-      [
-        "react-native-maps",
-        {
-          "androidGoogleMapsApiKey": "AIzaSyBWYmzrZOetQdR_rpTCFCECBGyOEhqkga0"
-        }
-      ]
+      "react-native-maps"
     ],
     "experiments": {
       "typedRoutes": true

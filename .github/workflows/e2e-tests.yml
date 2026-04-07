@@ -82,6 +82,7 @@ jobs:
           cd android && ./gradlew assembleRelease
         env:
           EXPO_PUBLIC_API_URL: https://api.blisko.app
+          GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
 
       - name: Run E2E tests
         uses: reactivecircus/android-emulator-runner@v2
