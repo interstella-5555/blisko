@@ -9,6 +9,11 @@ appId: com.blisko.app
     permissions:
       all: allow
 
+# Set simulated location (Warsaw) early — before app mounts tabs
+- setLocation:
+    latitude: 52.2297
+    longitude: 21.0122
+
 - runFlow:
     when:
       true: ${RELEASE_BUILD != 'true'}

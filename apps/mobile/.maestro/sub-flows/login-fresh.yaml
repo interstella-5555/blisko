@@ -63,8 +63,3 @@ appId: com.blisko.app
 - extendedWaitUntil:
     visible: "W okolicy"
     timeout: 30000
-
-# Set simulated location (Warsaw) — needed for map/waves tests
-- setLocation:
-    latitude: 52.2297
-    longitude: 21.0122
