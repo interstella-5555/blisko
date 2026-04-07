@@ -190,7 +190,12 @@ appId: com.blisko.app
 - assertVisible:
     id: "looking-for-input"
 
-# Confirm profile
+# Scroll to and confirm profile
+- scrollUntilVisible:
+    element:
+      id: "confirm-profile-button"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "confirm-profile-button"
 
