@@ -1,7 +1,7 @@
 import { deleteMessageSchema, reactToMessageSchema, searchMessagesSchema, sendMessageSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
 import { RedisClient } from "bun";
-import { and, desc, eq, ilike, inArray, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, lt, max, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
@@ -32,6 +32,17 @@ export const messagesRouter = router({
       return [];
     }
 
+    // Subquery: latest message timestamp per conversation
+    const latest = db
+      .select({
+        conversationId: schema.messages.conversationId,
+        maxCreatedAt: max(schema.messages.createdAt).as("max_created_at"),
+      })
+      .from(schema.messages)
+      .where(and(inArray(schema.messages.conversationId, conversationIds), isNull(schema.messages.deletedAt)))
+      .groupBy(schema.messages.conversationId)
+      .as("latest");
+
     // Batch-fetch all data in parallel
     const [conversations, allParticipants, lastMessages, unreadCounts] = await Promise.all([
       // 1. All conversations (exclude soft-deleted)
@@ -49,18 +60,29 @@ export const messagesRouter = router({
         .from(schema.conversationParticipants)
         .where(inArray(schema.conversationParticipants.conversationId, conversationIds)),
 
-      // 3. Last message per conversation
-      // Raw SQL: DISTINCT ON is PostgreSQL-specific, no Drizzle equivalent (BLI-87)
-      db.execute(sql`
-        SELECT DISTINCT ON (conversation_id) *
-        FROM messages
-        WHERE conversation_id IN (${sql.join(
-          conversationIds.map((id) => sql`${id}`),
-          sql`, `,
-        )})
-          AND deleted_at IS NULL
-        ORDER BY conversation_id, created_at DESC
-      `),
+      // 3. Last message per conversation (join on max createdAt subquery)
+      db
+        .select({
+          id: schema.messages.id,
+          conversationId: schema.messages.conversationId,
+          senderId: schema.messages.senderId,
+          content: schema.messages.content,
+          type: schema.messages.type,
+          metadata: schema.messages.metadata,
+          replyToId: schema.messages.replyToId,
+          topicId: schema.messages.topicId,
+          createdAt: schema.messages.createdAt,
+          readAt: schema.messages.readAt,
+        })
+        .from(schema.messages)
+        .innerJoin(
+          latest,
+          and(
+            eq(schema.messages.conversationId, latest.conversationId),
+            eq(schema.messages.createdAt, latest.maxCreatedAt),
+          ),
+        )
+        .where(isNull(schema.messages.deletedAt)),
 
       // 4. Unread counts per conversation
       db
@@ -103,7 +125,7 @@ export const messagesRouter = router({
     // Last messages map
     const lastMsgMap = new Map<string, (typeof lastMessages)[0]>();
     for (const row of lastMessages) {
-      lastMsgMap.set(row.conversation_id as string, row);
+      lastMsgMap.set(row.conversationId, row);
     }
 
     // Unread counts map
@@ -137,8 +159,8 @@ export const messagesRouter = router({
     const groupLastMsgSenderIds: string[] = [];
     for (const [convId, row] of lastMsgMap) {
       const conv = convMap.get(convId);
-      if (conv?.type === "group" && row.sender_id) {
-        groupLastMsgSenderIds.push(row.sender_id as string);
+      if (conv?.type === "group" && row.senderId) {
+        groupLastMsgSenderIds.push(row.senderId);
       }
     }
 
@@ -179,22 +201,21 @@ export const messagesRouter = router({
         const lastMsgRow = lastMsgMap.get(convId);
         const lastMessage = lastMsgRow
           ? {
-              id: lastMsgRow.id as string,
-              conversationId: lastMsgRow.conversation_id as string,
-              senderId: lastMsgRow.sender_id as string,
-              content: lastMsgRow.content as string,
-              type: lastMsgRow.type as string,
+              id: lastMsgRow.id,
+              conversationId: lastMsgRow.conversationId,
+              senderId: lastMsgRow.senderId,
+              content: lastMsgRow.content,
+              type: lastMsgRow.type,
               metadata: lastMsgRow.metadata,
-              replyToId: lastMsgRow.reply_to_id as string | null,
-              topicId: lastMsgRow.topic_id as string | null,
-              createdAt: new Date(lastMsgRow.created_at as string),
-              readAt: lastMsgRow.read_at ? new Date(lastMsgRow.read_at as string) : null,
+              replyToId: lastMsgRow.replyToId,
+              topicId: lastMsgRow.topicId,
+              createdAt: lastMsgRow.createdAt,
+              readAt: lastMsgRow.readAt,
               deletedAt: null,
             }
           : null;
 
-        const lastMessageSenderName =
-          isGroup && lastMsgRow ? (senderNameMap.get(lastMsgRow.sender_id as string) ?? null) : null;
+        const lastMessageSenderName = isGroup && lastMsgRow ? (senderNameMap.get(lastMsgRow.senderId) ?? null) : null;
 
         const unreadCount = unreadMap.get(convId) ?? 0;
 
