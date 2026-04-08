@@ -10,7 +10,7 @@ export const Route = createFileRoute("/privacy")({
 
 function PrivacyPage() {
   return (
-    <LegalPage title="Polityka Prywatności" updated="Ostatnia aktualizacja: 7 marca 2026">
+    <LegalPage title="Polityka Prywatności" updated="Ostatnia aktualizacja: 8 kwietnia 2026">
       <Section title="1. Administrator danych">
         <P>
           Administratorem danych osobowych jest Karol Wypchło, prowadzący aplikację Blisko. Kontakt:{" "}
@@ -42,6 +42,20 @@ function PrivacyPage() {
           <Li>
             <Strong>Konta OAuth:</Strong> powiązania z dostawcami (Apple, Google, Facebook, LinkedIn) — nie
             przechowujemy haseł
+          </Li>
+          <Li>
+            <Strong>Blokady:</Strong> informacja o zablokowaniu innego użytkownika (w celu ukrycia go z Twojego widoku)
+          </Li>
+          <Li>
+            <Strong>Dopasowania statusów:</Strong> wyniki automatycznego porównywania statusów między użytkownikami
+            przez AI
+          </Li>
+          <Li>
+            <Strong>Oceny rozmów:</Strong> opcjonalna ocena jakości konwersacji
+          </Li>
+          <Li>
+            <Strong>Dane techniczne:</Strong> logi zapytań (endpoint, czas odpowiedzi, zanonimizowany adres IP) w celu
+            monitorowania wydajności i bezpieczeństwa usługi
           </Li>
         </List>
       </Section>

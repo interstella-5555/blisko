@@ -60,6 +60,7 @@ Blisko processes personal data under RODO (Polish implementation of GDPR). Polis
 | Behavioral data | `metrics.requestEvents` | Legitimate interest | userId nullified on deletion |
 | Blocks | `blocks` | Legitimate interest | Preserved after deletion |
 | Status matches | `statusMatches` | Contract | Preserved after deletion |
+| Conversation ratings | `conversationRatings` | Contract | Preserved after deletion |
 
 ## User Rights Implementation
 
@@ -109,7 +110,7 @@ Karol Wypchlo, individual developer (jednoosobowa dzialalnosc). Not a company en
 - Contact: kontakt@blisko.app
 - Support: support@blisko.app
 - Supervisory authority: UODO (Urzad Ochrony Danych Osobowych), ul. Stawki 2, 00-193 Warszawa
-- Privacy policy last updated: 7 March 2026
+- Privacy policy last updated: 8 April 2026
 - Terms of service last updated: 7 March 2026
 
 ## New Table Checklist
