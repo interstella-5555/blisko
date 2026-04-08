@@ -1,23 +1,43 @@
 import { timingSafeEqual } from "node:crypto";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
+// OTP store stays in-memory (short-lived, doesn't need persistence)
 const otpStore = new Map<string, { otp: string; expiresAt: number; attempts: number }>();
-const sessionStore = new Map<string, { email: string; expiresAt: number }>();
 
-// Periodic cleanup of expired entries
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of otpStore) {
-    if (now > entry.expiresAt) otpStore.delete(key);
+// Session store persisted to file so it survives HMR/restarts
+const SESSION_FILE = join(process.cwd(), ".admin-sessions.json");
+
+type SessionEntry = { email: string; expiresAt: number };
+type SessionMap = Record<string, SessionEntry>;
+
+function loadSessions(): SessionMap {
+  try {
+    const raw = readFileSync(SESSION_FILE, "utf-8");
+    const data = JSON.parse(raw) as SessionMap;
+    // Clean expired entries on load
+    const now = Date.now();
+    const clean: SessionMap = {};
+    for (const [key, entry] of Object.entries(data)) {
+      if (now < entry.expiresAt) clean[key] = entry;
+    }
+    return clean;
+  } catch {
+    return {};
   }
-  for (const [key, entry] of sessionStore) {
-    if (now > entry.expiresAt) sessionStore.delete(key);
+}
+
+function saveSessions(sessions: SessionMap): void {
+  try {
+    writeFileSync(SESSION_FILE, JSON.stringify(sessions, null, 2));
+  } catch {
+    // Silently fail — worst case user has to re-login
   }
-}, CLEANUP_INTERVAL_MS);
+}
 
 function getAllowedEmails(): string[] {
   const raw = process.env.ADMIN_EMAILS || "";
@@ -67,25 +87,31 @@ export function verifyOtp(email: string, otp: string): boolean {
 
 export function createSession(email: string): string {
   const token = crypto.randomUUID();
-  sessionStore.set(token, {
+  const sessions = loadSessions();
+  sessions[token] = {
     email: email.toLowerCase(),
     expiresAt: Date.now() + SESSION_TTL_MS,
-  });
+  };
+  saveSessions(sessions);
   return token;
 }
 
 export function getSession(token: string): { email: string } | null {
-  const entry = sessionStore.get(token);
+  const sessions = loadSessions();
+  const entry = sessions[token];
   if (!entry) return null;
   if (Date.now() > entry.expiresAt) {
-    sessionStore.delete(token);
+    delete sessions[token];
+    saveSessions(sessions);
     return null;
   }
   return { email: entry.email };
 }
 
 export function deleteSession(token: string): void {
-  sessionStore.delete(token);
+  const sessions = loadSessions();
+  delete sessions[token];
+  saveSessions(sessions);
 }
 
 export function parseSessionToken(cookieHeader: string): string | null {

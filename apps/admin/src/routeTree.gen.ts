@@ -12,9 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardWavesRouteImport } from './routes/dashboard/waves'
+import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
+import { Route as DashboardMatchingRouteImport } from './routes/dashboard/matching'
+import { Route as DashboardGroupsRouteImport } from './routes/dashboard/groups'
+import { Route as DashboardConversationsRouteImport } from './routes/dashboard/conversations'
 import { Route as ApiVerifyOtpRouteImport } from './routes/api/verify-otp'
 import { Route as ApiRequestOtpRouteImport } from './routes/api/request-otp'
 import { Route as ApiLogoutRouteImport } from './routes/api/logout'
+import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -31,6 +38,36 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardWavesRoute = DashboardWavesRouteImport.update({
+  id: '/waves',
+  path: '/waves',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardUsersRoute = DashboardUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardMatchingRoute = DashboardMatchingRouteImport.update({
+  id: '/matching',
+  path: '/matching',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardGroupsRoute = DashboardGroupsRouteImport.update({
+  id: '/groups',
+  path: '/groups',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardConversationsRoute = DashboardConversationsRouteImport.update({
+  id: '/conversations',
+  path: '/conversations',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const ApiVerifyOtpRoute = ApiVerifyOtpRouteImport.update({
   id: '/api/verify-otp',
   path: '/api/verify-otp',
@@ -46,31 +83,56 @@ const ApiLogoutRoute = ApiLogoutRouteImport.update({
   path: '/api/logout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
+  id: '/api/trpc/$',
+  path: '/api/trpc/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/api/logout': typeof ApiLogoutRoute
   '/api/request-otp': typeof ApiRequestOtpRoute
   '/api/verify-otp': typeof ApiVerifyOtpRoute
+  '/dashboard/conversations': typeof DashboardConversationsRoute
+  '/dashboard/groups': typeof DashboardGroupsRoute
+  '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/waves': typeof DashboardWavesRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/api/logout': typeof ApiLogoutRoute
   '/api/request-otp': typeof ApiRequestOtpRoute
   '/api/verify-otp': typeof ApiVerifyOtpRoute
+  '/dashboard/conversations': typeof DashboardConversationsRoute
+  '/dashboard/groups': typeof DashboardGroupsRoute
+  '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/waves': typeof DashboardWavesRoute
+  '/dashboard': typeof DashboardIndexRoute
+  '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/api/logout': typeof ApiLogoutRoute
   '/api/request-otp': typeof ApiRequestOtpRoute
   '/api/verify-otp': typeof ApiVerifyOtpRoute
+  '/dashboard/conversations': typeof DashboardConversationsRoute
+  '/dashboard/groups': typeof DashboardGroupsRoute
+  '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/waves': typeof DashboardWavesRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,14 +143,27 @@ export interface FileRouteTypes {
     | '/api/logout'
     | '/api/request-otp'
     | '/api/verify-otp'
+    | '/dashboard/conversations'
+    | '/dashboard/groups'
+    | '/dashboard/matching'
+    | '/dashboard/users'
+    | '/dashboard/waves'
+    | '/dashboard/'
+    | '/api/trpc/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/dashboard'
     | '/login'
     | '/api/logout'
     | '/api/request-otp'
     | '/api/verify-otp'
+    | '/dashboard/conversations'
+    | '/dashboard/groups'
+    | '/dashboard/matching'
+    | '/dashboard/users'
+    | '/dashboard/waves'
+    | '/dashboard'
+    | '/api/trpc/$'
   id:
     | '__root__'
     | '/'
@@ -97,15 +172,23 @@ export interface FileRouteTypes {
     | '/api/logout'
     | '/api/request-otp'
     | '/api/verify-otp'
+    | '/dashboard/conversations'
+    | '/dashboard/groups'
+    | '/dashboard/matching'
+    | '/dashboard/users'
+    | '/dashboard/waves'
+    | '/dashboard/'
+    | '/api/trpc/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
   LoginRoute: typeof LoginRoute
   ApiLogoutRoute: typeof ApiLogoutRoute
   ApiRequestOtpRoute: typeof ApiRequestOtpRoute
   ApiVerifyOtpRoute: typeof ApiVerifyOtpRoute
+  ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -131,6 +214,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/waves': {
+      id: '/dashboard/waves'
+      path: '/waves'
+      fullPath: '/dashboard/waves'
+      preLoaderRoute: typeof DashboardWavesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/users': {
+      id: '/dashboard/users'
+      path: '/users'
+      fullPath: '/dashboard/users'
+      preLoaderRoute: typeof DashboardUsersRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/matching': {
+      id: '/dashboard/matching'
+      path: '/matching'
+      fullPath: '/dashboard/matching'
+      preLoaderRoute: typeof DashboardMatchingRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/groups': {
+      id: '/dashboard/groups'
+      path: '/groups'
+      fullPath: '/dashboard/groups'
+      preLoaderRoute: typeof DashboardGroupsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/conversations': {
+      id: '/dashboard/conversations'
+      path: '/conversations'
+      fullPath: '/dashboard/conversations'
+      preLoaderRoute: typeof DashboardConversationsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/api/verify-otp': {
       id: '/api/verify-otp'
       path: '/api/verify-otp'
@@ -152,16 +277,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLogoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/trpc/$': {
+      id: '/api/trpc/$'
+      path: '/api/trpc/$'
+      fullPath: '/api/trpc/$'
+      preLoaderRoute: typeof ApiTrpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface DashboardRouteChildren {
+  DashboardConversationsRoute: typeof DashboardConversationsRoute
+  DashboardGroupsRoute: typeof DashboardGroupsRoute
+  DashboardMatchingRoute: typeof DashboardMatchingRoute
+  DashboardUsersRoute: typeof DashboardUsersRoute
+  DashboardWavesRoute: typeof DashboardWavesRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardConversationsRoute: DashboardConversationsRoute,
+  DashboardGroupsRoute: DashboardGroupsRoute,
+  DashboardMatchingRoute: DashboardMatchingRoute,
+  DashboardUsersRoute: DashboardUsersRoute,
+  DashboardWavesRoute: DashboardWavesRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRoute,
+  DashboardRoute: DashboardRouteWithChildren,
   LoginRoute: LoginRoute,
   ApiLogoutRoute: ApiLogoutRoute,
   ApiRequestOtpRoute: ApiRequestOtpRoute,
   ApiVerifyOtpRoute: ApiVerifyOtpRoute,
+  ApiTrpcSplatRoute: ApiTrpcSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
