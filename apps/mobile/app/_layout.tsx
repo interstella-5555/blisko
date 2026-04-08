@@ -6,17 +6,19 @@ import { router, Stack } from "expo-router";
 import { LinkPreviewContextProvider } from "expo-router/build/link/preview/LinkPreviewContext";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { ActivityIndicator, Alert, AppState, Platform, View } from "react-native";
-import { NotificationOverlay } from "../src/components/ui/NotificationOverlay";
-import { ToastOverlay } from "../src/components/ui/ToastOverlay";
-import { authClient } from "../src/lib/auth";
-import { getRateLimitMessage } from "../src/lib/rateLimitMessages";
-import { trpc, trpcClient } from "../src/lib/trpc";
-import { useWebSocket } from "../src/lib/ws";
-import { NotificationProvider } from "../src/providers/NotificationProvider";
-import { showToastGlobal, ToastProvider } from "../src/providers/ToastProvider";
-import { useAuthStore } from "../src/stores/authStore";
-import { colors } from "../src/theme";
+import { ActivityIndicator, Alert, AppState, Platform, Pressable, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { IconChevronLeft } from "@/components/ui/icons";
+import { NotificationOverlay } from "@/components/ui/NotificationOverlay";
+import { ToastOverlay } from "@/components/ui/ToastOverlay";
+import { authClient } from "@/lib/auth";
+import { getRateLimitMessage } from "@/lib/rateLimitMessages";
+import { trpc, trpcClient } from "@/lib/trpc";
+import { useWebSocket } from "@/lib/ws";
+import { NotificationProvider } from "@/providers/NotificationProvider";
+import { showToastGlobal, ToastProvider } from "@/providers/ToastProvider";
+import { useAuthStore } from "@/stores/authStore";
+import { colors, fonts, spacing } from "@/theme";
 
 let accountDeletedAlertShown = false;
 
@@ -161,6 +163,32 @@ export default function RootLayout() {
                 <Stack.Screen name="onboarding" />
                 <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
                 <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
+                <Stack.Screen
+                  name="create-group"
+                  options={{
+                    headerShown: true,
+                    header: () => (
+                      <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            paddingHorizontal: spacing.section,
+                            height: 58,
+                          }}
+                        >
+                          <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
+                            <IconChevronLeft size={24} color={colors.ink} />
+                          </Pressable>
+                          <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
+                          <View style={{ width: 24 }} />
+                        </View>
+                      </SafeAreaView>
+                    ),
+                    contentStyle: { backgroundColor: colors.bg },
+                  }}
+                />
                 <Stack.Screen
                   name="set-status"
                   options={{

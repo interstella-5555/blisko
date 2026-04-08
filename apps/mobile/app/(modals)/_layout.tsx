@@ -25,7 +25,6 @@ export default function ModalsLayout() {
         }}
       >
         <Stack.Screen name="user/[userId]" options={{ title: "Profil" }} />
-        <Stack.Screen name="create-group" options={{ title: "Nowa grupa" }} />
         <Stack.Screen name="group/[id]" options={{ title: "Grupa" }} />
         <Stack.Screen name="group/members/[id]" options={{ title: "Członkowie" }} />
       </Stack>

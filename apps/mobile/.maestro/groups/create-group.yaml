@@ -1,0 +1,51 @@
+appId: com.blisko.app
+env:
+  EMAIL: user10@example.com
+---
+# Create Group — Full Screen Flow
+# Tests: navigating to create-group opens as full screen (not modal),
+# filling in name, and successfully creating a group
+
+- runFlow:
+    file: ../sub-flows/login-seeded.yaml
+    env:
+      EMAIL: ${EMAIL}
+
+# --- NAVIGATE TO CHATS ---
+- tapOn: "tab-chats"
+- extendedWaitUntil:
+    visible:
+      id: "create-group-header-btn"
+    timeout: 5000
+
+# --- OPEN CREATE GROUP ---
+# Tap the "+" button in chats header
+- tapOn:
+    id: "create-group-header-btn"
+
+# Verify create-group screen loaded as full screen (not modal)
+- extendedWaitUntil:
+    visible:
+      id: "group-name-input"
+    timeout: 5000
+
+# --- FILL FORM ---
+- tapOn:
+    id: "group-name-input"
+- inputText: "Test Grupa E2E"
+- hideKeyboard
+
+- tapOn:
+    id: "group-description-input"
+- inputText: "Grupa testowa utworzona przez Maestro"
+- hideKeyboard
+
+# --- CREATE ---
+- tapOn:
+    id: "create-group-btn"
+
+# --- VERIFY — should navigate to the group chat ---
+- extendedWaitUntil:
+    visible:
+      id: "message-list"
+    timeout: 15000
