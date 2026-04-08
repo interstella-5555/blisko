@@ -376,7 +376,11 @@ export default function TabsLayout() {
             lineHeight: 18,
           },
           headerRight: () => (
-            <Pressable onPress={() => router.push("/create-group")} style={{ marginRight: spacing.section }}>
+            <Pressable
+              testID="create-group-header-btn"
+              onPress={() => router.push("/create-group")}
+              style={{ marginRight: spacing.section }}
+            >
               <IconPlus size={20} color={colors.muted} />
             </Pressable>
           ),

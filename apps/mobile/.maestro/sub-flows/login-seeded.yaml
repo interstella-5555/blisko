@@ -21,10 +21,10 @@ appId: com.blisko.app
 - tapOn:
     id: "email-input"
 - inputText: "${EMAIL}"
-- hideKeyboard
 
-# Submit login
-- tapOn: "(?i)Wyślij kod"
+# Submit login (button visible above keyboard, no need to dismiss)
+- tapOn:
+    id: "send-link-button"
 
 # Seeded user has profile → goes straight to tabs
 - extendedWaitUntil:
