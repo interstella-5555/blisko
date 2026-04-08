@@ -50,7 +50,6 @@ _layout.tsx                         Root Stack (tRPC + QueryClient + WS + Notifi
 +-- (modals)/                       Modal presentation group
 |   +-- _layout.tsx                 Stack with custom header (SafeAreaView pattern)
 |   +-- user/[userId].tsx           User profile modal ("Profil")
-|   +-- create-group.tsx            Group creation ("Nowa grupa")
 |   +-- group/[id].tsx              Group detail ("Grupa")
 |   +-- group/members/[id].tsx      Group members list ("Czlonkowie")
 |
@@ -70,6 +69,7 @@ _layout.tsx                         Root Stack (tRPC + QueryClient + WS + Notifi
 |   +-- help.tsx                    Help screen ("Pomoc")
 |
 +-- chat/[id].tsx                   Chat screen (conversation detail)
++-- create-group.tsx                Group creation ("Nowa grupa") — full screen, custom header
 +-- set-status.tsx                  Status form sheet (fitToContents, grabber, radius 20)
 +-- filters.tsx                     Nearby filters form sheet (same presentation)
 +-- group/
