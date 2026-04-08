@@ -205,6 +205,7 @@ export default function ChatsScreen() {
               lastMessageTime={item.lastMessage?.createdAt ?? null}
               memberCount={item.memberCount ?? undefined}
               unreadCount={item.unreadCount}
+              muted={item.mutedUntil != null && new Date(item.mutedUntil) > new Date()}
               onPress={() => router.push(`/chat/${item.id}`)}
               onLongPress={() => handleDeleteChat(item.id)}
             />

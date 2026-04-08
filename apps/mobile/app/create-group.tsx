@@ -85,6 +85,7 @@ export default function CreateGroupScreen() {
         memberCount: 1 + selectedUserIds.size,
         lastMessage: null,
         unreadCount: 0,
+        mutedUntil: null,
         createdAt: String(data.createdAt),
         updatedAt: String(data.updatedAt),
       });

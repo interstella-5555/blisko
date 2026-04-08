@@ -21,6 +21,7 @@ export interface ConversationEntry {
     senderName?: string | null;
   } | null;
   unreadCount: number;
+  mutedUntil: string | null;
   metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
@@ -39,6 +40,7 @@ interface ConversationsStore {
   setActiveConversation(id: string | null): void;
   updateMemberCount(convId: string, delta: number): void;
   updateGroupInfo(convId: string, updates: { name?: string; description?: string; avatarUrl?: string | null }): void;
+  setMutedUntil(convId: string, mutedUntil: string | null): void;
   remove(convId: string): void;
   reset(): void;
 }
@@ -137,6 +139,12 @@ export const useConversationsStore = create<ConversationsStore>((set, get) => ({
             }
           : c,
       ),
+    }));
+  },
+
+  setMutedUntil(convId, mutedUntil) {
+    set((state) => ({
+      conversations: state.conversations.map((c) => (c.id === convId ? { ...c, mutedUntil } : c)),
     }));
   },
 

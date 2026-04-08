@@ -290,6 +290,7 @@ export default function UserProfileScreen() {
           memberCount: null,
           lastMessage: null,
           unreadCount: 0,
+          mutedUntil: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });

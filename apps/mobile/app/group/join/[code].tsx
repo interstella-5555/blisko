@@ -25,6 +25,7 @@ export default function JoinGroupScreen() {
         memberCount: null,
         lastMessage: null,
         unreadCount: 0,
+        mutedUntil: null,
         createdAt: String(data.createdAt),
         updatedAt: String(data.updatedAt),
       });
