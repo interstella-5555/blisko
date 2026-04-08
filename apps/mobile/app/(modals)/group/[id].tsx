@@ -86,6 +86,7 @@ export default function GroupInfoScreen() {
         memberCount: (groupInfo?.memberCount ?? 0) + 1,
         lastMessage: null,
         unreadCount: 0,
+        mutedUntil: null,
         createdAt: String(data.createdAt),
         updatedAt: String(data.updatedAt),
       });

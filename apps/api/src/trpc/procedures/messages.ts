@@ -22,11 +22,13 @@ export const messagesRouter = router({
       .select({
         conversationId: schema.conversationParticipants.conversationId,
         lastReadAt: schema.conversationParticipants.lastReadAt,
+        mutedUntil: schema.conversationParticipants.mutedUntil,
       })
       .from(schema.conversationParticipants)
       .where(eq(schema.conversationParticipants.userId, ctx.userId));
 
     const conversationIds = userConversations.map((c) => c.conversationId);
+    const mutedUntilMap = new Map(userConversations.map((c) => [c.conversationId, c.mutedUntil]));
 
     if (conversationIds.length === 0) {
       return [];
@@ -226,6 +228,7 @@ export const messagesRouter = router({
           lastMessageSenderName,
           memberCount,
           unreadCount,
+          mutedUntil: mutedUntilMap.get(convId) ?? null,
         };
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);
@@ -530,7 +533,10 @@ export const messagesRouter = router({
           columns: { displayName: true, avatarUrl: true },
         }),
         db
-          .select({ userId: schema.conversationParticipants.userId })
+          .select({
+            userId: schema.conversationParticipants.userId,
+            mutedUntil: schema.conversationParticipants.mutedUntil,
+          })
           .from(schema.conversationParticipants)
           .where(eq(schema.conversationParticipants.conversationId, input.conversationId)),
         db.query.conversations.findFirst({
@@ -550,6 +556,11 @@ export const messagesRouter = router({
         if (recipient) setTargetUserId(ctx.req, recipient.userId);
       }
 
+      const now = new Date();
+      const isMuted = (userId: string) => {
+        const p = participants.find((p) => p.userId === userId);
+        return p?.mutedUntil != null && p.mutedUntil > now;
+      };
       const otherParticipantIds = participants.filter((p) => p.userId !== ctx.userId).map((p) => p.userId);
 
       if (isGroup && otherParticipantIds.length > 0) {
@@ -583,6 +594,7 @@ export const messagesRouter = router({
         }
 
         for (const recipientId of otherParticipantIds) {
+          if (isMuted(recipientId)) continue;
           const unreadCount = unreadMap.get(recipientId) ?? 0;
           const hasUnread = unreadCount > 1; // >1 because current message already inserted
 
@@ -598,7 +610,7 @@ export const messagesRouter = router({
       } else {
         // DM: push every message
         for (const p of participants) {
-          if (p.userId === ctx.userId) continue;
+          if (p.userId === ctx.userId || isMuted(p.userId)) continue;
           void sendPushToUser(p.userId, {
             title: senderProfile?.displayName ?? "Ktoś",
             body: messagePreview,
@@ -894,5 +906,53 @@ export const messagesRouter = router({
       }
 
       return { ok: true };
+    }),
+
+  // Mute a conversation (suppress push notifications)
+  muteConversation: protectedProcedure
+    .input(
+      z.object({
+        conversationId: z.string().uuid(),
+        duration: z.enum(["1h", "8h", "forever"]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const mutedUntil =
+        input.duration === "forever"
+          ? new Date("9999-12-31")
+          : new Date(Date.now() + (input.duration === "1h" ? 3600000 : 28800000));
+
+      await db
+        .update(schema.conversationParticipants)
+        .set({ mutedUntil })
+        .where(
+          and(
+            eq(schema.conversationParticipants.conversationId, input.conversationId),
+            eq(schema.conversationParticipants.userId, ctx.userId),
+          ),
+        );
+
+      return { mutedUntil };
+    }),
+
+  // Unmute a conversation
+  unmuteConversation: protectedProcedure
+    .input(
+      z.object({
+        conversationId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await db
+        .update(schema.conversationParticipants)
+        .set({ mutedUntil: null })
+        .where(
+          and(
+            eq(schema.conversationParticipants.conversationId, input.conversationId),
+            eq(schema.conversationParticipants.userId, ctx.userId),
+          ),
+        );
+
+      return { mutedUntil: null };
     }),
 });

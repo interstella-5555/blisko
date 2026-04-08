@@ -20,7 +20,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { type BubblePosition, MessageBubble } from "@/components/chat/MessageBubble";
 import { type ContextMenuData, MessageContextMenu } from "@/components/chat/MessageContextMenu";
 import { Avatar } from "@/components/ui/Avatar";
-import { IconChevronLeft } from "@/components/ui/icons";
+import { IconBell, IconBellOff, IconChevronLeft } from "@/components/ui/icons";
 import { trpc } from "@/lib/trpc";
 import { useTypingIndicator } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
@@ -62,6 +62,41 @@ export default function ChatScreen() {
   const participantName = isGroup
     ? (storeConversation?.groupName ?? "Grupa")
     : (storeConversation?.participant?.displayName ?? "Czat");
+
+  const isMuted = storeConversation?.mutedUntil != null && new Date(storeConversation.mutedUntil) > new Date();
+
+  const muteConversation = trpc.messages.muteConversation.useMutation({
+    onSuccess: (data) => {
+      useConversationsStore.getState().setMutedUntil(conversationId!, data.mutedUntil.toString());
+    },
+  });
+  const unmuteConversation = trpc.messages.unmuteConversation.useMutation({
+    onSuccess: () => {
+      useConversationsStore.getState().setMutedUntil(conversationId!, null);
+    },
+  });
+
+  const handleMuteToggle = () => {
+    if (isMuted) {
+      unmuteConversation.mutate({ conversationId: conversationId! });
+    } else {
+      Alert.alert("Wycisz powiadomienia", "Na jak długo?", [
+        {
+          text: "1 godzinę",
+          onPress: () => muteConversation.mutate({ conversationId: conversationId!, duration: "1h" }),
+        },
+        {
+          text: "8 godzin",
+          onPress: () => muteConversation.mutate({ conversationId: conversationId!, duration: "8h" }),
+        },
+        {
+          text: "Na zawsze",
+          onPress: () => muteConversation.mutate({ conversationId: conversationId!, duration: "forever" }),
+        },
+        { text: "Anuluj", style: "cancel" },
+      ]);
+    }
+  };
 
   // Read messages from store (instant if cached from prefetch or previous visit)
   const cached = useMessagesStore((s) => s.chats.get(conversationId!));
@@ -424,6 +459,13 @@ export default function ChatScreen() {
                       <Text style={styles.headerSubtitle}>{storeConversation.memberCount} członków</Text>
                     )}
                   </View>
+                </Pressable>
+                <Pressable onPress={handleMuteToggle} hitSlop={8} style={{ width: 24 }}>
+                  {isMuted ? (
+                    <IconBellOff size={20} color={colors.muted} />
+                  ) : (
+                    <IconBell size={20} color={colors.muted} />
+                  )}
                 </Pressable>
               </View>
             </SafeAreaView>

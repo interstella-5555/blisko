@@ -2,6 +2,7 @@ import type React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, fonts, spacing } from "../../theme";
 import { Avatar } from "../ui/Avatar";
+import { IconBellOff } from "../ui/icons";
 
 interface ConversationRowProps {
   type?: "dm" | "group";
@@ -12,6 +13,7 @@ interface ConversationRowProps {
   lastMessageTime: string | null;
   memberCount?: number;
   unreadCount: number;
+  muted?: boolean;
   onPress: () => void;
   onLongPress?: () => void;
 }
@@ -39,6 +41,7 @@ export function ConversationRow({
   lastMessageSenderName,
   lastMessageTime,
   unreadCount,
+  muted,
   onPress,
   onLongPress,
 }: ConversationRowProps) {
@@ -67,7 +70,10 @@ export function ConversationRow({
           <Text style={styles.name} numberOfLines={1}>
             {displayName}
           </Text>
-          {lastMessageTime && <Text style={styles.time}>{formatRelativeTime(lastMessageTime)}</Text>}
+          <View style={styles.timeRow}>
+            {muted && <IconBellOff size={12} color={colors.muted} />}
+            {lastMessageTime && <Text style={styles.time}>{formatRelativeTime(lastMessageTime)}</Text>}
+          </View>
         </View>
         <View style={styles.bottomLine}>
           <Text style={[styles.preview, unreadCount > 0 && styles.previewUnread]} numberOfLines={1}>
@@ -109,11 +115,16 @@ const styles = StyleSheet.create({
     color: colors.ink,
     flex: 1,
   },
+  timeRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    marginLeft: spacing.tight,
+  },
   time: {
     fontFamily: fonts.sans,
     fontSize: 11,
     color: colors.muted,
-    marginLeft: spacing.tight,
   },
   bottomLine: {
     flexDirection: "row",
