@@ -22,6 +22,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install
       - run: bun run --filter '@repo/api' typecheck
+      - run: bun run --filter '@repo/admin' typecheck
       - run: bun run --filter '@repo/shared' typecheck
       - run: bun run --filter '@repo/mobile' typecheck
 
