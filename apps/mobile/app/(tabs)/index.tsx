@@ -540,7 +540,11 @@ export default function NearbyScreen() {
           onPress={() =>
             router.push({
               pathname: "/set-status" as never,
-              params: { prefill: myStatus.text },
+              params: {
+                prefill: myStatus.text,
+                prefillVisibility: profile?.statusVisibility ?? undefined,
+                prefillCategories: profile?.statusCategories?.join(",") ?? undefined,
+              },
             })
           }
         >
