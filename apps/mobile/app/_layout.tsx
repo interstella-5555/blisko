@@ -166,6 +166,7 @@ export default function RootLayout() {
                 <Stack.Screen
                   name="create-group"
                   options={{
+                    headerShown: true,
                     header: () => (
                       <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
                         <View
