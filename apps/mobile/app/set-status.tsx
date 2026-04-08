@@ -22,11 +22,22 @@ const CATEGORY_OPTIONS: { value: StatusCategory; label: string; emoji: string }[
 ];
 
 export default function SetStatusScreen() {
-  const { prefill } = useLocalSearchParams<{ prefill?: string }>();
+  const { prefill, prefillVisibility, prefillCategories } = useLocalSearchParams<{
+    prefill?: string;
+    prefillVisibility?: string;
+    prefillCategories?: string;
+  }>();
   const setProfile = useAuthStore((state) => state.setProfile);
   const [text, setText] = useState(prefill || "");
-  const [visibility, setVisibility] = useState<Visibility | null>(null);
-  const [categories, setCategories] = useState<StatusCategory[]>([]);
+  const [visibility, setVisibility] = useState<Visibility | null>(
+    prefillVisibility === "public" || prefillVisibility === "private" ? prefillVisibility : null,
+  );
+  const [categories, setCategories] = useState<StatusCategory[]>(() => {
+    if (!prefillCategories) return [];
+    return prefillCategories
+      .split(",")
+      .filter((c): c is StatusCategory => STATUS_CATEGORIES.includes(c as StatusCategory));
+  });
 
   const toggleCategory = (cat: StatusCategory) => {
     setCategories((prev) =>
