@@ -165,20 +165,14 @@ Questions: kontakt@blisko.app.
 | AI analyses | `connectionAnalyses` | Consent (a) | Preserved (anonymized user) | 2, 8 |
 | Profiling Q&A | `profilingSessions`, `profilingQA` | Contract (b) | Answers nullified on deletion | 2 |
 | OAuth connections | `account` | Contract (b) | Until disconnect or deletion | 2 |
-| Blocks | `blocks` | Legitimate interest (f) | Preserved | Not explicitly disclosed |
-| Status matches | `statusMatches` | Contract (b) | Preserved (anonymized user) | Not explicitly disclosed |
-| Behavioral metrics | `metrics.requestEvents` | Legitimate interest (f) | userId nullified on deletion | Not explicitly disclosed |
+| Blocks | `blocks` | Legitimate interest (f) | Preserved | 2 |
+| Status matches | `statusMatches` | Contract (b) | Preserved (anonymized user) | 2 |
+| Conversation ratings | `conversationRatings` | Contract (b) | Preserved | 2 |
+| Behavioral metrics | `metrics.requestEvents` | Legitimate interest (f) | userId nullified on deletion | 2 |
 
 ## Gaps
 
-The following data categories exist in the database but are not explicitly mentioned in the current privacy policy:
-
-- **Blocks** (`blocks` table) -- user-initiated block relationships
-- **Status matches** (`statusMatches` table) -- AI-evaluated status compatibility records
-- **Conversation ratings** (`conversationRatings` table) -- optional feedback on conversations
-- **Behavioral metrics** (`metrics.requestEvents`) -- request logs with userId, endpoint, duration
-
-These are covered implicitly under "service delivery" (contract) or "security" (legitimate interest), but explicit disclosure would strengthen compliance.
+No known gaps. All data categories in the database are explicitly disclosed in the privacy policy (section 2). Last audit: April 2026.
 
 ## Impact Map
 
