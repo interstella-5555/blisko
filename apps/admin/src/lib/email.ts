@@ -16,6 +16,9 @@ export async function sendEmail(to: string, template: { subject: string; html: s
   const resend = getResend();
   if (!resend) {
     console.log(`[admin-email] Resend not configured — would send to ${to}: "${template.subject}"`);
+    // Extract OTP from HTML for local dev convenience
+    const otpMatch = template.html.match(/letter-spacing: 8px[^>]*>([^<]+)</);
+    if (otpMatch) console.log(`[admin-email] OTP code: ${otpMatch[1].trim()}`);
     return;
   }
   await resend.emails.send({
