@@ -505,7 +505,7 @@ export default function NearbyScreen() {
           <View style={styles.emptyList}>
             <Text style={styles.emptyListText}>Brak grup w okolicy</Text>
             <View style={{ marginTop: spacing.gutter }}>
-              <Button title="Utwórz grupę" variant="accent" onPress={() => router.push("/(modals)/create-group")} />
+              <Button title="Utwórz grupę" variant="accent" onPress={() => router.push("/create-group")} />
             </View>
           </View>
         );

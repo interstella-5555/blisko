@@ -215,7 +215,7 @@ export default function ChatsScreen() {
                 <IconGroup size={48} color={colors.muted} />
                 <Text style={styles.emptyTitle}>Brak grup</Text>
                 <Text style={styles.emptyText}>Grupy pozwalają rozmawiać z wieloma osobami naraz</Text>
-                <Pressable style={styles.emptyButton} onPress={() => router.push("/(modals)/create-group")}>
+                <Pressable style={styles.emptyButton} onPress={() => router.push("/create-group")}>
                   <Text style={styles.emptyButtonText}>Załóż grupę</Text>
                 </Pressable>
               </View>
