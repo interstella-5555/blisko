@@ -57,7 +57,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-api-34
+          key: avd-api-34-pixel9
 
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
@@ -66,6 +66,7 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
+          profile: pixel_9
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
@@ -90,6 +91,7 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
+          profile: pixel_9
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
