@@ -12,7 +12,7 @@ describe("anonymization completeness", () => {
   const SAFE_COLUMNS = new Set(["id", "userId", "createdAt", "updatedAt"]);
 
   it("anonymization covers all PII-bearing profile columns", () => {
-    const schemaSource = readFileSync(resolve(__dirname, "../src/db/schema.ts"), "utf-8");
+    const schemaSource = readFileSync(resolve(__dirname, "../../../packages/db/src/schema.ts"), "utf-8");
     const queueSource = readFileSync(resolve(__dirname, "../src/services/queue.ts"), "utf-8");
 
     // Extract column names from profiles table definition
