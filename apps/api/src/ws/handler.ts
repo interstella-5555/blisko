@@ -24,6 +24,7 @@ import type {
   NewWaveEvent,
   ProfileReadyEvent,
   ProfilingCompleteEvent,
+  QuestionFailedEvent,
   QuestionReadyEvent,
   ReactionEvent,
   StatusMatchesReadyEvent,
@@ -274,6 +275,14 @@ ee.on("statusMatchesReady", (event: StatusMatchesReadyEvent) => {
 ee.on("questionReady", (event: QuestionReadyEvent) => {
   broadcastToUser(event.userId, {
     type: "questionReady",
+    sessionId: event.sessionId,
+    questionNumber: event.questionNumber,
+  });
+});
+
+ee.on("questionFailed", (event: QuestionFailedEvent) => {
+  broadcastToUser(event.userId, {
+    type: "questionFailed",
     sessionId: event.sessionId,
     questionNumber: event.questionNumber,
   });

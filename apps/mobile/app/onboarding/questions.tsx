@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { IconChevronLeft } from "@/components/ui/icons";
+import { useRetryQuestionOnFailure } from "@/hooks/useRetryQuestionOnFailure";
 import { Button } from "../../src/components/ui/Button";
 import { ThinkingIndicator } from "../../src/components/ui/ThinkingIndicator";
 import { trpc } from "../../src/lib/trpc";
@@ -53,6 +54,8 @@ export default function QuestionsScreen() {
   const submitOnboarding = trpc.profiling.submitOnboarding.useMutation();
   const answerFollowUp = trpc.profiling.answerFollowUp.useMutation();
   const completeSession = trpc.profiling.completeSession.useMutation();
+
+  useRetryQuestionOnFailure(sessionId);
 
   const totalQuestions = ONBOARDING_QUESTIONS.length;
   const currentQuestion = ONBOARDING_QUESTIONS[questionIndex];

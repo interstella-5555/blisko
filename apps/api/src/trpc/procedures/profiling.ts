@@ -16,6 +16,7 @@ import { db, schema } from "@/db";
 import { moderateContent } from "@/services/moderation";
 import { generateFollowUpQuestions } from "@/services/profiling-ai";
 import { enqueueProfileAI, enqueueProfileFromQA, enqueueProfilingQuestion } from "@/services/queue";
+import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 
 // --- Helpers ---
@@ -479,6 +480,31 @@ export const profilingRouter = router({
 
     return profile;
   }),
+
+  // Retry question generation after failure (self-healing)
+  retryQuestion: protectedProcedure
+    .use(rateLimit("profiling.retryQuestion"))
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const session = await db.query.profilingSessions.findFirst({
+        where: and(
+          eq(schema.profilingSessions.id, input.sessionId),
+          eq(schema.profilingSessions.userId, ctx.userId),
+          eq(schema.profilingSessions.status, "active"),
+        ),
+        columns: { id: true, basedOnSessionId: true },
+      });
+
+      if (!session) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Session not found or not active" });
+      }
+
+      const answeredQA = await loadAnsweredQA(input.sessionId);
+      const previousSessionQA = await loadPreviousSessionQA(session);
+      const displayName = await getDisplayName(ctx.userId);
+
+      await enqueueProfilingQuestion(input.sessionId, ctx.userId, displayName, answeredQA, { previousSessionQA });
+    }),
 
   // List all sessions for this user
   getSessions: protectedProcedure.query(async ({ ctx }) => {

@@ -1152,6 +1152,13 @@ export function startWorker() {
         userBId: data.userBId,
       });
     }
+    if (data.type === "generate-profiling-question") {
+      publishEvent("questionFailed", {
+        userId: data.userId,
+        sessionId: data.sessionId,
+        questionNumber: data.qaHistory.length + 1,
+      });
+    }
   });
 
   // Register periodic maintenance jobs
@@ -1320,7 +1327,7 @@ export async function enqueueProfilingQuestion(
       userRequestedMore: options?.userRequestedMore,
       directionHint: options?.directionHint,
     },
-    { jobId: `profiling-q-${sessionId}-${qaHistory.length + 1}` },
+    { deduplication: { id: `profiling-q-${sessionId}-${qaHistory.length + 1}` } },
   );
 }
 

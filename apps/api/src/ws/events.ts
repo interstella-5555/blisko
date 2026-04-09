@@ -70,6 +70,12 @@ export interface AnalysisFailedEvent {
   userBId: string;
 }
 
+export interface QuestionFailedEvent {
+  userId: string;
+  sessionId: string;
+  questionNumber: number;
+}
+
 export interface NearbyChangedEvent {
   forUserId: string;
 }

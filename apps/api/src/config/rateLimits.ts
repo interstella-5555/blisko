@@ -43,6 +43,9 @@ export const rateLimits = {
   // Profile edits — prevents rapid-fire updates triggering AI jobs
   "profiles.update": { limit: 10, window: 60 * 60 },
 
+  // Profiling question retry — self-healing re-enqueue, prevents AI job flooding
+  "profiling.retryQuestion": { limit: 10, window: 60 * 60 },
+
   // File uploads — S3 write protection
   uploads: { limit: 10, window: 60 * 60 },
 
