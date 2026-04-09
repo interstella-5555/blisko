@@ -3,10 +3,10 @@ import { and, count, eq, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
 import { enqueueAndWait } from "~/lib/queue";
-import { publicProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
 
 export const usersRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z.object({
         search: z.string().optional(),
@@ -152,7 +152,7 @@ export const usersRouter = router({
       };
     }),
 
-  getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
     const row = await db
       .select({
         id: schema.user.id,
@@ -186,7 +186,7 @@ export const usersRouter = router({
     return row[0];
   }),
 
-  softDelete: publicProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
+  softDelete: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
     await enqueueAndWait("admin-soft-delete-user", {
       type: "admin-soft-delete-user",
       userId: input.userId,
@@ -194,7 +194,7 @@ export const usersRouter = router({
     return { ok: true };
   }),
 
-  restore: publicProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
+  restore: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
     await enqueueAndWait("admin-restore-user", {
       type: "admin-restore-user",
       userId: input.userId,
@@ -202,7 +202,7 @@ export const usersRouter = router({
     return { ok: true };
   }),
 
-  reanalyze: publicProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
+  reanalyze: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
     const profile = await db.query.profiles.findFirst({
       where: eq(schema.profiles.userId, input.userId),
       columns: { latitude: true, longitude: true },
@@ -222,7 +222,7 @@ export const usersRouter = router({
     return { ok: true };
   }),
 
-  regenerateProfile: publicProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
+  regenerateProfile: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
     const profile = await db.query.profiles.findFirst({
       where: eq(schema.profiles.userId, input.userId),
       columns: { bio: true, lookingFor: true, latitude: true, longitude: true },
@@ -253,7 +253,7 @@ export const usersRouter = router({
     return { ok: true };
   }),
 
-  forceDisconnect: publicProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
+  forceDisconnect: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
     await enqueueAndWait("admin-force-disconnect", {
       type: "admin-force-disconnect",
       userId: input.userId,
@@ -261,7 +261,7 @@ export const usersRouter = router({
     return { ok: true };
   }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const seedFilter = sql`${schema.user.email} NOT LIKE 'user%@example.com'`;
 
     const [realUsers] = await db

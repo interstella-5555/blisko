@@ -2,10 +2,10 @@ import { schema } from "@repo/db";
 import { aliasedTable, and, avg, count, desc, eq, gte, ilike, lt, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
-import { publicProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
 
 export const matchingRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z.object({
         search: z.string().optional(),
@@ -87,7 +87,7 @@ export const matchingRouter = router({
       return { analyses: rows, total };
     }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const [totals] = await db.select({ count: count() }).from(schema.connectionAnalyses);
 
     const [avgScore] = await db
