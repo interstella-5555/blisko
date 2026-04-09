@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-09 — Added 3 admin job types (BLI-154): admin-soft-delete-user, admin-restore-user, admin-force-disconnect.
+> Updated 2026-04-10 — Self-healing AI queue: `analysisFailed` event, quick-score BullMQ deduplication (BLI-158).
 
 Single BullMQ queue powering all background work: AI analysis, profile generation, status matching, GDPR compliance, and admin actions. Source: `apps/api/src/services/queue.ts`.
 
@@ -79,7 +80,7 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 5. Upsert `connectionAnalyses` with score only (`shortSnippet: null`), guarded by `setWhere: isNull(shortSnippet)` to not overwrite a T3 result that arrived concurrently
 6. Publish `analysisReady` WS events
 
-**JobId:** `quick-score-{sortedA}-{sortedB}` (deterministic, prevents duplicates)
+**Dedup:** BullMQ `deduplication` option (Simple Mode) with id `quick-score-{sortedA}-{sortedB}`. Automatically releases dedup key on completion or failure — enables self-healing re-enqueue after failure.
 
 **`removeOnComplete`:** default (true)
 
@@ -275,6 +276,14 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 1. Check if job exists and is `active` or `completed` -> no-op
 2. Remove existing job
 3. Re-add without `priority` field -> BullMQ processes FIFO jobs before prioritized ones, making this effectively highest priority
+
+## Worker Failure Handling
+
+When a job exhausts all retry attempts (3 by default with exponential backoff), the worker's `failed` handler publishes `analysisFailed` for `analyze-pair` and `quick-score` jobs. This notifies both users in the pair via WebSocket so the mobile client can immediately re-enqueue the analysis via `ensureAnalysis`.
+
+**Self-healing loop:** The mobile client keeps retrying as long as the user is visible in the UI — there is no retry limit or badge clearing. Natural backoff: each BullMQ cycle takes ~35s (3 retries with exponential backoff 5s→10s→20s). The existing 30s self-healing timer (in the nearby screen) covers the case where the user was offline during the failure event.
+
+**Why no retry cap:** The design principle is that if a user is visible on the map/list without an analysis, the system keeps trying until it succeeds. Transient failures (LLM rate limits, Redis hiccups) resolve themselves; permanent failures (API key revoked) are operational issues that should be fixed at the source, not hidden from users.
 
 ## Debouncing
 

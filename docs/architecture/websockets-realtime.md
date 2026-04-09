@@ -1,6 +1,7 @@
 # WebSocket & Real-time Architecture
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-10 — Added `analysisFailed` WS event for self-healing AI queue (BLI-158).
 
 Bun native WebSocket server delivering real-time events to mobile clients. Source: `apps/api/src/ws/handler.ts`, `apps/api/src/ws/events.ts`, `apps/api/src/ws/redis-bridge.ts`.
 
@@ -17,7 +18,7 @@ Bun native WebSocket server delivering real-time events to mobile clients. Sourc
 | Group member action | `groupMember` event | Dolaczyl/opuscil grupe |
 | Nie przeszkadzaj | DND — client-side suppression only, WS still delivers | Ikona DND |
 
-## Event Types (17 total)
+## Event Types (18 total)
 
 | Event | Direction | Trigger | Payload shape |
 |---|---|---|---|
@@ -31,6 +32,7 @@ Bun native WebSocket server delivering real-time events to mobile clients. Sourc
 | `newWave` | server->client | Wave received | `{ type: "newWave", wave: { id, fromUserId, toUserId, message, status, createdAt }, fromProfile: { displayName, avatarUrl } }` |
 | `waveResponded` | server->client | Wave accepted/declined | `{ type: "waveResponded", responderId, waveId, accepted, conversationId?, responderProfile: { displayName, avatarUrl } }` |
 | `analysisReady` | server->client | AI analysis completed | `{ type: "analysisReady", aboutUserId, shortSnippet }` |
+| `analysisFailed` | server->client | AI analysis permanently failed | `{ type: "analysisFailed", aboutUserId }` |
 | `nearbyChanged` | server->client | Nearby users list changed | `{ type: "nearbyChanged" }` (signal-only, client refetches) |
 | `profileReady` | server->client | Profile AI generation done | `{ type: "profileReady" }` |
 | `statusMatchesReady` | server->client | Status matches found | `{ type: "statusMatchesReady" }` (signal-only, client refetches) |
@@ -167,6 +169,7 @@ Events are routed through two paths depending on their target:
 - `newWave` — to the wave recipient
 - `waveResponded` — to the wave sender
 - `analysisReady` — to the user the analysis is about
+- `analysisFailed` — to both users in the pair when analysis exhausts retries (mobile retries immediately)
 - `nearbyChanged` — to the user whose nearby list changed
 - `profileReady` — to the user whose profile was generated
 - `statusMatchesReady` — to the user whose matches were computed

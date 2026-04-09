@@ -1,6 +1,7 @@
 # AI Matching & Scoring
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-10 — Quick-score dedup switched to BullMQ `deduplication` option for self-healing (BLI-158).
 
 All AI calls use OpenAI via Vercel AI SDK (`@ai-sdk/openai`, `ai` package). Models defined in `packages/shared/src/models.ts`. Source files: `apps/api/src/services/ai.ts` (AI functions), `apps/api/src/services/queue.ts` (BullMQ processors + enqueue helpers), `apps/api/src/trpc/procedures/profiles.ts` (triggers), `apps/api/src/trpc/procedures/waves.ts` (wave-send promotion).
 
@@ -109,7 +110,7 @@ Three tiers exist to avoid O(N^2) pre-computation. The design came from the scal
 
 **Promotion on wave send:** `promotePairAnalysis` removes any existing queued job for the pair and re-adds it WITHOUT a priority number. In BullMQ, jobs without explicit priority are processed FIFO before all prioritized jobs. This ensures wave-triggered analyses jump ahead of batch background analyses.
 
-**Deduplication for quick-score:** Uses BullMQ's built-in jobId dedup (`quick-score-{sortedA}-{sortedB}`). If the job already exists (any state), BullMQ silently ignores the add.
+**Deduplication for quick-score:** Uses BullMQ's `deduplication` option (Simple Mode) with id `quick-score-{sortedA}-{sortedB}`. Unlike the older `jobId` approach, this automatically releases the dedup key on completion or failure — enabling self-healing re-enqueue after failure.
 
 ## Status Matching
 
