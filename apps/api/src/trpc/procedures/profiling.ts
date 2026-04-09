@@ -46,6 +46,27 @@ async function getDisplayName(userId: string): Promise<string> {
   return profile?.displayName ?? "Uzytkownik";
 }
 
+async function loadRetryContext(sessionId: string, userId: string) {
+  const session = await db.query.profilingSessions.findFirst({
+    where: and(
+      eq(schema.profilingSessions.id, sessionId),
+      eq(schema.profilingSessions.userId, userId),
+      eq(schema.profilingSessions.status, "active"),
+    ),
+    columns: { id: true, basedOnSessionId: true },
+  });
+
+  if (!session) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Session not found or not active" });
+  }
+
+  const answeredQA = await loadAnsweredQA(sessionId);
+  const previousSessionQA = await loadPreviousSessionQA(session);
+  const displayName = await getDisplayName(userId);
+
+  return { answeredQA, previousSessionQA, displayName };
+}
+
 // --- Router ---
 
 export const profilingRouter = router({
@@ -486,24 +507,17 @@ export const profilingRouter = router({
     .use(rateLimit("profiling.retryQuestion"))
     .input(z.object({ sessionId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const session = await db.query.profilingSessions.findFirst({
-        where: and(
-          eq(schema.profilingSessions.id, input.sessionId),
-          eq(schema.profilingSessions.userId, ctx.userId),
-          eq(schema.profilingSessions.status, "active"),
-        ),
-        columns: { id: true, basedOnSessionId: true },
-      });
-
-      if (!session) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Session not found or not active" });
-      }
-
-      const answeredQA = await loadAnsweredQA(input.sessionId);
-      const previousSessionQA = await loadPreviousSessionQA(session);
-      const displayName = await getDisplayName(ctx.userId);
-
+      const { answeredQA, previousSessionQA, displayName } = await loadRetryContext(input.sessionId, ctx.userId);
       await enqueueProfilingQuestion(input.sessionId, ctx.userId, displayName, answeredQA, { previousSessionQA });
+    }),
+
+  // Retry profile generation after failure (self-healing)
+  retryProfileGeneration: protectedProcedure
+    .use(rateLimit("profiling.retryProfileGeneration"))
+    .input(z.object({ sessionId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const { answeredQA, previousSessionQA, displayName } = await loadRetryContext(input.sessionId, ctx.userId);
+      await enqueueProfileFromQA(input.sessionId, ctx.userId, displayName, answeredQA, previousSessionQA);
     }),
 
   // List all sessions for this user

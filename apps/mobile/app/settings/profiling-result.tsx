@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { Button } from "../../src/components/ui/Button";
 import { ThinkingIndicator } from "../../src/components/ui/ThinkingIndicator";
+import { useRetryProfileOnFailure } from "../../src/hooks/useRetryProfileOnFailure";
 import { trpc } from "../../src/lib/trpc";
 import { useWebSocket, type WSMessage } from "../../src/lib/ws";
 import { useAuthStore } from "../../src/stores/authStore";
@@ -56,6 +57,7 @@ export default function ProfilingResultModal() {
   );
 
   useWebSocket(handleWsMessage);
+  useRetryProfileOnFailure(profilingSessionId ?? null);
 
   // Fallback polling every 5s while generating
   useEffect(() => {

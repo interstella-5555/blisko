@@ -62,6 +62,7 @@ export type WSMessage =
   | { type: "questionReady"; sessionId: string; questionNumber: number }
   | { type: "questionFailed"; sessionId: string; questionNumber: number }
   | { type: "profilingComplete"; sessionId: string }
+  | { type: "profilingFailed"; sessionId: string }
   | {
       type: "groupMember";
       conversationId: string;

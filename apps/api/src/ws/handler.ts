@@ -24,6 +24,7 @@ import type {
   NewWaveEvent,
   ProfileReadyEvent,
   ProfilingCompleteEvent,
+  ProfilingFailedEvent,
   QuestionFailedEvent,
   QuestionReadyEvent,
   ReactionEvent,
@@ -291,6 +292,13 @@ ee.on("questionFailed", (event: QuestionFailedEvent) => {
 ee.on("profilingComplete", (event: ProfilingCompleteEvent) => {
   broadcastToUser(event.userId, {
     type: "profilingComplete",
+    sessionId: event.sessionId,
+  });
+});
+
+ee.on("profilingFailed", (event: ProfilingFailedEvent) => {
+  broadcastToUser(event.userId, {
+    type: "profilingFailed",
     sessionId: event.sessionId,
   });
 });

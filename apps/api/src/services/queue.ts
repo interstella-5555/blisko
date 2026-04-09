@@ -1159,6 +1159,12 @@ export function startWorker() {
         questionNumber: data.qaHistory.length + 1,
       });
     }
+    if (data.type === "generate-profile-from-qa") {
+      publishEvent("profilingFailed", {
+        userId: data.userId,
+        sessionId: data.sessionId,
+      });
+    }
   });
 
   // Register periodic maintenance jobs
@@ -1351,7 +1357,7 @@ export async function enqueueProfileFromQA(
       qaHistory,
       previousSessionQA,
     },
-    { jobId: `profile-from-qa-${sessionId}` },
+    { deduplication: { id: `profile-from-qa-${sessionId}` } },
   );
 }
 
