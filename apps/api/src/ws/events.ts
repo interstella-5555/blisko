@@ -65,6 +65,11 @@ export interface AnalysisReadyEvent {
   shortSnippet: string;
 }
 
+export interface AnalysisFailedEvent {
+  userAId: string;
+  userBId: string;
+}
+
 export interface NearbyChangedEvent {
   forUserId: string;
 }

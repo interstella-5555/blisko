@@ -139,19 +139,22 @@ export default function UserProfileScreen() {
 
   const utils = trpc.useUtils();
 
-  // WS: invalidate analysis when backend signals it's ready
+  // Self-healing: if analysis confirmed missing after 10s, poke backend
+  const ensureAnalysisMutation = trpc.profiles.ensureAnalysis.useMutation();
+
+  // WS: invalidate analysis when backend signals it's ready, retry on failure
   const wsHandler = useCallback(
     (msg: WSMessage) => {
       if (msg.type === "analysisReady" && msg.aboutUserId === userId) {
         utils.profiles.getConnectionAnalysis.invalidate({ userId });
       }
+      if (msg.type === "analysisFailed" && msg.aboutUserId === userId) {
+        ensureAnalysisMutation.mutate({ userId });
+      }
     },
-    [userId, utils.profiles.getConnectionAnalysis.invalidate],
+    [userId, utils.profiles.getConnectionAnalysis.invalidate, ensureAnalysisMutation.mutate],
   );
   useWebSocket(wsHandler);
-
-  // Self-healing: if analysis confirmed missing after 10s, poke backend
-  const ensureAnalysisMutation = trpc.profiles.ensureAnalysis.useMutation();
   useEffect(() => {
     if (!analysisFetched || analysis) return;
     const timer = setTimeout(() => {

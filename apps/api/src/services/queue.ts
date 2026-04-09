@@ -1120,6 +1120,16 @@ export function startWorker() {
   _worker.on("failed", (job, err) => {
     recordJobFailed("ai-jobs");
     console.error(`[queue] Job ${job?.id} failed:`, err.message);
+
+    if (!job || !job.opts.attempts || job.attemptsMade < job.opts.attempts) return;
+
+    const data = job.data as AIJob;
+    if (data.type === "analyze-pair" || data.type === "quick-score") {
+      publishEvent("analysisFailed", {
+        userAId: data.userAId,
+        userBId: data.userBId,
+      });
+    }
   });
 
   console.log("[queue] AI jobs worker started");
@@ -1208,9 +1218,12 @@ export async function enqueueQuickScore(userAId: string, userBId: string) {
   if (!process.env.REDIS_URL) return;
 
   const [a, b] = [userAId, userBId].sort();
-  const jobId = `quick-score-${a}-${b}`;
   const queue = getQueue();
-  await queue.add("quick-score", { type: "quick-score", userAId: a, userBId: b }, { jobId });
+  await queue.add(
+    "quick-score",
+    { type: "quick-score", userAId: a, userBId: b },
+    { deduplication: { id: `quick-score-${a}-${b}` } },
+  );
 }
 
 /** Promote a pair analysis to highest priority (for wave-triggered urgency) */
