@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-09 — Added 3 admin job types (BLI-154): admin-soft-delete-user, admin-restore-user, admin-force-disconnect.
 > Updated 2026-04-10 — Self-healing AI queue: `analysisFailed` event, quick-score BullMQ deduplication (BLI-158).
+> Updated 2026-04-10 — Push log: `flush-push-log` (15s batch flush) and `prune-push-log` (hourly cleanup) repeatable jobs, Redis buffer entry.
 
 Single BullMQ queue powering all background work: AI analysis, profile generation, status matching, GDPR compliance, and admin actions. Source: `apps/api/src/services/queue.ts`.
 
@@ -252,6 +253,30 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 
 **`removeOnComplete`:** true (via admin enqueue options)
 
+### 14. `flush-push-log` — Push Log Batch Flush
+
+**What:** Drains the `blisko:push-log` Redis list and batch-inserts all buffered push notification events into the `push_sends` database table.
+
+**Trigger:** BullMQ repeatable job scheduler, every 15 seconds. Registered in `startWorker()` via `queue.upsertJobScheduler()`.
+
+**Processor logic:**
+1. Atomically swap the Redis list (`RENAME blisko:push-log blisko:push-log:processing`)
+2. Read all entries from the processing list
+3. Batch insert into `push_sends` table
+4. Delete the processing list
+
+**Why batch:** Push events are appended to Redis via `RPUSH` (~0.1ms) from the hot path in `sendPushToUser()`. Batching avoids per-push DB inserts. At 15s intervals, this means 1 DB insert per 15s regardless of push volume.
+
+**Infrastructure:** Uses `createBatchBuffer` — a generic reusable Redis-buffered batch writer in `apps/api/src/services/batch-buffer.ts`.
+
+### 15. `prune-push-log` — Push Log Cleanup
+
+**What:** Deletes push log entries older than 7 days from the `push_sends` table.
+
+**Trigger:** BullMQ repeatable job scheduler, every hour. Registered in `startWorker()`.
+
+**Processor logic:** `DELETE FROM push_sends WHERE created_at < NOW() - 7 days`.
+
 ## Deduplication: `safeEnqueuePairJob`
 
 **What:** Prevents duplicate `analyze-pair` jobs for the same user pair.
@@ -307,6 +332,7 @@ Redis (`REDIS_URL`) serves 5 distinct purposes in the API:
 | **Rate limiting** | Bun `RedisClient` | `rl:{context}:{userId}:{window}` | 2x window seconds |
 | **Ambient push cooldown** | Bun `RedisClient` | `ambient-push:{userId}` | 3600s (1 hour) |
 | **Message idempotency** | Bun `RedisClient` | `idem:msg:{userId}:{idempotencyKey}` | 300s (5 minutes) |
+| **Push log buffer** | Bun `RedisClient` | `blisko:push-log` | None (drained every 15s) |
 
 ## Metrics
 

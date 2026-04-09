@@ -17,6 +17,7 @@ import {
 } from "./ai";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
 import { sendPushToUser } from "./push";
+import { prunePushLog, pushLogBuffer } from "./push-log";
 import { recordJobCompleted, recordJobFailed } from "./queue-metrics";
 import { restoreUser, softDeleteUser } from "./user-actions";
 
@@ -129,6 +130,14 @@ interface AdminForceDisconnectJob {
   userId: string;
 }
 
+interface FlushPushLogJob {
+  type: "flush-push-log";
+}
+
+interface PrunePushLogJob {
+  type: "prune-push-log";
+}
+
 type AIJob =
   | AnalyzePairJob
   | QuickScoreJob
@@ -142,7 +151,9 @@ type AIJob =
   | ExportUserDataJob
   | AdminSoftDeleteUserJob
   | AdminRestoreUserJob
-  | AdminForceDisconnectJob;
+  | AdminForceDisconnectJob
+  | FlushPushLogJob
+  | PrunePushLogJob;
 
 // --- Queue (lazy init) ---
 
@@ -1093,6 +1104,17 @@ async function processJob(job: Job<AIJob>) {
     case "admin-force-disconnect":
       publishEvent("forceDisconnect", { userId: data.userId });
       break;
+    case "flush-push-log": {
+      const count = await pushLogBuffer.flush();
+      if (count > 0) console.log(`[queue] flushed ${count} push log events`);
+      break;
+    }
+    case "prune-push-log": {
+      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+      await prunePushLog(SEVEN_DAYS_MS);
+      console.log("[queue] pruned old push log entries");
+      break;
+    }
   }
 }
 
@@ -1131,6 +1153,19 @@ export function startWorker() {
       });
     }
   });
+
+  // Register periodic maintenance jobs
+  const queue = getQueue();
+  void queue.upsertJobScheduler(
+    "flush-push-log",
+    { every: 15_000 },
+    { name: "flush-push-log", data: { type: "flush-push-log" } },
+  );
+  void queue.upsertJobScheduler(
+    "prune-push-log",
+    { every: 3_600_000 },
+    { name: "prune-push-log", data: { type: "prune-push-log" } },
+  );
 
   console.log("[queue] AI jobs worker started");
 }

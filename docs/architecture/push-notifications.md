@@ -1,6 +1,7 @@
 # Push Notifications
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-10 — Push send logging via Redis batch buffer + `push_sends` table. Every push (sent, suppressed, failed) is now recorded.
 
 Expo Push API delivering notifications to iOS and Android devices. Source: `apps/api/src/services/push.ts`, `apps/api/src/trpc/procedures/pushTokens.ts`.
 
@@ -188,6 +189,32 @@ Every push includes a `data` field that the mobile client uses for deep-linking:
 
 **Why structured data:** iOS and Android handle notification taps by passing the `data` object to the app's notification handler. The `type` field lets the client route to the correct screen without fetching additional context.
 
+## Push Send Logging
+
+Source: `apps/api/src/services/push-log.ts`, `apps/api/src/services/batch-buffer.ts`
+
+Every call to `sendPushToUser()` logs the outcome — sent, suppressed (with reason), or failed — to the `push_sends` database table via a Redis-buffered batch writer.
+
+**How it works:**
+
+1. `sendPushToUser()` calls `logPushEvent()` at each exit point (fire-and-forget)
+2. `logPushEvent()` calls `pushLogBuffer.append()` which does `RPUSH blisko:push-log <JSON>` (~0.1ms, never throws)
+3. BullMQ repeatable job `flush-push-log` runs every 15s, atomically drains the Redis list, and batch-inserts all events into `push_sends`
+4. BullMQ repeatable job `prune-push-log` runs every hour, deletes entries older than 7 days
+
+**Suppression reasons recorded:**
+
+| Reason | When |
+|--------|------|
+| `ws_active` | User has active WebSocket connection — in-app banner handles delivery |
+| `dnd` | User has Do Not Disturb enabled |
+| `no_tokens` | No push tokens registered for this user |
+| `invalid_tokens` | Tokens registered but none pass `Expo.isExpoPushToken()` validation |
+
+**Why batch via Redis:** Direct DB insert per push would add latency to the fire-and-forget hot path. Redis `RPUSH` is ~0.1ms and non-blocking. The batch flush means 1 DB INSERT per 15s regardless of push volume.
+
+**Generic infrastructure:** `createBatchBuffer<T>()` in `batch-buffer.ts` is a reusable pattern — not push-specific. Any future feature needing low-overhead batch logging can use the same utility.
+
 ## Error Handling Philosophy
 
 Push notification delivery is best-effort. The system is designed to never block user actions due to push failures:
@@ -196,6 +223,7 @@ Push notification delivery is best-effort. The system is designed to never block
 2. **Entire function in try-catch:** Any error (DB query failure, Expo API error, network timeout) is caught, logged, and swallowed.
 3. **Token cleanup is opportunistic:** Invalid tokens are cleaned up when Expo reports them, not proactively. A small number of stale tokens is acceptable.
 4. **Redis cooldown fails open:** If Redis is unavailable for ambient push cooldown, the cooldown check returns early without error, and the push is sent. More pushes > no pushes.
+5. **Push logging fails open:** If Redis is down, `logPushEvent()` silently skips — push delivery is unaffected.
 
 ## Impact Map
 
@@ -209,3 +237,5 @@ If you change this system, also check:
 - **Redis availability:** Ambient push cooldown depends on Redis — if Redis is down, cooldown fails open (no cooldown = more pushes, not fewer)
 - **Multi-replica:** `isUserConnected()` only checks local replica — adding sticky sessions or a shared connection registry would improve push suppression accuracy
 - **Ambient push cooldown TTL:** Changing 3600s affects how often users get ambient match notifications — too low = spam, too high = missed matches
+- **Push log (`push_sends` table):** Admin push log page reads from this table. Batch buffer uses Redis list `blisko:push-log`. Prune job deletes entries older than 7 days
+- **`batch-buffer.ts`:** Generic utility — changes affect all batch buffer consumers (currently only push log)
