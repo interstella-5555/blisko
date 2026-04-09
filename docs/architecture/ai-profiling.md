@@ -1,6 +1,7 @@
 # AI Profiling & Onboarding
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-10 — Self-healing: `questionFailed`/`profilingFailed` events, BullMQ deduplication, mobile retry hooks (BLI-161, BLI-162).
 
 Two profiling paths exist: fixed onboarding questions with AI follow-ups, and fully interactive AI-driven profiling sessions. Both produce the same output (bio, lookingFor, portrait) and feed into the matching pipeline. Source files: `apps/api/src/services/profiling-ai.ts` (AI functions), `apps/api/src/trpc/procedures/profiling.ts` (tRPC mutations), `packages/shared/src/models.ts` (onboarding questions), `apps/api/src/services/moderation.ts` (content filter), `apps/api/src/services/queue.ts` (BullMQ processors).
 
@@ -154,7 +155,7 @@ Sessions can chain: `basedOnSessionId` links to a previous session. When generat
 - Temperature: 0.7
 - maxOutputTokens: 1000
 - Output schema: `{ bio: string, lookingFor: string, portrait: string }` (Zod-validated via `generateObject`)
-- BullMQ job: `generate-profile-from-qa`, jobId: `profile-from-qa-{sessionId}`
+- BullMQ job: `generate-profile-from-qa`, dedup: `profile-from-qa-{sessionId}` (BullMQ `deduplication` option — auto-releases on failure for self-healing)
 - Cost: ~$0.005/call
 
 **Processing flow in BullMQ:**
@@ -208,7 +209,9 @@ Sessions can chain: `basedOnSessionId` links to a previous session. When generat
 | Event | Payload | When |
 |---|---|---|
 | `questionReady` | `{ userId, sessionId, questionNumber }` | AI generated next profiling question (interactive session) |
+| `questionFailed` | `{ userId, sessionId, questionNumber }` | Question generation permanently failed — mobile retries via `retryQuestion` |
 | `profilingComplete` | `{ userId, sessionId }` | Profile generation from Q&A completed, user can review |
+| `profilingFailed` | `{ userId, sessionId }` | Profile generation permanently failed — mobile retries via `retryProfileGeneration` |
 | `profileReady` | `{ userId }` | Portrait + embedding + interests pipeline finished (post-apply) |
 
 All events are published via `publishEvent()` which routes through Redis pub/sub for cross-replica delivery.

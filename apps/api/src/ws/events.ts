@@ -95,6 +95,11 @@ export interface ProfilingCompleteEvent {
   sessionId: string;
 }
 
+export interface ProfilingFailedEvent {
+  userId: string;
+  sessionId: string;
+}
+
 export interface StatusMatchesReadyEvent {
   userId: string;
 }

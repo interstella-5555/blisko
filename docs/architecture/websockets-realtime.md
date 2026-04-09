@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — Added `analysisFailed` WS event for self-healing AI queue (BLI-158).
 > Updated 2026-04-10 — Added `questionFailed` WS event for self-healing profiling question generation (BLI-161).
+> Updated 2026-04-10 — Added `profilingFailed` WS event for self-healing profile generation from Q&A (BLI-162).
 
 Bun native WebSocket server delivering real-time events to mobile clients. Source: `apps/api/src/ws/handler.ts`, `apps/api/src/ws/events.ts`, `apps/api/src/ws/redis-bridge.ts`.
 
@@ -19,7 +20,7 @@ Bun native WebSocket server delivering real-time events to mobile clients. Sourc
 | Group member action | `groupMember` event | Dolaczyl/opuscil grupe |
 | Nie przeszkadzaj | DND — client-side suppression only, WS still delivers | Ikona DND |
 
-## Event Types (19 total)
+## Event Types (20 total)
 
 | Event | Direction | Trigger | Payload shape |
 |---|---|---|---|
@@ -40,6 +41,7 @@ Bun native WebSocket server delivering real-time events to mobile clients. Sourc
 | `questionReady` | server->client | Next profiling question | `{ type: "questionReady", sessionId, questionNumber }` |
 | `questionFailed` | server->client | Profiling question generation permanently failed | `{ type: "questionFailed", sessionId, questionNumber }` |
 | `profilingComplete` | server->client | Profiling session done | `{ type: "profilingComplete", sessionId }` |
+| `profilingFailed` | server->client | Profile generation permanently failed | `{ type: "profilingFailed", sessionId }` |
 | `groupMember` | server->client | Member joined/left/removed/roleChanged | `{ type: "groupMember", conversationId, userId, action, role?, displayName? }` |
 | `groupUpdated` | server->client | Group metadata changed | `{ type: "groupUpdated", conversationId, updates: { name?, description?, avatarUrl? } }` |
 | `topicEvent` | server->client | Topic lifecycle | `{ type: "topicEvent", conversationId, topic: { id, name, emoji }, action: "created"\|"updated"\|"deleted"\|"closed" }` |
@@ -178,6 +180,7 @@ Events are routed through two paths depending on their target:
 - `questionReady` — to the user in the profiling session
 - `questionFailed` — to the user when profiling question generation exhausts retries (mobile retries via `retryQuestion`)
 - `profilingComplete` — to the user whose profiling finished
+- `profilingFailed` — to the user when profile generation from Q&A exhausts retries (mobile retries via `retryProfileGeneration`)
 - `conversationDeleted` — to the user whose conversation was deleted
 - `groupInvited` — to the invited user
 - `forceDisconnect` — to the user being disconnected
