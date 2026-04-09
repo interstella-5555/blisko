@@ -3,10 +3,10 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db, schema } from "@/db";
-import { enqueueDataExport, enqueueHardDeleteUser } from "@/services/queue";
+import { enqueueDataExport } from "@/services/queue";
+import { softDeleteUser } from "@/services/user-actions";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
-import { publishEvent } from "@/ws/redis-bridge";
 
 export const accountsRouter = router({
   listConnected: protectedProcedure.query(async ({ ctx }) => {
@@ -92,21 +92,8 @@ export const accountsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid OTP" });
       }
 
-      // 3. Soft delete + cleanup in transaction
-      await db.transaction(async (tx) => {
-        // Soft delete
-        await tx.update(schema.user).set({ deletedAt: new Date() }).where(eq(schema.user.id, ctx.userId));
-        // Delete all sessions (logs out everywhere)
-        await tx.delete(schema.session).where(eq(schema.session.userId, ctx.userId));
-        // Remove push tokens (stop notifications)
-        await tx.delete(schema.pushTokens).where(eq(schema.pushTokens.userId, ctx.userId));
-      });
-
-      // 4. Close active WebSocket connections (sessions deleted, no reconnect possible)
-      publishEvent("forceDisconnect", { userId: ctx.userId });
-
-      // 5. Schedule hard delete outside transaction (queue job, not DB)
-      await enqueueHardDeleteUser(ctx.userId);
+      // 3. Soft delete + cleanup + schedule hard delete
+      await softDeleteUser(ctx.userId);
 
       return { ok: true };
     }),

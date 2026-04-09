@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   BotIcon,
+  BrainIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronsLeftIcon,
@@ -12,10 +13,23 @@ import {
   SearchIcon,
   ShieldAlertIcon,
   TrashIcon,
+  UnplugIcon,
+  WandSparklesIcon,
 } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { DashboardHeader } from "~/components/dashboard-header";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
 import { Badge } from "~/components/ui/badge";
 import {
   DropdownMenu,
@@ -70,6 +84,46 @@ function UsersPage() {
   });
 
   const selectedUser = trpc.users.getById.useQuery({ id: selectedUserId! }, { enabled: !!selectedUserId });
+
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+
+  const utils = trpc.useUtils();
+
+  const softDeleteMutation = trpc.users.softDelete.useMutation({
+    onSuccess: () => {
+      toast.success("Konto użytkownika zostało usunięte");
+      utils.users.list.invalidate();
+      utils.users.stats.invalidate();
+      if (selectedUserId) utils.users.getById.invalidate({ id: selectedUserId });
+      setDeleteConfirm(null);
+    },
+    onError: (err) => toast.error(`Błąd: ${err.message}`),
+  });
+
+  const restoreMutation = trpc.users.restore.useMutation({
+    onSuccess: () => {
+      toast.success("Konto użytkownika zostało przywrócone");
+      utils.users.list.invalidate();
+      utils.users.stats.invalidate();
+      if (selectedUserId) utils.users.getById.invalidate({ id: selectedUserId });
+    },
+    onError: (err) => toast.error(`Błąd: ${err.message}`),
+  });
+
+  const reanalyzeMutation = trpc.users.reanalyze.useMutation({
+    onSuccess: () => toast.success("Analiza AI została zlecona"),
+    onError: (err) => toast.error(`Błąd: ${err.message}`),
+  });
+
+  const regenerateProfileMutation = trpc.users.regenerateProfile.useMutation({
+    onSuccess: () => toast.success("Profil został zregenerowany"),
+    onError: (err) => toast.error(`Błąd: ${err.message}`),
+  });
+
+  const forceDisconnectMutation = trpc.users.forceDisconnect.useMutation({
+    onSuccess: () => toast.success("Użytkownik został rozłączony"),
+    onError: (err) => toast.error(`Błąd: ${err.message}`),
+  });
 
   const totalPages = users.data ? Math.ceil(users.data.total / PAGE_SIZE) : 0;
   const resetPage = () => setPage(0);
@@ -215,15 +269,43 @@ function UsersPage() {
                             Podgląd profilu
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onSelect={() => reanalyzeMutation.mutate({ userId: user.id })}
+                            disabled={reanalyzeMutation.isPending}
+                          >
+                            <BrainIcon className="text-muted-foreground" />
+                            Re-analiza AI
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => regenerateProfileMutation.mutate({ userId: user.id })}
+                            disabled={regenerateProfileMutation.isPending}
+                          >
+                            <WandSparklesIcon className="text-muted-foreground" />
+                            Regeneruj profil
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => forceDisconnectMutation.mutate({ userId: user.id })}
+                            disabled={forceDisconnectMutation.isPending}
+                          >
+                            <UnplugIcon className="text-muted-foreground" />
+                            Rozłącz
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           {user.status === "deleted" ? (
-                            <DropdownMenuItem disabled>
+                            <DropdownMenuItem
+                              onSelect={() => restoreMutation.mutate({ userId: user.id })}
+                              disabled={restoreMutation.isPending}
+                            >
                               <RotateCcwIcon className="text-muted-foreground" />
-                              Przywróć konto (BLI-154)
+                              Przywróć konto
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem disabled className="text-destructive">
+                            <DropdownMenuItem
+                              onSelect={() => setDeleteConfirm({ id: user.id, name: user.displayName })}
+                              className="text-destructive"
+                            >
                               <TrashIcon />
-                              Usuń konto (BLI-154)
+                              Usuń konto
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
@@ -332,6 +414,28 @@ function UsersPage() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usunąć konto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Konto użytkownika {deleteConfirm?.name} zostanie oznaczone jako usunięte. Użytkownik ma 14 dni na
+              przywrócenie konta, po czym dane zostaną zanonimizowane.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteConfirm && softDeleteMutation.mutate({ userId: deleteConfirm.id })}
+              disabled={softDeleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {softDeleteMutation.isPending ? "Usuwanie..." : "Usuń konto"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

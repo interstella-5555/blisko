@@ -3,6 +3,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-r
 import { httpBatchLink } from "@trpc/client";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { Toaster } from "~/components/ui/sonner";
 import { TooltipProvider } from "~/components/ui/tooltip";
 import { trpc } from "~/lib/trpc";
 import appCss from "~/styles/app.css?url";
@@ -37,6 +38,7 @@ function RootComponent() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Outlet />
+          <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
     </trpc.Provider>

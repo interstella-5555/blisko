@@ -1,8 +1,9 @@
 # BullMQ Queues & Job Processing
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-09 — Added 3 admin job types (BLI-154): admin-soft-delete-user, admin-restore-user, admin-force-disconnect.
 
-Single BullMQ queue powering all background work: AI analysis, profile generation, status matching, GDPR compliance. Source: `apps/api/src/services/queue.ts`.
+Single BullMQ queue powering all background work: AI analysis, profile generation, status matching, GDPR compliance, and admin actions. Source: `apps/api/src/services/queue.ts`.
 
 ## Terminology & Product Alignment
 
@@ -41,7 +42,7 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 
 **Why concurrency 50:** Most jobs are I/O-bound (waiting on LLM API calls, DB queries). High concurrency keeps throughput up while the worker waits on external calls.
 
-## Job Types (10 total)
+## Job Types (13 total)
 
 ### 1. `analyze-pair` — Full Connection Analysis (T3)
 
@@ -220,6 +221,36 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 
 **`removeOnComplete`:** true (explicit)
 
+### 11. `admin-soft-delete-user` — Admin Soft Delete
+
+**What:** Soft-deletes a user account via admin panel. Calls `softDeleteUser()` service function from `apps/api/src/services/user-actions.ts`.
+
+**Trigger:** Admin panel "Usuń konto" action → `enqueueAndWait()` from admin app.
+
+**Processor logic:** Delegates to `softDeleteUser(userId)` — same logic as user-initiated deletion but without OTP verification. Transaction: set `deletedAt`, delete sessions, delete push tokens. Post-transaction: `forceDisconnect` event + enqueue `hard-delete-user` delayed job.
+
+**`removeOnComplete`:** true (via admin enqueue options)
+
+### 12. `admin-restore-user` — Admin Restore User
+
+**What:** Restores a soft-deleted user during the 14-day grace period. Calls `restoreUser()` service function.
+
+**Trigger:** Admin panel "Przywróć konto" action → `enqueueAndWait()` from admin app.
+
+**Processor logic:** Delegates to `restoreUser(userId)` — clears `user.deletedAt` and cancels the pending `hard-delete-user` delayed job.
+
+**`removeOnComplete`:** true (via admin enqueue options)
+
+### 13. `admin-force-disconnect` — Admin Force Disconnect
+
+**What:** Closes all active WebSocket connections for a user.
+
+**Trigger:** Admin panel "Rozłącz" action → `enqueueAndWait()` from admin app.
+
+**Processor logic:** Calls `publishEvent("forceDisconnect", { userId })`. No data changes — just closes WS connections. The mobile app auto-reconnects.
+
+**`removeOnComplete`:** true (via admin enqueue options)
+
 ## Deduplication: `safeEnqueuePairJob`
 
 **What:** Prevents duplicate `analyze-pair` jobs for the same user pair.
@@ -296,7 +327,9 @@ If you change this system, also check:
 - **Profile schema changed:** `analyze-pair` and `quick-score` fetch profiles — update field lists. Profile hash calculation uses `bio` + `lookingFor`
 - **Status schema changed:** `status-matching` and `proximity-status-matching` both query status fields
 - **Redis connection:** BullMQ, rate limiter, WS bridge, ambient push, message idempotency all share `REDIS_URL`
-- **Queue config (attempts, backoff):** Affects all 11 job types
+- **Queue config (attempts, backoff):** Affects all 13 job types
+- **Service functions (`user-actions.ts`):** `softDeleteUser` and `restoreUser` are called by both user tRPC and admin BullMQ workers — changes affect both paths
+- **Admin BullMQ client:** Admin app connects to same Redis via `REDIS_URL` as queue producer only. See `admin-panel.md`
 - **Worker concurrency:** Affects throughput of all jobs — higher = more parallel LLM calls
 - **Debounce TTLs:** Changing profile-ai debounce affects how quickly profile updates propagate; proximity-status debounce affects how responsive ambient matching is to movement
 - **`hard-delete-user` processor:** Must be updated when new tables store personal data (check `security/new-tables-check` rule)
