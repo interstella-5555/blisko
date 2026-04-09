@@ -12,6 +12,7 @@ import {
 } from "@/services/ws-metrics";
 import { sessionByToken } from "@/trpc/context";
 import type {
+  AnalysisFailedEvent,
   AnalysisReadyEvent,
   ConversationDeletedEvent,
   ForceDisconnectEvent,
@@ -244,6 +245,17 @@ ee.on("analysisReady", (event: AnalysisReadyEvent) => {
     type: "analysisReady",
     aboutUserId: event.aboutUserId,
     shortSnippet: event.shortSnippet,
+  });
+});
+
+ee.on("analysisFailed", (event: AnalysisFailedEvent) => {
+  broadcastToUser(event.userAId, {
+    type: "analysisFailed",
+    aboutUserId: event.userBId,
+  });
+  broadcastToUser(event.userBId, {
+    type: "analysisFailed",
+    aboutUserId: event.userAId,
   });
 });
 
