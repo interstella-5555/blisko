@@ -336,6 +336,28 @@ export const pushTokens = pgTable(
   }),
 );
 
+// Push notification log (batch-flushed from Redis every 15s)
+export const pushSends = pgTable(
+  "push_sends",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    data: jsonb("data"),
+    collapseId: varchar("collapse_id", { length: 100 }),
+    status: varchar("status", { length: 20 }).notNull(), // sent | suppressed | failed
+    suppressionReason: varchar("suppression_reason", { length: 30 }), // ws_active | dnd | no_tokens | invalid_tokens
+    tokenCount: integer("token_count").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdx: index("push_sends_user_idx").on(table.userId),
+    createdAtIdx: index("push_sends_created_at_idx").on(table.createdAt),
+    statusIdx: index("push_sends_status_idx").on(table.status),
+  }),
+);
+
 // Status matches (AI-evaluated "na teraz" status matches between users)
 export const statusMatches = pgTable(
   "status_matches",

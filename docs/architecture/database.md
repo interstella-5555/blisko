@@ -322,6 +322,27 @@ Expo push notification tokens.
 
 **Index:** `push_tokens_user_idx` on `user_id`.
 
+### `push_sends`
+
+Push notification send log. Batch-flushed from a Redis buffer every 15s by the `flush-push-log` BullMQ job. Pruned (entries older than 7 days deleted) hourly by the `prune-push-log` job.
+
+| Column | Type | Nullable | Default | Purpose |
+|--------|------|----------|---------|---------|
+| `id` | uuid PK | no | `gen_random_uuid()` | |
+| `user_id` | text | no | -- | Recipient (no FK — survives user deletion) |
+| `title` | text | no | -- | Push title |
+| `body` | text | no | -- | Push body |
+| `data` | jsonb | yes | -- | Deep-link payload |
+| `collapse_id` | varchar(100) | yes | -- | Expo collapse ID |
+| `status` | varchar(20) | no | -- | `sent` / `suppressed` / `failed` |
+| `suppression_reason` | varchar(30) | yes | -- | `ws_active` / `dnd` / `no_tokens` / `invalid_tokens` |
+| `token_count` | integer | no | `0` | Number of tokens push was sent to |
+| `created_at` | timestamp | no | `now()` | |
+
+**Indexes:** `push_sends_user_idx` on `user_id`, `push_sends_created_at_idx` on `created_at`, `push_sends_status_idx` on `status`.
+
+**GDPR note:** No FK to `user` — `user_id` is stored as plain text. When a user is anonymized, push log entries are NOT cleared (they contain no PII beyond the userId which becomes meaningless after anonymization). The 7-day auto-prune handles cleanup.
+
 ### `status_matches`
 
 AI-evaluated matches between users' "na teraz" statuses.

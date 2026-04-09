@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import Expo, { type ExpoPushMessage, type ExpoPushTicket } from "expo-server-sdk";
 import { db, schema } from "@/db";
 import { clients } from "@/ws/handler";
+import { logPushEvent } from "./push-log";
 
 const expo = new Expo();
 
@@ -18,24 +19,36 @@ export async function sendPushToUser(
 ): Promise<void> {
   try {
     // Don't send push if user is connected via WebSocket (in-app banner handles it)
-    if (isUserConnected(userId)) return;
+    if (isUserConnected(userId)) {
+      logPushEvent({ userId, ...payload, status: "suppressed", suppressionReason: "ws_active", tokenCount: 0 });
+      return;
+    }
 
     // Respect Do Not Disturb — suppress push delivery, data is still stored
     const profile = await db.query.profiles.findFirst({
       where: eq(schema.profiles.userId, userId),
       columns: { doNotDisturb: true },
     });
-    if (profile?.doNotDisturb) return;
+    if (profile?.doNotDisturb) {
+      logPushEvent({ userId, ...payload, status: "suppressed", suppressionReason: "dnd", tokenCount: 0 });
+      return;
+    }
 
     const tokens = await db
       .select({ id: schema.pushTokens.id, token: schema.pushTokens.token })
       .from(schema.pushTokens)
       .where(eq(schema.pushTokens.userId, userId));
 
-    if (tokens.length === 0) return;
+    if (tokens.length === 0) {
+      logPushEvent({ userId, ...payload, status: "suppressed", suppressionReason: "no_tokens", tokenCount: 0 });
+      return;
+    }
 
     const validTokens = tokens.filter((t) => Expo.isExpoPushToken(t.token));
-    if (validTokens.length === 0) return;
+    if (validTokens.length === 0) {
+      logPushEvent({ userId, ...payload, status: "suppressed", suppressionReason: "invalid_tokens", tokenCount: 0 });
+      return;
+    }
 
     const messages: ExpoPushMessage[] = validTokens.map((t) => ({
       to: t.token,
@@ -63,7 +76,10 @@ export async function sendPushToUser(
         }
       }
     }
+
+    logPushEvent({ userId, ...payload, status: "sent", tokenCount: validTokens.length });
   } catch (err) {
+    logPushEvent({ userId, ...payload, status: "failed", tokenCount: 0 });
     console.error("Push send error:", err);
   }
 }

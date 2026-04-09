@@ -16,6 +16,7 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardWavesRouteImport } from './routes/dashboard/waves'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardQueueRouteImport } from './routes/dashboard/queue'
+import { Route as DashboardPushLogRouteImport } from './routes/dashboard/push-log'
 import { Route as DashboardMatchingRouteImport } from './routes/dashboard/matching'
 import { Route as DashboardGroupsRouteImport } from './routes/dashboard/groups'
 import { Route as DashboardConversationsRouteImport } from './routes/dashboard/conversations'
@@ -57,6 +58,11 @@ const DashboardUsersRoute = DashboardUsersRouteImport.update({
 const DashboardQueueRoute = DashboardQueueRouteImport.update({
   id: '/queue',
   path: '/queue',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardPushLogRoute = DashboardPushLogRouteImport.update({
+  id: '/push-log',
+  path: '/push-log',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardMatchingRoute = DashboardMatchingRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/push-log': typeof DashboardPushLogRoute
   '/dashboard/queue': typeof DashboardQueueRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/waves': typeof DashboardWavesRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/push-log': typeof DashboardPushLogRoute
   '/dashboard/queue': typeof DashboardQueueRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/waves': typeof DashboardWavesRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/push-log': typeof DashboardPushLogRoute
   '/dashboard/queue': typeof DashboardQueueRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/waves': typeof DashboardWavesRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
+    | '/dashboard/push-log'
     | '/dashboard/queue'
     | '/dashboard/users'
     | '/dashboard/waves'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
+    | '/dashboard/push-log'
     | '/dashboard/queue'
     | '/dashboard/users'
     | '/dashboard/waves'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
+    | '/dashboard/push-log'
     | '/dashboard/queue'
     | '/dashboard/users'
     | '/dashboard/waves'
@@ -254,6 +266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardQueueRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/push-log': {
+      id: '/dashboard/push-log'
+      path: '/push-log'
+      fullPath: '/dashboard/push-log'
+      preLoaderRoute: typeof DashboardPushLogRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/matching': {
       id: '/dashboard/matching'
       path: '/matching'
@@ -310,6 +329,7 @@ interface DashboardRouteChildren {
   DashboardConversationsRoute: typeof DashboardConversationsRoute
   DashboardGroupsRoute: typeof DashboardGroupsRoute
   DashboardMatchingRoute: typeof DashboardMatchingRoute
+  DashboardPushLogRoute: typeof DashboardPushLogRoute
   DashboardQueueRoute: typeof DashboardQueueRoute
   DashboardUsersRoute: typeof DashboardUsersRoute
   DashboardWavesRoute: typeof DashboardWavesRoute
@@ -320,6 +340,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConversationsRoute: DashboardConversationsRoute,
   DashboardGroupsRoute: DashboardGroupsRoute,
   DashboardMatchingRoute: DashboardMatchingRoute,
+  DashboardPushLogRoute: DashboardPushLogRoute,
   DashboardQueueRoute: DashboardQueueRoute,
   DashboardUsersRoute: DashboardUsersRoute,
   DashboardWavesRoute: DashboardWavesRoute,

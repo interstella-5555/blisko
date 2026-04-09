@@ -70,7 +70,7 @@ const navMain = [
     url: "#",
     icon: <BellIcon />,
     items: [
-      { title: "Push log", url: "#" },
+      { title: "Push log", url: "/dashboard/push-log" },
       { title: "Ogłoszenia", url: "#" },
     ],
   },
