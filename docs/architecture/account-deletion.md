@@ -1,6 +1,7 @@
 # Account Deletion
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-09 — Soft-delete logic extracted to `softDeleteUser()` service function, admin restore via BullMQ (BLI-154).
 
 Two-phase account deletion: immediate soft-delete blocks access and hides the user, then a 14-day delayed BullMQ job anonymizes all PII while preserving relational data.
 
@@ -19,15 +20,16 @@ Parent doc: `docs/architecture/gdpr-compliance.md`
 
 #### What
 
-The `accounts.requestDeletion` tRPC mutation (in `apps/api/src/trpc/procedures/accounts.ts`) requires OTP verification, then executes a transaction that soft-deletes the user and cleans up active sessions.
+The `accounts.requestDeletion` tRPC mutation (in `apps/api/src/trpc/procedures/accounts.ts`) requires OTP verification, then calls the shared `softDeleteUser()` service function.
 
 **Trigger flow:**
 1. User taps "Usun konto" in mobile settings
 2. OTP sent to user's email (reuses existing sign-in OTP flow)
 3. User enters 6-digit OTP code
 4. Backend verifies OTP via `auth.api.verifyEmailOTP()`
+5. Calls `softDeleteUser(userId)` from `apps/api/src/services/user-actions.ts`
 
-**Transaction (atomic):**
+**`softDeleteUser()` — transaction (atomic):**
 - Set `user.deletedAt = now()`
 - Delete all rows from `session` for this userId (logs out everywhere)
 - Delete all rows from `pushTokens` for this userId (stops push notifications)
@@ -35,6 +37,8 @@ The `accounts.requestDeletion` tRPC mutation (in `apps/api/src/trpc/procedures/a
 **Post-transaction (non-atomic):**
 - Emit `forceDisconnect` event via EventEmitter, which broadcasts `{ type: "forceDisconnect" }` to all active WebSocket connections for this userId (handled in `apps/api/src/ws/handler.ts`)
 - Enqueue `hard-delete-user` BullMQ job with 14-day delay
+
+**Admin path:** Admin panel uses the same `softDeleteUser()` function via the `admin-soft-delete-user` BullMQ job (no OTP required). See `admin-panel.md`.
 
 #### Why
 
@@ -77,11 +81,11 @@ A user who requested deletion should immediately vanish from others' views, even
 
 #### What
 
-`cancelHardDeleteUser()` in `queue.ts` looks up the BullMQ job by its deterministic ID (`hard-delete-${userId}`) and removes it. This exists for admin-initiated account restoration during the grace period.
+`cancelHardDeleteUser()` in `queue.ts` looks up the BullMQ job by its deterministic ID (`hard-delete-${userId}`) and removes it. Used by `restoreUser()` in `apps/api/src/services/user-actions.ts`.
 
 #### Why
 
-No user-facing restore flow exists by design. If a user contacts support within 14 days, an admin can manually clear `user.deletedAt` in the database and call this function to cancel the pending anonymization job.
+No user-facing restore flow exists by design. Admin can restore accounts via the admin panel "Przywróć konto" action, which enqueues an `admin-restore-user` BullMQ job → calls `restoreUser(userId)` → clears `deletedAt` + cancels the pending hard-delete job.
 
 ## Phase 2: Anonymization
 
@@ -217,7 +221,8 @@ If you change this system, also check:
 - **Adding new PII fields to `profiles` or `user`** -- add them to the anonymization SET clause in `processHardDeleteUser()` and to the data export in `data-export.ts`
 - **Adding new tables with user FK** -- decide if rows should be preserved (add to "What Gets Preserved") or anonymized (add to the transaction)
 - **Changing the grace period** -- update `FOURTEEN_DAYS_MS` in `enqueueHardDeleteUser()`, update privacy policy retention text, update terms of service section 7
-- **Adding user-facing restore** -- currently admin-only via DB + `cancelHardDeleteUser()`. Would need new tRPC mutation, mobile UI, and re-login flow
+- **Adding user-facing restore** -- currently admin-only via admin panel → `restoreUser()`. Would need new tRPC mutation, mobile UI, and re-login flow
+- **Changing `softDeleteUser()` or `restoreUser()`** -- shared service functions in `user-actions.ts`. Called by both user tRPC (`requestDeletion`) and admin BullMQ workers. Changes affect both paths
 - **Changing the isAuthed middleware** -- verify `deletedAt` check is preserved and uses prepared statement
 - **Changing S3 upload paths** -- verify the regex in `processHardDeleteUser()` still extracts keys correctly
 - **New tables checklist** -- `docs/architecture/gdpr-compliance.md` "New Table Checklist" section

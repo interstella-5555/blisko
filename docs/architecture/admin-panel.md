@@ -1,6 +1,7 @@
 # Admin Panel
 
 > v1 — 2026-04-09.
+> Updated 2026-04-09 — Admin write actions implemented (BLI-154): service functions, BullMQ job types, admin mutations, UI actions.
 
 Internal admin panel for managing users, conversations, waves, groups, and AI matching. TanStack Start + Vite + Nitro, deployed on Railway.
 
@@ -24,17 +25,14 @@ Writes:  Admin tRPC mutation → BullMQ enqueue → waitUntilFinished → API wo
 ### Service Functions Pattern
 Business logic lives in `apps/api/src/services/` as standalone functions. Both tRPC procedures (user-initiated) and BullMQ workers (admin-initiated) call the same functions. The only difference: user path requires auth/OTP, admin path doesn't.
 
-```ts
-// services/user-actions.ts
-async function softDeleteUser(userId: string) {
-  await db.transaction(async (tx) => {
-    // All DB writes in one transaction
-  });
-  // Side effects outside transaction (Redis events, BullMQ jobs)
-}
+**Implemented in `apps/api/src/services/user-actions.ts`:**
 
-// User tRPC: verifyOTP() → softDeleteUser()
-// Admin BullMQ worker: softDeleteUser() directly
+- `softDeleteUser(userId)` — transaction: set `deletedAt`, delete sessions, delete push tokens. Post-transaction: `forceDisconnect` WS event + enqueue `hard-delete-user` delayed job.
+- `restoreUser(userId)` — clear `deletedAt` + cancel pending `hard-delete-user` BullMQ job.
+
+```
+User tRPC:  verifyOTP() → softDeleteUser()
+Admin BullMQ worker:       softDeleteUser() directly
 ```
 
 **Rule: DB writes inside transaction, side effects outside.** If Redis fails, DB changes still committed. Side effects can be retried.
@@ -73,17 +71,19 @@ Schema + connection factory shared between API and admin.
 | `/dashboard/groups` | conversations (type=group) + member counts | Group list with discoverable filter |
 | `/dashboard/matching` | connectionAnalyses + user profiles | AI match scores with score range filter, color-coded |
 
-## Admin Actions (Planned — BLI-xxx)
+## Admin Actions
 
-Not yet implemented. Will use BullMQ pattern described above.
+Implemented via BLI-154. Admin tRPC mutations enqueue BullMQ jobs, wait for API worker to finish (`waitUntilFinished`, 15s timeout).
 
-| Action | Job Type | Exists in API? |
-|--------|----------|---------------|
-| Soft delete user | `admin-soft-delete-user` | New (extract from tRPC procedure) |
-| Restore user | `admin-restore-user` | New (clear deletedAt + cancel hard-delete job) |
-| Re-analyze AI | `analyze-user-pairs` | Existing job type |
-| Profile regen | `generate-profile-ai` | Existing job type |
-| Force disconnect | `admin-force-disconnect` | New (publishEvent wrapper) |
+| Action | Admin Mutation | Job Type | Service Function |
+|--------|---------------|----------|-----------------|
+| Soft delete user | `users.softDelete` | `admin-soft-delete-user` | `softDeleteUser()` |
+| Restore user | `users.restore` | `admin-restore-user` | `restoreUser()` |
+| Re-analyze AI | `users.reanalyze` | `analyze-user-pairs` (existing) | — (reads lat/lon from DB) |
+| Regenerate profile | `users.regenerateProfile` | `generate-profile-ai` (existing) + `analyze-user-pairs` | — (reads bio/lookingFor from DB) |
+| Force disconnect | `users.forceDisconnect` | `admin-force-disconnect` | `publishEvent("forceDisconnect")` |
+
+**BullMQ setup in admin** (`apps/admin/src/lib/queue.ts`): `Queue` + `QueueEvents` client connected via `REDIS_URL`. Single exported function `enqueueAndWait(jobName, data)` handles enqueue + wait pattern.
 
 ## Auth
 
@@ -96,4 +96,4 @@ OTP login via email. Allowed emails in `ADMIN_EMAILS` env var. Sessions persiste
 | `ADMIN_EMAILS` | Comma-separated allowed admin emails |
 | `DATABASE_URL` | Postgres connection string |
 | `RESEND_API_KEY` | Email delivery (optional in dev) |
-| `REDIS_URL` | BullMQ connection (planned, for write actions) |
+| `REDIS_URL` | BullMQ connection for write actions |
