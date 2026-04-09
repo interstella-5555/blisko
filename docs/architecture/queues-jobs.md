@@ -4,6 +4,7 @@
 > Updated 2026-04-09 — Added 3 admin job types (BLI-154): admin-soft-delete-user, admin-restore-user, admin-force-disconnect.
 > Updated 2026-04-10 — Self-healing AI queue: `analysisFailed` event, quick-score BullMQ deduplication (BLI-158).
 > Updated 2026-04-10 — Push log: `flush-push-log` (15s batch flush) and `prune-push-log` (hourly cleanup) repeatable jobs, Redis buffer entry.
+> Updated 2026-04-10 — Self-healing profiling: `questionFailed` event, profiling question BullMQ deduplication (BLI-161).
 
 Single BullMQ queue powering all background work: AI analysis, profile generation, status matching, GDPR compliance, and admin actions. Source: `apps/api/src/services/queue.ts`.
 
@@ -128,7 +129,7 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 2. Insert question into `profilingQA` table
 3. Publish `questionReady` WS event
 
-**JobId:** `profiling-q-{sessionId}-{questionNumber}` (deterministic)
+**Dedup:** BullMQ `deduplication` option (Simple Mode) with id `profiling-q-{sessionId}-{questionNumber}`. Automatically releases dedup key on completion or failure — enables self-healing re-enqueue after failure.
 
 **`removeOnComplete`:** default (true)
 
@@ -304,7 +305,10 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 
 ## Worker Failure Handling
 
-When a job exhausts all retry attempts (3 by default with exponential backoff), the worker's `failed` handler publishes `analysisFailed` for `analyze-pair` and `quick-score` jobs. This notifies both users in the pair via WebSocket so the mobile client can immediately re-enqueue the analysis via `ensureAnalysis`.
+When a job exhausts all retry attempts (3 by default with exponential backoff), the worker's `failed` handler publishes failure events via WebSocket:
+
+- **`analyze-pair` / `quick-score`:** publishes `analysisFailed` to both users in the pair. Mobile retries via `ensureAnalysis`.
+- **`generate-profiling-question`:** publishes `questionFailed` to the user. Mobile retries via `retryQuestion` (re-enqueues question generation with current QA state).
 
 **Self-healing loop:** The mobile client keeps retrying as long as the user is visible in the UI — there is no retry limit or badge clearing. Natural backoff: each BullMQ cycle takes ~35s (3 retries with exponential backoff 5s→10s→20s). The existing 30s self-healing timer (in the nearby screen) covers the case where the user was offline during the failure event.
 
