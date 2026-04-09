@@ -64,18 +64,21 @@ export default function NearbyScreen() {
 
   const utils = trpc.useUtils();
 
+  const { mutateAsync: updateLocationAsync } = trpc.profiles.updateLocation.useMutation();
+  const { mutate: ensureAnalysisMutate } = trpc.profiles.ensureAnalysis.useMutation();
+
   const wsHandler = useCallback(
     (msg: WSMessage) => {
       if (msg.type === "analysisReady" || msg.type === "nearbyChanged" || msg.type === "statusMatchesReady") {
         utils.profiles.getNearbyUsersForMap.invalidate();
       }
+      if (msg.type === "analysisFailed") {
+        ensureAnalysisMutate({ userId: msg.aboutUserId });
+      }
     },
-    [utils.profiles.getNearbyUsersForMap.invalidate],
+    [utils.profiles.getNearbyUsersForMap.invalidate, ensureAnalysisMutate],
   );
   useWebSocket(wsHandler);
-
-  const { mutateAsync: updateLocationAsync } = trpc.profiles.updateLocation.useMutation();
-  const { mutate: ensureAnalysisMutate } = trpc.profiles.ensureAnalysis.useMutation();
 
   const [isManualRefresh, setIsManualRefresh] = useState(false);
 

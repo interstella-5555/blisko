@@ -55,6 +55,7 @@ export type WSMessage =
       responderProfile?: { displayName: string; avatarUrl: string | null };
     }
   | { type: "analysisReady"; aboutUserId: string; shortSnippet: string }
+  | { type: "analysisFailed"; aboutUserId: string }
   | { type: "nearbyChanged" }
   | { type: "statusMatchesReady" }
   | { type: "profileReady" }
