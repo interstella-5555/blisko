@@ -1,6 +1,6 @@
 import { ONBOARDING_QUESTIONS } from "@repo/shared";
 import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -16,6 +16,7 @@ import { IconChevronLeft } from "@/components/ui/icons";
 import { Button } from "../../src/components/ui/Button";
 import { ThinkingIndicator } from "../../src/components/ui/ThinkingIndicator";
 import { trpc } from "../../src/lib/trpc";
+import { useWebSocket, type WSMessage } from "../../src/lib/ws";
 import { useOnboardingStore } from "../../src/stores/onboardingStore";
 import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
@@ -47,6 +48,18 @@ export default function ProfilingModal() {
   const submitOnboarding = trpc.profiling.submitOnboarding.useMutation();
   const answerFollowUp = trpc.profiling.answerFollowUp.useMutation();
   const completeSession = trpc.profiling.completeSession.useMutation();
+  const retryQuestion = trpc.profiling.retryQuestion.useMutation();
+
+  // Self-healing: retry question generation on failure
+  const wsHandler = useCallback(
+    (msg: WSMessage) => {
+      if (msg.type === "questionFailed" && msg.sessionId === sessionId) {
+        retryQuestion.mutate({ sessionId: msg.sessionId });
+      }
+    },
+    [sessionId, retryQuestion.mutate],
+  );
+  useWebSocket(wsHandler);
 
   const totalQuestions = ONBOARDING_QUESTIONS.length;
   const currentQuestion = ONBOARDING_QUESTIONS[questionIndex];
