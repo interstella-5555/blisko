@@ -157,7 +157,7 @@ function getQueue(): Queue {
     _queue = new Queue("ai-jobs", {
       connection: getConnectionConfig(),
       defaultJobOptions: {
-        removeOnComplete: true,
+        removeOnComplete: { count: 200, age: 3600 },
         removeOnFail: { count: 100 },
         attempts: 3,
         backoff: { type: "exponential", delay: 5000 },
@@ -1304,11 +1304,7 @@ export async function enqueueStatusMatching(userId: string) {
   if (!process.env.REDIS_URL) return;
 
   const queue = getQueue();
-  await queue.add(
-    "status-matching",
-    { type: "status-matching", userId },
-    { jobId: `status-matching-${userId}`, removeOnComplete: true },
-  );
+  await queue.add("status-matching", { type: "status-matching", userId }, { jobId: `status-matching-${userId}` });
 }
 
 export async function enqueueProximityStatusMatching(userId: string, latitude: number, longitude: number) {
@@ -1321,7 +1317,6 @@ export async function enqueueProximityStatusMatching(userId: string, latitude: n
     {
       jobId: `proximity-status-${userId}-${Date.now()}`,
       debounce: { id: `proximity-status-${userId}`, ttl: ms("2m") },
-      removeOnComplete: true,
     },
   );
 }
@@ -1337,7 +1332,6 @@ export async function enqueueHardDeleteUser(userId: string) {
     {
       jobId: `hard-delete-${userId}`,
       delay: FOURTEEN_DAYS_MS,
-      removeOnComplete: true,
     },
   );
 }
@@ -1365,7 +1359,6 @@ export async function enqueueDataExport(userId: string, email: string) {
     { type: "export-user-data", userId, email },
     {
       jobId: `export-${userId}-${Date.now()}`,
-      removeOnComplete: true,
     },
   );
 }

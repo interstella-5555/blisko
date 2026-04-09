@@ -16,9 +16,11 @@ function getConnectionConfig() {
 let _queue: Queue | null = null;
 let _queueEvents: QueueEvents | null = null;
 
-function getQueue(): Queue {
+export function getQueue(): Queue {
   if (!_queue) {
-    _queue = new Queue(QUEUE_NAME, { connection: getConnectionConfig() });
+    _queue = new Queue(QUEUE_NAME, {
+      connection: { ...getConnectionConfig(), connectTimeout: 3000 },
+    });
   }
   return _queue;
 }
@@ -44,7 +46,7 @@ export async function enqueueAndWait<T extends Record<string, unknown>>(
 
   const job = await queue.add(jobName, data, {
     jobId: opts?.jobId,
-    removeOnComplete: true,
+    removeOnComplete: { count: 200, age: 3600 },
     removeOnFail: { count: 100 },
   });
 

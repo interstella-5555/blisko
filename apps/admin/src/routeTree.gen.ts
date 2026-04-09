@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardWavesRouteImport } from './routes/dashboard/waves'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
+import { Route as DashboardQueueRouteImport } from './routes/dashboard/queue'
 import { Route as DashboardMatchingRouteImport } from './routes/dashboard/matching'
 import { Route as DashboardGroupsRouteImport } from './routes/dashboard/groups'
 import { Route as DashboardConversationsRouteImport } from './routes/dashboard/conversations'
@@ -51,6 +52,11 @@ const DashboardWavesRoute = DashboardWavesRouteImport.update({
 const DashboardUsersRoute = DashboardUsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardQueueRoute = DashboardQueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardMatchingRoute = DashboardMatchingRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/queue': typeof DashboardQueueRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/waves': typeof DashboardWavesRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/queue': typeof DashboardQueueRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/waves': typeof DashboardWavesRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/queue': typeof DashboardQueueRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/waves': typeof DashboardWavesRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
+    | '/dashboard/queue'
     | '/dashboard/users'
     | '/dashboard/waves'
     | '/dashboard/'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
+    | '/dashboard/queue'
     | '/dashboard/users'
     | '/dashboard/waves'
     | '/dashboard'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
+    | '/dashboard/queue'
     | '/dashboard/users'
     | '/dashboard/waves'
     | '/dashboard/'
@@ -235,6 +247,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardUsersRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/queue': {
+      id: '/dashboard/queue'
+      path: '/queue'
+      fullPath: '/dashboard/queue'
+      preLoaderRoute: typeof DashboardQueueRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/matching': {
       id: '/dashboard/matching'
       path: '/matching'
@@ -291,6 +310,7 @@ interface DashboardRouteChildren {
   DashboardConversationsRoute: typeof DashboardConversationsRoute
   DashboardGroupsRoute: typeof DashboardGroupsRoute
   DashboardMatchingRoute: typeof DashboardMatchingRoute
+  DashboardQueueRoute: typeof DashboardQueueRoute
   DashboardUsersRoute: typeof DashboardUsersRoute
   DashboardWavesRoute: typeof DashboardWavesRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -300,6 +320,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConversationsRoute: DashboardConversationsRoute,
   DashboardGroupsRoute: DashboardGroupsRoute,
   DashboardMatchingRoute: DashboardMatchingRoute,
+  DashboardQueueRoute: DashboardQueueRoute,
   DashboardUsersRoute: DashboardUsersRoute,
   DashboardWavesRoute: DashboardWavesRoute,
   DashboardIndexRoute: DashboardIndexRoute,
