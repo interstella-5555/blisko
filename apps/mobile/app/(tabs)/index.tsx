@@ -67,13 +67,16 @@ export default function NearbyScreen() {
   const { mutateAsync: updateLocationAsync } = trpc.profiles.updateLocation.useMutation();
   const { mutate: ensureAnalysisMutate } = trpc.profiles.ensureAnalysis.useMutation();
 
+  const allListUsersRef = useRef<Array<{ profile: { userId: string }; analysisReady: boolean }>>([]);
+
   const wsHandler = useCallback(
     (msg: WSMessage) => {
       if (msg.type === "analysisReady" || msg.type === "nearbyChanged" || msg.type === "statusMatchesReady") {
         utils.profiles.getNearbyUsersForMap.invalidate();
       }
       if (msg.type === "analysisFailed") {
-        ensureAnalysisMutate({ userId: msg.aboutUserId });
+        const inList = allListUsersRef.current.some((u) => u.profile.userId === msg.aboutUserId);
+        if (inList) ensureAnalysisMutate({ userId: msg.aboutUserId });
       }
     },
     [utils.profiles.getNearbyUsersForMap.invalidate, ensureAnalysisMutate],
@@ -174,7 +177,6 @@ export default function NearbyScreen() {
   }, [allListUsers]);
 
   // Self-healing: if analyses are stuck, poke backend after 30s
-  const allListUsersRef = useRef(allListUsers);
   allListUsersRef.current = allListUsers;
 
   useEffect(() => {
