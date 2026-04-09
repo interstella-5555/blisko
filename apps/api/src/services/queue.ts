@@ -1220,9 +1220,12 @@ export async function enqueueQuickScore(userAId: string, userBId: string) {
   if (!process.env.REDIS_URL) return;
 
   const [a, b] = [userAId, userBId].sort();
-  const jobId = `quick-score-${a}-${b}`;
   const queue = getQueue();
-  await queue.add("quick-score", { type: "quick-score", userAId: a, userBId: b }, { jobId });
+  await queue.add(
+    "quick-score",
+    { type: "quick-score", userAId: a, userBId: b },
+    { deduplication: { id: `quick-score-${a}-${b}` } },
+  );
 }
 
 /** Promote a pair analysis to highest priority (for wave-triggered urgency) */
