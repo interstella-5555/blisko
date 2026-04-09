@@ -661,4 +661,14 @@ export const profilesRouter = router({
       createdAt: row.createdAt,
     }));
   }),
+
+  // Retry profile AI generation after failure (self-healing)
+  retryProfileAI: protectedProcedure.use(rateLimit("profiles.retryProfileAI")).mutation(async ({ ctx }) => {
+    const profile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+      columns: { bio: true, lookingFor: true },
+    });
+    if (!profile) return;
+    await enqueueProfileAI(ctx.userId, profile.bio, profile.lookingFor);
+  }),
 });

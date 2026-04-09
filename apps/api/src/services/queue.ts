@@ -1165,6 +1165,9 @@ export function startWorker() {
         sessionId: data.sessionId,
       });
     }
+    if (data.type === "generate-profile-ai") {
+      publishEvent("profileFailed", { userId: data.userId });
+    }
   });
 
   // Register periodic maintenance jobs

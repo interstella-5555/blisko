@@ -5,6 +5,7 @@ import { IconChat, IconPerson, IconPin, IconPlus, IconSettings } from "../../src
 import { useBackgroundSync } from "../../src/hooks/useBackgroundSync";
 import { useInAppNotifications } from "../../src/hooks/useInAppNotifications";
 import { usePushNotifications } from "../../src/hooks/usePushNotifications";
+import { useRetryProfileAIOnFailure } from "../../src/hooks/useRetryProfileAIOnFailure";
 import { getLastFailedRequestId, trpc } from "../../src/lib/trpc";
 import { sendWsMessage, useWebSocket, type WSMessage } from "../../src/lib/ws";
 import { useAuthStore } from "../../src/stores/authStore";
@@ -167,6 +168,7 @@ export default function TabsLayout() {
   useInAppNotifications();
   usePushNotifications();
   useBackgroundSync();
+  useRetryProfileAIOnFailure();
 
   const {
     data: profileData,
