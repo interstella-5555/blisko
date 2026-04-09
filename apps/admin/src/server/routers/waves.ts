@@ -2,10 +2,10 @@ import { schema } from "@repo/db";
 import { aliasedTable, and, count, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
-import { publicProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
 
 export const wavesRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z.object({
         search: z.string().optional(),
@@ -80,7 +80,7 @@ export const wavesRouter = router({
       return { waves: rows, total };
     }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const [totals] = await db.select({ count: count() }).from(schema.waves);
 
     const [pending] = await db.select({ count: count() }).from(schema.waves).where(eq(schema.waves.status, "pending"));

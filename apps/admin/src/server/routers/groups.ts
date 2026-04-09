@@ -2,10 +2,10 @@ import { schema } from "@repo/db";
 import { and, avg, count, eq, ilike, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
-import { publicProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
 
 export const groupsRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z.object({
         search: z.string().optional(),
@@ -70,7 +70,7 @@ export const groupsRouter = router({
       };
     }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const groupCondition = and(eq(schema.conversations.type, "group"), isNull(schema.conversations.deletedAt));
 
     const [totals] = await db.select({ count: count() }).from(schema.conversations).where(groupCondition);

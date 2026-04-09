@@ -2,10 +2,10 @@ import { schema } from "@repo/db";
 import { aliasedTable, and, count, desc, eq, gte, ilike, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
-import { publicProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
 
 export const conversationsRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z.object({
         search: z.string().optional(),
@@ -103,7 +103,7 @@ export const conversationsRouter = router({
       };
     }),
 
-  stats: publicProcedure.query(async () => {
+  stats: protectedProcedure.query(async () => {
     const dmCondition = and(eq(schema.conversations.type, "dm"), isNull(schema.conversations.deletedAt));
 
     const [totals] = await db.select({ count: count() }).from(schema.conversations).where(dmCondition);
