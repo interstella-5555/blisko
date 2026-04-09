@@ -10,6 +10,7 @@ COPY apps/mobile/package.json ./apps/mobile/package.json
 COPY apps/website/package.json ./apps/website/package.json
 COPY apps/admin/package.json ./apps/admin/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
+COPY packages/db/package.json ./packages/db/package.json
 COPY packages/dev-cli/package.json ./packages/dev-cli/package.json
 
 RUN bun install --frozen-lockfile
@@ -17,6 +18,7 @@ RUN bun install --frozen-lockfile
 COPY apps/chatbot/ ./apps/chatbot/
 COPY apps/api/src/db/ ./apps/api/src/db/
 COPY packages/shared/ ./packages/shared/
+COPY packages/db/ ./packages/db/
 
 ENV NODE_ENV=production
 
