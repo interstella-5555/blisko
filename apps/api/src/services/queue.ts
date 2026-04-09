@@ -18,6 +18,7 @@ import {
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
 import { sendPushToUser } from "./push";
 import { recordJobCompleted, recordJobFailed } from "./queue-metrics";
+import { restoreUser, softDeleteUser } from "./user-actions";
 
 function getConnectionConfig() {
   const url = new URL(process.env.REDIS_URL!);
@@ -113,6 +114,21 @@ interface ExportUserDataJob {
   email: string;
 }
 
+interface AdminSoftDeleteUserJob {
+  type: "admin-soft-delete-user";
+  userId: string;
+}
+
+interface AdminRestoreUserJob {
+  type: "admin-restore-user";
+  userId: string;
+}
+
+interface AdminForceDisconnectJob {
+  type: "admin-force-disconnect";
+  userId: string;
+}
+
 type AIJob =
   | AnalyzePairJob
   | QuickScoreJob
@@ -123,7 +139,10 @@ type AIJob =
   | StatusMatchingJob
   | ProximityStatusMatchingJob
   | HardDeleteUserJob
-  | ExportUserDataJob;
+  | ExportUserDataJob
+  | AdminSoftDeleteUserJob
+  | AdminRestoreUserJob
+  | AdminForceDisconnectJob;
 
 // --- Queue (lazy init) ---
 
@@ -1064,6 +1083,15 @@ async function processJob(job: Job<AIJob>) {
       break;
     case "export-user-data":
       await processExportUserData(data.userId, data.email);
+      break;
+    case "admin-soft-delete-user":
+      await softDeleteUser(data.userId);
+      break;
+    case "admin-restore-user":
+      await restoreUser(data.userId);
+      break;
+    case "admin-force-disconnect":
+      publishEvent("forceDisconnect", { userId: data.userId });
       break;
   }
 }
