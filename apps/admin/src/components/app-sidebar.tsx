@@ -52,7 +52,7 @@ const navMain = [
     icon: <BrainCircuitIcon />,
     items: [
       { title: "Analizy", url: "/dashboard/matching" },
-      { title: "Kolejka", url: "#" },
+      { title: "Kolejka", url: "/dashboard/queue" },
       { title: "Prompty", url: "#" },
     ],
   },
