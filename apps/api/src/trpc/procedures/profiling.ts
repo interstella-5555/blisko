@@ -502,8 +502,6 @@ export const profilingRouter = router({
       const displayName = await getDisplayName(ctx.userId);
 
       await enqueueProfilingQuestion(input.sessionId, ctx.userId, displayName, answeredQA, { previousSessionQA });
-
-      return { retried: true };
     }),
 
   // List all sessions for this user
