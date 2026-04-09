@@ -124,7 +124,7 @@ Sessions can chain: `basedOnSessionId` links to a previous session. When generat
 - Temperature: 0.8
 - maxOutputTokens: 300
 - Output schema: `{ question: string, sufficient: boolean }`
-- BullMQ job: `generate-profiling-question`, jobId: `profiling-q-{sessionId}-{questionNumber}`
+- BullMQ job: `generate-profiling-question`, dedup: `profiling-q-{sessionId}-{questionNumber}` (BullMQ `deduplication` option — auto-releases on failure for self-healing)
 - Cost: ~$0.001/call
 
 **WebSocket:** Emits `questionReady` with `{ userId, sessionId, questionNumber }` when the question is stored.

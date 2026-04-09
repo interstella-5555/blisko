@@ -16,6 +16,7 @@ import { db, schema } from "@/db";
 import { moderateContent } from "@/services/moderation";
 import { generateFollowUpQuestions } from "@/services/profiling-ai";
 import { enqueueProfileAI, enqueueProfileFromQA, enqueueProfilingQuestion } from "@/services/queue";
+import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 
 // --- Helpers ---
@@ -482,6 +483,7 @@ export const profilingRouter = router({
 
   // Retry question generation after failure (self-healing)
   retryQuestion: protectedProcedure
+    .use(rateLimit("profiling.retryQuestion"))
     .input(z.object({ sessionId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const session = await db.query.profilingSessions.findFirst({
