@@ -22,6 +22,7 @@ import type {
   NearbyChangedEvent,
   NewMessageEvent,
   NewWaveEvent,
+  ProfileFailedEvent,
   ProfileReadyEvent,
   ProfilingCompleteEvent,
   ProfilingFailedEvent,
@@ -267,6 +268,10 @@ ee.on("nearbyChanged", (event: NearbyChangedEvent) => {
 
 ee.on("profileReady", (event: ProfileReadyEvent) => {
   broadcastToUser(event.userId, { type: "profileReady" });
+});
+
+ee.on("profileFailed", (event: ProfileFailedEvent) => {
+  broadcastToUser(event.userId, { type: "profileFailed" });
 });
 
 ee.on("statusMatchesReady", (event: StatusMatchesReadyEvent) => {

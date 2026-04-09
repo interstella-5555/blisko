@@ -59,6 +59,7 @@ export type WSMessage =
   | { type: "nearbyChanged" }
   | { type: "statusMatchesReady" }
   | { type: "profileReady" }
+  | { type: "profileFailed" }
   | { type: "questionReady"; sessionId: string; questionNumber: number }
   | { type: "questionFailed"; sessionId: string; questionNumber: number }
   | { type: "profilingComplete"; sessionId: string }

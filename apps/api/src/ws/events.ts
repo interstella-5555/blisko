@@ -84,6 +84,10 @@ export interface ProfileReadyEvent {
   userId: string;
 }
 
+export interface ProfileFailedEvent {
+  userId: string;
+}
+
 export interface QuestionReadyEvent {
   userId: string;
   sessionId: string;

@@ -49,6 +49,9 @@ export const rateLimits = {
   // Profile generation retry — self-healing re-enqueue after generate-profile-from-qa failure
   "profiling.retryProfileGeneration": { limit: 10, window: 60 * 60 },
 
+  // Profile AI retry — self-healing re-enqueue after generate-profile-ai failure
+  "profiles.retryProfileAI": { limit: 10, window: 60 * 60 },
+
   // File uploads — S3 write protection
   uploads: { limit: 10, window: 60 * 60 },
 
