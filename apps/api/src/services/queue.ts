@@ -1121,9 +1121,7 @@ export function startWorker() {
     recordJobFailed("ai-jobs");
     console.error(`[queue] Job ${job?.id} failed:`, err.message);
 
-    if (!job) return;
-    const maxAttempts = job.opts?.attempts ?? 3;
-    if (job.attemptsMade < maxAttempts) return;
+    if (!job || !job.opts.attempts || job.attemptsMade < job.opts.attempts) return;
 
     const data = job.data as AIJob;
     if (data.type === "analyze-pair" || data.type === "quick-score") {
