@@ -2,6 +2,7 @@ import { schema } from "@repo/db";
 import { and, count, eq, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
+import { enqueueAndWait } from "~/lib/queue";
 import { publicProcedure, router } from "../trpc";
 
 export const usersRouter = router({
@@ -185,7 +186,90 @@ export const usersRouter = router({
     return row[0];
   }),
 
-  // Write actions planned via BullMQ — see BLI-154
+  softDelete: publicProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
+    await enqueueAndWait("admin-soft-delete-user", {
+      type: "admin-soft-delete-user",
+      userId: input.userId,
+    });
+    return { ok: true };
+  }),
+
+  restore: publicProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
+    await enqueueAndWait("admin-restore-user", {
+      type: "admin-restore-user",
+      userId: input.userId,
+    });
+    return { ok: true };
+  }),
+
+  reanalyze: publicProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
+    const profile = await db
+      .select({
+        latitude: schema.profiles.latitude,
+        longitude: schema.profiles.longitude,
+      })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.userId, input.userId))
+      .limit(1);
+
+    if (!profile[0]?.latitude || !profile[0]?.longitude) {
+      throw new Error("Użytkownik nie ma udostępnionej lokalizacji");
+    }
+
+    await enqueueAndWait("analyze-user-pairs", {
+      type: "analyze-user-pairs",
+      userId: input.userId,
+      latitude: profile[0].latitude,
+      longitude: profile[0].longitude,
+      radiusMeters: 5000,
+    });
+    return { ok: true };
+  }),
+
+  regenerateProfile: publicProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
+    const profile = await db
+      .select({
+        bio: schema.profiles.bio,
+        lookingFor: schema.profiles.lookingFor,
+        latitude: schema.profiles.latitude,
+        longitude: schema.profiles.longitude,
+      })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.userId, input.userId))
+      .limit(1);
+
+    if (!profile[0]) {
+      throw new Error("Profil nie znaleziony");
+    }
+
+    await enqueueAndWait("generate-profile-ai", {
+      type: "generate-profile-ai",
+      userId: input.userId,
+      bio: profile[0].bio ?? "",
+      lookingFor: profile[0].lookingFor ?? "",
+    });
+
+    // Re-analyze nearby pairs if user has location
+    if (profile[0].latitude && profile[0].longitude) {
+      await enqueueAndWait("analyze-user-pairs", {
+        type: "analyze-user-pairs",
+        userId: input.userId,
+        latitude: profile[0].latitude,
+        longitude: profile[0].longitude,
+        radiusMeters: 5000,
+      });
+    }
+
+    return { ok: true };
+  }),
+
+  forceDisconnect: publicProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
+    await enqueueAndWait("admin-force-disconnect", {
+      type: "admin-force-disconnect",
+      userId: input.userId,
+    });
+    return { ok: true };
+  }),
 
   stats: publicProcedure.query(async () => {
     const seedFilter = sql`${schema.user.email} NOT LIKE 'user%@example.com'`;
