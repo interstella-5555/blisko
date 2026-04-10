@@ -46,6 +46,8 @@ const JOB_TYPES = [
   "admin-force-disconnect",
   "flush-push-log",
   "prune-push-log",
+  "flush-ai-calls",
+  "prune-ai-calls",
   "consistency-sweep",
 ] as const;
 

@@ -11,8 +11,11 @@
 > Updated 2026-04-10 — GDPR-safe export retry: 10 attempts/60s exponential backoff (~8.5h), `removeOnFail: false`, admin + user emails on permanent failure (BLI-165).
 > Updated 2026-04-10 — Split single `ai-jobs` queue into 3 queues (`ai`, `ops`, `maintenance`) grouped by bottleneck. Shared utilities in `queue-shared.ts` (BLI-171).
 > Updated 2026-04-10 — Nightly consistency sweep: `consistency-sweep` maintenance job (daily 3 AM), admin trigger, mobile startup health check (BLI-168).
+> Updated 2026-04-11 — AI cost tracking: `flush-ai-calls` (15s batch flush) and `prune-ai-calls` (hourly cleanup) repeatable jobs, Redis buffer entry (BLI-174).
 
 Three BullMQ queues grouped by bottleneck: AI (OpenAI-bound), Ops (DB/S3/email-bound critical operations), Maintenance (periodic fire-and-forget). Each has its own worker with independent concurrency and retention policies. Source files: `apps/api/src/services/queue.ts` (AI), `queue-ops.ts` (Ops), `queue-maintenance.ts` (Maintenance), `queue-shared.ts` (shared utilities).
+
+All AI jobs in the AI queue are instrumented via `withAiLogging()` — every OpenAI call through the Vercel AI SDK is logged into `metrics.ai_calls` for cost tracking. See `ai-cost-tracking.md`.
 
 ## Terminology & Product Alignment
 
@@ -35,7 +38,7 @@ Three queues backed by Redis (`REDIS_URL`). BullMQ uses ioredis internally; all 
 |---|---|---|---|---|---|
 | **AI** | `ai` | `queue.ts` | 50 | 8 (OpenAI-calling jobs) | OpenAI RPM/TPM |
 | **Ops** | `ops` | `queue-ops.ts` | 10 | 5 (GDPR, admin actions) | DB/S3/email |
-| **Maintenance** | `maintenance` | `queue-maintenance.ts` | 2 | 3 (periodic flush/prune + nightly sweep) | None |
+| **Maintenance** | `maintenance` | `queue-maintenance.ts` | 2 | 5 (periodic flush/prune + nightly sweep) | None |
 
 **Why 3 queues:** Jobs grouped by shared bottleneck. AI jobs all compete for OpenAI API capacity and benefit from cross-type priority (`promotePairAnalysis`). Ops jobs are rare but critical — admin clicking "delete account" shouldn't wait behind 200 AI analysis jobs. Maintenance is fire-and-forget and needs no concurrency with either.
 
@@ -59,7 +62,7 @@ All three workers start at server startup from `src/index.ts`: `startAiWorker()`
 
 On startup, `startOpsWorker()` runs a one-time migration that moves any delayed `hard-delete-user` jobs from the old `ai-jobs` Redis queue to the new `ops` queue, preserving remaining delay time and job IDs. This handles the transition from the single-queue architecture.
 
-## Job Types (16 total)
+## Job Types (18 total)
 
 ### AI Queue (8 types) — `queue.ts`
 
@@ -276,7 +279,7 @@ On startup, `startOpsWorker()` runs a one-time migration that moves any delayed 
 
 **`removeOnComplete`:** true (via admin enqueue options)
 
-### Maintenance Queue (3 types) — `queue-maintenance.ts`
+### Maintenance Queue (5 types) — `queue-maintenance.ts`
 
 ### 14. `flush-push-log` — Push Log Batch Flush
 
@@ -302,7 +305,29 @@ On startup, `startOpsWorker()` runs a one-time migration that moves any delayed 
 
 **Processor logic:** `DELETE FROM push_sends WHERE created_at < NOW() - 7 days`.
 
-### 16. `consistency-sweep` — Nightly Consistency Sweep
+### 16. `flush-ai-calls` — AI Call Log Batch Flush
+
+**What:** Drains the `blisko:ai-calls` Redis list and batch-inserts all buffered AI call events into the `metrics.ai_calls` database table.
+
+**Trigger:** BullMQ repeatable job scheduler, every 15 seconds. Registered in `startMaintenanceWorker()` via `queue.upsertJobScheduler()`.
+
+**Processor logic:** Calls `aiCallBuffer.flush()` from `ai-log.ts`. Same `createBatchBuffer` pattern as `flush-push-log`: atomic `RENAME` swap → `LRANGE` → batch `INSERT` → `DEL`.
+
+**Why batch:** Every OpenAI call in the hot path (map view `quick-score` especially) appends to Redis (~0.1ms) via `withAiLogging()`. Batching keeps the write amplification proportional to time, not volume.
+
+**Source:** `apps/api/src/services/ai-log.ts` (buffer + wrapper), `apps/api/src/services/ai-log-buffer.ts` (`createBatchBuffer` + `onFlush` writer).
+
+See `ai-cost-tracking.md` for the wrapper design and admin dashboard.
+
+### 17. `prune-ai-calls` — AI Call Log Cleanup
+
+**What:** Deletes AI call log entries older than 7 days from the `metrics.ai_calls` table.
+
+**Trigger:** BullMQ repeatable job scheduler, every hour.
+
+**Processor logic:** `DELETE FROM metrics.ai_calls WHERE timestamp < NOW() - INTERVAL '7 days'` via `pruneAiCalls(SEVEN_DAYS_MS)`.
+
+### 18. `consistency-sweep` — Nightly Consistency Sweep
 
 **What:** Scans for stuck state left by failed queue jobs and repairs it. Three checks: zombie profiles (bio exists but portrait/embedding missing), stuck profiling sessions (all Q&A answered but no generated profile), abandoned sessions (active >24h).
 
@@ -379,6 +404,7 @@ Redis (`REDIS_URL`) serves 5 distinct purposes in the API:
 | **Ambient push cooldown** | Bun `RedisClient` | `ambient-push:{userId}` | 3600s (1 hour) |
 | **Message idempotency** | Bun `RedisClient` | `idem:msg:{userId}:{idempotencyKey}` | 300s (5 minutes) |
 | **Push log buffer** | Bun `RedisClient` | `blisko:push-log` | None (drained every 15s) |
+| **AI call log buffer** | Bun `RedisClient` | `blisko:ai-calls` | None (drained every 15s) |
 
 ## Metrics
 

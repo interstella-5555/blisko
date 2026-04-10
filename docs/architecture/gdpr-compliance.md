@@ -1,6 +1,7 @@
 # GDPR/RODO Compliance
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-11 — Added `metrics.ai_calls` to anonymization pattern; excluded from data export per observability parallel (BLI-174).
 
 Blisko processes personal data under RODO (Polish implementation of GDPR). Polish-market focus, single data controller (individual developer). This is the umbrella doc linking the three subsystems that implement GDPR rights: account deletion, data export, and privacy/terms disclosure.
 
@@ -58,6 +59,7 @@ Blisko processes personal data under RODO (Polish implementation of GDPR). Polis
 | AI analysis | `connectionAnalyses`, `profiles.embedding` | Consent | Embeddings cleared on deletion, analyses preserved |
 | Profiling Q&A | `profilingSessions`, `profilingQA` | Contract | Answers nullified on deletion, questions preserved |
 | Behavioral data | `metrics.requestEvents` | Legitimate interest | userId nullified on deletion |
+| AI cost telemetry | `metrics.aiCalls` | Legitimate interest | userId / targetUserId nullified on deletion; excluded from data export |
 | Blocks | `blocks` | Legitimate interest | Preserved after deletion |
 | Status matches | `statusMatches` | Contract | Preserved after deletion |
 | Conversation ratings | `conversationRatings` | Contract | Preserved after deletion |

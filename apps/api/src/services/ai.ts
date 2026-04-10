@@ -2,75 +2,96 @@ import { openai } from "@ai-sdk/openai";
 import { EMBEDDING_MODEL, GPT_MODEL } from "@repo/shared";
 import { embed, generateObject, generateText } from "ai";
 import { z } from "zod";
+import { type AiLogCtx, withAiLogging } from "./ai-log";
 
 function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
 }
 
-export async function generateEmbedding(text: string): Promise<number[]> {
+export async function generateEmbedding(text: string, ctx: AiLogCtx): Promise<number[]> {
   if (!isConfigured()) {
     console.warn("OPENAI_API_KEY not set, returning empty embedding");
     return [];
   }
 
   try {
-    const { embedding } = await embed({
-      model: openai.embedding(EMBEDDING_MODEL),
-      value: text,
+    return await withAiLogging(ctx, async () => {
+      const { embedding, usage } = await embed({
+        model: openai.embedding(EMBEDDING_MODEL),
+        value: text,
+      });
+      return {
+        result: embedding,
+        model: EMBEDDING_MODEL,
+        promptTokens: usage?.tokens ?? 0,
+        completionTokens: 0,
+      };
     });
-
-    return embedding;
   } catch (error) {
     console.error("Error generating embedding:", error);
     return [];
   }
 }
 
-export async function generatePortrait(bio: string, lookingFor: string): Promise<string> {
+export async function generatePortrait(bio: string, lookingFor: string, ctx: AiLogCtx): Promise<string> {
   if (!isConfigured()) {
     console.warn("OPENAI_API_KEY not set, returning raw bio+lookingFor");
     return `${bio}\n\n${lookingFor}`;
   }
 
   try {
-    const { text } = await generateText({
-      model: openai(GPT_MODEL),
-      temperature: 0.7,
-      maxOutputTokens: 500,
-      system: `Na podstawie profilu użytkownika (bio: kim jestem, lookingFor: kogo szukam), wygeneruj bogaty profil społeczny (200-300 słów) opisujący:
+    return await withAiLogging(ctx, async () => {
+      const { text, usage } = await generateText({
+        model: openai(GPT_MODEL),
+        temperature: 0.7,
+        maxOutputTokens: 500,
+        system: `Na podstawie profilu użytkownika (bio: kim jestem, lookingFor: kogo szukam), wygeneruj bogaty profil społeczny (200-300 słów) opisujący:
 - Kim jest ta osoba: zainteresowania, hobby, styl życia, osobowość
 - Czego szuka u innych: ROZWIĄŻ ogólne sformułowania na konkretne cechy (np. "ludzi o podobnych zainteresowaniach" → wymień jakich zainteresowaniach na podstawie bio)
 - Jakie tematy i aktywności są dla tej osoby ważne
 Nie oceniaj, nie wartościuj — opisuj. Pisz w 3. osobie, naturalnym językiem polskim. Nie używaj nagłówków ani list — pisz płynnym tekstem.
 NIE wspominaj o aktualnym statusie użytkownika ani bieżących intencjach "na teraz" — te informacje są prywatne.`,
-      prompt: `<user_bio>${bio}</user_bio>\n\n<user_looking_for>${lookingFor}</user_looking_for>`,
+        prompt: `<user_bio>${bio}</user_bio>\n\n<user_looking_for>${lookingFor}</user_looking_for>`,
+      });
+      return {
+        result: text || `${bio}\n\n${lookingFor}`,
+        model: GPT_MODEL,
+        promptTokens: usage?.inputTokens ?? 0,
+        completionTokens: usage?.outputTokens ?? 0,
+      };
     });
-
-    return text || `${bio}\n\n${lookingFor}`;
   } catch (error) {
     console.error("Error generating social profile:", error);
     return `${bio}\n\n${lookingFor}`;
   }
 }
 
-export async function extractInterests(portrait: string): Promise<string[]> {
+export async function extractInterests(portrait: string, ctx: AiLogCtx): Promise<string[]> {
   if (!isConfigured()) {
     console.warn("OPENAI_API_KEY not set, returning empty interests");
     return [];
   }
 
   try {
-    const { object } = await generateObject({
-      model: openai(GPT_MODEL),
-      temperature: 0,
-      maxOutputTokens: 200,
-      schema: z.object({
-        interests: z.array(z.string()).describe("Lista 8-12 krótkich tagów zainteresowań, po polsku, małymi literami"),
-      }),
-      prompt: `Wyciągnij 8-12 krótkich tagów zainteresowań z podanego profilu społecznego. Tagi powinny być krótkie (1-3 słowa), po polsku, małymi literami.\n\nProfil:\n${portrait}`,
+    return await withAiLogging(ctx, async () => {
+      const { object, usage } = await generateObject({
+        model: openai(GPT_MODEL),
+        temperature: 0,
+        maxOutputTokens: 200,
+        schema: z.object({
+          interests: z
+            .array(z.string())
+            .describe("Lista 8-12 krótkich tagów zainteresowań, po polsku, małymi literami"),
+        }),
+        prompt: `Wyciągnij 8-12 krótkich tagów zainteresowań z podanego profilu społecznego. Tagi powinny być krótkie (1-3 słowa), po polsku, małymi literami.\n\nProfil:\n${portrait}`,
+      });
+      return {
+        result: object.interests,
+        model: GPT_MODEL,
+        promptTokens: usage?.inputTokens ?? 0,
+        completionTokens: usage?.outputTokens ?? 0,
+      };
     });
-
-    return object.interests;
   } catch (error) {
     console.error("Error extracting interests:", error);
     return [];
@@ -87,27 +108,34 @@ export type QuickScoreResult = z.infer<typeof quickScoreSchema>;
 export async function quickScore(
   profileA: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
   profileB: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
+  ctx: AiLogCtx,
 ): Promise<QuickScoreResult> {
-  const { object } = await generateObject({
-    model: openai(GPT_MODEL),
-    schema: quickScoreSchema,
-    temperature: 0.3,
-    maxOutputTokens: 50,
-    system: `Oceń kompatybilność dwóch osób. Zwróć asymetryczne scores 0-100 dla każdej strony.
+  return withAiLogging(ctx, async () => {
+    const { object, usage } = await generateObject({
+      model: openai(GPT_MODEL),
+      schema: quickScoreSchema,
+      temperature: 0.3,
+      maxOutputTokens: 50,
+      system: `Oceń kompatybilność dwóch osób. Zwróć asymetryczne scores 0-100 dla każdej strony.
 
 Formuła: spełnienie "czego szukam" drugiej osoby (70%) + wspólne zainteresowania (20%) + zbliżony styl życia (10%).
 
 Score jest ASYMETRYCZNY — osobno dla A i osobno dla B. Jeśli A szuka kogoś na padla, a B nie gra → scoreForA niski, niezależnie od innych wspólnych cech.`,
-    prompt: `A: ${profileA.displayName}
+      prompt: `A: ${profileA.displayName}
 ${profileA.portrait}
 Szuka: ${profileA.lookingFor}${profileA.superpower ? `\nMoże zaoferować: ${profileA.superpower}` : ""}
 
 B: ${profileB.displayName}
 ${profileB.portrait}
 Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${profileB.superpower}` : ""}`,
+    });
+    return {
+      result: object,
+      model: GPT_MODEL,
+      promptTokens: usage?.inputTokens ?? 0,
+      completionTokens: usage?.outputTokens ?? 0,
+    };
   });
-
-  return object;
 }
 
 const connectionAnalysisSchema = z.object({
@@ -125,8 +153,9 @@ export async function evaluateStatusMatch(
   statusText: string,
   otherContext: string,
   matchType: "status" | "profile",
-  categoriesA?: string[] | null,
-  categoriesB?: string[] | null,
+  categoriesA: string[] | null | undefined,
+  categoriesB: string[] | null | undefined,
+  ctx: AiLogCtx,
 ): Promise<{ isMatch: boolean; reason: string }> {
   if (!isConfigured()) return { isMatch: false, reason: "" };
 
@@ -148,16 +177,29 @@ Czy profil osoby B pasuje do tego czego szuka osoba A?
 Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po polsku, max 60 znaków"}`;
 
   try {
-    const { text } = await generateText({
-      model: openai(GPT_MODEL),
-      prompt,
-      maxOutputTokens: 100,
+    return await withAiLogging(ctx, async () => {
+      const { text, usage } = await generateText({
+        model: openai(GPT_MODEL),
+        prompt,
+        maxOutputTokens: 100,
+      });
+      // Parse inside the wrapper so malformed LLM output is logged as a failed row
+      let parsed: { isMatch?: unknown; reason?: unknown };
+      try {
+        parsed = JSON.parse(text);
+      } catch (err) {
+        throw new Error(`evaluateStatusMatch: invalid JSON from model: ${String(err).slice(0, 100)}`);
+      }
+      return {
+        result: {
+          isMatch: Boolean(parsed.isMatch),
+          reason: String(parsed.reason || "").slice(0, 80),
+        },
+        model: GPT_MODEL,
+        promptTokens: usage?.inputTokens ?? 0,
+        completionTokens: usage?.outputTokens ?? 0,
+      };
     });
-    const parsed = JSON.parse(text);
-    return {
-      isMatch: Boolean(parsed.isMatch),
-      reason: String(parsed.reason || "").slice(0, 80),
-    };
   } catch {
     return { isMatch: false, reason: "" };
   }
@@ -166,13 +208,15 @@ Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po pols
 export async function analyzeConnection(
   profileA: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
   profileB: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
+  ctx: AiLogCtx,
 ): Promise<ConnectionAnalysisResult> {
   try {
-    const { object } = await generateObject({
-      model: openai(GPT_MODEL),
-      schema: connectionAnalysisSchema,
-      temperature: 0.7,
-      system: `Jesteś prowadzącym randkę w ciemno. Znasz obie osoby i prezentujesz każdą z perspektywy drugiej.
+    return await withAiLogging(ctx, async () => {
+      const { object, usage } = await generateObject({
+        model: openai(GPT_MODEL),
+        schema: connectionAnalysisSchema,
+        temperature: 0.7,
+        system: `Jesteś prowadzącym randkę w ciemno. Znasz obie osoby i prezentujesz każdą z perspektywy drugiej.
 
 KRYTYCZNA ZASADA: Opisujesz osoby WYŁĄCZNIE na podstawie ich profilu (bio, zainteresowania, styl życia) i pola "Szuka" (lookingFor).
 NIGDY nie wspominaj o aktualnym statusie, bieżących intencjach "na teraz", ani czego ktoś szuka w danym momencie — te informacje są prywatne i mogą nie być widoczne dla drugiej strony. Zdradzenie statusu pośrednio przez opis jest równoznaczne z jego ujawnieniem.
@@ -263,7 +307,7 @@ snippetForA: "Gra w padla od pół roku — szuka kogoś na regularne granie"
 snippetForB: "Padel 3x/tydzień — szuka kogoś na regularne mecze. Programista"
 descriptionForA: "Gra w padla od pół roku, szuka kogoś na regularne granie i chce się rozwijać. Chodzi na siłownię, więc ogólnie aktywny. W branży tech — analityk danych."
 descriptionForB: "Gra w padla 3 razy w tygodniu — szuka kogoś na regularne mecze na podobnym poziomie. Programista, pracuje zdalnie. Gra też w squasha i ping-ponga. Ogląda F1."`,
-      prompt: `<user_profile name="A">
+        prompt: `<user_profile name="A">
 ${profileA.displayName}:
 ${profileA.portrait}
 
@@ -276,8 +320,14 @@ ${profileB.portrait}
 
 Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${profileB.superpower}` : ""}
 </user_profile>`,
+      });
+      return {
+        result: object,
+        model: GPT_MODEL,
+        promptTokens: usage?.inputTokens ?? 0,
+        completionTokens: usage?.outputTokens ?? 0,
+      };
     });
-    return object;
   } catch (error) {
     console.error("Error analyzing connection:", error);
     throw error;

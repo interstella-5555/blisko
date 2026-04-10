@@ -1,6 +1,7 @@
 # Database Architecture
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-11 — Added `metrics.ai_calls` table (BLI-174).
 
 PostgreSQL on Railway. ORM: Drizzle `^0.45.1` with `postgres` (postgres.js) `^3.4.0` driver. Schema source: `apps/api/src/db/schema.ts`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`.
 
@@ -471,6 +472,37 @@ Raw per-request telemetry. 30-day retention target.
 - `idx_re_target_user_ts` on `(target_user_id, timestamp)` -- "who accessed my data" GDPR queries
 - `idx_re_target_group` on `target_group_id`
 
+### `metrics.ai_calls`
+
+Per-call OpenAI telemetry. Every Vercel AI SDK call logged via `withAiLogging()` wrapper. 7-day retention, batch-flushed every 15s. Source of truth for the admin "Koszty AI" dashboard. Added in `0018`.
+
+| Column | Type | Nullable | Purpose |
+|--------|------|----------|---------|
+| `id` | serial PK | no | |
+| `timestamp` | timestamptz | no | DB-generated (`defaultNow()`) |
+| `queue_name` | text | no | `ai` today — placeholder for future queue split |
+| `job_name` | text | no | `quick-score` / `analyze-pair` / `generate-profile-ai` / `status-matching` / `proximity-status-matching` / `generate-profiling-question` / `generate-profile-from-qa` / `inline-follow-up-questions` / etc. |
+| `model` | text | no | `gpt-4.1-mini`, `text-embedding-3-small`. `unknown` if call failed before model was known. |
+| `prompt_tokens` | integer | no | From Vercel SDK `usage.inputTokens` (or `usage.tokens` for embeddings). 0 on failure. |
+| `completion_tokens` | integer | no | From Vercel SDK `usage.outputTokens`. 0 for embeddings and on failure. |
+| `total_tokens` | integer | no | `prompt_tokens + completion_tokens` |
+| `estimated_cost_usd` | numeric(12,6) | no | Computed via `estimateCostUsd(model, ...)` from `ai-pricing.ts`. Unknown models → 0. |
+| `user_id` | text | yes | User who triggered the call. Nullified on anonymization. |
+| `target_user_id` | text | yes | Other user for pair jobs (`quick-score`, `analyze-pair`, `status-matching`). Nullified on anonymization. |
+| `duration_ms` | integer | no | AI call duration only, not full job duration |
+| `status` | text | no | `success` / `failed` |
+| `error_message` | text | yes | Truncated to 200 chars, failures only |
+
+**Indexes:**
+- `idx_ai_calls_timestamp` on `timestamp` — for `prune-ai-calls` and recency queries
+- `idx_ai_calls_job_ts` on `(job_name, timestamp)` — breakdown per job type
+- `idx_ai_calls_user_ts` on `(user_id, timestamp)` — top-users query
+- `idx_ai_calls_model_ts` on `(model, timestamp)` — per-model breakdown
+
+**No FK to `user`** — metrics schema is isolated, users get anonymized (GDPR). `user_id`/`target_user_id` become historical traces that are nullified when the user is hard-deleted.
+
+See `ai-cost-tracking.md` for the full data flow, wrapper design, and admin dashboard.
+
 ### `metrics.slo_targets`
 
 Performance targets per endpoint.
@@ -522,6 +554,7 @@ Hot-path prepared statements:
 | 0015 | `nullable_snippet_description` | DDL (custom) | Make `short_snippet` and `long_description` nullable for T2 quick-score |
 | 0016 | `add_missing_fk_indexes` | DDL | Indexes on `account.user_id`, `session.user_id`, `conversation_ratings` FKs |
 | 0017 | `add_push_sends` | DDL | Create `push_sends` table with user, title, body, data, collapse_id, status, suppression_reason, token_count columns + 3 indexes |
+| 0018 | `add_ai_calls` | DDL | Create `metrics.ai_calls` table for AI cost tracking (BLI-174) — 14 columns + 4 indexes |
 
 ## Drizzle Relations
 

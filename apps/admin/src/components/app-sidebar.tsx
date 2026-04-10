@@ -51,7 +51,10 @@ const navMain = [
     title: "AI Matching",
     url: "/dashboard/matching",
     icon: <BrainCircuitIcon />,
-    items: [{ title: "Analizy", url: "/dashboard/matching" }],
+    items: [
+      { title: "Analizy", url: "/dashboard/matching" },
+      { title: "Koszty AI", url: "/dashboard/ai-costs" },
+    ],
   },
   {
     title: "Kolejki",

@@ -417,7 +417,10 @@ export const profilingRouter = router({
 
       let followUps: { questions: string[] };
       try {
-        followUps = await generateFollowUpQuestions(displayName, answeredQA, input.skipped);
+        followUps = await generateFollowUpQuestions(displayName, answeredQA, input.skipped, {
+          jobName: "inline-follow-up-questions",
+          userId: ctx.userId,
+        });
       } catch (err) {
         console.error("[profiling] Follow-up generation failed, proceeding without:", err);
         followUps = { questions: [] };

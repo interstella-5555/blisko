@@ -14,6 +14,7 @@ import {
   generatePortrait,
   quickScore,
 } from "./ai";
+import type { AiLogCtx } from "./ai-log";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
 import { sendPushToUser } from "./push";
 import { attachWorkerLogger, getConnectionConfig, getRedisPub, QUEUE_NAMES } from "./queue-shared";
@@ -195,6 +196,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       lookingFor: profileB.lookingFor,
       superpower: profileB.superpower,
     },
+    { jobName: "analyze-pair", userId: userAId, targetUserId: userBId },
   );
   const tAi = performance.now();
 
@@ -327,6 +329,7 @@ async function processQuickScore(userAId: string, userBId: string) {
       lookingFor: profileB.lookingFor,
       superpower: profileB.superpower,
     },
+    { jobName: "quick-score", userId: userAId, targetUserId: userBId },
   );
   const tAi = performance.now();
 
@@ -487,8 +490,12 @@ async function processAnalyzeUserPairs(userId: string, latitude: number, longitu
 // --- Profile AI processor (refactored from sync) ---
 
 async function processGenerateProfileAI(userId: string, bio: string, lookingFor: string) {
-  const portrait = await generatePortrait(bio, lookingFor);
-  const [embedding, interests] = await Promise.all([generateEmbedding(portrait), extractInterests(portrait)]);
+  const logCtx: AiLogCtx = { jobName: "generate-profile-ai", userId };
+  const portrait = await generatePortrait(bio, lookingFor, logCtx);
+  const [embedding, interests] = await Promise.all([
+    generateEmbedding(portrait, logCtx),
+    extractInterests(portrait, logCtx),
+  ]);
 
   await db
     .update(schema.profiles)
@@ -510,11 +517,16 @@ async function processGenerateProfilingQuestion(job: GenerateProfilingQuestionJo
 
   const questionNumber = qaHistory.length + 1;
 
-  const result = await generateNextQuestion(displayName, qaHistory, {
-    previousSessionQA,
-    userRequestedMore,
-    directionHint,
-  });
+  const result = await generateNextQuestion(
+    displayName,
+    qaHistory,
+    {
+      previousSessionQA,
+      userRequestedMore,
+      directionHint,
+    },
+    { jobName: "generate-profiling-question", userId: job.userId },
+  );
 
   await db.insert(schema.profilingQA).values({
     sessionId,
@@ -535,7 +547,10 @@ async function processGenerateProfilingQuestion(job: GenerateProfilingQuestionJo
 async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
   const { sessionId, displayName, qaHistory, previousSessionQA } = job;
 
-  const result = await generateProfileFromQA(displayName, qaHistory, previousSessionQA);
+  const result = await generateProfileFromQA(displayName, qaHistory, previousSessionQA, {
+    jobName: "generate-profile-from-qa",
+    userId: job.userId,
+  });
 
   await db
     .update(schema.profilingSessions)
@@ -566,7 +581,7 @@ async function processStatusMatching(userId: string) {
   if (user.visibilityMode === "ninja") return;
 
   // Generate embedding for status text
-  const statusEmb = await generateEmbedding(user.currentStatus);
+  const statusEmb = await generateEmbedding(user.currentStatus, { jobName: "status-matching", userId });
   await db.update(schema.profiles).set({ statusEmbedding: statusEmb }).where(eq(schema.profiles.userId, userId));
 
   if (!statusEmb.length || !user.latitude || !user.longitude) return;
@@ -630,6 +645,7 @@ async function processStatusMatching(userId: string) {
         matchType,
         user.statusCategories,
         matchViaStatus ? otherUser.statusCategories : null,
+        { jobName: "status-matching", userId, targetUserId: otherUser.userId },
       );
 
       if (result.isMatch) {
@@ -691,7 +707,10 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
   // Generate status embedding if moving user has status but no embedding yet
   let movingUserStatusEmb = movingUser.statusEmbedding;
   if (movingUser.currentStatus && (!movingUserStatusEmb || !movingUserStatusEmb.length)) {
-    movingUserStatusEmb = await generateEmbedding(movingUser.currentStatus);
+    movingUserStatusEmb = await generateEmbedding(movingUser.currentStatus, {
+      jobName: "proximity-status-matching",
+      userId,
+    });
     if (movingUserStatusEmb.length) {
       await db
         .update(schema.profiles)
@@ -803,6 +822,7 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
         matchType,
         matchViaStatus ? candidate.statusCategories : null,
         movingUserHasStatus ? movingUser.statusCategories : null,
+        { jobName: "proximity-status-matching", userId, targetUserId: candidate.userId },
       );
 
       if (result.isMatch) {

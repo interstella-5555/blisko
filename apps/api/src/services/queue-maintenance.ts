@@ -1,4 +1,5 @@
 import { type Job, Queue, Worker } from "bullmq";
+import { aiCallBuffer, pruneAiCalls } from "./ai-log";
 import { prunePushLog, pushLogBuffer } from "./push-log";
 import { attachWorkerLogger, getConnectionConfig, QUEUE_NAMES } from "./queue-shared";
 
@@ -16,7 +17,15 @@ interface ConsistencySweepJob {
   type: "consistency-sweep";
 }
 
-type MaintenanceJob = FlushPushLogJob | PrunePushLogJob | ConsistencySweepJob;
+interface FlushAiCallsJob {
+  type: "flush-ai-calls";
+}
+
+interface PruneAiCallsJob {
+  type: "prune-ai-calls";
+}
+
+type MaintenanceJob = FlushPushLogJob | PrunePushLogJob | ConsistencySweepJob | FlushAiCallsJob | PruneAiCallsJob;
 
 // --- Queue (lazy init) ---
 
@@ -58,6 +67,17 @@ async function processMaintenanceJob(job: Job<MaintenanceJob>) {
       const { runConsistencySweep } = await import("./consistency-sweep");
       return await runConsistencySweep();
     }
+    case "flush-ai-calls": {
+      const count = await aiCallBuffer.flush();
+      if (count > 0) console.log(`[queue:maintenance] flushed ${count} ai call events`);
+      break;
+    }
+    case "prune-ai-calls": {
+      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+      await pruneAiCalls(SEVEN_DAYS_MS);
+      console.log("[queue:maintenance] pruned old ai call entries");
+      break;
+    }
   }
 }
 
@@ -93,6 +113,16 @@ export function startMaintenanceWorker() {
     "consistency-sweep",
     { pattern: "0 3 * * *" },
     { name: "consistency-sweep", data: { type: "consistency-sweep" } },
+  );
+  void queue.upsertJobScheduler(
+    "flush-ai-calls",
+    { every: 15_000 },
+    { name: "flush-ai-calls", data: { type: "flush-ai-calls" } },
+  );
+  void queue.upsertJobScheduler(
+    "prune-ai-calls",
+    { every: 3_600_000 },
+    { name: "prune-ai-calls", data: { type: "prune-ai-calls" } },
   );
 
   console.log("[queue:maintenance] Maintenance worker started");

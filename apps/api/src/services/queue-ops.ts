@@ -190,6 +190,8 @@ async function processHardDeleteUser(userId: string) {
     await Promise.all([
       db.update(schema.requestEvents).set({ userId: null }).where(eq(schema.requestEvents.userId, userId)),
       db.update(schema.requestEvents).set({ targetUserId: null }).where(eq(schema.requestEvents.targetUserId, userId)),
+      db.update(schema.aiCalls).set({ userId: null }).where(eq(schema.aiCalls.userId, userId)),
+      db.update(schema.aiCalls).set({ targetUserId: null }).where(eq(schema.aiCalls.targetUserId, userId)),
     ]);
   } catch (err) {
     console.error(`[queue:ops] failed to anonymize metrics for ${userId}:`, err);

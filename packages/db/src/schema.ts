@@ -490,7 +490,34 @@ export const sloTargets = metricsSchema.table("slo_targets", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+export const aiCalls = metricsSchema.table(
+  "ai_calls",
+  {
+    id: serial("id").primaryKey(),
+    timestamp: timestamp("timestamp", { withTimezone: true }).defaultNow().notNull(),
+    queueName: text("queue_name").notNull(),
+    jobName: text("job_name").notNull(),
+    model: text("model").notNull(),
+    promptTokens: integer("prompt_tokens").notNull(),
+    completionTokens: integer("completion_tokens").notNull(),
+    totalTokens: integer("total_tokens").notNull(),
+    estimatedCostUsd: numeric("estimated_cost_usd", { precision: 12, scale: 6 }).notNull(),
+    userId: text("user_id"),
+    targetUserId: text("target_user_id"),
+    durationMs: integer("duration_ms").notNull(),
+    status: text("status").notNull(),
+    errorMessage: text("error_message"),
+  },
+  (table) => [
+    index("idx_ai_calls_timestamp").on(table.timestamp),
+    index("idx_ai_calls_job_ts").on(table.jobName, table.timestamp),
+    index("idx_ai_calls_user_ts").on(table.userId, table.timestamp),
+    index("idx_ai_calls_model_ts").on(table.model, table.timestamp),
+  ],
+);
+
 export type NewRequestEvent = typeof requestEvents.$inferInsert;
+export type NewAiCall = typeof aiCalls.$inferInsert;
 
 // Feature gates (simplified ABAC)
 export const featureGates = pgTable("feature_gates", {
