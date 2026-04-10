@@ -46,6 +46,8 @@ export default function QuestionsScreen() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   // Error
   const [error, setError] = useState("");
+  // Whether session recovery has been attempted
+  const recoveryDone = useRef(false);
 
   // Animation
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -54,19 +56,63 @@ export default function QuestionsScreen() {
   const submitOnboarding = trpc.profiling.submitOnboarding.useMutation();
   const answerFollowUp = trpc.profiling.answerFollowUp.useMutation();
   const completeSession = trpc.profiling.completeSession.useMutation();
+  const getSessionState = trpc.profiling.getSessionState.useQuery(
+    { sessionId: useOnboardingStore.getState().profilingSessionId! },
+    { enabled: false },
+  );
 
   useRetryQuestionOnFailure(sessionId);
+
+  // Recover from crash: if a session exists in store, check its state and resume
+  useEffect(() => {
+    if (recoveryDone.current) return;
+    recoveryDone.current = true;
+
+    const storedSessionId = useOnboardingStore.getState().profilingSessionId;
+    if (!storedSessionId) return;
+
+    getSessionState
+      .refetch()
+      .then(({ data }) => {
+        if (!data) return;
+        const { session, questions } = data;
+
+        if (session.generatedBio && session.generatedLookingFor) {
+          setSessionId(storedSessionId);
+          router.replace("/onboarding/profiling-result");
+          return;
+        }
+
+        if (session.status === "completed") {
+          setSessionId(storedSessionId);
+          router.replace("/onboarding/profiling-result");
+          return;
+        }
+
+        const unanswered = questions.filter((q) => q.answer == null);
+        if (unanswered.length > 0) {
+          setSessionId(storedSessionId);
+          setFollowUps(unanswered.map((q) => ({ id: q.id, question: q.question })));
+          setFollowUpIndex(0);
+          setPhase("followups");
+        }
+      })
+      .catch(() => {
+        useOnboardingStore.getState().setProfilingSessionId(null);
+      });
+  }, [getSessionState]);
 
   const totalQuestions = ONBOARDING_QUESTIONS.length;
   const currentQuestion = ONBOARDING_QUESTIONS[questionIndex];
 
   // Auto-focus input when question changes
   useEffect(() => {
+    if (phase !== "questions") return;
     const timer = setTimeout(() => {
       inputRef.current?.focus();
     }, 350);
     return () => clearTimeout(timer);
-  }, []);
+  }, [phase]);
 
   // Pre-fill text if answer already exists (when navigating back)
   useEffect(() => {

@@ -35,6 +35,7 @@ export default function OnboardingNameScreen() {
     await SecureStore.deleteItemAsync("blisko_session_token");
     queryClient.clear();
     useAuthStore.getState().reset();
+    useOnboardingStore.getState().reset();
     useProfilesStore.getState().reset();
     useConversationsStore.getState().reset();
     useMessagesStore.getState().reset();

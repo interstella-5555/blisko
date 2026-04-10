@@ -15,6 +15,7 @@ export default function VisibilityScreen() {
   const [error, setError] = useState("");
 
   const createGhost = trpc.profiling.createGhostProfile.useMutation();
+  const profileQuery = trpc.profiles.me.useQuery(undefined, { enabled: false });
 
   const handleGhost = async () => {
     setIsCreating(true);
@@ -27,7 +28,19 @@ export default function VisibilityScreen() {
       setTimeout(() => {
         router.replace("/(tabs)");
       }, 100);
-    } catch (err) {
+    } catch (err: unknown) {
+      const trpcErr = err as { data?: { code?: string } };
+      if (trpcErr?.data?.code === "CONFLICT") {
+        // Profile already exists (e.g., app crashed after creation) — recover
+        const { data: existing } = await profileQuery.refetch();
+        if (existing) {
+          setProfile(existing);
+          setHasCheckedProfile(true);
+          complete();
+          router.replace("/(tabs)");
+          return;
+        }
+      }
       console.error("Failed to create ghost profile:", err);
       setError("Nie udało się utworzyć profilu. Spróbuj ponownie.");
     } finally {
