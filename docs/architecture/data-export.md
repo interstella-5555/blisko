@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — GDPR-safe retry: 10 attempts over ~8.5h, admin alert email, user delay notification (BLI-165).
 > Updated 2026-04-10 — Added generated profile fields to profilingSessions export (BLI-173).
+> Updated 2026-04-11 — Documented exclusion of `metrics.*` tables (request_events, ai_calls) — observability telemetry, not personal data (BLI-174).
 
 GDPR/RODO Art. 15 (right of access) and Art. 20 (right to data portability). User requests export from mobile app settings, receives an email with a presigned S3 download link within minutes.
 
@@ -210,6 +211,17 @@ Other users' avatars, portraits, and real identities must not appear in another 
 - Hash truncation: first 6 hex characters
 - Label format: `"Użytkownik (XXXXXX)"`
 - Hash is per-export deterministic (same user ID always produces the same label)
+
+## Excluded Data
+
+The following tables are intentionally NOT included in data exports:
+
+- **`metrics.request_events`** — per-request observability telemetry (endpoint, duration, status). Legitimate interest (Art. 6(1)(f)) for platform safety, not personal data. User references nullified on anonymization.
+- **`metrics.ai_calls`** — per-call OpenAI cost telemetry (token counts, costs, durations). Added 2026-04-11 (BLI-174). Same rationale as `request_events`: observability telemetry, not user-authored content, user references nullified on anonymization.
+- **`push_sends`** — push notification delivery log. Short-lived (7-day retention), minimal PII (recipient userId + notification body which users already see on their device). Excluded because the user already saw the notification.
+- **`slo_targets`** — static config, no user data.
+
+If a user wants to know what we *logged* about their API usage, that's a distinct right — not part of Art. 15 / Art. 20 data portability, which covers personal data the user provided or that was generated about them in the service itself.
 
 ## S3 Upload & Email Delivery
 

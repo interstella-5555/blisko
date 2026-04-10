@@ -1,6 +1,7 @@
 # Instrumentation & Observability
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-11 — Added `metrics.ai_calls` sibling table for per-call OpenAI cost tracking (BLI-174). See `ai-cost-tracking.md`.
 
 ## Terminology & Product Alignment
 
@@ -68,6 +69,12 @@ Performance targets for SLO breach detection.
 | `created_at` | timestamptz | yes | Defaults to now |
 
 **Default SLO targets:** p95 < 500ms global, error_rate < 5% global.
+
+### `metrics.ai_calls`
+
+Per-call OpenAI telemetry. Every Vercel AI SDK call through `withAiLogging()` is logged here. 7-day retention, batch-flushed every 15s via the `flush-ai-calls` maintenance job. Schema and indexes documented in `database.md`. Full data flow, wrapper design, and admin dashboard in `ai-cost-tracking.md`.
+
+Key columns: `job_name`, `model`, `prompt_tokens`, `completion_tokens`, `estimated_cost_usd`, `user_id`, `target_user_id`, `duration_ms`, `status`, `error_message`. User references are nullified on GDPR anonymization — same pattern as `request_events`.
 
 ### Not implemented: `daily_summaries`
 
@@ -256,3 +263,5 @@ If you change this system, also check:
 - **`apps/api/src/services/ws-metrics.ts`** — WebSocket counters. New WS event types should call `wsInbound()`/`wsOutbound()`.
 - **`apps/api/src/ws/handler.ts`** — WS metric hooks. New message types need instrumentation calls.
 - **`apps/api/src/services/data-export.ts`** — GDPR data export. If metrics schema stores new PII, export service may need updating.
+- **`docs/architecture/ai-cost-tracking.md`** — AI call logging pipeline, pricing map, and admin dashboard. New AI functions must be wrapped via `withAiLogging()`.
+- **`apps/api/src/services/ai-log.ts` / `ai-log-buffer.ts`** — `withAiLogging` wrapper + `createBatchBuffer`-based flush pipeline.

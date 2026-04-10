@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — Quick-score dedup switched to BullMQ `deduplication` option for self-healing (BLI-158).
+> Updated 2026-04-11 — All AI calls now logged via `withAiLogging()` into `metrics.ai_calls`; Cost Estimates section points to the admin dashboard as source of truth (BLI-174).
 
 All AI calls use OpenAI via Vercel AI SDK (`@ai-sdk/openai`, `ai` package). Models defined in `packages/shared/src/models.ts`. Source files: `apps/api/src/services/ai.ts` (AI functions), `apps/api/src/services/queue.ts` (BullMQ processors + enqueue helpers), `apps/api/src/trpc/procedures/profiles.ts` (triggers), `apps/api/src/trpc/procedures/waves.ts` (wave-send promotion).
 
@@ -233,26 +234,29 @@ Triggered by `enqueueProfileAI` when a profile is created or bio/lookingFor chan
 - Default job options: `removeOnComplete: true`, `removeOnFail: { count: 100 }`, attempts: 3, exponential backoff starting at 5 seconds
 - All job types share a single queue and worker
 
-## Cost Estimates
+## Cost Tracking
 
-| Operation | Model | Estimated cost | Frequency |
-|---|---|---|---|
-| T1 cosine similarity | N/A (math) | $0 | Every map view |
-| T2 quick score | gpt-4.1-mini | ~$0.0005 | On map view (missing pairs) |
-| T3 full analysis | gpt-4.1-mini | ~$0.01 | On bubble tap or wave send |
-| Status match eval | gpt-4.1-mini | ~$0.0003 | On status set/change, location update |
-| Portrait generation | gpt-4.1-mini | ~$0.003 | On profile create/update |
-| Interest extraction | gpt-4.1-mini | ~$0.001 | On profile create/update |
-| Embedding | text-embedding-3-small | ~$0.00002 | On profile/status create/update |
+Every AI call in this system is logged into `metrics.ai_calls` via the `withAiLogging()` wrapper (see `ai-cost-tracking.md`). The admin dashboard at `/dashboard/ai-costs` is the source of truth for actual costs — per-job, per-model, per-user breakdowns with daily charts and a feed of recent calls.
 
-**At 1K DAU (current):** Roughly $5-10/day. Most cost is in T3 analyses triggered by `processAnalyzeUserPairs` batch jobs.
+| Operation | Model | Frequency (unchanged) |
+|---|---|---|
+| T1 cosine similarity | N/A (math) | Every map view |
+| T2 quick score | gpt-4.1-mini | On map view (missing pairs) |
+| T3 full analysis | gpt-4.1-mini | On bubble tap or wave send |
+| Status match eval | gpt-4.1-mini | On status set/change, location update |
+| Portrait generation | gpt-4.1-mini | On profile create/update |
+| Interest extraction | gpt-4.1-mini | On profile create/update |
+| Embedding | text-embedding-3-small | On profile/status create/update |
 
-**At 200K MAU (target):** Tiered architecture reduces costs 12-15x vs pre-computing T3 for all pairs. T2 handles the majority of map views; T3 only fires on explicit user interest (bubble tap, wave send).
+**Pricing map:** `apps/api/src/services/ai-pricing.ts` — update this file when OpenAI pricing changes.
+
+**Tiered architecture impact:** T2 handles the majority of map views (~1/20th the cost of T3), T3 only fires on explicit user interest (bubble tap, wave send). Actual cost ratios are now observable per-job in the dashboard rather than estimated.
 
 ## Impact Map
 
 If you change this system, also check:
 - `docs/architecture/ai-profiling.md` — portrait generation is shared between profiling and matching pipelines
+- `docs/architecture/ai-cost-tracking.md` — every AI call is logged via `withAiLogging()`; new functions must be wrapped and threaded a `ctx` from the worker
 - `docs/architecture/status-matching.md` — status matching uses evaluateStatusMatch from this system
 - `docs/architecture/queues-jobs.md` — all AI work runs through the shared BullMQ queue
 - `docs/architecture/push-notifications.md` — ambient push cooldown affects notification delivery
