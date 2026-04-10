@@ -8,14 +8,14 @@ function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
 }
 
-export async function generateEmbedding(text: string, ctx?: AiLogCtx): Promise<number[]> {
+export async function generateEmbedding(text: string, ctx: AiLogCtx): Promise<number[]> {
   if (!isConfigured()) {
     console.warn("OPENAI_API_KEY not set, returning empty embedding");
     return [];
   }
 
   try {
-    const doCall = async () => {
+    return await withAiLogging(ctx, async () => {
       const { embedding, usage } = await embed({
         model: openai.embedding(EMBEDDING_MODEL),
         value: text,
@@ -26,22 +26,21 @@ export async function generateEmbedding(text: string, ctx?: AiLogCtx): Promise<n
         promptTokens: usage?.tokens ?? 0,
         completionTokens: 0,
       };
-    };
-    return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
+    });
   } catch (error) {
     console.error("Error generating embedding:", error);
     return [];
   }
 }
 
-export async function generatePortrait(bio: string, lookingFor: string, ctx?: AiLogCtx): Promise<string> {
+export async function generatePortrait(bio: string, lookingFor: string, ctx: AiLogCtx): Promise<string> {
   if (!isConfigured()) {
     console.warn("OPENAI_API_KEY not set, returning raw bio+lookingFor");
     return `${bio}\n\n${lookingFor}`;
   }
 
   try {
-    const doCall = async () => {
+    return await withAiLogging(ctx, async () => {
       const { text, usage } = await generateText({
         model: openai(GPT_MODEL),
         temperature: 0.7,
@@ -60,22 +59,21 @@ NIE wspominaj o aktualnym statusie użytkownika ani bieżących intencjach "na t
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
       };
-    };
-    return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
+    });
   } catch (error) {
     console.error("Error generating social profile:", error);
     return `${bio}\n\n${lookingFor}`;
   }
 }
 
-export async function extractInterests(portrait: string, ctx?: AiLogCtx): Promise<string[]> {
+export async function extractInterests(portrait: string, ctx: AiLogCtx): Promise<string[]> {
   if (!isConfigured()) {
     console.warn("OPENAI_API_KEY not set, returning empty interests");
     return [];
   }
 
   try {
-    const doCall = async () => {
+    return await withAiLogging(ctx, async () => {
       const { object, usage } = await generateObject({
         model: openai(GPT_MODEL),
         temperature: 0,
@@ -93,8 +91,7 @@ export async function extractInterests(portrait: string, ctx?: AiLogCtx): Promis
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
       };
-    };
-    return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
+    });
   } catch (error) {
     console.error("Error extracting interests:", error);
     return [];
@@ -111,9 +108,9 @@ export type QuickScoreResult = z.infer<typeof quickScoreSchema>;
 export async function quickScore(
   profileA: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
   profileB: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
-  ctx?: AiLogCtx,
+  ctx: AiLogCtx,
 ): Promise<QuickScoreResult> {
-  const doCall = async () => {
+  return withAiLogging(ctx, async () => {
     const { object, usage } = await generateObject({
       model: openai(GPT_MODEL),
       schema: quickScoreSchema,
@@ -138,8 +135,7 @@ Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${pro
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
     };
-  };
-  return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
+  });
 }
 
 const connectionAnalysisSchema = z.object({
@@ -157,9 +153,9 @@ export async function evaluateStatusMatch(
   statusText: string,
   otherContext: string,
   matchType: "status" | "profile",
-  categoriesA?: string[] | null,
-  categoriesB?: string[] | null,
-  ctx?: AiLogCtx,
+  categoriesA: string[] | null | undefined,
+  categoriesB: string[] | null | undefined,
+  ctx: AiLogCtx,
 ): Promise<{ isMatch: boolean; reason: string }> {
   if (!isConfigured()) return { isMatch: false, reason: "" };
 
@@ -181,7 +177,7 @@ Czy profil osoby B pasuje do tego czego szuka osoba A?
 Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po polsku, max 60 znaków"}`;
 
   try {
-    const doCall = async () => {
+    return await withAiLogging(ctx, async () => {
       const { text, usage } = await generateText({
         model: openai(GPT_MODEL),
         prompt,
@@ -197,8 +193,7 @@ Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po pols
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
       };
-    };
-    return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
+    });
   } catch {
     return { isMatch: false, reason: "" };
   }
@@ -207,10 +202,10 @@ Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po pols
 export async function analyzeConnection(
   profileA: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
   profileB: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
-  ctx?: AiLogCtx,
+  ctx: AiLogCtx,
 ): Promise<ConnectionAnalysisResult> {
   try {
-    const doCall = async () => {
+    return await withAiLogging(ctx, async () => {
       const { object, usage } = await generateObject({
         model: openai(GPT_MODEL),
         schema: connectionAnalysisSchema,
@@ -326,8 +321,7 @@ Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${pro
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
       };
-    };
-    return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
+    });
   } catch (error) {
     console.error("Error analyzing connection:", error);
     throw error;

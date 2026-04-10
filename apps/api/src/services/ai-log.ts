@@ -1,8 +1,18 @@
 import { type AiCallEvent, aiCallBuffer } from "./ai-log-buffer";
 import { estimateCostUsd } from "./ai-pricing";
 
+export type AiJobName =
+  | "analyze-pair"
+  | "quick-score"
+  | "generate-profile-ai"
+  | "status-matching"
+  | "proximity-status-matching"
+  | "generate-profiling-question"
+  | "generate-profile-from-qa"
+  | "inline-follow-up-questions";
+
 export interface AiLogCtx {
-  jobName: string;
+  jobName: AiJobName;
   userId?: string | null;
   targetUserId?: string | null;
 }

@@ -14,6 +14,7 @@ import {
   generatePortrait,
   quickScore,
 } from "./ai";
+import type { AiLogCtx } from "./ai-log";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
 import { sendPushToUser } from "./push";
 import { attachWorkerLogger, getConnectionConfig, getRedisPub, QUEUE_NAMES } from "./queue-shared";
@@ -489,7 +490,7 @@ async function processAnalyzeUserPairs(userId: string, latitude: number, longitu
 // --- Profile AI processor (refactored from sync) ---
 
 async function processGenerateProfileAI(userId: string, bio: string, lookingFor: string) {
-  const logCtx = { jobName: "generate-profile-ai", userId };
+  const logCtx: AiLogCtx = { jobName: "generate-profile-ai", userId };
   const portrait = await generatePortrait(bio, lookingFor, logCtx);
   const [embedding, interests] = await Promise.all([
     generateEmbedding(portrait, logCtx),

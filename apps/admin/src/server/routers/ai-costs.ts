@@ -25,25 +25,26 @@ export const aiCostsRouter = router({
   summary: protectedProcedure.input(z.object({ window: WINDOW })).query(async ({ input }) => {
     const since = windowStart(input.window);
 
-    const [agg] = await db
-      .select({
-        totalCalls: count(),
-        totalTokens: sql<string>`COALESCE(SUM(${schema.aiCalls.totalTokens}), 0)::bigint`,
-        totalCostUsd: sql<string>`COALESCE(SUM(${schema.aiCalls.estimatedCostUsd}), 0)::numeric`,
-      })
-      .from(schema.aiCalls)
-      .where(gte(schema.aiCalls.timestamp, since));
-
-    const [top] = await db
-      .select({
-        jobName: schema.aiCalls.jobName,
-        totalCostUsd: sql<string>`SUM(${schema.aiCalls.estimatedCostUsd})::numeric`,
-      })
-      .from(schema.aiCalls)
-      .where(gte(schema.aiCalls.timestamp, since))
-      .groupBy(schema.aiCalls.jobName)
-      .orderBy(desc(sql`SUM(${schema.aiCalls.estimatedCostUsd})`))
-      .limit(1);
+    const [[agg], [top]] = await Promise.all([
+      db
+        .select({
+          totalCalls: count(),
+          totalTokens: sql<string>`COALESCE(SUM(${schema.aiCalls.totalTokens}), 0)::bigint`,
+          totalCostUsd: sql<string>`COALESCE(SUM(${schema.aiCalls.estimatedCostUsd}), 0)::numeric`,
+        })
+        .from(schema.aiCalls)
+        .where(gte(schema.aiCalls.timestamp, since)),
+      db
+        .select({
+          jobName: schema.aiCalls.jobName,
+          totalCostUsd: sql<string>`SUM(${schema.aiCalls.estimatedCostUsd})::numeric`,
+        })
+        .from(schema.aiCalls)
+        .where(gte(schema.aiCalls.timestamp, since))
+        .groupBy(schema.aiCalls.jobName)
+        .orderBy(desc(sql`SUM(${schema.aiCalls.estimatedCostUsd})`))
+        .limit(1),
+    ]);
 
     const totalCalls = Number(agg?.totalCalls ?? 0);
     const totalCost = Number(agg?.totalCostUsd ?? 0);
@@ -169,7 +170,21 @@ export const aiCostsRouter = router({
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 
       const rows = await db
-        .select()
+        .select({
+          id: schema.aiCalls.id,
+          timestamp: schema.aiCalls.timestamp,
+          jobName: schema.aiCalls.jobName,
+          model: schema.aiCalls.model,
+          promptTokens: schema.aiCalls.promptTokens,
+          completionTokens: schema.aiCalls.completionTokens,
+          totalTokens: schema.aiCalls.totalTokens,
+          estimatedCostUsd: schema.aiCalls.estimatedCostUsd,
+          userId: schema.aiCalls.userId,
+          targetUserId: schema.aiCalls.targetUserId,
+          durationMs: schema.aiCalls.durationMs,
+          status: schema.aiCalls.status,
+          errorMessage: schema.aiCalls.errorMessage,
+        })
         .from(schema.aiCalls)
         .where(where)
         .orderBy(desc(schema.aiCalls.timestamp))

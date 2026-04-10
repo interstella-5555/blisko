@@ -80,7 +80,7 @@ function AiCostsPage() {
     });
   };
 
-  const refetchInterval = isLive ? 10_000 : false;
+  const refetchInterval = isLive ? 30_000 : false;
 
   const summary24h = trpc.aiCosts.summary.useQuery({ window: "24h" }, { refetchInterval });
   const summary7d = trpc.aiCosts.summary.useQuery({ window: "7d" }, { refetchInterval });

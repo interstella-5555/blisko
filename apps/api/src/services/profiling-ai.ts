@@ -18,7 +18,7 @@ export async function generateFollowUpQuestions(
   displayName: string,
   answeredQA: { question: string; answer: string }[],
   skippedQuestionIds: string[],
-  ctx?: AiLogCtx,
+  ctx: AiLogCtx,
 ): Promise<FollowUpQuestionsResult> {
   if (!isConfigured()) {
     return { questions: ["Opowiedz mi więcej o sobie."] };
@@ -29,7 +29,7 @@ export async function generateFollowUpQuestions(
   const skippedBlock =
     skippedQuestionIds.length > 0 ? `\n\nPominięte pytania (ID): ${skippedQuestionIds.join(", ")}` : "";
 
-  const doCall = async () => {
+  return withAiLogging(ctx, async () => {
     const { object, usage } = await generateObject({
       model: openai(GPT_MODEL),
       schema: followUpQuestionsSchema,
@@ -62,8 +62,7 @@ Wygeneruj pytania pogłębiające (0-3).`,
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
     };
-  };
-  return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
+  });
 }
 
 const nextQuestionSchema = z.object({
@@ -76,12 +75,14 @@ export type NextQuestionResult = z.infer<typeof nextQuestionSchema>;
 export async function generateNextQuestion(
   displayName: string,
   qaHistory: { question: string; answer: string }[],
-  options?: {
-    previousSessionQA?: { question: string; answer: string }[];
-    userRequestedMore?: boolean;
-    directionHint?: string;
-  },
-  ctx?: AiLogCtx,
+  options:
+    | {
+        previousSessionQA?: { question: string; answer: string }[];
+        userRequestedMore?: boolean;
+        directionHint?: string;
+      }
+    | undefined,
+  ctx: AiLogCtx,
 ): Promise<NextQuestionResult> {
   if (!isConfigured()) {
     return {
@@ -110,7 +111,7 @@ export async function generateNextQuestion(
     }
   }
 
-  const doCall = async () => {
+  return withAiLogging(ctx, async () => {
     const { object, usage } = await generateObject({
       model: openai(GPT_MODEL),
       schema: nextQuestionSchema,
@@ -138,8 +139,7 @@ Wygeneruj następne pytanie.`,
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
     };
-  };
-  return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
+  });
 }
 
 const profileFromQASchema = z.object({
@@ -153,8 +153,8 @@ export type ProfileFromQAResult = z.infer<typeof profileFromQASchema>;
 export async function generateProfileFromQA(
   displayName: string,
   qaHistory: { question: string; answer: string }[],
-  previousSessionQA?: { question: string; answer: string }[],
-  ctx?: AiLogCtx,
+  previousSessionQA: { question: string; answer: string }[] | undefined,
+  ctx: AiLogCtx,
 ): Promise<ProfileFromQAResult> {
   if (!isConfigured()) {
     return {
@@ -173,7 +173,7 @@ export async function generateProfileFromQA(
 
   const qaBlock = qaHistory.map((qa) => `P: ${qa.question}\nO: ${qa.answer}`).join("\n");
 
-  const doCall = async () => {
+  return withAiLogging(ctx, async () => {
     const { object, usage } = await generateObject({
       model: openai(GPT_MODEL),
       schema: profileFromQASchema,
@@ -216,6 +216,5 @@ ${qaBlock}${contextBlock}
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
     };
-  };
-  return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
+  });
 }
