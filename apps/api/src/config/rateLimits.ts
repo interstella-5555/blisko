@@ -43,6 +43,9 @@ export const rateLimits = {
   // Profile edits — prevents rapid-fire updates triggering AI jobs
   "profiles.update": { limit: 10, window: 60 * 60 },
 
+  // Onboarding submission — inline AI call (~2-3s), prevents repeated expensive calls
+  "profiling.submitOnboarding": { limit: 5, window: 5 * 60 },
+
   // Profiling question retry — self-healing re-enqueue, prevents AI job flooding
   "profiling.retryQuestion": { limit: 10, window: 60 * 60 },
 

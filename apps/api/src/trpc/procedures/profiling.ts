@@ -339,6 +339,7 @@ export const profilingRouter = router({
           portrait: session.generatedPortrait,
           portraitSharedForMatching: input.portraitSharedForMatching,
           isComplete: true,
+          visibilityMode: "semi_open",
           updatedAt: new Date(),
         },
       })
@@ -353,86 +354,97 @@ export const profilingRouter = router({
   }),
 
   // Submit structured onboarding answers (new flow)
-  submitOnboarding: protectedProcedure.input(submitOnboardingSchema).mutation(async ({ ctx, input }) => {
-    // Validate required questions are answered
-    const answeredIds = new Set(input.answers.map((a) => a.questionId));
-    const missingRequired = ONBOARDING_QUESTIONS.filter((q) => q.required && !answeredIds.has(q.id));
-    if (missingRequired.length > 0) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Missing required questions: ${missingRequired.map((q) => q.id).join(", ")}`,
-      });
-    }
-
-    // Validate all questionIds are known
-    const validIds = new Set(ONBOARDING_QUESTIONS.map((q) => q.id));
-    for (const a of input.answers) {
-      if (!validIds.has(a.questionId)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: `Unknown question: ${a.questionId}` });
+  submitOnboarding: protectedProcedure
+    .input(submitOnboardingSchema)
+    .use(rateLimit("profiling.submitOnboarding"))
+    .mutation(async ({ ctx, input }) => {
+      // Validate required questions are answered
+      const answeredIds = new Set(input.answers.map((a) => a.questionId));
+      const missingRequired = ONBOARDING_QUESTIONS.filter((q) => q.required && !answeredIds.has(q.id));
+      if (missingRequired.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Missing required questions: ${missingRequired.map((q) => q.id).join(", ")}`,
+        });
       }
-    }
 
-    // Moderate all answers
-    const allText = input.answers.map((a) => a.answer).join("\n\n");
-    if (allText.trim()) {
-      await moderateContent(allText);
-    }
+      // Validate all questionIds are known
+      const validIds = new Set(ONBOARDING_QUESTIONS.map((q) => q.id));
+      for (const a of input.answers) {
+        if (!validIds.has(a.questionId)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `Unknown question: ${a.questionId}` });
+        }
+      }
 
-    // Abandon any existing active session
-    await db
-      .update(schema.profilingSessions)
-      .set({ status: "abandoned" })
-      .where(and(eq(schema.profilingSessions.userId, ctx.userId), eq(schema.profilingSessions.status, "active")));
+      // Moderate all answers
+      const allText = input.answers.map((a) => a.answer).join("\n\n");
+      if (allText.trim()) {
+        await moderateContent(allText);
+      }
 
-    // Create new session
-    const [session] = await db.insert(schema.profilingSessions).values({ userId: ctx.userId }).returning();
+      const questionMap = new Map(ONBOARDING_QUESTIONS.map((q) => [q.id, q.question]));
 
-    const questionMap = new Map(ONBOARDING_QUESTIONS.map((q) => [q.id, q.question]));
+      // Transaction: abandon old session + create new + insert answers atomically
+      const session = await db.transaction(async (tx) => {
+        await tx
+          .update(schema.profilingSessions)
+          .set({ status: "abandoned" })
+          .where(and(eq(schema.profilingSessions.userId, ctx.userId), eq(schema.profilingSessions.status, "active")));
 
-    // Batch insert all standard answers
-    await db.insert(schema.profilingQA).values(
-      input.answers.map((a, idx) => ({
-        sessionId: session.id,
-        questionNumber: idx + 1,
+        const [newSession] = await tx.insert(schema.profilingSessions).values({ userId: ctx.userId }).returning();
+
+        await tx.insert(schema.profilingQA).values(
+          input.answers.map((a, idx) => ({
+            sessionId: newSession.id,
+            questionNumber: idx + 1,
+            question: questionMap.get(a.questionId) ?? a.questionId,
+            answer: a.answer,
+            sufficient: false,
+          })),
+        );
+
+        return newSession;
+      });
+
+      const questionNumber = input.answers.length;
+
+      // Generate follow-up questions inline (~2-3s), outside transaction
+      const displayName = await getDisplayName(ctx.userId);
+      const answeredQA = input.answers.map((a) => ({
         question: questionMap.get(a.questionId) ?? a.questionId,
         answer: a.answer,
-        sufficient: false,
-      })),
-    );
+      }));
 
-    const questionNumber = input.answers.length;
+      let followUps: { questions: string[] };
+      try {
+        followUps = await generateFollowUpQuestions(displayName, answeredQA, input.skipped);
+      } catch (err) {
+        console.error("[profiling] Follow-up generation failed, proceeding without:", err);
+        followUps = { questions: [] };
+      }
 
-    // Generate follow-up questions inline (~2-3s)
-    const displayName = await getDisplayName(ctx.userId);
-    const answeredQA = input.answers.map((a) => ({
-      question: questionMap.get(a.questionId) ?? a.questionId,
-      answer: a.answer,
-    }));
+      // Batch insert follow-up questions
+      const followUpEntries =
+        followUps.questions.length > 0
+          ? await db
+              .insert(schema.profilingQA)
+              .values(
+                followUps.questions.map((fq, idx) => ({
+                  sessionId: session.id,
+                  questionNumber: questionNumber + idx + 1,
+                  question: fq,
+                  answer: null,
+                  sufficient: false,
+                })),
+              )
+              .returning({ id: schema.profilingQA.id, question: schema.profilingQA.question })
+          : [];
 
-    const followUps = await generateFollowUpQuestions(displayName, answeredQA, input.skipped);
-
-    // Batch insert follow-up questions
-    const followUpEntries =
-      followUps.questions.length > 0
-        ? await db
-            .insert(schema.profilingQA)
-            .values(
-              followUps.questions.map((fq, idx) => ({
-                sessionId: session.id,
-                questionNumber: questionNumber + idx + 1,
-                question: fq,
-                answer: null,
-                sufficient: false,
-              })),
-            )
-            .returning({ id: schema.profilingQA.id, question: schema.profilingQA.question })
-        : [];
-
-    return {
-      sessionId: session.id,
-      followUpQuestions: followUpEntries,
-    };
-  }),
+      return {
+        sessionId: session.id,
+        followUpQuestions: followUpEntries,
+      };
+    }),
 
   // Answer a follow-up question
   answerFollowUp: protectedProcedure.input(answerFollowUpSchema).mutation(async ({ ctx, input }) => {

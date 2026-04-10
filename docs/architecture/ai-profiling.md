@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — Self-healing: `questionFailed`/`profilingFailed` events, BullMQ deduplication, mobile retry hooks (BLI-161, BLI-162).
+> Updated 2026-04-10 — `submitOnboarding` rate limit, inline AI fallback on failure, ghost-to-full visibility fix (BLI-173).
 
 Two profiling paths exist: fixed onboarding questions with AI follow-ups, and fully interactive AI-driven profiling sessions. Both produce the same output (bio, lookingFor, portrait) and feed into the matching pipeline. Source files: `apps/api/src/services/profiling-ai.ts` (AI functions), `apps/api/src/trpc/procedures/profiling.ts` (tRPC mutations), `packages/shared/src/models.ts` (onboarding questions), `apps/api/src/services/moderation.ts` (content filter), `apps/api/src/services/queue.ts` (BullMQ processors).
 
@@ -39,7 +40,7 @@ Only `intro` and `looking_for` are required. Users can skip the rest. Each answe
 
 ### submitOnboarding Flow
 
-**Procedure:** `profiling.submitOnboarding`
+**Procedure:** `profiling.submitOnboarding` (rate-limited: 5/5min)
 
 1. Validate required questions are answered (`intro`, `looking_for`)
 2. Validate all `questionId` values are known (exist in `ONBOARDING_QUESTIONS`)
@@ -47,7 +48,7 @@ Only `intro` and `looking_for` are required. Users can skip the rest. Each answe
 4. Abandon any existing active profiling session for this user
 5. Create a new `profilingSessions` row (status: `active`)
 6. Batch-insert all answers as `profilingQA` rows
-7. **Generate follow-up questions inline** — calls `generateFollowUpQuestions()` synchronously (not via BullMQ). This takes approximately 2-3 seconds.
+7. **Generate follow-up questions inline** — calls `generateFollowUpQuestions()` synchronously (not via BullMQ). This takes approximately 2-3 seconds. Wrapped in try-catch: if OpenAI fails (outage, rate limit, timeout), degrades to 0 follow-ups and proceeds directly to profile generation.
 8. Batch-insert follow-up questions as `profilingQA` rows (with `answer: null`)
 9. Return `{ sessionId, followUpQuestions }` — client renders follow-up questions for the user to answer
 
@@ -99,7 +100,7 @@ A fully dynamic Q&A experience where the AI generates each question based on the
 
 4. **Complete:** `profiling.completeSession` — validates all questions are answered and at least 3 exist. Enqueues `generate-profile-from-qa` BullMQ job. Returns `{ status: "generating" }`.
 
-5. **Apply:** `profiling.applyProfile` — user reviews AI-generated bio/lookingFor/portrait. Can override bio and lookingFor with their own edits. Moderates the final display name + bio + lookingFor. Upserts the `profiles` row. Enqueues `generate-profile-ai` job (portrait regeneration + embedding + interests). If the user has an auth provider image, it's set as the initial avatar.
+5. **Apply:** `profiling.applyProfile` — user reviews AI-generated bio/lookingFor/portrait. Can override bio and lookingFor with their own edits. Moderates the final display name + bio + lookingFor. Upserts the `profiles` row with `isComplete: true` and `visibilityMode: "semi_open"` (on conflict update). The visibility mode change ensures ghost users who later complete profiling become visible in discovery. Enqueues `generate-profile-ai` job (portrait regeneration + embedding + interests). If the user has an auth provider image, it's set as the initial avatar.
 
 ### Session Lineage
 
