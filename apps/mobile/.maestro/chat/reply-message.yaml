@@ -43,8 +43,6 @@ appId: com.blisko.app
 - tapOn:
     id: "chat-input"
 - inputText: "Odpowiedz testowa e2e"
-- tapOn:
-    point: "50%,10%"
 - waitForAnimationToEnd
 - tapOn:
     id: "chat-send-btn"

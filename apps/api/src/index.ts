@@ -140,6 +140,35 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
       return c.json({ error: "Failed to mark complete", details: String(error) }, 500);
     }
   });
+
+  // Send message directly (for E2E seed scripts — bypasses rate limiter)
+  app.post("/dev/send-message", async (c) => {
+    try {
+      const { conversationId, senderId, content } = await c.req.json();
+      if (!conversationId || !senderId || !content) {
+        return c.json({ error: "conversationId, senderId, content required" }, 400);
+      }
+
+      const { db } = await import("./db");
+      const { messages } = await import("./db/schema");
+
+      const [msg] = await db
+        .insert(messages)
+        .values({
+          id: crypto.randomUUID(),
+          conversationId,
+          senderId,
+          content,
+          type: "text",
+          createdAt: new Date(),
+        })
+        .returning({ id: messages.id });
+
+      return c.json({ ok: true, messageId: msg.id });
+    } catch (error) {
+      return c.json({ error: "Failed to send message", details: String(error) }, 500);
+    }
+  });
 }
 
 // File uploads — S3-compatible object storage (Bun built-in S3Client)
