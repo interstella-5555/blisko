@@ -4,9 +4,9 @@ appId: com.blisko.app
 # Only run for dev client builds (not release/CI builds)
 
 - extendedWaitUntil:
-    visible: "http://localhost:8081"
+    visible: "http://.*:8081"
     timeout: 15000
-- tapOn: "http://localhost:8081"
+- tapOn: "http://.*:8081"
 
 # Wait for app to load and developer menu to appear
 - extendedWaitUntil:

@@ -28,10 +28,9 @@ appId: com.blisko.app
     visible: ".*Odezwij sie jak bedziesz mogl.*"
     timeout: 10000
 
-# Dismiss modal to go back to conversation list
-- swipe:
-    start: 50%, 10%
-    end: 50%, 90%
+# Go back to conversation list via header back button
+- tapOn:
+    id: "chat-back-btn"
 
 # Wait for list to reload
 - extendedWaitUntil:

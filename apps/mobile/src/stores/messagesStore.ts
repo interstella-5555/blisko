@@ -47,6 +47,7 @@ interface MessagesStore {
   addOptimistic(convId: string, message: EnrichedMessage): void;
   replaceOptimistic(convId: string, tempId: string, real: EnrichedMessage): void;
   removeOptimistic(convId: string, tempId: string): void;
+  updateMessage(convId: string, messageId: string, patch: Partial<EnrichedMessage>): void;
 }
 
 export const useMessagesStore = create<MessagesStore>((set, get) => ({
@@ -192,6 +193,18 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
       if (!existing) return state;
 
       const items = existing.items.filter((m) => m.id !== tempId);
+      chats.set(convId, { ...existing, items });
+      return { chats };
+    });
+  },
+
+  updateMessage(convId, messageId, patch) {
+    set((state) => {
+      const chats = new Map(state.chats);
+      const existing = chats.get(convId);
+      if (!existing) return state;
+
+      const items = existing.items.map((m) => (m.id === messageId ? { ...m, ...patch } : m));
       chats.set(convId, { ...existing, items });
       return { chats };
     });

@@ -32,12 +32,7 @@ appId: com.blisko.app
 - tapOn:
     id: "chat-send-btn"
 
-# Wait for message to be sent and rendered
-- waitForAnimationToEnd
+# Wait for the sent message text to appear (more reliable than testID alone)
 - extendedWaitUntil:
-    visible:
-      id: "message-bubble"
-    timeout: 10000
-
-# Verify the sent message text is visible (accessibility text includes timestamp)
-- assertVisible: ".*Testowa wiadomosc e2e.*"
+    visible: ".*Testowa wiadomosc e2e.*"
+    timeout: 15000

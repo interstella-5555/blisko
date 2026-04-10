@@ -24,17 +24,11 @@ appId: com.blisko.app
       id: "message-bubble"
     timeout: 10000
 
-# Long press on a message to open context menu
+# Long press on a message to open context menu with emoji reaction bar
 - longPressOn:
     id: "message-bubble"
 
-# Tap "Reaguj" in the alert
-- extendedWaitUntil:
-    visible: "Reaguj"
-    timeout: 5000
-- tapOn: "Reaguj"
-
-# Wait for reaction picker modal and tap the heart emoji
+# Reaction bar appears at the top of context menu — tap heart directly
 - extendedWaitUntil:
     visible:
       id: "reaction-❤️"
