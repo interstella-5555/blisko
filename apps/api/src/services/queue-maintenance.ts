@@ -1,7 +1,6 @@
 import { type Job, Queue, Worker } from "bullmq";
 import { prunePushLog, pushLogBuffer } from "./push-log";
-import { recordJobCompleted, recordJobFailed } from "./queue-metrics";
-import { getConnectionConfig, QUEUE_NAMES } from "./queue-shared";
+import { attachWorkerLogger, getConnectionConfig, QUEUE_NAMES } from "./queue-shared";
 
 // --- Job types ---
 
@@ -69,16 +68,7 @@ export function startMaintenanceWorker() {
     concurrency: 2,
   });
 
-  _worker.on("completed", (job) => {
-    const durationMs = job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : 0;
-    recordJobCompleted(QUEUE_NAMES.maintenance, durationMs);
-    console.log(`[queue:maintenance] Job ${job.id} completed (${job.data.type}) ${durationMs}ms`);
-  });
-
-  _worker.on("failed", (job, err) => {
-    recordJobFailed(QUEUE_NAMES.maintenance);
-    console.error(`[queue:maintenance] Job ${job?.id} failed:`, err.message);
-  });
+  attachWorkerLogger(_worker, QUEUE_NAMES.maintenance);
 
   const queue = getMaintenanceQueue();
   void queue.upsertJobScheduler(

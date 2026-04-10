@@ -2,39 +2,38 @@ import { type Job, Queue, Worker } from "bullmq";
 import { eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { publishEvent } from "@/ws/redis-bridge";
-import { recordJobCompleted, recordJobFailed } from "./queue-metrics";
-import { getConnectionConfig, QUEUE_NAMES } from "./queue-shared";
+import { attachWorkerLogger, getConnectionConfig, QUEUE_NAMES } from "./queue-shared";
 import { restoreUser, softDeleteUser } from "./user-actions";
 
 // --- Job types ---
 
-export interface HardDeleteUserJob {
+interface HardDeleteUserJob {
   type: "hard-delete-user";
   userId: string;
 }
 
-export interface ExportUserDataJob {
+interface ExportUserDataJob {
   type: "export-user-data";
   userId: string;
   email: string;
 }
 
-export interface AdminSoftDeleteUserJob {
+interface AdminSoftDeleteUserJob {
   type: "admin-soft-delete-user";
   userId: string;
 }
 
-export interface AdminRestoreUserJob {
+interface AdminRestoreUserJob {
   type: "admin-restore-user";
   userId: string;
 }
 
-export interface AdminForceDisconnectJob {
+interface AdminForceDisconnectJob {
   type: "admin-force-disconnect";
   userId: string;
 }
 
-export type OpsJob =
+type OpsJob =
   | HardDeleteUserJob
   | ExportUserDataJob
   | AdminSoftDeleteUserJob
@@ -187,11 +186,10 @@ async function processHardDeleteUser(userId: string) {
 
   // 4. Anonymize metrics (outside transaction — separate schema, non-critical)
   try {
-    await db.update(schema.requestEvents).set({ userId: null }).where(eq(schema.requestEvents.userId, userId));
-    await db
-      .update(schema.requestEvents)
-      .set({ targetUserId: null })
-      .where(eq(schema.requestEvents.targetUserId, userId));
+    await Promise.all([
+      db.update(schema.requestEvents).set({ userId: null }).where(eq(schema.requestEvents.userId, userId)),
+      db.update(schema.requestEvents).set({ targetUserId: null }).where(eq(schema.requestEvents.targetUserId, userId)),
+    ]);
   } catch (err) {
     console.error(`[queue:ops] failed to anonymize metrics for ${userId}:`, err);
   }
@@ -272,16 +270,10 @@ export function startOpsWorker() {
     concurrency: 10,
   });
 
-  _worker.on("completed", (job) => {
-    const durationMs = job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : 0;
-    recordJobCompleted(QUEUE_NAMES.ops, durationMs);
-    console.log(`[queue:ops] Job ${job.id} completed (${job.data.type}) ${durationMs}ms`);
-  });
+  attachWorkerLogger(_worker, QUEUE_NAMES.ops);
 
+  // Extra failure handling for GDPR export (email notification on final failure)
   _worker.on("failed", (job, err) => {
-    recordJobFailed(QUEUE_NAMES.ops);
-    console.error(`[queue:ops] Job ${job?.id} failed:`, err.message);
-
     if (!job || !job.opts.attempts || job.attemptsMade < job.opts.attempts) return;
 
     const data = job.data as OpsJob;

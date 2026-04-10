@@ -16,8 +16,7 @@ import {
 } from "./ai";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
 import { sendPushToUser } from "./push";
-import { recordJobCompleted, recordJobFailed } from "./queue-metrics";
-import { getConnectionConfig, getRedisPub, QUEUE_NAMES } from "./queue-shared";
+import { attachWorkerLogger, getConnectionConfig, getRedisPub, QUEUE_NAMES } from "./queue-shared";
 
 // --- Job types ---
 
@@ -900,16 +899,10 @@ export function startAiWorker() {
     concurrency: 50,
   });
 
-  _worker.on("completed", (job) => {
-    const durationMs = job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : 0;
-    recordJobCompleted(QUEUE_NAMES.ai, durationMs);
-    console.log(`[queue:ai] Job ${job.id} completed (${job.data.type}) ${durationMs}ms`);
-  });
+  attachWorkerLogger(_worker, QUEUE_NAMES.ai);
 
+  // Self-healing failure handlers — publish WS events so mobile clients can retry
   _worker.on("failed", (job, err) => {
-    recordJobFailed(QUEUE_NAMES.ai);
-    console.error(`[queue:ai] Job ${job?.id} failed:`, err.message);
-
     if (!job || !job.opts.attempts || job.attemptsMade < job.opts.attempts) return;
 
     const data = job.data as AIJob;

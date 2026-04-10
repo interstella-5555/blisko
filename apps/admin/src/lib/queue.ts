@@ -55,7 +55,8 @@ export async function enqueueAndWait<T extends Record<string, unknown>>(
   const job = await getOpsQueue().add(jobName, data, {
     jobId: opts?.jobId,
     removeOnComplete: { count: 200, age: 3600 },
-    removeOnFail: { count: 100 },
+    // Matches ops queue default (admin actions are low-volume, 90-day audit retention)
+    removeOnFail: { age: 7_776_000 },
   });
 
   await job.waitUntilFinished(getOpsQueueEvents(), JOB_TIMEOUT_MS);
