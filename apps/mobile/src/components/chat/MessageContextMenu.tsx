@@ -13,9 +13,6 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 const REACTION_BAR_HEIGHT = 52;
 const ACTION_MENU_HEIGHT = 170; // approximate
 const VERTICAL_PAD = 12;
-// Chat input bar height — reserved from the bottom so context menu doesn't
-// render underneath it (safe area inset alone isn't enough)
-const CHAT_INPUT_RESERVED = 72;
 
 interface ContextMenuData {
   messageId: string;
@@ -26,6 +23,13 @@ interface ContextMenuData {
 
 interface MessageContextMenuProps {
   data: ContextMenuData;
+  /**
+   * Measured chat input bar height (via onLayout in the parent). The menu
+   * reserves this much space at the bottom so "Usuń" etc. don't clip behind
+   * the input — especially important when the user has a multi-line draft
+   * that makes the input grow beyond its resting height.
+   */
+  chatInputHeight: number;
   onReact: (emoji: string) => void;
   onReply: () => void;
   onCopy: () => void;
@@ -33,16 +37,26 @@ interface MessageContextMenuProps {
   onClose: () => void;
 }
 
-export function MessageContextMenu({ data, onReact, onReply, onCopy, onDelete, onClose }: MessageContextMenuProps) {
+export function MessageContextMenu({
+  data,
+  chatInputHeight,
+  onReact,
+  onReply,
+  onCopy,
+  onDelete,
+  onClose,
+}: MessageContextMenuProps) {
   const insets = useSafeAreaInsets();
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const messageScale = useRef(new Animated.Value(0.97)).current;
   const reactionAnim = useRef(new Animated.Value(0)).current;
   const actionAnim = useRef(new Animated.Value(0)).current;
 
-  // Determine if there's enough space above the message for reactions
+  // Determine if there's enough space above the message for reactions.
+  // `chatInputHeight` already includes the safe-area bottom inset (the input
+  // bar padding grows with the inset), so we subtract it directly.
   const safeTop = insets.top + 8;
-  const safeBottom = SCREEN_HEIGHT - insets.bottom - CHAT_INPUT_RESERVED;
+  const safeBottom = SCREEN_HEIGHT - chatInputHeight;
   const spaceAbove = data.layout.y - safeTop;
   const spaceBelow = safeBottom - (data.layout.y + data.layout.height);
 
