@@ -254,10 +254,12 @@ initWsRedisBridge();
 
 // Start BullMQ workers
 import { startAiWorker } from "./services/queue";
+import { startMaintenanceWorker } from "./services/queue-maintenance";
 import { startOpsWorker } from "./services/queue-ops";
 
 startAiWorker();
 startOpsWorker();
+startMaintenanceWorker();
 
 const port = Number(process.env.PORT) || 3000;
 
