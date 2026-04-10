@@ -1057,6 +1057,22 @@ async function processExportUserData(userId: string, email: string) {
   console.log(`[queue] export-user-data completed for ${userId}`);
 }
 
+async function handleExportFailure(userId: string, userEmail: string, jobId: string, errorMessage: string) {
+  const { sendEmail, dataExportDelayed, dataExportFailedAdmin } = await import("./email");
+
+  // Notify user about delay
+  await sendEmail(userEmail, dataExportDelayed());
+
+  // TODO(BLI-169): Replace with proper alerting (Sentry, Discord webhook, etc.)
+  // Email is a placeholder — can flood inbox if something breaks fundamentally
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (adminEmail) {
+    await sendEmail(adminEmail, dataExportFailedAdmin(userEmail, jobId, errorMessage));
+  }
+
+  console.error(`[queue] export-user-data permanently failed for ${userId} (${userEmail}), job: ${jobId}`);
+}
+
 // --- Main job processor ---
 
 async function processJob(job: Job<AIJob>) {
@@ -1170,6 +1186,11 @@ export function startWorker() {
     }
     if (data.type === "status-matching") {
       publishEvent("statusMatchingFailed", { userId: data.userId });
+    }
+    if (data.type === "export-user-data") {
+      handleExportFailure(data.userId, data.email, job.id ?? "unknown", err.message).catch((e) => {
+        console.error("[queue] Failed to send export failure notifications:", e);
+      });
     }
   });
 
@@ -1432,6 +1453,10 @@ export async function enqueueDataExport(userId: string, email: string) {
     { type: "export-user-data", userId, email },
     {
       jobId: `export-${userId}-${Date.now()}`,
+      // GDPR-critical: aggressive retry (10 attempts over ~16h), never auto-remove failures
+      attempts: 10,
+      backoff: { type: "exponential", delay: 60_000 },
+      removeOnFail: false,
     },
   );
 }
