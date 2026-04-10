@@ -1,7 +1,7 @@
 import { and, count, eq, gte, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { bullmqQueueDepth } from "./prometheus";
-import { getQueueInstance } from "./queue";
+import { getAiQueueInstance } from "./queue";
 import { getQueueStats, percentile } from "./queue-metrics";
 import { getWsStats } from "./ws-metrics";
 
@@ -151,7 +151,7 @@ async function getPercentile(since: Date, pct: number, endpoint: string | null):
 
 async function getQueueSummary() {
   const allStats = getQueueStats();
-  const queue = getQueueInstance();
+  const queue = getAiQueueInstance();
   const results = [];
 
   for (const [name, s] of allStats) {

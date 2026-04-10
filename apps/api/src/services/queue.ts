@@ -17,7 +17,7 @@ import {
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
 import { sendPushToUser } from "./push";
 import { recordJobCompleted, recordJobFailed } from "./queue-metrics";
-import { getConnectionConfig, getRedisPub } from "./queue-shared";
+import { getConnectionConfig, getRedisPub, QUEUE_NAMES } from "./queue-shared";
 
 // --- Job types ---
 
@@ -96,13 +96,13 @@ type AIJob =
 
 let _queue: Queue | null = null;
 
-export function getQueueInstance(): Queue | null {
+export function getAiQueueInstance(): Queue | null {
   return _queue;
 }
 
 function getQueue(): Queue {
   if (!_queue) {
-    _queue = new Queue("ai-jobs", {
+    _queue = new Queue(QUEUE_NAMES.ai, {
       connection: getConnectionConfig(),
       defaultJobOptions: {
         removeOnComplete: { count: 200, age: 3600 },
@@ -895,19 +895,19 @@ export function startAiWorker() {
     return;
   }
 
-  _worker = new Worker("ai-jobs", processJob, {
+  _worker = new Worker(QUEUE_NAMES.ai, processJob, {
     connection: getConnectionConfig(),
     concurrency: 50,
   });
 
   _worker.on("completed", (job) => {
     const durationMs = job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : 0;
-    recordJobCompleted("ai-jobs", durationMs);
+    recordJobCompleted(QUEUE_NAMES.ai, durationMs);
     console.log(`[queue:ai] Job ${job.id} completed (${job.data.type}) ${durationMs}ms`);
   });
 
   _worker.on("failed", (job, err) => {
-    recordJobFailed("ai-jobs");
+    recordJobFailed(QUEUE_NAMES.ai);
     console.error(`[queue:ai] Job ${job?.id} failed:`, err.message);
 
     if (!job || !job.opts.attempts || job.attemptsMade < job.opts.attempts) return;
