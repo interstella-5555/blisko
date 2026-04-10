@@ -1,4 +1,5 @@
 import { type Job, Queue, Worker } from "bullmq";
+import { subDays } from "date-fns";
 import { eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { publishEvent } from "@/ws/redis-bridge";
@@ -217,7 +218,7 @@ async function handleExportFailure(userId: string, userEmail: string, jobId: str
       j.data.type === "export-user-data" &&
       j.data.userId === userId &&
       j.id !== jobId &&
-      j.timestamp > Date.now() - 7 * 24 * 60 * 60 * 1000,
+      j.timestamp > subDays(new Date(), 7).getTime(),
   );
   if (!priorFailed) {
     await sendEmail(userEmail, dataExportDelayed());

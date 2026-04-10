@@ -1,5 +1,6 @@
 import { blockUserSchema, respondToWaveSchema, sendWaveSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
+import { subHours, subSeconds } from "date-fns";
 import { and, desc, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
 import {
   DAILY_PING_LIMIT_BASIC,
@@ -88,7 +89,7 @@ export const wavesRouter = router({
       }
 
       // Per-person cooldown — max 1 ping per person per 24h (any status)
-      const perPersonCutoff = new Date(Date.now() - PER_PERSON_COOLDOWN_HOURS * 3600000);
+      const perPersonCutoff = subHours(new Date(), PER_PERSON_COOLDOWN_HOURS);
       const recentWaveToSamePerson = await db.query.waves.findFirst({
         where: and(
           eq(schema.waves.fromUserId, ctx.userId),
@@ -109,7 +110,7 @@ export const wavesRouter = router({
       }
 
       // Check decline cooldown — cannot re-ping someone who declined within DECLINE_COOLDOWN_HOURS
-      const cooldownCutoff = new Date(Date.now() - DECLINE_COOLDOWN_HOURS * 3600000);
+      const cooldownCutoff = subHours(new Date(), DECLINE_COOLDOWN_HOURS);
       const recentDecline = await db.query.waves.findFirst({
         where: and(
           eq(schema.waves.fromUserId, ctx.userId),
@@ -171,7 +172,7 @@ export const wavesRouter = router({
       await promotePairAnalysis(ctx.userId, input.toUserId);
 
       // Mutual ping detection — check if B already pinged A within the window
-      const mutualCutoff = new Date(Date.now() - MUTUAL_PING_WINDOW_SECONDS * 1000);
+      const mutualCutoff = subSeconds(new Date(), MUTUAL_PING_WINDOW_SECONDS);
       const reverseWave = await db.query.waves.findFirst({
         where: and(
           eq(schema.waves.fromUserId, input.toUserId),

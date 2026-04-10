@@ -1,3 +1,4 @@
+import { subMinutes } from "date-fns";
 import { Redirect, router, Tabs } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
@@ -185,8 +186,7 @@ export default function TabsLayout() {
   const retryProfileAI = trpc.profiles.retryProfileAI.useMutation();
   useEffect(() => {
     if (!profileData) return;
-    const fiveMinAgo = Date.now() - 5 * 60 * 1000;
-    const isStale = profileData.updatedAt && new Date(profileData.updatedAt).getTime() < fiveMinAgo;
+    const isStale = profileData.updatedAt && new Date(profileData.updatedAt) < subMinutes(new Date(), 5);
     if (profileData.bio && !profileData.portrait && isStale && !retryProfileAI.isPending) {
       retryProfileAI.mutate();
     }

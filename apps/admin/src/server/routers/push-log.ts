@@ -1,4 +1,5 @@
 import { schema } from "@repo/db";
+import { subHours } from "date-fns";
 import { and, count, desc, eq, gte, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
@@ -79,7 +80,7 @@ export const pushLogRouter = router({
       .where(eq(schema.pushSends.status, "failed"));
 
     // Last hour activity
-    const oneHourAgo = new Date(Date.now() - 3600_000);
+    const oneHourAgo = subHours(new Date(), 1);
     const [lastHour] = await db
       .select({ count: count() })
       .from(schema.pushSends)

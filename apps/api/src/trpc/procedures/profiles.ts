@@ -8,6 +8,7 @@ import {
   updateProfileSchema,
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
+import { differenceInMinutes, subHours } from "date-fns";
 import { and, between, eq, gte, isNotNull, isNull, lte, ne, or, placeholder, sql } from "drizzle-orm";
 import { z } from "zod";
 import { DECLINE_COOLDOWN_HOURS } from "@/config/pingLimits";
@@ -93,7 +94,7 @@ export const profilesRouter = router({
           where: eq(schema.profiles.userId, ctx.userId),
           columns: { displayName: true, createdAt: true },
         });
-        const graceExpired = existing && Date.now() - existing.createdAt.getTime() > 5 * 60 * 1000;
+        const graceExpired = existing && differenceInMinutes(new Date(), existing.createdAt) > 5;
         if (graceExpired && existing.displayName !== input.displayName) {
           throw new TRPCError({ code: "FORBIDDEN", message: "display_name_locked" });
         }
@@ -308,7 +309,7 @@ export const profilesRouter = router({
       );
 
       // Get blocked users + cooldown users + current profile + analyses + status matches + totalCount in parallel
-      const cooldownCutoff = new Date(Date.now() - DECLINE_COOLDOWN_HOURS * 3600000);
+      const cooldownCutoff = subHours(new Date(), DECLINE_COOLDOWN_HOURS);
       const [blockedUsers, blockedByUsers, cooldownDeclines, currentProfile, analyses, myStatusMatchRows, countResult] =
         await Promise.all([
           db
