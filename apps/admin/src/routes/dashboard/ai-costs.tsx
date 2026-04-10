@@ -60,7 +60,7 @@ function AiCostsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const search = Route.useSearch();
 
-  const window = search.window ?? "24h";
+  const timeWindow = search.window ?? "24h";
   const statusFilter = search.status ?? "all";
   const jobNameFilter = search.jobName;
   const userFilter = search.userId;
@@ -84,13 +84,13 @@ function AiCostsPage() {
 
   const summary24h = trpc.aiCosts.summary.useQuery({ window: "24h" }, { refetchInterval });
   const summary7d = trpc.aiCosts.summary.useQuery({ window: "7d" }, { refetchInterval });
-  const byJobName = trpc.aiCosts.byJobName.useQuery({ window }, { refetchInterval });
-  const byModel = trpc.aiCosts.byModel.useQuery({ window }, { refetchInterval });
+  const byJobName = trpc.aiCosts.byJobName.useQuery({ window: timeWindow }, { refetchInterval });
+  const byModel = trpc.aiCosts.byModel.useQuery({ window: timeWindow }, { refetchInterval });
   const byDay = trpc.aiCosts.byDay.useQuery({ window: "7d" }, { refetchInterval });
-  const topUsers = trpc.aiCosts.topUsers.useQuery({ window, limit: 20 }, { refetchInterval });
+  const topUsers = trpc.aiCosts.topUsers.useQuery({ window: timeWindow, limit: 20 }, { refetchInterval });
   const feed = trpc.aiCosts.feed.useQuery(
     {
-      window,
+      window: timeWindow,
       jobName: jobNameFilter,
       userId: userFilter,
       status: statusFilter === "all" ? undefined : statusFilter,
@@ -130,7 +130,7 @@ function AiCostsPage() {
                 type="button"
                 onClick={() => updateSearch({ window: tab.key })}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  window === tab.key
+                  timeWindow === tab.key
                     ? "bg-foreground text-background"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
