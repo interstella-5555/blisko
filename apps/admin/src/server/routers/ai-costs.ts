@@ -154,6 +154,7 @@ export const aiCostsRouter = router({
   feed: protectedProcedure
     .input(
       z.object({
+        window: WINDOW.default("7d"),
         jobName: z.string().optional(),
         userId: z.string().optional(),
         status: z.enum(["success", "failed"]).optional(),
@@ -162,12 +163,12 @@ export const aiCostsRouter = router({
       }),
     )
     .query(async ({ input }) => {
-      const conditions = [];
+      const conditions = [gte(schema.aiCalls.timestamp, windowStart(input.window))];
       if (input.jobName) conditions.push(eq(schema.aiCalls.jobName, input.jobName));
       if (input.userId) conditions.push(eq(schema.aiCalls.userId, input.userId));
       if (input.status) conditions.push(eq(schema.aiCalls.status, input.status));
 
-      const where = conditions.length > 0 ? and(...conditions) : undefined;
+      const where = and(...conditions);
 
       const rows = await db
         .select({

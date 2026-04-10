@@ -183,7 +183,13 @@ Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po pols
         prompt,
         maxOutputTokens: 100,
       });
-      const parsed = JSON.parse(text);
+      // Parse inside the wrapper so malformed LLM output is logged as a failed row
+      let parsed: { isMatch?: unknown; reason?: unknown };
+      try {
+        parsed = JSON.parse(text);
+      } catch (err) {
+        throw new Error(`evaluateStatusMatch: invalid JSON from model: ${String(err).slice(0, 100)}`);
+      }
       return {
         result: {
           isMatch: Boolean(parsed.isMatch),
