@@ -1,3 +1,4 @@
+import { subHours } from "date-fns";
 import { and, between, eq, gt, isNotNull, isNull, lt } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { enqueueProfileAI, enqueueProfileFromQA } from "./queue";
@@ -13,8 +14,8 @@ export interface SweepResult {
  * Called nightly by the maintenance scheduler and on-demand from admin panel.
  */
 export async function runConsistencySweep(): Promise<SweepResult> {
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const oneHourAgo = subHours(new Date(), 1);
+  const twentyFourHoursAgo = subHours(new Date(), 24);
 
   const result: SweepResult = {
     zombieProfiles: { found: 0, enqueued: 0 },

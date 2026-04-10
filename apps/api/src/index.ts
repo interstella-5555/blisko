@@ -1,4 +1,5 @@
 import { trpcServer } from "@hono/trpc-server";
+import { addDays } from "date-fns";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -99,7 +100,7 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
 
       // Create session
       const sessionToken = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      const expiresAt = addDays(new Date(), 30);
 
       const [newSession] = await db
         .insert(session)

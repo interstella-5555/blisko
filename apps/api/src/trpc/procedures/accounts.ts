@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { subDays } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -127,7 +128,7 @@ export const accountsRouter = router({
         (j) =>
           j.data.type === "export-user-data" &&
           j.data.userId === ctx.userId &&
-          j.timestamp > Date.now() - 24 * 60 * 60 * 1000,
+          j.timestamp > subDays(new Date(), 1).getTime(),
       );
 
       if (recentExport) {

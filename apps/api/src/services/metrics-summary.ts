@@ -1,3 +1,4 @@
+import { subHours } from "date-fns";
 import { and, count, eq, gte, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { bullmqQueueDepth } from "./prometheus";
@@ -8,7 +9,7 @@ import { getWsStats } from "./ws-metrics";
 const DEFAULT_WINDOW_HOURS = 24;
 
 export async function getMetricsSummary(windowHours = DEFAULT_WINDOW_HOURS) {
-  const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
+  const since = subHours(new Date(), windowHours);
 
   const [overview, slowest, errors, sloBreaches, queues] = await Promise.all([
     getOverview(since),
