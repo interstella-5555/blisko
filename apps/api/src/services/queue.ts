@@ -1058,19 +1058,26 @@ async function processExportUserData(userId: string, email: string) {
 }
 
 async function handleExportFailure(userId: string, userEmail: string, jobId: string, errorMessage: string) {
-  const { sendEmail, dataExportDelayed, dataExportFailedAdmin } = await import("./email");
+  const { sendEmail, dataExportDelayed } = await import("./email");
 
-  // Notify user about delay
-  await sendEmail(userEmail, dataExportDelayed());
-
-  // TODO(BLI-169): Replace with proper alerting (Sentry, Discord webhook, etc.)
-  // Email is a placeholder — can flood inbox if something breaks fundamentally
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail) {
-    await sendEmail(adminEmail, dataExportFailedAdmin(userEmail, jobId, errorMessage));
+  // Send delay email only if no other failed export for this user in the last 7 days
+  const queue = getQueue();
+  const failedJobs = await queue.getJobs(["failed"]);
+  const priorFailed = failedJobs.some(
+    (j) =>
+      j.data.type === "export-user-data" &&
+      j.data.userId === userId &&
+      j.id !== jobId &&
+      j.timestamp > Date.now() - 7 * 24 * 60 * 60 * 1000,
+  );
+  if (!priorFailed) {
+    await sendEmail(userEmail, dataExportDelayed());
   }
 
-  console.error(`[queue] export-user-data permanently failed for ${userId} (${userEmail}), job: ${jobId}`);
+  // TODO(BLI-169): Add proper admin alerting (Sentry, Discord webhook, etc.)
+  console.error(
+    `[queue] GDPR EXPORT FAILED — userId: ${userId}, email: ${userEmail}, job: ${jobId}, error: ${errorMessage}`,
+  );
 }
 
 // --- Main job processor ---
@@ -1453,7 +1460,7 @@ export async function enqueueDataExport(userId: string, email: string) {
     { type: "export-user-data", userId, email },
     {
       jobId: `export-${userId}-${Date.now()}`,
-      // GDPR-critical: aggressive retry (10 attempts over ~16h), never auto-remove failures
+      // GDPR-critical: aggressive retry (10 attempts over ~8.5h), never auto-remove failures
       attempts: 10,
       backoff: { type: "exponential", delay: 60_000 },
       removeOnFail: false,

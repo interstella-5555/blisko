@@ -1,6 +1,7 @@
 # Data Export
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-10 — GDPR-safe retry: 10 attempts over ~8.5h, admin alert email, user delay notification (BLI-165).
 
 GDPR/RODO Art. 15 (right of access) and Art. 20 (right to data portability). User requests export from mobile app settings, receives an email with a presigned S3 download link within minutes.
 
@@ -40,6 +41,15 @@ No OTP because the user is already authenticated (unlike deletion, which is irre
 - Rate limit message: "Eksport danych jest dostepny raz na 24 godziny."
 - BullMQ job ID: `export-${userId}-${Date.now()}` (unique per request)
 - Queue name: `ai-jobs` (shared queue)
+- Retry: 10 attempts with exponential backoff (60s base → ~8.5h total). Overrides the queue default (3 attempts) because GDPR export is a legal obligation.
+- `removeOnFail: false` — failed export jobs are never auto-removed from Redis. Every failure must be resolved by admin.
+
+### Failure Handling
+
+When all 10 retry attempts are exhausted:
+1. **User email**: "Eksport Twoich danych trwa dłużej niż zwykle. Nasz zespół został powiadomiony." (template: `dataExportDelayed()` in `email.ts`)
+2. **Console error**: Prominent `GDPR EXPORT FAILED` log with userId, email, jobId, error message
+3. **Admin alerting**: TODO(BLI-169) — proper alerting (Sentry, Discord webhook, etc.) not yet implemented
 
 ## BullMQ Job Processing
 

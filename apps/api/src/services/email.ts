@@ -14,7 +14,6 @@
  * - `changeEmailOtp(otp)` — verification code for email address change.
  * - `dataExportReady(downloadUrl)` — GDPR data export download link.
  * - `dataExportDelayed()` — notifies user their export is taking longer than expected.
- * - `dataExportFailedAdmin(userEmail, jobId, errorMessage)` — admin alert when export permanently fails.
  *
  * Adding a new template:
  * 1. Export a function returning `{ subject: string; html: string }`.
@@ -115,18 +114,6 @@ export function dataExportDelayed() {
       <p style="font-size: 15px; color: #3A3A3A; line-height: 1.6;">Cześć!</p>
       <p style="font-size: 15px; color: #3A3A3A; line-height: 1.6;">Eksport Twoich danych trwa dłużej niż zwykle. Nasz zespół został powiadomiony i dane zostaną wysłane jak najszybciej.</p>
       <p style="font-size: 13px; color: #8B8680; line-height: 1.6;">Nie musisz nic robić — skontaktujemy się gdy eksport będzie gotowy.</p>
-    `),
-  };
-}
-
-export function dataExportFailedAdmin(userEmail: string, jobId: string, errorMessage: string) {
-  return {
-    subject: `[ALERT] Eksport danych nieudany — ${userEmail}`,
-    html: layout(`
-      <p style="font-size: 15px; color: #3A3A3A; line-height: 1.6;">Eksport danych dla <strong>${userEmail}</strong> nie powiódł się po wyczerpaniu wszystkich prób.</p>
-      <p style="font-size: 15px; color: #3A3A3A; line-height: 1.6;">Job ID: <code>${jobId}</code></p>
-      <p style="font-size: 15px; color: #3A3A3A; line-height: 1.6;">Ostatni błąd: <code>${errorMessage}</code></p>
-      <p style="font-size: 15px; color: #C0392B; line-height: 1.6;">Wymagana interwencja — GDPR wymaga dostarczenia danych.</p>
     `),
   };
 }
