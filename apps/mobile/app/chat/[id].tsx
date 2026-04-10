@@ -260,20 +260,21 @@ export default function ChatScreen() {
       const store = useMessagesStore.getState();
       const chat = store.chats.get(conversationId!);
       const original = chat?.items.find((m) => m.id === messageId);
-      // Optimistic: mark as deleted
-      if (original) {
-        store.replaceOptimistic(conversationId!, messageId, {
-          ...original,
-          deletedAt: new Date().toISOString(),
-          content: "",
-        });
-      }
+      // Optimistic: mark as deleted in place (don't remove — show "Wiadomość usunięta")
+      store.updateMessage(conversationId!, messageId, {
+        deletedAt: new Date().toISOString(),
+        content: "",
+      });
       return { original };
     },
     onError: (_err, { messageId }, context) => {
       // Restore original message on failure
       if (context?.original) {
-        useMessagesStore.getState().replaceOptimistic(conversationId!, messageId, context.original);
+        // Restore original message (undo optimistic delete)
+        useMessagesStore.getState().updateMessage(conversationId!, messageId, {
+          deletedAt: null,
+          content: context.original.content,
+        });
       }
     },
   });
@@ -429,7 +430,7 @@ export default function ChatScreen() {
           header: () => (
             <SafeAreaView edges={["top"]} style={styles.headerSafeArea}>
               <View style={styles.header}>
-                <Pressable onPress={() => router.back()} style={styles.headerBack} hitSlop={8}>
+                <Pressable testID="chat-back-btn" onPress={() => router.back()} style={styles.headerBack} hitSlop={8}>
                   <IconChevronLeft size={24} color={colors.ink} />
                 </Pressable>
                 <Pressable

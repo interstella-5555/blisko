@@ -24,18 +24,23 @@ appId: com.blisko.app
       id: "message-bubble"
     timeout: 10000
 
-# Long press on second message-bubble (index 1 = user A's message in inverted list)
-- longPressOn:
-    id: "message-bubble"
-    index: 1
+# Seed mode 'messages' has User A sending "Jasne, do zobaczenia!"
+# (9th message, alternating A,B starting with A → index 8 by A)
+# We're logged in as User A, so it's our message and deletable
+- extendedWaitUntil:
+    visible: ".*Jasne, do zobaczenia.*"
+    timeout: 5000
 
-# Tap "Usuń" in the alert options
+# Long-press on our own message bubble
+- longPressOn: ".*Jasne, do zobaczenia.*"
+
+# "Usuń" is in the context menu (isMine = true for messages we sent)
 - extendedWaitUntil:
     visible: "Usuń"
     timeout: 5000
 - tapOn: "Usuń"
 
-# Confirm deletion in the confirmation alert
+# Confirm deletion in the Alert dialog
 - extendedWaitUntil:
     visible: "Czy na pewno chcesz usunąć tę wiadomość?"
     timeout: 5000

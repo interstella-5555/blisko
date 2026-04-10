@@ -13,6 +13,9 @@ const SCREEN_HEIGHT = Dimensions.get("window").height;
 const REACTION_BAR_HEIGHT = 52;
 const ACTION_MENU_HEIGHT = 170; // approximate
 const VERTICAL_PAD = 12;
+// Chat input bar height — reserved from the bottom so context menu doesn't
+// render underneath it (safe area inset alone isn't enough)
+const CHAT_INPUT_RESERVED = 72;
 
 interface ContextMenuData {
   messageId: string;
@@ -39,7 +42,7 @@ export function MessageContextMenu({ data, onReact, onReply, onCopy, onDelete, o
 
   // Determine if there's enough space above the message for reactions
   const safeTop = insets.top + 8;
-  const safeBottom = SCREEN_HEIGHT - insets.bottom - 8;
+  const safeBottom = SCREEN_HEIGHT - insets.bottom - CHAT_INPUT_RESERVED;
   const spaceAbove = data.layout.y - safeTop;
   const spaceBelow = safeBottom - (data.layout.y + data.layout.height);
 
