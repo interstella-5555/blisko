@@ -1,17 +1,8 @@
 import { Queue, QueueEvents } from "bullmq";
 
-const AI_QUEUE_NAME = "ai-jobs";
+const AI_QUEUE_NAME = "ai";
 const OPS_QUEUE_NAME = "ops";
 const JOB_TIMEOUT_MS = 15_000;
-
-// Job types that belong to the ops queue
-const OPS_JOB_TYPES = new Set([
-  "hard-delete-user",
-  "export-user-data",
-  "admin-soft-delete-user",
-  "admin-restore-user",
-  "admin-force-disconnect",
-]);
 
 function getConnectionConfig() {
   const url = new URL(process.env.REDIS_URL!);
@@ -25,10 +16,9 @@ function getConnectionConfig() {
 
 let _aiQueue: Queue | null = null;
 let _opsQueue: Queue | null = null;
-let _aiQueueEvents: QueueEvents | null = null;
 let _opsQueueEvents: QueueEvents | null = null;
 
-export function getQueue(): Queue {
+export function getAiQueue(): Queue {
   if (!_aiQueue) {
     _aiQueue = new Queue(AI_QUEUE_NAME, {
       connection: { ...getConnectionConfig(), connectTimeout: 3000 },
@@ -37,20 +27,13 @@ export function getQueue(): Queue {
   return _aiQueue;
 }
 
-function getOpsQueue(): Queue {
+export function getOpsQueue(): Queue {
   if (!_opsQueue) {
     _opsQueue = new Queue(OPS_QUEUE_NAME, {
       connection: { ...getConnectionConfig(), connectTimeout: 3000 },
     });
   }
   return _opsQueue;
-}
-
-function getQueueEvents(): QueueEvents {
-  if (!_aiQueueEvents) {
-    _aiQueueEvents = new QueueEvents(AI_QUEUE_NAME, { connection: getConnectionConfig() });
-  }
-  return _aiQueueEvents;
 }
 
 function getOpsQueueEvents(): QueueEvents {
@@ -69,15 +52,11 @@ export async function enqueueAndWait<T extends Record<string, unknown>>(
     throw new Error("REDIS_URL is not configured");
   }
 
-  const isOpsJob = OPS_JOB_TYPES.has(jobName);
-  const queue = isOpsJob ? getOpsQueue() : getQueue();
-  const queueEvents = isOpsJob ? getOpsQueueEvents() : getQueueEvents();
-
-  const job = await queue.add(jobName, data, {
+  const job = await getOpsQueue().add(jobName, data, {
     jobId: opts?.jobId,
     removeOnComplete: { count: 200, age: 3600 },
     removeOnFail: { count: 100 },
   });
 
-  await job.waitUntilFinished(queueEvents, JOB_TIMEOUT_MS);
+  await job.waitUntilFinished(getOpsQueueEvents(), JOB_TIMEOUT_MS);
 }

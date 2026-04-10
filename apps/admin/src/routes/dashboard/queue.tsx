@@ -87,7 +87,7 @@ function QueuePage() {
 
   return (
     <>
-      <DashboardHeader title="Kolejka AI" />
+      <DashboardHeader title="Kolejka zadań" />
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         {/* Tabs + controls */}
         <div className="flex items-center justify-between">
@@ -175,6 +175,7 @@ function QueuePage() {
                 <TableRow>
                   <TableHead>Czas</TableHead>
                   <TableHead>Stan</TableHead>
+                  <TableHead>Kolejka</TableHead>
                   <TableHead>Typ</TableHead>
                   <TableHead>Dane</TableHead>
                   <TableHead>Czas trwania</TableHead>
@@ -202,6 +203,11 @@ function QueuePage() {
                             <span className="text-sm">{formatState(job.state)}</span>
                           </div>
                         </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {job.source}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{job.type}</TableCell>
                         <TableCell className="text-sm max-w-[300px]">
                           <div className="truncate">{summarizeJobData(job.type, job.data, nameMap)}</div>
@@ -220,7 +226,7 @@ function QueuePage() {
                       </TableRow>
                       {isExpanded && (
                         <TableRow key={`${job.id}-detail`}>
-                          <TableCell colSpan={6} className="bg-muted/30 p-4">
+                          <TableCell colSpan={7} className="bg-muted/30 p-4">
                             <div className="space-y-2 text-sm">
                               <div>
                                 <span className="font-medium text-muted-foreground">ID:</span>{" "}
@@ -256,7 +262,7 @@ function QueuePage() {
                 })}
                 {jobs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">
                       Brak zadań w kolejce
                     </TableCell>
                   </TableRow>
