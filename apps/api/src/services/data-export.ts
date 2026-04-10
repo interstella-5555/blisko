@@ -72,6 +72,10 @@ interface ExportData {
   }[];
   profilingSessions: {
     createdAt: string;
+    status: string;
+    generatedBio: string | null;
+    generatedLookingFor: string | null;
+    generatedPortrait: string | null;
     questions: { question: string; answer: string | null }[];
   }[];
   blocks: { blockedUser: string; createdAt: string }[];
@@ -210,7 +214,17 @@ export async function collectAndExportUserData(userId: string, email: string) {
   }
 
   // 8. Profiling sessions & QA
-  const sessions = await db.select().from(schema.profilingSessions).where(eq(schema.profilingSessions.userId, userId));
+  const sessions = await db
+    .select({
+      id: schema.profilingSessions.id,
+      createdAt: schema.profilingSessions.createdAt,
+      status: schema.profilingSessions.status,
+      generatedBio: schema.profilingSessions.generatedBio,
+      generatedLookingFor: schema.profilingSessions.generatedLookingFor,
+      generatedPortrait: schema.profilingSessions.generatedPortrait,
+    })
+    .from(schema.profilingSessions)
+    .where(eq(schema.profilingSessions.userId, userId));
 
   const sessionIds = sessions.map((s) => s.id);
   const allQA =
@@ -227,6 +241,10 @@ export async function collectAndExportUserData(userId: string, email: string) {
 
   const sessionsExport = sessions.map((s) => ({
     createdAt: s.createdAt.toISOString(),
+    status: s.status,
+    generatedBio: s.generatedBio,
+    generatedLookingFor: s.generatedLookingFor,
+    generatedPortrait: s.generatedPortrait,
     questions: (qaBySession.get(s.id) ?? []).map((q) => ({
       question: q.question,
       answer: q.answer,
