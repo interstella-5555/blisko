@@ -521,6 +521,7 @@ Hot-path prepared statements:
 | 0014 | `add_status_matches_unique` | DDL | Unique constraint on `status_matches(user_id, matched_user_id)` |
 | 0015 | `nullable_snippet_description` | DDL (custom) | Make `short_snippet` and `long_description` nullable for T2 quick-score |
 | 0016 | `add_missing_fk_indexes` | DDL | Indexes on `account.user_id`, `session.user_id`, `conversation_ratings` FKs |
+| 0017 | `add_push_sends` | DDL | Create `push_sends` table with user, title, body, data, collapse_id, status, suppression_reason, token_count columns + 3 indexes |
 
 ## Drizzle Relations
 

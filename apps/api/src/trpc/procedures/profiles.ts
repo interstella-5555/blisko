@@ -507,6 +507,15 @@ export const profilesRouter = router({
 
   // Get AI connection analysis for a specific user
   getConnectionAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).query(async ({ ctx, input }) => {
+    // Block check — blocked users should not see connection analysis
+    const block = await db.query.blocks.findFirst({
+      where: or(
+        and(eq(schema.blocks.blockerId, ctx.userId), eq(schema.blocks.blockedId, input.userId)),
+        and(eq(schema.blocks.blockerId, input.userId), eq(schema.blocks.blockedId, ctx.userId)),
+      ),
+    });
+    if (block) return null;
+
     // Return null if either user has incomplete profile
     const myProfile = await db.query.profiles.findFirst({
       where: eq(schema.profiles.userId, ctx.userId),
@@ -539,6 +548,18 @@ export const profilesRouter = router({
   // Get profile by user ID
   getById: protectedProcedure.input(z.object({ userId: z.string() })).query(async ({ ctx, input }) => {
     setTargetUserId(ctx.req, input.userId);
+
+    // Block check — blocked users should not see each other's profiles
+    if (input.userId !== ctx.userId) {
+      const block = await db.query.blocks.findFirst({
+        where: or(
+          and(eq(schema.blocks.blockerId, ctx.userId), eq(schema.blocks.blockedId, input.userId)),
+          and(eq(schema.blocks.blockerId, input.userId), eq(schema.blocks.blockedId, ctx.userId)),
+        ),
+      });
+      if (block) return null;
+    }
+
     const [result] = await db
       .select({ profile: schema.profiles })
       .from(schema.profiles)
