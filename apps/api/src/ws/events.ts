@@ -108,6 +108,10 @@ export interface StatusMatchesReadyEvent {
   userId: string;
 }
 
+export interface StatusMatchingFailedEvent {
+  userId: string;
+}
+
 export interface ConversationDeletedEvent {
   userId: string;
   conversationId: string;

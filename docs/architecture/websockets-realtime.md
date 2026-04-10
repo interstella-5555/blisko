@@ -5,6 +5,7 @@
 > Updated 2026-04-10 — Added `questionFailed` WS event for self-healing profiling question generation (BLI-161).
 > Updated 2026-04-10 — Added `profilingFailed` WS event for self-healing profile generation from Q&A (BLI-162).
 > Updated 2026-04-10 — Added `profileFailed` WS event for self-healing profile AI generation (BLI-163).
+> Updated 2026-04-10 — Added `statusMatchingFailed` WS event for self-healing status matching (BLI-164).
 
 Bun native WebSocket server delivering real-time events to mobile clients. Source: `apps/api/src/ws/handler.ts`, `apps/api/src/ws/events.ts`, `apps/api/src/ws/redis-bridge.ts`.
 
@@ -21,7 +22,7 @@ Bun native WebSocket server delivering real-time events to mobile clients. Sourc
 | Group member action | `groupMember` event | Dolaczyl/opuscil grupe |
 | Nie przeszkadzaj | DND — client-side suppression only, WS still delivers | Ikona DND |
 
-## Event Types (21 total)
+## Event Types (22 total)
 
 | Event | Direction | Trigger | Payload shape |
 |---|---|---|---|
@@ -40,6 +41,7 @@ Bun native WebSocket server delivering real-time events to mobile clients. Sourc
 | `profileReady` | server->client | Profile AI generation done | `{ type: "profileReady" }` |
 | `profileFailed` | server->client | Profile AI generation permanently failed | `{ type: "profileFailed" }` |
 | `statusMatchesReady` | server->client | Status matches found | `{ type: "statusMatchesReady" }` (signal-only, client refetches) |
+| `statusMatchingFailed` | server->client | Status matching permanently failed | `{ type: "statusMatchingFailed" }` |
 | `questionReady` | server->client | Next profiling question | `{ type: "questionReady", sessionId, questionNumber }` |
 | `questionFailed` | server->client | Profiling question generation permanently failed | `{ type: "questionFailed", sessionId, questionNumber }` |
 | `profilingComplete` | server->client | Profiling session done | `{ type: "profilingComplete", sessionId }` |
@@ -180,6 +182,7 @@ Events are routed through two paths depending on their target:
 - `profileReady` — to the user whose profile was generated
 - `profileFailed` — to the user when profile AI generation exhausts retries (mobile retries via `retryProfileAI`)
 - `statusMatchesReady` — to the user whose matches were computed
+- `statusMatchingFailed` — to the user when status matching exhausts retries (mobile retries via `retryStatusMatching`)
 - `questionReady` — to the user in the profiling session
 - `questionFailed` — to the user when profiling question generation exhausts retries (mobile retries via `retryQuestion`)
 - `profilingComplete` — to the user whose profiling finished

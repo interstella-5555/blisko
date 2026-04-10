@@ -671,4 +671,14 @@ export const profilesRouter = router({
     if (!profile) return;
     await enqueueProfileAI(ctx.userId, profile.bio, profile.lookingFor);
   }),
+
+  // Retry status matching after failure (self-healing)
+  retryStatusMatching: protectedProcedure.use(rateLimit("profiles.retryStatusMatching")).mutation(async ({ ctx }) => {
+    const profile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+      columns: { currentStatus: true, isComplete: true },
+    });
+    if (!profile?.currentStatus || !profile.isComplete) return;
+    await enqueueStatusMatching(ctx.userId);
+  }),
 });

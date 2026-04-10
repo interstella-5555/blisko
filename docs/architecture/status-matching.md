@@ -1,6 +1,7 @@
 # Status System & Ambient Matching
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-10 — `status-matching` dedup switched from `jobId` to BullMQ `deduplication` (auto-release on failure), `statusMatchingFailed` WS event for self-healing (BLI-164).
 
 ## Terminology & Product Alignment
 
@@ -205,10 +206,10 @@ Note: `statusExpiresAt` is defined in the schema but `isStatusActive` does not c
 
 ## Enqueue Configuration
 
-| Job type | Job ID pattern | Debounce | Notes |
+| Job type | Dedup strategy | Debounce | Notes |
 |---|---|---|---|
-| `status-matching` | `status-matching-{userId}` | None | One job per status change |
-| `proximity-status-matching` | `proximity-status-{userId}-{timestamp}` | 2 min (`ttl: ms("2m")`) | Debounced --- rapid location updates don't flood |
+| `status-matching` | BullMQ `deduplication` with id `status-matching-{userId}` | None | Auto-releases on completion/failure — enables self-healing re-enqueue |
+| `proximity-status-matching` | `jobId: proximity-status-{userId}-{timestamp}` | 2 min (`ttl: ms("2m")`) | Debounced --- rapid location updates don't flood |
 
 BullMQ queue: `ai-jobs`, concurrency 50, 3 attempts with exponential backoff (5s base).
 
