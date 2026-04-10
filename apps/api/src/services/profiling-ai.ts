@@ -2,6 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { GPT_MODEL } from "@repo/shared";
 import { generateObject } from "ai";
 import { z } from "zod";
+import { type AiLogCtx, withAiLogging } from "./ai-log";
 
 function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
@@ -17,6 +18,7 @@ export async function generateFollowUpQuestions(
   displayName: string,
   answeredQA: { question: string; answer: string }[],
   skippedQuestionIds: string[],
+  ctx?: AiLogCtx,
 ): Promise<FollowUpQuestionsResult> {
   if (!isConfigured()) {
     return { questions: ["Opowiedz mi więcej o sobie."] };
@@ -27,12 +29,13 @@ export async function generateFollowUpQuestions(
   const skippedBlock =
     skippedQuestionIds.length > 0 ? `\n\nPominięte pytania (ID): ${skippedQuestionIds.join(", ")}` : "";
 
-  const { object } = await generateObject({
-    model: openai(GPT_MODEL),
-    schema: followUpQuestionsSchema,
-    temperature: 0.8,
-    maxOutputTokens: 400,
-    system: `Analizujesz odpowiedzi użytkownika z onboardingu aplikacji społecznościowej i generujesz pytania pogłębiające.
+  const doCall = async () => {
+    const { object, usage } = await generateObject({
+      model: openai(GPT_MODEL),
+      schema: followUpQuestionsSchema,
+      temperature: 0.8,
+      maxOutputTokens: 400,
+      system: `Analizujesz odpowiedzi użytkownika z onboardingu aplikacji społecznościowej i generujesz pytania pogłębiające.
 
 Zasady:
 - Wygeneruj od 0 do 3 pytań pogłębiających
@@ -45,16 +48,22 @@ Zasady:
 - Krótkie i konkretne (1-2 zdania)
 - Preferuj scenariusze i pytania otwarte
 - Skup się na lukach: czego brakuje do stworzenia bogatego profilu?`,
-    prompt: `<user_name>${displayName}</user_name>
+      prompt: `<user_name>${displayName}</user_name>
 
 <answered_questions>
 ${qaBlock}
 </answered_questions>${skippedBlock}
 
 Wygeneruj pytania pogłębiające (0-3).`,
-  });
-
-  return object;
+    });
+    return {
+      result: object,
+      model: GPT_MODEL,
+      promptTokens: usage?.inputTokens ?? 0,
+      completionTokens: usage?.outputTokens ?? 0,
+    };
+  };
+  return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
 }
 
 const nextQuestionSchema = z.object({
@@ -72,6 +81,7 @@ export async function generateNextQuestion(
     userRequestedMore?: boolean;
     directionHint?: string;
   },
+  ctx?: AiLogCtx,
 ): Promise<NextQuestionResult> {
   if (!isConfigured()) {
     return {
@@ -100,12 +110,13 @@ export async function generateNextQuestion(
     }
   }
 
-  const { object } = await generateObject({
-    model: openai(GPT_MODEL),
-    schema: nextQuestionSchema,
-    temperature: 0.8,
-    maxOutputTokens: 300,
-    system: `Jesteś adaptacyjnym profilerem osobowości dla aplikacji społecznościowej. Tworzysz profil osobowości na podstawie rozmowy.
+  const doCall = async () => {
+    const { object, usage } = await generateObject({
+      model: openai(GPT_MODEL),
+      schema: nextQuestionSchema,
+      temperature: 0.8,
+      maxOutputTokens: 300,
+      system: `Jesteś adaptacyjnym profilerem osobowości dla aplikacji społecznościowej. Tworzysz profil osobowości na podstawie rozmowy.
 
 Zasady:
 - Zadawaj pytania które pogłębią zrozumienie charakteru, osobowości, zainteresowań i oczekiwań tej osoby
@@ -116,13 +127,19 @@ Zasady:
 - Po 5-7 dobrych odpowiedziach ustaw sufficient: true jeżeli masz wystarczająco materiału na bogaty profil
 - Pisz naturalnym, ciepłym polskim językiem
 - Pytania powinny być krótkie i konkretne (1-2 zdania)${extraInstructions}`,
-    prompt: `<user_name>${displayName}</user_name>
+      prompt: `<user_name>${displayName}</user_name>
 Liczba dotychczasowych pytań: ${qaHistory.length}${contextBlock}${historyBlock}
 
 Wygeneruj następne pytanie.`,
-  });
-
-  return object;
+    });
+    return {
+      result: object,
+      model: GPT_MODEL,
+      promptTokens: usage?.inputTokens ?? 0,
+      completionTokens: usage?.outputTokens ?? 0,
+    };
+  };
+  return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
 }
 
 const profileFromQASchema = z.object({
@@ -137,6 +154,7 @@ export async function generateProfileFromQA(
   displayName: string,
   qaHistory: { question: string; answer: string }[],
   previousSessionQA?: { question: string; answer: string }[],
+  ctx?: AiLogCtx,
 ): Promise<ProfileFromQAResult> {
   if (!isConfigured()) {
     return {
@@ -155,12 +173,13 @@ export async function generateProfileFromQA(
 
   const qaBlock = qaHistory.map((qa) => `P: ${qa.question}\nO: ${qa.answer}`).join("\n");
 
-  const { object } = await generateObject({
-    model: openai(GPT_MODEL),
-    schema: profileFromQASchema,
-    temperature: 0.7,
-    maxOutputTokens: 1000,
-    system: `Na podstawie rozmowy profilowej generujesz profil użytkownika dla aplikacji społecznościowej.
+  const doCall = async () => {
+    const { object, usage } = await generateObject({
+      model: openai(GPT_MODEL),
+      schema: profileFromQASchema,
+      temperature: 0.7,
+      maxOutputTokens: 1000,
+      system: `Na podstawie rozmowy profilowej generujesz profil użytkownika dla aplikacji społecznościowej.
 
 Generujesz trzy teksty:
 
@@ -185,12 +204,18 @@ Zasady dla lookingFor:
 3. portrait (200-400 słów, 3. osoba, po polsku) — głęboki opis osobowości: jak myśli, co ceni, jak funkcjonuje społecznie, jakie ma motywacje i potrzeby. To jest prywatny dokument — pisz szczerze i wnikliwie, nie pochlebczo. Unikaj banalnych sformułowań.
 
 Bazuj WYŁĄCZNIE na informacjach które wynikają z odpowiedzi. Nie wymyślaj.`,
-    prompt: `<user_name>${displayName}</user_name>
+      prompt: `<user_name>${displayName}</user_name>
 
 <profiling_conversation>
 ${qaBlock}${contextBlock}
 </profiling_conversation>`,
-  });
-
-  return object;
+    });
+    return {
+      result: object,
+      model: GPT_MODEL,
+      promptTokens: usage?.inputTokens ?? 0,
+      completionTokens: usage?.outputTokens ?? 0,
+    };
+  };
+  return ctx ? await withAiLogging(ctx, doCall) : (await doCall()).result;
 }
