@@ -30,6 +30,7 @@ import type {
   QuestionReadyEvent,
   ReactionEvent,
   StatusMatchesReadyEvent,
+  StatusMatchingFailedEvent,
   TopicEvent,
   TypingEvent,
   WaveRespondedEvent,
@@ -276,6 +277,10 @@ ee.on("profileFailed", (event: ProfileFailedEvent) => {
 
 ee.on("statusMatchesReady", (event: StatusMatchesReadyEvent) => {
   broadcastToUser(event.userId, { type: "statusMatchesReady" });
+});
+
+ee.on("statusMatchingFailed", (event: StatusMatchingFailedEvent) => {
+  broadcastToUser(event.userId, { type: "statusMatchingFailed" });
 });
 
 ee.on("questionReady", (event: QuestionReadyEvent) => {

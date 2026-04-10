@@ -1168,6 +1168,9 @@ export function startWorker() {
     if (data.type === "generate-profile-ai") {
       publishEvent("profileFailed", { userId: data.userId });
     }
+    if (data.type === "status-matching") {
+      publishEvent("statusMatchingFailed", { userId: data.userId });
+    }
   });
 
   // Register periodic maintenance jobs
@@ -1368,7 +1371,13 @@ export async function enqueueStatusMatching(userId: string) {
   if (!process.env.REDIS_URL) return;
 
   const queue = getQueue();
-  await queue.add("status-matching", { type: "status-matching", userId }, { jobId: `status-matching-${userId}` });
+  await queue.add(
+    "status-matching",
+    { type: "status-matching", userId },
+    {
+      deduplication: { id: `status-matching-${userId}` },
+    },
+  );
 }
 
 export async function enqueueProximityStatusMatching(userId: string, latitude: number, longitude: number) {

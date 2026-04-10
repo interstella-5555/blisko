@@ -27,6 +27,7 @@ import type { UserRowStatus } from "../../src/components/nearby/UserRow";
 import { UserRow } from "../../src/components/nearby/UserRow";
 import { Button } from "../../src/components/ui/Button";
 import { IconPin, IconSettings } from "../../src/components/ui/icons";
+import { useRetryStatusMatchingOnFailure } from "../../src/hooks/useRetryStatusMatchingOnFailure";
 import { trpc } from "../../src/lib/trpc";
 import { useWebSocket, type WSMessage } from "../../src/lib/ws";
 import { useAuthStore } from "../../src/stores/authStore";
@@ -82,6 +83,7 @@ export default function NearbyScreen() {
     [utils.profiles.getNearbyUsersForMap.invalidate, ensureAnalysisMutate],
   );
   useWebSocket(wsHandler);
+  useRetryStatusMatchingOnFailure();
 
   const [isManualRefresh, setIsManualRefresh] = useState(false);
 
