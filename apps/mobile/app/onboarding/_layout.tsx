@@ -6,6 +6,7 @@ import { useAuthStore } from "../../src/stores/authStore";
 
 export default function OnboardingLayout() {
   const user = useAuthStore((state) => state.user);
+  const isAuthLoading = useAuthStore((state) => state.isLoading);
   const setProfile = useAuthStore((state) => state.setProfile);
   const setHasCheckedProfile = useAuthStore((state) => state.setHasCheckedProfile);
 
@@ -22,8 +23,8 @@ export default function OnboardingLayout() {
     }
   }, [profile, setProfile, setHasCheckedProfile]);
 
-  // Show loading while checking profile
-  if (isLoading) {
+  // Show loading while auth session restores or profile query runs
+  if (isAuthLoading || isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
