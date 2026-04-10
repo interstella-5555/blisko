@@ -7,6 +7,7 @@
 > Updated 2026-04-10 — Self-healing profiling: `questionFailed` event, profiling question BullMQ deduplication (BLI-161).
 > Updated 2026-04-10 — Self-healing profile generation: `profilingFailed` event, `generate-profile-from-qa` BullMQ deduplication (BLI-162).
 > Updated 2026-04-10 — Self-healing profile AI: `profileFailed` event, `retryProfileAI` mutation (BLI-163).
+> Updated 2026-04-10 — Self-healing status matching: `statusMatchingFailed` event, BullMQ deduplication, `retryStatusMatching` mutation (BLI-164).
 
 Single BullMQ queue powering all background work: AI analysis, profile generation, status matching, GDPR compliance, and admin actions. Source: `apps/api/src/services/queue.ts`.
 
@@ -168,9 +169,9 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 9. Publish `statusMatchesReady` WS event
 10. Send ambient push with 1-hour cooldown if matches found
 
-**JobId:** `status-matching-{userId}` (deterministic, no debounce)
+**Dedup:** BullMQ `deduplication` option (Simple Mode) with id `status-matching-{userId}`. Automatically releases dedup key on completion or failure — enables self-healing re-enqueue after failure.
 
-**`removeOnComplete`:** true (explicit)
+**`removeOnComplete`:** default
 
 ### 8. `proximity-status-matching` — Proximity-Triggered Status Match
 
@@ -313,6 +314,7 @@ When a job exhausts all retry attempts (3 by default with exponential backoff), 
 - **`generate-profiling-question`:** publishes `questionFailed` to the user. Mobile retries via `retryQuestion` (re-enqueues question generation with current QA state).
 - **`generate-profile-from-qa`:** publishes `profilingFailed` to the user. Mobile retries via `retryProfileGeneration` (re-enqueues profile generation with current QA state).
 - **`generate-profile-ai`:** publishes `profileFailed` to the user. Mobile retries via `retryProfileAI` (re-enqueues portrait/embedding/interest generation with current bio/lookingFor from DB).
+- **`status-matching`:** publishes `statusMatchingFailed` to the user. Mobile retries via `retryStatusMatching` (re-enqueues status matching if user still has active status and complete profile).
 
 **Self-healing loop:** The mobile client keeps retrying as long as the user is visible in the UI — there is no retry limit or badge clearing. Natural backoff: each BullMQ cycle takes ~35s (3 retries with exponential backoff 5s→10s→20s). The existing 30s self-healing timer (in the nearby screen) covers the case where the user was offline during the failure event.
 
