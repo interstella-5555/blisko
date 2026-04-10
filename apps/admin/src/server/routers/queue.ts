@@ -3,7 +3,7 @@ import type { Job } from "bullmq";
 import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
-import { getAiQueue, getOpsQueue } from "~/lib/queue";
+import { enqueueMaintenanceAndWait, getAiQueue, getOpsQueue } from "~/lib/queue";
 import { protectedProcedure, router } from "../trpc";
 
 const JOB_STATES = ["active", "waiting", "delayed", "completed", "failed"] as const;
@@ -75,6 +75,15 @@ export const queueRouter = router({
 
       return { jobs: result, nameMap };
     }),
+
+  runConsistencySweep: protectedProcedure.mutation(async () => {
+    const result = await enqueueMaintenanceAndWait("consistency-sweep", { type: "consistency-sweep" });
+    return result as {
+      zombieProfiles: { found: number; enqueued: number };
+      stuckSessions: { found: number; enqueued: number };
+      abandonedSessions: { found: number; cleaned: number };
+    };
+  }),
 
   stats: protectedProcedure.query(async () => {
     if (!process.env.REDIS_URL) {

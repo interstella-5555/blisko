@@ -10,6 +10,7 @@
 > Updated 2026-04-10 — Self-healing status matching: `statusMatchingFailed` event, BullMQ deduplication, `retryStatusMatching` mutation (BLI-164).
 > Updated 2026-04-10 — GDPR-safe export retry: 10 attempts/60s exponential backoff (~8.5h), `removeOnFail: false`, admin + user emails on permanent failure (BLI-165).
 > Updated 2026-04-10 — Split single `ai-jobs` queue into 3 queues (`ai`, `ops`, `maintenance`) grouped by bottleneck. Shared utilities in `queue-shared.ts` (BLI-171).
+> Updated 2026-04-10 — Nightly consistency sweep: `consistency-sweep` maintenance job (daily 3 AM), admin trigger, mobile startup health check (BLI-168).
 
 Three BullMQ queues grouped by bottleneck: AI (OpenAI-bound), Ops (DB/S3/email-bound critical operations), Maintenance (periodic fire-and-forget). Each has its own worker with independent concurrency and retention policies. Source files: `apps/api/src/services/queue.ts` (AI), `queue-ops.ts` (Ops), `queue-maintenance.ts` (Maintenance), `queue-shared.ts` (shared utilities).
 
@@ -34,7 +35,7 @@ Three queues backed by Redis (`REDIS_URL`). BullMQ uses ioredis internally; all 
 |---|---|---|---|---|---|
 | **AI** | `ai` | `queue.ts` | 50 | 8 (OpenAI-calling jobs) | OpenAI RPM/TPM |
 | **Ops** | `ops` | `queue-ops.ts` | 10 | 5 (GDPR, admin actions) | DB/S3/email |
-| **Maintenance** | `maintenance` | `queue-maintenance.ts` | 2 | 2 (periodic flush/prune) | None |
+| **Maintenance** | `maintenance` | `queue-maintenance.ts` | 2 | 3 (periodic flush/prune + nightly sweep) | None |
 
 **Why 3 queues:** Jobs grouped by shared bottleneck. AI jobs all compete for OpenAI API capacity and benefit from cross-type priority (`promotePairAnalysis`). Ops jobs are rare but critical — admin clicking "delete account" shouldn't wait behind 200 AI analysis jobs. Maintenance is fire-and-forget and needs no concurrency with either.
 
@@ -58,7 +59,7 @@ All three workers start at server startup from `src/index.ts`: `startAiWorker()`
 
 On startup, `startOpsWorker()` runs a one-time migration that moves any delayed `hard-delete-user` jobs from the old `ai-jobs` Redis queue to the new `ops` queue, preserving remaining delay time and job IDs. This handles the transition from the single-queue architecture.
 
-## Job Types (15 total)
+## Job Types (16 total)
 
 ### AI Queue (8 types) — `queue.ts`
 
@@ -275,7 +276,7 @@ On startup, `startOpsWorker()` runs a one-time migration that moves any delayed 
 
 **`removeOnComplete`:** true (via admin enqueue options)
 
-### Maintenance Queue (2 types) — `queue-maintenance.ts`
+### Maintenance Queue (3 types) — `queue-maintenance.ts`
 
 ### 14. `flush-push-log` — Push Log Batch Flush
 
@@ -300,6 +301,21 @@ On startup, `startOpsWorker()` runs a one-time migration that moves any delayed 
 **Trigger:** BullMQ repeatable job scheduler, every hour. Registered in `startMaintenanceWorker()`.
 
 **Processor logic:** `DELETE FROM push_sends WHERE created_at < NOW() - 7 days`.
+
+### 16. `consistency-sweep` — Nightly Consistency Sweep
+
+**What:** Scans for stuck state left by failed queue jobs and repairs it. Three checks: zombie profiles (bio exists but portrait/embedding missing), stuck profiling sessions (all Q&A answered but no generated profile), abandoned sessions (active >24h).
+
+**Trigger:** BullMQ repeatable job scheduler, daily at 3:00 AM (`pattern: "0 3 * * *"`). Also manually triggerable from admin panel via "Consistency Sweep" button on the queue page.
+
+**Processor logic:**
+1. Mark sessions active >24h as `abandoned` (cleanup first to avoid race with step 3)
+2. Find profiles with `bio` but null `portrait`, `updatedAt` > 1h → re-enqueue `generate-profile-ai`
+3. Find sessions status=`active`, `generatedBio` null, has sufficient Q&A, 1h-24h old → re-enqueue `generate-profile-from-qa`
+
+**Source:** `apps/api/src/services/consistency-sweep.ts` — `runConsistencySweep()` function shared between scheduler and admin trigger.
+
+**Returns:** `SweepResult` with counts for each category (found/enqueued/cleaned).
 
 ## Deduplication: `safeEnqueuePairJob`
 

@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { format, isToday } from "date-fns";
 import { pl } from "date-fns/locale";
-import { CircleIcon, LoaderIcon, PauseIcon, PlayIcon } from "lucide-react";
+import { CircleIcon, LoaderIcon, PauseIcon, PlayIcon, WrenchIcon } from "lucide-react";
 import { useState } from "react";
 import { DashboardHeader } from "~/components/dashboard-header";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
 import { trpc } from "~/lib/trpc";
 
@@ -52,6 +53,8 @@ function QueuePage() {
   const [typeFilter, setTypeFilter] = useState("");
   const [stateFilter, setStateFilter] = useState<JobState | "all">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const sweep = trpc.queue.runConsistencySweep.useMutation();
 
   const stats = trpc.queue.stats.useQuery(undefined, {
     refetchInterval: isLive ? 1000 : false,
@@ -156,8 +159,31 @@ function QueuePage() {
                 </>
               )}
             </button>
+
+            <Button variant="outline" size="sm" onClick={() => sweep.mutate()} disabled={sweep.isPending}>
+              <WrenchIcon className="size-3.5" />
+              {sweep.isPending ? "Skanowanie..." : "Consistency Sweep"}
+            </Button>
           </div>
         </div>
+
+        {/* Sweep result */}
+        {sweep.data && (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm">
+            <span className="font-medium text-green-800">Sweep zakończony:</span>{" "}
+            <span className="text-green-700">
+              {sweep.data.zombieProfiles.found} zombie profili (naprawiono {sweep.data.zombieProfiles.enqueued}),{" "}
+              {sweep.data.stuckSessions.found} zablokowanych sesji (naprawiono {sweep.data.stuckSessions.enqueued}),{" "}
+              {sweep.data.abandonedSessions.found} porzuconych sesji (wyczyszczono{" "}
+              {sweep.data.abandonedSessions.cleaned})
+            </span>
+          </div>
+        )}
+        {sweep.error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            Sweep error: {sweep.error.message}
+          </div>
+        )}
 
         {/* Table */}
         <div className="rounded-lg border">
