@@ -293,6 +293,31 @@ export function startOpsWorker() {
   });
 
   console.log("[queue:ops] Ops worker started");
+
+  // One-time migration: move delayed hard-delete jobs from legacy "ai-jobs" queue
+  void (async () => {
+    try {
+      const legacyQueue = new Queue("ai-jobs", { connection: getConnectionConfig() });
+      const delayedJobs = await legacyQueue.getJobs(["delayed"]);
+      let migrated = 0;
+      for (const job of delayedJobs) {
+        if (job.data?.type === "hard-delete-user") {
+          const remainingDelay = Math.max(0, job.timestamp + (job.opts.delay ?? 0) - Date.now());
+          const opsQueue = getOpsQueue();
+          await opsQueue.add("hard-delete-user", job.data, {
+            jobId: job.id ?? undefined,
+            delay: remainingDelay,
+          });
+          await job.remove();
+          migrated++;
+        }
+      }
+      if (migrated > 0) console.log(`[queue:ops] Migrated ${migrated} delayed hard-delete jobs from legacy queue`);
+      await legacyQueue.close();
+    } catch (err) {
+      console.error("[queue:ops] Legacy queue migration failed (non-critical):", err);
+    }
+  })();
 }
 
 // --- Enqueue functions ---
