@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { format, isToday } from "date-fns";
 import { pl } from "date-fns/locale";
 import { CircleIcon, LoaderIcon, PauseIcon, PlayIcon, WrenchIcon } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { DashboardHeader } from "~/components/dashboard-header";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -210,15 +210,15 @@ function QueuePage() {
               </TableHeader>
               <TableBody>
                 {jobs.map((job) => {
-                  const isExpanded = expandedId === job.id;
+                  const rowKey = `${job.source}:${job.id}`;
+                  const isExpanded = expandedId === rowKey;
                   return (
-                    <>
+                    <Fragment key={rowKey}>
                       <TableRow
-                        key={job.id}
                         className={`cursor-pointer transition-colors ${
                           job.state === "failed" ? "hover:bg-red-50" : "hover:bg-muted/50"
                         }`}
-                        onClick={() => setExpandedId(isExpanded ? null : job.id)}
+                        onClick={() => setExpandedId(isExpanded ? null : rowKey)}
                       >
                         <TableCell className="text-sm tabular-nums text-muted-foreground">
                           {formatTime(job.createdAt)}
@@ -251,7 +251,7 @@ function QueuePage() {
                         </TableCell>
                       </TableRow>
                       {isExpanded && (
-                        <TableRow key={`${job.id}-detail`}>
+                        <TableRow>
                           <TableCell colSpan={7} className="bg-muted/30 p-4">
                             <div className="space-y-2 text-sm">
                               <div>
@@ -283,7 +283,7 @@ function QueuePage() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
                 {jobs.length === 0 && (
