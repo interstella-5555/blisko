@@ -1,6 +1,7 @@
 # Infrastructure & Deployment
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-11 — added Dev-only HTTP endpoints section covering `/dev/auto-login`, `/dev/mark-complete`, `/dev/send-message` (BLI-178).
 
 Monorepo hosted on Railway. Runtime: Bun. Package manager: Bun workspaces. No Turborepo config file -- task orchestration uses Bun's `--filter` flag and root-level script aliases.
 
@@ -134,7 +135,7 @@ Migration script (`apps/api/src/migrate.ts`): imports `drizzle-orm/node-postgres
 | `BUCKET_ENDPOINT` | Tigris S3-compatible storage |
 | `BUCKET_NAME` | Tigris S3-compatible storage |
 | `IP_HASH_SALT` | Salt for hashing client IPs in metrics (default: `dev-salt`) |
-| `ENABLE_DEV_LOGIN` | `true` enables `/dev/auto-login` for @example.com emails |
+| `ENABLE_DEV_LOGIN` | `true` enables the entire `/dev/*` HTTP surface (see Dev-only HTTP endpoints below). Currently `true` in Railway production to support E2E tests seeded via `@repo/mobile`'s Maestro suite. |
 | `PORT` | HTTP port (default: 3000) |
 | `APPLE_CLIENT_ID` / `APPLE_CLIENT_SECRET` | Apple OAuth |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth |
@@ -142,6 +143,35 @@ Migration script (`apps/api/src/migrate.ts`): imports `drizzle-orm/node-postgres
 | `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | LinkedIn OAuth |
 
 **After changing any env var on a Railway service, immediately redeploy that service.**
+
+## Dev-only HTTP endpoints
+
+A small set of HTTP routes in `apps/api/src/index.ts` exists outside the tRPC router for E2E test seeding and local development. The entire block is guarded by:
+
+```ts
+if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "true") {
+  // all /dev/* endpoints registered here
+}
+```
+
+On Railway production, `ENABLE_DEV_LOGIN=true` so these routes **are live in prod**. They are unauthenticated by design — anyone who can reach `https://api.blisko.app` can call them. This is an accepted trust trade-off for letting the Maestro E2E suite run against production.
+
+| Endpoint | Method | Purpose | Bypasses |
+|----------|--------|---------|----------|
+| `/dev/auto-login` | POST | Create (or find) a `@example.com` user + session; returns `{ user, session, token }`. Body: `{ email }`. Rejects non-`@example.com` emails. | Magic link / OTP flow |
+| `/dev/mark-complete` | POST | Set `profiles.isComplete = true` for a given `userId`. Body: `{ userId }`. Used to unblock features gated by `isComplete` (waves, groups) without running the full profiling Q&A. | Profiling flow (no portrait/embedding/interests generated) |
+| `/dev/send-message` | POST | Insert a message row directly. Body: `{ conversationId, senderId, content }`. Returns `{ messageId }`. | tRPC `messages.send` rate limiter, content moderation, participant check, WS broadcast |
+
+**Why `/dev/send-message` bypasses tRPC:** the `messages.send` procedure has a `rateLimit` middleware that reads `input.conversationId` before `.input()` runs, producing `TypeError: input is undefined` for non-batched HTTP callers (bash/curl). The dev endpoint writes to the `messages` table directly to sidestep this.
+
+**Consumers:**
+- `apps/mobile/.maestro/chat/seed-chat.sh` — calls all three per test run
+- `packages/dev-cli/src/cli.ts` — `cleanup-e2e` removes users created by the seed script (email pattern `seed%@example.com`)
+
+**Gotchas:**
+- Messages inserted via `/dev/send-message` skip `moderateContent` — only safe for known-good seed text.
+- Profiles marked via `/dev/mark-complete` have `isComplete=true` but no `portrait`, `embedding`, or `interests`. They'll pass feature gates but fail AI tier-2/tier-3 matching.
+- The `/dev/*` surface has no per-endpoint rate limiting. Abuse protection is the URL-based obscurity + eventual cleanup.
 
 ## External Services
 
@@ -314,3 +344,4 @@ If you change this system, also check:
 - `gdpr-compliance.md` -- data export, anonymization job
 - `instrumentation.md` -- metrics middleware, Prometheus, query tracking
 - `mobile-architecture.md` -- Expo dependencies, env vars, build process
+- `e2e-test-coverage.md` -- consumers of `/dev/*` endpoints (seed script + dev-cli cleanup)

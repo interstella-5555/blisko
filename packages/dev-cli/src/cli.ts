@@ -252,24 +252,28 @@ program
 
     const ids = users.map((u) => u.id);
 
-    // Delete in dependency order (most FK are NO ACTION, not CASCADE)
-    await db.delete(schema.statusMatches).where(inArray(schema.statusMatches.userId, ids));
-    await db.delete(schema.statusMatches).where(inArray(schema.statusMatches.matchedUserId, ids));
-    await db.delete(schema.messageReactions).where(inArray(schema.messageReactions.userId, ids));
-    await db.delete(schema.messages).where(inArray(schema.messages.senderId, ids));
-    await db.delete(schema.conversationParticipants).where(inArray(schema.conversationParticipants.userId, ids));
-    await db.delete(schema.conversationRatings).where(inArray(schema.conversationRatings.userId, ids));
-    await db.delete(schema.conversations).where(inArray(schema.conversations.creatorId, ids));
-    await db.delete(schema.connectionAnalyses).where(inArray(schema.connectionAnalyses.fromUserId, ids));
-    await db.delete(schema.connectionAnalyses).where(inArray(schema.connectionAnalyses.toUserId, ids));
-    await db.delete(schema.waves).where(inArray(schema.waves.fromUserId, ids));
-    await db.delete(schema.waves).where(inArray(schema.waves.toUserId, ids));
-    await db.delete(schema.blocks).where(inArray(schema.blocks.blockerId, ids));
-    await db.delete(schema.blocks).where(inArray(schema.blocks.blockedId, ids));
-    await db.delete(schema.pushTokens).where(inArray(schema.pushTokens.userId, ids));
-    await db.delete(schema.topics).where(inArray(schema.topics.creatorId, ids));
-    // CASCADE tables (profiles, sessions, profiling_sessions, account) handled by DB
-    await db.delete(schema.user).where(inArray(schema.user.id, ids));
+    // Delete in dependency order (most FK are NO ACTION, not CASCADE).
+    // Wrapped in a transaction so a mid-list failure rolls back instead of
+    // leaving orphan rows pointing at deleted-but-present users.
+    await db.transaction(async (tx) => {
+      await tx.delete(schema.statusMatches).where(inArray(schema.statusMatches.userId, ids));
+      await tx.delete(schema.statusMatches).where(inArray(schema.statusMatches.matchedUserId, ids));
+      await tx.delete(schema.messageReactions).where(inArray(schema.messageReactions.userId, ids));
+      await tx.delete(schema.messages).where(inArray(schema.messages.senderId, ids));
+      await tx.delete(schema.conversationParticipants).where(inArray(schema.conversationParticipants.userId, ids));
+      await tx.delete(schema.conversationRatings).where(inArray(schema.conversationRatings.userId, ids));
+      await tx.delete(schema.conversations).where(inArray(schema.conversations.creatorId, ids));
+      await tx.delete(schema.connectionAnalyses).where(inArray(schema.connectionAnalyses.fromUserId, ids));
+      await tx.delete(schema.connectionAnalyses).where(inArray(schema.connectionAnalyses.toUserId, ids));
+      await tx.delete(schema.waves).where(inArray(schema.waves.fromUserId, ids));
+      await tx.delete(schema.waves).where(inArray(schema.waves.toUserId, ids));
+      await tx.delete(schema.blocks).where(inArray(schema.blocks.blockerId, ids));
+      await tx.delete(schema.blocks).where(inArray(schema.blocks.blockedId, ids));
+      await tx.delete(schema.pushTokens).where(inArray(schema.pushTokens.userId, ids));
+      await tx.delete(schema.topics).where(inArray(schema.topics.creatorId, ids));
+      // CASCADE tables (profiles, sessions, profiling_sessions, account) handled by DB
+      await tx.delete(schema.user).where(inArray(schema.user.id, ids));
+    });
 
     console.log(`  ✓ Deleted ${users.length} seed users + all related data`);
     process.exit(0);
