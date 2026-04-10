@@ -90,6 +90,7 @@ function AiCostsPage() {
   const topUsers = trpc.aiCosts.topUsers.useQuery({ window, limit: 20 }, { refetchInterval });
   const feed = trpc.aiCosts.feed.useQuery(
     {
+      window,
       jobName: jobNameFilter,
       userId: userFilter,
       status: statusFilter === "all" ? undefined : statusFilter,
