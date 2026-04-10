@@ -398,7 +398,7 @@ If you change this system, also check:
 - **Redis connection:** All 3 BullMQ queues, rate limiter, WS bridge, ambient push, message idempotency share `REDIS_URL`
 - **Queue config (attempts, backoff):** Each queue has its own defaults in its source file. Exception: `export-user-data` overrides ops defaults
 - **Service functions (`user-actions.ts`):** `softDeleteUser` and `restoreUser` are called by both user tRPC and ops BullMQ worker — changes affect both paths
-- **Admin BullMQ client:** Admin app connects to same Redis via `REDIS_URL`. Reads from `ai` + `ops` queues for the live feed. Writes to `ops` queue via `enqueueAndWait`. See `admin-panel.md`
+- **Admin BullMQ client:** Admin app connects to same Redis via `REDIS_URL`. Reads from `ai` + `ops` queues for the live feed. Writes via `enqueueAiAndWait` (AI jobs: reanalyze, regenerate) or `enqueueOpsAndWait` (ops jobs: delete, restore, disconnect). See `admin-panel.md`
 - **Admin live feed:** Polls `ai` + `ops` queues, merges results. Maintenance queue intentionally excluded. Source: `apps/admin/src/server/routers/queue.ts`
 - **Worker concurrency:** Each queue has independent concurrency. AI=50 (OpenAI I/O-bound), Ops=10 (DB-bound), Maintenance=2 (periodic)
 - **Shared worker logger:** `attachWorkerLogger()` in `queue-shared.ts` — handles Prometheus metrics + console logging for all 3 workers
