@@ -1,6 +1,7 @@
 # Mobile Architecture
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-10 — `messagesStore.updateMessage()` added for in-place message patches (fixes delete dropping message from list).
 
 React Native 0.81.5, Expo SDK 54, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
 
@@ -115,7 +116,9 @@ Source of truth for the chat list. Conversations sorted by `updatedAt` desc. Eac
 
 Per-conversation message cache using `Map<string, ChatCache>`. Each cache stores items (newest first for inverted FlatList), `hasMore` flag, and `oldestCursor` for pagination.
 
-**Key methods:** `set()`, `prepend()` (new messages, dedup), `appendOlder()` (pagination, dedup), `updateReaction()` (add/remove with count tracking). **Optimistic updates:** `addOptimistic()`, `replaceOptimistic()` (handles WS race --- if real message arrived first, removes temp), `removeOptimistic()`.
+**Key methods:** `set()`, `prepend()` (new messages, dedup), `appendOlder()` (pagination, dedup), `updateReaction()` (add/remove with count tracking). **Optimistic updates:** `addOptimistic()`, `replaceOptimistic()` (handles WS race — if real message arrived first, removes temp, otherwise swaps temp→real), `removeOptimistic()`, `updateMessage()` (in-place patch by messageId — used for optimistic delete to set `deletedAt` without removing the row).
+
+**Why `updateMessage` is separate from `replaceOptimistic`:** `replaceOptimistic` was designed for the send-race: if the real message is already in the list (delivered by WS), it **removes** the temp entry. Reusing it for delete would drop the message from the list instead of showing the "Wiadomość usunięta" placeholder. `updateMessage` patches an existing item in place.
 
 ### wavesStore
 

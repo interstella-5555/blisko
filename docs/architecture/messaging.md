@@ -1,8 +1,9 @@
 # Messaging & Chat
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-10 — added Message Delete (Client Optimistic Flow) section documenting the `updateMessage` store method and the context-menu positioning constant that keeps "Usuń" visible above the chat input bar.
 
-Source: `apps/api/src/trpc/procedures/messages.ts`, `apps/api/src/ws/handler.ts`, `apps/api/src/ws/events.ts`, `apps/api/src/db/schema.ts`, `packages/shared/src/validators.ts`.
+Source: `apps/api/src/trpc/procedures/messages.ts`, `apps/api/src/ws/handler.ts`, `apps/api/src/ws/events.ts`, `apps/api/src/db/schema.ts`, `packages/shared/src/validators.ts`, `apps/mobile/app/chat/[id].tsx`, `apps/mobile/src/stores/messagesStore.ts`, `apps/mobile/src/components/chat/MessageContextMenu.tsx`.
 
 ## Terminology & Product Alignment
 
@@ -175,6 +176,22 @@ Index: `reactions_user_emoji_idx` on (messageId, userId, emoji) — used for uni
 
 ---
 
+## Message Delete (Client Optimistic Flow)
+
+**What:** Individual message delete (`messages.deleteMessage`) sets `messages.deletedAt` server-side. Client renders a "Wiadomość usunięta" placeholder bubble for rows where `deletedAt` is set — the row stays in the list, content is hidden.
+
+**Why placeholder instead of removal:** Preserves conversation chronology and reply-threading references. Other participants see the same placeholder via the regular message fetch (no WS event is emitted for deletes; the next fetch/reconnect pulls the `deletedAt`).
+
+**Optimistic update path (mobile):** `chat/[id].tsx → deleteMessage.onMutate` patches the cached row via `messagesStore.updateMessage(convId, messageId, { deletedAt, content: "" })`. On error, it reverts via another `updateMessage` call that clears `deletedAt` and restores `content` from the captured original.
+
+**Important:** `replaceOptimistic` must NOT be used for delete. It was designed for the send-race (drop temp if real message already present) and will drop the target row from the list instead of marking it deleted.
+
+**Permission:** `isMine` check (`senderId === ctx.userId`) in the tRPC procedure and in the client context menu — only own messages can be deleted in DMs; admins/owners can delete any message in groups.
+
+**Context menu positioning:** The long-press context menu (`MessageContextMenu.tsx`) reserves `CHAT_INPUT_RESERVED = 72px` from the bottom in addition to the safe-area inset. Without this, long-pressing the last visible message renders the action menu under the chat input bar, clipping "Usuń".
+
+---
+
 ## Push Notification Behavior
 
 #### DM push: every message buzzes
@@ -252,3 +269,6 @@ If you change this system, also check:
 - **`packages/shared/src/validators.ts`** — sendMessageSchema, deleteMessageSchema, reactToMessageSchema, searchMessagesSchema
 - **`apps/api/src/services/data-export.ts`** — GDPR export includes messages
 - **`apps/api/src/services/moderation.ts`** — `moderateContent` called on text messages before insert (images/locations skipped)
+- **`apps/mobile/src/stores/messagesStore.ts`** — client message cache; `updateMessage()` for in-place patches (delete), `replaceOptimistic()` for send-race, `prepend()` for WS new messages
+- **`apps/mobile/src/components/chat/MessageContextMenu.tsx`** — long-press context menu; reserves `CHAT_INPUT_RESERVED` space at bottom so "Usuń" doesn't clip
+- **`apps/mobile/app/chat/[id].tsx`** — chat screen; `deleteMessage.onMutate` uses `updateMessage`, not `replaceOptimistic`
