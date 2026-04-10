@@ -15,6 +15,7 @@ function getConnectionConfig() {
 }
 
 let _aiQueue: Queue | null = null;
+let _aiQueueEvents: QueueEvents | null = null;
 let _opsQueue: Queue | null = null;
 let _opsQueueEvents: QueueEvents | null = null;
 
@@ -36,6 +37,13 @@ export function getOpsQueue(): Queue {
   return _opsQueue;
 }
 
+function getAiQueueEvents(): QueueEvents {
+  if (!_aiQueueEvents) {
+    _aiQueueEvents = new QueueEvents(AI_QUEUE_NAME, { connection: getConnectionConfig() });
+  }
+  return _aiQueueEvents;
+}
+
 function getOpsQueueEvents(): QueueEvents {
   if (!_opsQueueEvents) {
     _opsQueueEvents = new QueueEvents(OPS_QUEUE_NAME, { connection: getConnectionConfig() });
@@ -43,7 +51,22 @@ function getOpsQueueEvents(): QueueEvents {
   return _opsQueueEvents;
 }
 
-export async function enqueueAndWait<T extends Record<string, unknown>>(
+/** Enqueue an AI job and wait for it to finish. For admin-triggered AI operations (reanalyze, regenerate). */
+export async function enqueueAiAndWait<T extends Record<string, unknown>>(jobName: string, data: T): Promise<void> {
+  if (!process.env.REDIS_URL) {
+    throw new Error("REDIS_URL is not configured");
+  }
+
+  const job = await getAiQueue().add(jobName, data, {
+    removeOnComplete: { count: 200, age: 3600 },
+    removeOnFail: { count: 100 },
+  });
+
+  await job.waitUntilFinished(getAiQueueEvents(), JOB_TIMEOUT_MS);
+}
+
+/** Enqueue an ops job and wait for it to finish. For admin actions (delete, restore, disconnect). */
+export async function enqueueOpsAndWait<T extends Record<string, unknown>>(
   jobName: string,
   data: T,
   opts?: { jobId?: string },
