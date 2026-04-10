@@ -197,7 +197,7 @@ Sessions can chain: `basedOnSessionId` links to a previous session. When generat
 - `createGhostProfile` — displayName only
 
 **Behavior:**
-- If the content is flagged, throws `TRPCError` with code `BAD_REQUEST` and message "Tresc narusza regulamin"
+- If the content is flagged, throws `TRPCError` with code `BAD_REQUEST` and message `{ error: "CONTENT_MODERATED" }` (JSON string — mobile client parses this to show a localized error)
 - Logs the flagged categories (e.g., `harassment`, `sexual`, `hate`) as a warning
 - **Graceful degradation:** If the API returns an error (non-200), the function returns without blocking — content passes through. This prevents the moderation API from being a single point of failure.
 - **No-op when unconfigured:** If `OPENAI_API_KEY` is not set, moderation is silently skipped
@@ -212,6 +212,7 @@ Sessions can chain: `basedOnSessionId` links to a previous session. When generat
 | `questionFailed` | `{ userId, sessionId, questionNumber }` | Question generation permanently failed — mobile retries via `retryQuestion` |
 | `profilingComplete` | `{ userId, sessionId }` | Profile generation from Q&A completed, user can review |
 | `profilingFailed` | `{ userId, sessionId }` | Profile generation permanently failed — mobile retries via `retryProfileGeneration` |
+| `profileFailed` | `{ userId }` | Post-apply portrait + embedding + interests pipeline permanently failed — mobile retries via `retryProfileAI` |
 | `profileReady` | `{ userId }` | Portrait + embedding + interests pipeline finished (post-apply) |
 
 All events are published via `publishEvent()` which routes through Redis pub/sub for cross-replica delivery.

@@ -13,7 +13,7 @@ Parent doc: `docs/architecture/gdpr-compliance.md`
 |------------|------|-------------|
 | Usuwanie konta / dwufazowe | `requestDeletion` mutation | "Usun konto" button in settings |
 | Okres karencji / grace period | `user.deletedAt` + 14-day `hard-delete-user` delayed job | "Twoje konto jest w trakcie usuwania. Moze to potrwac do 14 dni." |
-| Anonimizacja | `processHardDeleteUser()` in `queue.ts` | "Usunięty użytkownik" (seen by other users) |
+| Anonimizacja | `processHardDeleteUser()` in `queue-ops.ts` | "Usunięty użytkownik" (seen by other users) |
 | Ping / wave | `waves` table | "Ping" (UI), "wave" (code) |
 
 ## Phase 1: Soft-Delete
@@ -81,7 +81,7 @@ A user who requested deletion should immediately vanish from others' views, even
 
 #### What
 
-`cancelHardDeleteUser()` in `queue.ts` looks up the BullMQ job by its deterministic ID (`hard-delete-${userId}`) and removes it. Used by `restoreUser()` in `apps/api/src/services/user-actions.ts`.
+`cancelHardDeleteUser()` in `queue-ops.ts` looks up the BullMQ job by its deterministic ID (`hard-delete-${userId}`) and removes it. Used by `restoreUser()` in `apps/api/src/services/user-actions.ts`.
 
 #### Why
 
@@ -91,7 +91,7 @@ No user-facing restore flow exists by design. Admin can restore accounts via the
 
 #### What
 
-The `processHardDeleteUser()` function in `apps/api/src/services/queue.ts` runs after the 14-day delay. Despite the legacy function name ("hard delete"), it performs anonymization, not deletion.
+The `processHardDeleteUser()` function in `apps/api/src/services/queue-ops.ts` runs after the 14-day delay. Despite the legacy function name ("hard delete"), it performs anonymization, not deletion.
 
 **Idempotency check:** If `user.anonymizedAt` is already set, the job logs and skips. This prevents double-processing if the job is retried.
 

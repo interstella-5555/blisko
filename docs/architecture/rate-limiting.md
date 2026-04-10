@@ -98,6 +98,10 @@ Pre-auth endpoints (OTP) must use IP because there is no user identity yet. The 
 | `metrics.summary` | 30 | 1 min | Prevents scraping of system health data. Applied via Hono middleware (IP-based). |
 | `metrics.prometheus` | 30 | 1 min | Prevents Prometheus endpoint abuse. Applied via Hono middleware (IP-based). |
 | `global` | 200 | 1 min | Catch-all for all authenticated requests. Normal usage: ~20-50 req/min max. |
+| `profiling.retryQuestion` | 10 | 1 hour | Self-healing re-enqueue after `questionFailed` WS event. Prevents retry-loop abuse. |
+| `profiling.retryProfileGeneration` | 10 | 1 hour | Self-healing re-enqueue after `profilingFailed` WS event. |
+| `profiles.retryProfileAI` | 10 | 1 hour | Self-healing re-enqueue after `profileFailed` WS event. |
+| `profiles.retryStatusMatching` | 10 | 1 hour | Self-healing re-enqueue after `statusMatchingFailed` WS event. |
 
 ## Rate Limits: WebSocket (in-memory, keyed by userId)
 

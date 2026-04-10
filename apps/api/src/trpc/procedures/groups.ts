@@ -143,6 +143,7 @@ export const groupsRouter = router({
           title: input.name ?? "Grupa",
           body: "Nowe zaproszenie do grupy",
           data: { type: "group", conversationId: conversation.id },
+          collapseId: `group-invite:${conversation.id}`,
         });
       }
 
@@ -442,6 +443,7 @@ export const groupsRouter = router({
       title: conv.name ?? "Grupa",
       body: "Nowe zaproszenie do grupy",
       data: { type: "group", conversationId: input.conversationId },
+      collapseId: `group-invite:${input.conversationId}`,
     });
 
     return { success: true };
@@ -701,7 +703,10 @@ export const groupsRouter = router({
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.conversationParticipants)
-        .where(eq(schema.conversationParticipants.conversationId, input.conversationId));
+        .innerJoin(schema.user, eq(schema.conversationParticipants.userId, schema.user.id))
+        .where(
+          and(eq(schema.conversationParticipants.conversationId, input.conversationId), isNull(schema.user.deletedAt)),
+        );
 
       // Members get full info; non-members get a preview
       if (!isMember) {
