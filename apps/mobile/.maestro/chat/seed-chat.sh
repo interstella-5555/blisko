@@ -115,10 +115,11 @@ fi
 # --- Step 4: Seed messages based on mode ---
 
 send_msg() {
-  local token="$1"
+  local sender_id="$1"
   local content="$2"
-  trpc_mutate "$token" "messages.send" \
-    "{\"conversationId\":\"$CONVERSATION_ID\",\"content\":\"$content\"}" \
+  curl -sf "$API/dev/send-message" \
+    -H "Content-Type: application/json" \
+    -d "{\"conversationId\":\"$CONVERSATION_ID\",\"senderId\":\"$sender_id\",\"content\":\"$content\"}" \
     > /dev/null
 }
 
@@ -127,42 +128,42 @@ case "$MODE" in
     # No messages — just the conversation
     ;;
   messages)
-    send_msg "$TOKEN_A" "Jak sie masz?"
-    send_msg "$TOKEN_B" "Hej! Dobrze, a Ty?"
-    send_msg "$TOKEN_A" "Super, dzieki za odpowiedz"
-    send_msg "$TOKEN_B" "Nie ma sprawy, milo Cie poznac"
-    send_msg "$TOKEN_A" "Wzajemnie! Co robisz w weekend?"
-    send_msg "$TOKEN_B" "Moze spotkamy sie na kawe?"
-    send_msg "$TOKEN_A" "Swietny pomysl!"
-    send_msg "$TOKEN_B" "To sie umawiamy"
-    send_msg "$TOKEN_A" "Jasne, do zobaczenia!"
-    send_msg "$TOKEN_B" "Na razie!"
+    send_msg "$USER_ID_A" "Jak sie masz?"
+    send_msg "$USER_ID_B" "Hej! Dobrze, a Ty?"
+    send_msg "$USER_ID_A" "Super, dzieki za odpowiedz"
+    send_msg "$USER_ID_B" "Nie ma sprawy, milo Cie poznac"
+    send_msg "$USER_ID_A" "Wzajemnie! Co robisz w weekend?"
+    send_msg "$USER_ID_B" "Moze spotkamy sie na kawe?"
+    send_msg "$USER_ID_A" "Swietny pomysl!"
+    send_msg "$USER_ID_B" "To sie umawiamy"
+    send_msg "$USER_ID_A" "Jasne, do zobaczenia!"
+    send_msg "$USER_ID_B" "Na razie!"
     ;;
   unread)
-    send_msg "$TOKEN_A" "Jak sie masz?"
-    send_msg "$TOKEN_B" "Hej! Dobrze, a Ty?"
-    send_msg "$TOKEN_A" "Swietnie, dzieki"
+    send_msg "$USER_ID_A" "Jak sie masz?"
+    send_msg "$USER_ID_B" "Hej! Dobrze, a Ty?"
+    send_msg "$USER_ID_A" "Swietnie, dzieki"
     # These messages from B will be unread by A
-    send_msg "$TOKEN_B" "Mam pytanie do Ciebie"
-    send_msg "$TOKEN_B" "Czy mozemy sie spotkac?"
-    send_msg "$TOKEN_B" "Odezwij sie jak bedziesz mogl"
+    send_msg "$USER_ID_B" "Mam pytanie do Ciebie"
+    send_msg "$USER_ID_B" "Czy mozemy sie spotkac?"
+    send_msg "$USER_ID_B" "Odezwij sie jak bedziesz mogl"
     ;;
   many)
     # 60 messages for pagination test
     for i in $(seq 1 30); do
-      send_msg "$TOKEN_A" "Wiadomosc od A numer $i"
-      send_msg "$TOKEN_B" "Odpowiedz od B numer $i"
+      send_msg "$USER_ID_A" "Wiadomosc od A numer $i"
+      send_msg "$USER_ID_B" "Odpowiedz od B numer $i"
     done
     ;;
   search)
-    send_msg "$TOKEN_A" "Jak sie masz?"
-    send_msg "$TOKEN_B" "Hej! Wszystko dobrze"
-    send_msg "$TOKEN_A" "Szukam restauracji na obiad"
-    send_msg "$TOKEN_B" "Polecam pizzerie na Mokotowie"
-    send_msg "$TOKEN_A" "UNIKALNA FRAZA TESTOWA do wyszukiwania"
-    send_msg "$TOKEN_B" "O czym mowisz?"
-    send_msg "$TOKEN_A" "To tylko test wyszukiwania"
-    send_msg "$TOKEN_B" "Aha, rozumiem"
+    send_msg "$USER_ID_A" "Jak sie masz?"
+    send_msg "$USER_ID_B" "Hej! Wszystko dobrze"
+    send_msg "$USER_ID_A" "Szukam restauracji na obiad"
+    send_msg "$USER_ID_B" "Polecam pizzerie na Mokotowie"
+    send_msg "$USER_ID_A" "UNIKALNA FRAZA TESTOWA do wyszukiwania"
+    send_msg "$USER_ID_B" "O czym mowisz?"
+    send_msg "$USER_ID_A" "To tylko test wyszukiwania"
+    send_msg "$USER_ID_B" "Aha, rozumiem"
     ;;
   *)
     echo "Unknown mode: $MODE" >&2

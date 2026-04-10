@@ -30,8 +30,6 @@ appId: com.blisko.app
 - inputText: "Testowa wiadomosc e2e"
 - waitForAnimationToEnd
 - tapOn:
-    point: "50%,10%"
-- tapOn:
     id: "chat-send-btn"
 
 # Wait for message to be sent and rendered
