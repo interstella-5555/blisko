@@ -1,4 +1,6 @@
+import { createDb, schema } from "@repo/db";
 import { Command } from "commander";
+import { inArray, like } from "drizzle-orm";
 
 const API = process.env.API_URL || "http://localhost:3000";
 
@@ -213,6 +215,77 @@ program
 
     await trpc("profiles.reanalyze", token, undefined);
     console.log("  ✓ Enqueued re-analysis for", email);
+  });
+
+// ── E2E test helpers ─────────────────────────────────────────────────
+
+function connectDb() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL not set. Use: bun --env-file=apps/api/.env.production run dev-cli -- ...");
+  return createDb(url);
+}
+
+program
+  .command("cleanup-e2e")
+  .description("Delete E2E seed users (email LIKE 'seed%@example.com') from database")
+  .option("--dry-run", "Show what would be deleted without deleting")
+  .action(async (opts: { dryRun?: boolean }) => {
+    const db = connectDb();
+
+    const users = await db
+      .select({ id: schema.user.id, email: schema.user.email })
+      .from(schema.user)
+      .where(like(schema.user.email, "seed%@example.com"));
+
+    if (users.length === 0) {
+      console.log("  No seed users found.");
+      process.exit(0);
+    }
+
+    console.log(`  Found ${users.length} seed users`);
+
+    if (opts.dryRun) {
+      for (const u of users) console.log(`    ${u.email} (${u.id})`);
+      console.log("  Dry run — nothing deleted.");
+      process.exit(0);
+    }
+
+    const ids = users.map((u) => u.id);
+
+    // Delete in dependency order (most FK are NO ACTION, not CASCADE)
+    await db.delete(schema.statusMatches).where(inArray(schema.statusMatches.userId, ids));
+    await db.delete(schema.statusMatches).where(inArray(schema.statusMatches.matchedUserId, ids));
+    await db.delete(schema.messageReactions).where(inArray(schema.messageReactions.userId, ids));
+    await db.delete(schema.messages).where(inArray(schema.messages.senderId, ids));
+    await db.delete(schema.conversationParticipants).where(inArray(schema.conversationParticipants.userId, ids));
+    await db.delete(schema.conversationRatings).where(inArray(schema.conversationRatings.userId, ids));
+    await db.delete(schema.conversations).where(inArray(schema.conversations.creatorId, ids));
+    await db.delete(schema.connectionAnalyses).where(inArray(schema.connectionAnalyses.fromUserId, ids));
+    await db.delete(schema.connectionAnalyses).where(inArray(schema.connectionAnalyses.toUserId, ids));
+    await db.delete(schema.waves).where(inArray(schema.waves.fromUserId, ids));
+    await db.delete(schema.waves).where(inArray(schema.waves.toUserId, ids));
+    await db.delete(schema.blocks).where(inArray(schema.blocks.blockerId, ids));
+    await db.delete(schema.blocks).where(inArray(schema.blocks.blockedId, ids));
+    await db.delete(schema.pushTokens).where(inArray(schema.pushTokens.userId, ids));
+    await db.delete(schema.topics).where(inArray(schema.topics.creatorId, ids));
+    // CASCADE tables (profiles, sessions, profiling_sessions, account) handled by DB
+    await db.delete(schema.user).where(inArray(schema.user.id, ids));
+
+    console.log(`  ✓ Deleted ${users.length} seed users + all related data`);
+    process.exit(0);
+  });
+
+program
+  .command("count-e2e")
+  .description("Count E2E seed users in database")
+  .action(async () => {
+    const db = connectDb();
+    const users = await db
+      .select({ id: schema.user.id })
+      .from(schema.user)
+      .where(like(schema.user.email, "seed%@example.com"));
+    console.log(`  Seed users: ${users.length}`);
+    process.exit(0);
   });
 
 // ── Main ──────────────────────────────────────────────────────────────
