@@ -20,6 +20,7 @@ import { Route as DashboardPushLogRouteImport } from './routes/dashboard/push-lo
 import { Route as DashboardMatchingRouteImport } from './routes/dashboard/matching'
 import { Route as DashboardGroupsRouteImport } from './routes/dashboard/groups'
 import { Route as DashboardConversationsRouteImport } from './routes/dashboard/conversations'
+import { Route as DashboardAiCostsRouteImport } from './routes/dashboard/ai-costs'
 import { Route as ApiVerifyOtpRouteImport } from './routes/api/verify-otp'
 import { Route as ApiRequestOtpRouteImport } from './routes/api/request-otp'
 import { Route as ApiLogoutRouteImport } from './routes/api/logout'
@@ -80,6 +81,11 @@ const DashboardConversationsRoute = DashboardConversationsRouteImport.update({
   path: '/conversations',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardAiCostsRoute = DashboardAiCostsRouteImport.update({
+  id: '/ai-costs',
+  path: '/ai-costs',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const ApiVerifyOtpRoute = ApiVerifyOtpRouteImport.update({
   id: '/api/verify-otp',
   path: '/api/verify-otp',
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/api/logout': typeof ApiLogoutRoute
   '/api/request-otp': typeof ApiRequestOtpRoute
   '/api/verify-otp': typeof ApiVerifyOtpRoute
+  '/dashboard/ai-costs': typeof DashboardAiCostsRoute
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/api/logout': typeof ApiLogoutRoute
   '/api/request-otp': typeof ApiRequestOtpRoute
   '/api/verify-otp': typeof ApiVerifyOtpRoute
+  '/dashboard/ai-costs': typeof DashboardAiCostsRoute
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/api/logout': typeof ApiLogoutRoute
   '/api/request-otp': typeof ApiRequestOtpRoute
   '/api/verify-otp': typeof ApiVerifyOtpRoute
+  '/dashboard/ai-costs': typeof DashboardAiCostsRoute
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/api/logout'
     | '/api/request-otp'
     | '/api/verify-otp'
+    | '/dashboard/ai-costs'
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/api/logout'
     | '/api/request-otp'
     | '/api/verify-otp'
+    | '/dashboard/ai-costs'
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/api/logout'
     | '/api/request-otp'
     | '/api/verify-otp'
+    | '/dashboard/ai-costs'
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
@@ -294,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardConversationsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/ai-costs': {
+      id: '/dashboard/ai-costs'
+      path: '/ai-costs'
+      fullPath: '/dashboard/ai-costs'
+      preLoaderRoute: typeof DashboardAiCostsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/api/verify-otp': {
       id: '/api/verify-otp'
       path: '/api/verify-otp'
@@ -326,6 +345,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface DashboardRouteChildren {
+  DashboardAiCostsRoute: typeof DashboardAiCostsRoute
   DashboardConversationsRoute: typeof DashboardConversationsRoute
   DashboardGroupsRoute: typeof DashboardGroupsRoute
   DashboardMatchingRoute: typeof DashboardMatchingRoute
@@ -337,6 +357,7 @@ interface DashboardRouteChildren {
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardAiCostsRoute: DashboardAiCostsRoute,
   DashboardConversationsRoute: DashboardConversationsRoute,
   DashboardGroupsRoute: DashboardGroupsRoute,
   DashboardMatchingRoute: DashboardMatchingRoute,
