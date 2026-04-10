@@ -382,31 +382,33 @@ export const profilingRouter = router({
         await moderateContent(allText);
       }
 
-      // Abandon any existing active session
-      await db
-        .update(schema.profilingSessions)
-        .set({ status: "abandoned" })
-        .where(and(eq(schema.profilingSessions.userId, ctx.userId), eq(schema.profilingSessions.status, "active")));
-
-      // Create new session
-      const [session] = await db.insert(schema.profilingSessions).values({ userId: ctx.userId }).returning();
-
       const questionMap = new Map(ONBOARDING_QUESTIONS.map((q) => [q.id, q.question]));
 
-      // Batch insert all standard answers
-      await db.insert(schema.profilingQA).values(
-        input.answers.map((a, idx) => ({
-          sessionId: session.id,
-          questionNumber: idx + 1,
-          question: questionMap.get(a.questionId) ?? a.questionId,
-          answer: a.answer,
-          sufficient: false,
-        })),
-      );
+      // Transaction: abandon old session + create new + insert answers atomically
+      const session = await db.transaction(async (tx) => {
+        await tx
+          .update(schema.profilingSessions)
+          .set({ status: "abandoned" })
+          .where(and(eq(schema.profilingSessions.userId, ctx.userId), eq(schema.profilingSessions.status, "active")));
+
+        const [newSession] = await tx.insert(schema.profilingSessions).values({ userId: ctx.userId }).returning();
+
+        await tx.insert(schema.profilingQA).values(
+          input.answers.map((a, idx) => ({
+            sessionId: newSession.id,
+            questionNumber: idx + 1,
+            question: questionMap.get(a.questionId) ?? a.questionId,
+            answer: a.answer,
+            sufficient: false,
+          })),
+        );
+
+        return newSession;
+      });
 
       const questionNumber = input.answers.length;
 
-      // Generate follow-up questions inline (~2-3s)
+      // Generate follow-up questions inline (~2-3s), outside transaction
       const displayName = await getDisplayName(ctx.userId);
       const answeredQA = input.answers.map((a) => ({
         question: questionMap.get(a.questionId) ?? a.questionId,
