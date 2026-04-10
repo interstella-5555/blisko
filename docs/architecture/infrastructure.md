@@ -159,33 +159,15 @@ Graceful degradation: if `OPENAI_API_KEY` is not set, AI functions return empty 
 
 ### BullMQ (Redis)
 
-Queue name: `ai-jobs`. Single queue for all job types.
+Three queues grouped by bottleneck. See `queues-jobs.md` for full job type documentation.
 
-**Config:**
+| Queue | Source file | Concurrency | Job types | Retention (failed) |
+|---|---|---|---|---|
+| `ai` | `queue.ts` | 50 | 8 AI job types | count: 100 |
+| `ops` | `queue-ops.ts` | 10 | 5 GDPR/admin types | age: 90 days |
+| `maintenance` | `queue-maintenance.ts` | 2 | 2 periodic types | count: 10 |
 
-| Setting | Value |
-|---------|-------|
-| Queue name | `ai-jobs` |
-| Worker concurrency | `50` |
-| Default attempts | `3` |
-| Backoff | Exponential, 5000ms base delay |
-| `removeOnComplete` | `true` |
-| `removeOnFail.count` | `100` (keep last 100 failed jobs) |
-
-**Job types:**
-
-| Type | Priority | Description |
-|------|----------|-------------|
-| `analyze-pair` | 1-N (ranked) | Full bidirectional AI connection analysis (T3). Deduped by `pair-{userAId}-{userBId}` job ID. |
-| `quick-score` | default | Numeric-only AI score (T2). Skips if T3 already exists. |
-| `analyze-user-pairs` | default | Fan-out: finds nearby users, enqueues `analyze-pair` jobs ranked by similarity. |
-| `generate-profile-ai` | default | Generates portrait, embedding, interests from bio+lookingFor. |
-| `generate-profiling-question` | default | AI generates next Q&A question. |
-| `generate-profile-from-qa` | default | AI generates bio/lookingFor/portrait from Q&A history. |
-| `status-matching` | default | Evaluates status matches for a user against nearby users. |
-| `proximity-status-matching` | default | Triggered by location update -- matches moving user against nearby status-setters. |
-| `hard-delete-user` | default | GDPR anonymization. Delayed 14 days (1,209,600,000ms). |
-| `export-user-data` | default | GDPR data export. Collects all user data, uploads JSON to S3, emails download link. |
+All three workers start in the same API process. Shared utilities in `queue-shared.ts`.
 
 **Ambient push cooldown:** After status match is found, push notification is sent with 1-hour Redis cooldown per user (`ambient-push:{userId}`, TTL 3600s) to prevent notification fatigue.
 
@@ -213,7 +195,7 @@ Uses Bun's built-in `S3Client`. Three usage points in the codebase:
 
 1. **File uploads** (`POST /uploads` in `index.ts`): Max 5MB, images only. Presigned URLs with 7-day expiry.
 2. **GDPR data export** (`data-export.ts`): JSON file uploaded, presigned URL emailed. 7-day link expiry.
-3. **Anonymization** (`queue.ts` hard-delete): Deletes avatar and portrait S3 files.
+3. **Anonymization** (`queue-ops.ts` hard-delete): Deletes avatar and portrait S3 files.
 
 ### WebSocket (Bun native)
 
