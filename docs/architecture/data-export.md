@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — GDPR-safe retry: 10 attempts over ~8.5h, admin alert email, user delay notification (BLI-165).
+> Updated 2026-04-10 — Added generated profile fields to profilingSessions export (BLI-173).
 
 GDPR/RODO Art. 15 (right of access) and Art. 20 (right to data portability). User requests export from mobile app settings, receives an email with a presigned S3 download link within minutes.
 
@@ -161,6 +162,10 @@ Conversations are exported with full message history. Only conversations where t
 | Field | Export key | Notes |
 |-------|-----------|-------|
 | session `createdAt` | `profilingSessions[].createdAt` | ISO 8601 |
+| `status` | `profilingSessions[].status` | `"active"` / `"completed"` / `"abandoned"` |
+| `generatedBio` | `profilingSessions[].generatedBio` | AI-generated bio text or null |
+| `generatedLookingFor` | `profilingSessions[].generatedLookingFor` | AI-generated lookingFor text or null |
+| `generatedPortrait` | `profilingSessions[].generatedPortrait` | AI-generated personality portrait or null |
 | `question` | `profilingSessions[].questions[].question` | AI-generated question text |
 | `answer` | `profilingSessions[].questions[].answer` | User's answer or null |
 

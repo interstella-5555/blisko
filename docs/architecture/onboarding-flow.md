@@ -1,6 +1,7 @@
 # Onboarding Flow
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-10 --- Onboarding audit fixes: ghost-to-full visibility transition, inline AI fallback, answer persistence (BLI-173).
 
 Onboarding turns a freshly authenticated user into a discoverable profile. Two paths: full AI-driven profiling (visible on map) or ghost profile (invisible, group-invite only). The flow generates a bio, "looking for" text, personality portrait, embedding vector, and extracted interests --- all via async BullMQ jobs with WS notification on completion.
 
@@ -79,7 +80,7 @@ Answers stored in `onboardingStore.answers` (Record<questionId, string>). Skippe
 
 #### Phase: submitting
 
-After the last question, calls `profiling.submitOnboarding` mutation with all answers + skipped list. Server validates required questions, moderates content, creates a `profilingSessions` row, batch-inserts all answers into `profilingQA`, then calls `generateFollowUpQuestions` inline.
+After the last question, calls `profiling.submitOnboarding` mutation (rate-limited: 5/5min) with all answers + skipped list. Server validates required questions, moderates content, creates a `profilingSessions` row, batch-inserts all answers into `profilingQA`, then calls `generateFollowUpQuestions` inline. If the AI call fails (OpenAI outage, rate limit), it degrades gracefully --- returns 0 follow-ups and proceeds directly to profile generation.
 
 Shows: ThinkingIndicator with "Analizuje Twoje odpowiedzi..."
 
@@ -111,7 +112,7 @@ Once generated data arrives (`generatedBio`, `generatedLookingFor`, optionally `
 - **"Tak, to ja"** button --- requires bio >= 10 chars and lookingFor >= 10 chars
 
 Calls `profiling.applyProfile` which:
-1. Upserts profile (insert or update on conflict) with displayName, bio, lookingFor, portrait, portraitSharedForMatching, `isComplete: true`
+1. Upserts profile (insert or update on conflict) with displayName, bio, lookingFor, portrait, portraitSharedForMatching, `isComplete: true`, `visibilityMode: "semi_open"`. The visibility mode change ensures ghost users who later complete profiling become visible in discovery.
 2. Copies OAuth avatar URL to profile if available
 3. Enqueues `profileAI` job (embedding + interests extraction)
 4. Sets authStore profile and hasCheckedProfile, marks onboarding complete
@@ -204,6 +205,8 @@ Users can redo profiling from Settings > Profilowanie (`settings/profiling.tsx`)
 | `isGhost` | boolean | Whether ghost path was chosen |
 
 `reset()` clears all fields. Called on logout and fresh onboarding start.
+
+**Persistence:** The store uses `zustand/middleware` persist with `expo-secure-store` as the storage backend. Persisted fields: `displayName`, `profilingSessionId`, `answers`, `skipped`, `isGhost`. This means answers survive app kills and restarts --- the user can resume onboarding from where they left off. Non-persisted fields (`bio`, `lookingFor`, `step`, `isComplete`) are transient UI state that resets on mount.
 
 ---
 
