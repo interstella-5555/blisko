@@ -29,7 +29,8 @@ appId: com.blisko.app
     id: "chat-input"
 - inputText: "Testowa wiadomosc e2e"
 - waitForAnimationToEnd
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn:
     id: "chat-send-btn"
 

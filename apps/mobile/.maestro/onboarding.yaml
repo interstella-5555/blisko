@@ -20,7 +20,8 @@ appId: com.blisko.app
     id: "email-input"
 - inputRandomNumber
 - inputText: "@example.com"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn:
     id: "send-link-button"
 
@@ -44,7 +45,8 @@ appId: com.blisko.app
     id: "name-input"
 - eraseText: 30
 - inputText: "Test User E2E"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - waitForAnimationToEnd
 
 - tapOn:
@@ -73,7 +75,8 @@ appId: com.blisko.app
 - tapOn:
     id: "question-input"
 - inputText: "Programista, w wolnym czasie gram na gitarze i biegam po parku"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn: "(?i)Dalej"
 
 # Q2 (optional) — recent_obsession
@@ -83,7 +86,8 @@ appId: com.blisko.app
 - tapOn:
     id: "question-input"
 - inputText: "Serial o kosmosie i nowa gra planszowa"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn: "(?i)Dalej"
 
 # Q3 (required) — looking_for
@@ -93,7 +97,8 @@ appId: com.blisko.app
 - tapOn:
     id: "question-input"
 - inputText: "Szukam ludzi do wspolnych projektow i aktywnosci sportowych"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn: "(?i)Dalej"
 
 # Q4 (optional) — activities
@@ -103,7 +108,8 @@ appId: com.blisko.app
 - tapOn:
     id: "question-input"
 - inputText: "Bieganie, gry planszowe, jam session"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn: "(?i)Dalej"
 
 # Q5 (optional) — offer
@@ -113,7 +119,8 @@ appId: com.blisko.app
 - tapOn:
     id: "question-input"
 - inputText: "Pomoc z programowaniem i gitara basowa"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn: "(?i)Dalej"
 
 # Q6 (optional) — conversation_trigger
@@ -123,7 +130,8 @@ appId: com.blisko.app
 - tapOn:
     id: "question-input"
 - inputText: "Wspolne zainteresowania albo ciekawy pomysl na projekt"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn: "(?i)Dalej"
 
 # Q7 (optional) — public_self
@@ -133,7 +141,8 @@ appId: com.blisko.app
 - tapOn:
     id: "question-input"
 - inputText: "Otwarty na nowe znajomosci i przygody w okolicy"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn: "(?i)Dalej"
 
 # --- SUBMISSION + FOLLOW-UPS (0-3, non-deterministic) ---
@@ -149,7 +158,8 @@ appId: com.blisko.app
 - tapOn:
     id: "question-input"
 - inputText: "Lubie poznawac nowych ludzi i pracowac razem nad projektami"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn: "(?i)Dalej"
 
 # Follow-up 2 (if present)
@@ -161,7 +171,8 @@ appId: com.blisko.app
       - tapOn:
           id: "question-input"
       - inputText: "Interesuje mnie muzyka, sport i gry planszowe"
-      - hideKeyboard
+      - tapOn:
+          point: "50%,10%"
       - tapOn: "(?i)Dalej"
 
 # Follow-up 3 (if present)
@@ -173,7 +184,8 @@ appId: com.blisko.app
       - tapOn:
           id: "question-input"
       - inputText: "Szukam ludzi do wspolnych projektow i inicjatyw"
-      - hideKeyboard
+      - tapOn:
+          point: "50%,10%"
       - tapOn: "(?i)Dalej"
 
 # --- AI PROFILE GENERATION + REVIEW ---

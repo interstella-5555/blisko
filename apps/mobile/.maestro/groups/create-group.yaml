@@ -1,10 +1,10 @@
 appId: com.blisko.app
-env:
-  EMAIL: user10@example.com
 ---
 # Create Group — Full Screen Flow
 # Tests: navigating to create-group opens as full screen (not modal),
 # filling in name, and successfully creating a group
+# Requires seeded user: run via ../chat/run-test.sh create-group empty
+# or set EMAIL env var to a user with a profile
 
 - runFlow:
     file: ../sub-flows/login-seeded.yaml
@@ -33,12 +33,14 @@ env:
 - tapOn:
     id: "group-name-input"
 - inputText: "Test Grupa E2E"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 
 - tapOn:
     id: "group-description-input"
 - inputText: "Grupa testowa utworzona przez Maestro"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 
 # --- CREATE ---
 - tapOn:

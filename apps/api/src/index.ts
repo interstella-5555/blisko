@@ -123,6 +123,23 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
       return c.json({ error: "Failed to auto-login", details: String(error) }, 500);
     }
   });
+
+  // Mark profile as complete (for E2E seed scripts — bypasses profiling flow)
+  app.post("/dev/mark-complete", async (c) => {
+    try {
+      const { userId } = await c.req.json();
+      if (!userId) return c.json({ error: "userId required" }, 400);
+
+      const { db } = await import("./db");
+      const { profiles } = await import("./db/schema");
+      const { eq } = await import("drizzle-orm");
+
+      await db.update(profiles).set({ isComplete: true }).where(eq(profiles.userId, userId));
+      return c.json({ ok: true });
+    } catch (error) {
+      return c.json({ error: "Failed to mark complete", details: String(error) }, 500);
+    }
+  });
 }
 
 // File uploads — S3-compatible object storage (Bun built-in S3Client)
