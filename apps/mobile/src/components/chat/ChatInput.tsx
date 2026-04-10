@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Keyboard, type LayoutChangeEvent, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fonts, spacing } from "../../theme";
-import { IconCamera, IconPin } from "../ui/icons";
+
+// MVP: IconCamera, IconPin imports removed while photo/location buttons are
+// commented out below — re-add when restoring.
 
 interface ReplyingTo {
   id: string;
@@ -17,15 +19,19 @@ interface ChatInputProps {
   replyingTo?: ReplyingTo | null;
   onCancelReply?: () => void;
   onTyping?: () => void;
+  /** Forwarded to the root container for measuring the bar height (used by MessageContextMenu). */
+  onLayout?: (e: LayoutChangeEvent) => void;
 }
 
 export function ChatInput({
   onSend,
-  onSendImage,
-  onSendLocation,
+  // onSendImage, onSendLocation — MVP: destructuring omitted while the
+  // photo/location buttons are commented out below. Props stay on the
+  // interface so callers don't need to change when the buttons return.
   replyingTo,
   onCancelReply,
   onTyping,
+  onLayout,
 }: ChatInputProps) {
   const [text, setText] = useState("");
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -55,7 +61,7 @@ export function ChatInput({
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: keyboardVisible ? 0 : bottom }]}>
+    <View style={[styles.container, { paddingBottom: keyboardVisible ? 0 : bottom }]} onLayout={onLayout}>
       {replyingTo && (
         <View style={styles.replyBar}>
           <View style={styles.replyContent}>
@@ -70,12 +76,18 @@ export function ChatInput({
         </View>
       )}
       <View style={styles.inputRow}>
-        <Pressable style={styles.mediaBtn} onPress={onSendImage} hitSlop={4} testID="chat-photo-btn">
+        {/* MVP: photo + location send buttons hidden. The underlying
+            handlers (onSendImage, onSendLocation) and the message
+            renderers for type=image / type=location still exist on the
+            screen and in MessageBubble — restore the buttons when the
+            UX for attachment preview, upload progress, and permission
+            prompts is polished. */}
+        {/* <Pressable style={styles.mediaBtn} onPress={onSendImage} hitSlop={4} testID="chat-photo-btn">
           <IconCamera size={20} color={colors.muted} />
         </Pressable>
         <Pressable style={styles.mediaBtn} onPress={onSendLocation} hitSlop={4} testID="chat-location-btn">
           <IconPin size={20} color={colors.muted} />
-        </Pressable>
+        </Pressable> */}
         <TextInput
           ref={inputRef}
           style={styles.input}

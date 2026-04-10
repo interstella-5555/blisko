@@ -9,6 +9,7 @@ import {
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
+  type LayoutChangeEvent,
   Platform,
   Pressable,
   StyleSheet,
@@ -22,6 +23,7 @@ import { type ContextMenuData, MessageContextMenu } from "@/components/chat/Mess
 import { Avatar } from "@/components/ui/Avatar";
 import { IconBell, IconBellOff, IconChevronLeft } from "@/components/ui/icons";
 import { trpc } from "@/lib/trpc";
+import { uuidv4 } from "@/lib/uuid";
 import { useTypingIndicator } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationsStore } from "@/stores/conversationsStore";
@@ -54,6 +56,15 @@ export default function ChatScreen() {
   } | null>(null);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuData | null>(null);
+  // Measured ChatInput height — fed to MessageContextMenu so it can reserve
+  // the correct bottom space (the input grows with multi-line drafts).
+  // Guard the setter so it only updates when height actually changes —
+  // otherwise onLayout → setState → re-render → onLayout loops.
+  const [chatInputHeight, setChatInputHeight] = useState(72);
+  const handleChatInputLayout = useCallback((e: LayoutChangeEvent) => {
+    const h = e.nativeEvent.layout.height;
+    setChatInputHeight((prev) => (Math.abs(prev - h) > 0.5 ? h : prev));
+  }, []);
   const messageRefs = useRef(new Map<string, View>());
 
   // Get conversation from store — detect group mode
@@ -241,11 +252,32 @@ export default function ChatScreen() {
       });
       return { tempId };
     },
-    onSuccess: (_data, _vars, context) => {
-      // WS event will prepend the real message; remove the temp
-      if (context?.tempId) {
-        useMessagesStore.getState().removeOptimistic(conversationId!, context.tempId);
-      }
+    onSuccess: (data, _vars, context) => {
+      // Swap temp with real mutation response. `replaceOptimistic` handles
+      // the WS race: if the real message already arrived via websocket, it
+      // drops the temp; otherwise it patches the temp into the real row.
+      // Relying on WS alone caused the bubble to flash and disappear
+      // whenever the WS event was delayed or missing.
+      if (!context?.tempId || !data) return;
+      // Server returns the raw message row — reshape into EnrichedMessage
+      // with defaults for fields the listing queries would add later.
+      const raw = data as Record<string, unknown>;
+      const enriched: EnrichedMessage = {
+        id: raw.id as string,
+        conversationId: raw.conversationId as string,
+        senderId: raw.senderId as string,
+        content: raw.content as string,
+        type: (raw.type as string) ?? "text",
+        metadata: (raw.metadata as Record<string, unknown> | null) ?? null,
+        replyToId: (raw.replyToId as string | null) ?? null,
+        topicId: (raw.topicId as string | null) ?? null,
+        createdAt: typeof raw.createdAt === "string" ? raw.createdAt : new Date(raw.createdAt as string).toISOString(),
+        readAt: (raw.readAt as string | null) ?? null,
+        deletedAt: (raw.deletedAt as string | null) ?? null,
+        replyTo: replyingToRef.current,
+        reactions: [],
+      };
+      useMessagesStore.getState().replaceOptimistic(conversationId!, context.tempId, enriched);
     },
     onError: (_err, _vars, context) => {
       if (context?.tempId) {
@@ -290,7 +322,7 @@ export default function ChatScreen() {
         content: text,
         replyToId,
         topicId,
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey: uuidv4(),
       });
     },
     [conversationId, topicId, sendMessage],
@@ -376,7 +408,7 @@ export default function ChatScreen() {
           width: asset.width,
           height: asset.height,
         },
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey: uuidv4(),
       });
     } catch (_error) {
       Alert.alert("Błąd", "Nie udało się wysłać zdjęcia");
@@ -401,7 +433,7 @@ export default function ChatScreen() {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         },
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey: uuidv4(),
       });
     } catch (_error) {
       Alert.alert("Błąd", "Nie udało się pobrać lokalizacji");
@@ -621,18 +653,21 @@ export default function ChatScreen() {
         </View>
       )}
 
-      <ChatInput
-        onSend={handleSend}
-        onSendImage={handleSendImage}
-        onSendLocation={handleSendLocation}
-        replyingTo={replyingTo}
-        onCancelReply={() => setReplyingTo(null)}
-        onTyping={() => sendTyping(true)}
-      />
+      <View onLayout={handleChatInputLayout}>
+        <ChatInput
+          onSend={handleSend}
+          onSendImage={handleSendImage}
+          onSendLocation={handleSendLocation}
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
+          onTyping={() => sendTyping(true)}
+        />
+      </View>
 
       {contextMenu && (
         <MessageContextMenu
           data={contextMenu}
+          chatInputHeight={chatInputHeight}
           onReact={(emoji) => {
             reactToMessage.mutate({ messageId: contextMenu.messageId, emoji });
           }}

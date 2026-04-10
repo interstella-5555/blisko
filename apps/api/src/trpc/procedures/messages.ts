@@ -445,9 +445,13 @@ export const messagesRouter = router({
 
   // Send a message
   send: protectedProcedure
-    .use(rateLimit("messages.send", ({ input }) => input.conversationId))
-    .use(rateLimit("messages.sendGlobal"))
+    // .input() must come before any rateLimit that reads fields from input —
+    // in tRPC middleware runs in declaration order, and before .input() runs
+    // the input parser, `input` in middleware context is undefined, so
+    // `input.conversationId` throws "undefined is not an object".
     .input(sendMessageSchema)
+    .use(rateLimit("messages.send", ({ input }) => (input as { conversationId: string }).conversationId))
+    .use(rateLimit("messages.sendGlobal"))
     .mutation(async ({ ctx, input }) => {
       // Verify user is participant
       const participant = await db.query.conversationParticipants.findFirst({
