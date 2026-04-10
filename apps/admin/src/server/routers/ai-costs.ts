@@ -5,11 +5,11 @@ import { z } from "zod";
 import { db } from "~/lib/db";
 import { protectedProcedure, router } from "../trpc";
 
-const WINDOW = z.enum(["24h", "7d"]);
-type Window = z.infer<typeof WINDOW>;
+const TIMEFRAME = z.enum(["24h", "7d"]);
+type Timeframe = z.infer<typeof TIMEFRAME>;
 
-function windowStart(window: Window): Date {
-  return window === "24h" ? subHours(new Date(), 24) : subDays(new Date(), 7);
+function timeframeStart(timeframe: Timeframe): Date {
+  return timeframe === "24h" ? subHours(new Date(), 24) : subDays(new Date(), 7);
 }
 
 async function resolveDisplayNames(userIds: string[]): Promise<Record<string, string>> {
@@ -22,8 +22,8 @@ async function resolveDisplayNames(userIds: string[]): Promise<Record<string, st
 }
 
 export const aiCostsRouter = router({
-  summary: protectedProcedure.input(z.object({ window: WINDOW })).query(async ({ input }) => {
-    const since = windowStart(input.window);
+  summary: protectedProcedure.input(z.object({ timeframe: TIMEFRAME })).query(async ({ input }) => {
+    const since = timeframeStart(input.timeframe);
 
     const [[agg], [top]] = await Promise.all([
       db
@@ -58,8 +58,8 @@ export const aiCostsRouter = router({
     };
   }),
 
-  byJobName: protectedProcedure.input(z.object({ window: WINDOW })).query(async ({ input }) => {
-    const since = windowStart(input.window);
+  byJobName: protectedProcedure.input(z.object({ timeframe: TIMEFRAME })).query(async ({ input }) => {
+    const since = timeframeStart(input.timeframe);
     const rows = await db
       .select({
         jobName: schema.aiCalls.jobName,
@@ -82,8 +82,8 @@ export const aiCostsRouter = router({
     }));
   }),
 
-  byModel: protectedProcedure.input(z.object({ window: WINDOW })).query(async ({ input }) => {
-    const since = windowStart(input.window);
+  byModel: protectedProcedure.input(z.object({ timeframe: TIMEFRAME })).query(async ({ input }) => {
+    const since = timeframeStart(input.timeframe);
     const rows = await db
       .select({
         model: schema.aiCalls.model,
@@ -104,8 +104,8 @@ export const aiCostsRouter = router({
     }));
   }),
 
-  byDay: protectedProcedure.input(z.object({ window: WINDOW.default("7d") })).query(async ({ input }) => {
-    const since = windowStart(input.window);
+  byDay: protectedProcedure.input(z.object({ timeframe: TIMEFRAME.default("7d") })).query(async ({ input }) => {
+    const since = timeframeStart(input.timeframe);
     const rows = await db
       .select({
         day: sql<string>`DATE_TRUNC('day', ${schema.aiCalls.timestamp})::date::text`,
@@ -125,9 +125,9 @@ export const aiCostsRouter = router({
   }),
 
   topUsers: protectedProcedure
-    .input(z.object({ window: WINDOW, limit: z.number().min(1).max(100).default(20) }))
+    .input(z.object({ timeframe: TIMEFRAME, limit: z.number().min(1).max(100).default(20) }))
     .query(async ({ input }) => {
-      const since = windowStart(input.window);
+      const since = timeframeStart(input.timeframe);
       const rows = await db
         .select({
           userId: schema.aiCalls.userId,
@@ -154,7 +154,7 @@ export const aiCostsRouter = router({
   feed: protectedProcedure
     .input(
       z.object({
-        window: WINDOW.default("7d"),
+        timeframe: TIMEFRAME.default("7d"),
         jobName: z.string().optional(),
         userId: z.string().optional(),
         status: z.enum(["success", "failed"]).optional(),
@@ -163,7 +163,7 @@ export const aiCostsRouter = router({
       }),
     )
     .query(async ({ input }) => {
-      const conditions = [gte(schema.aiCalls.timestamp, windowStart(input.window))];
+      const conditions = [gte(schema.aiCalls.timestamp, timeframeStart(input.timeframe))];
       if (input.jobName) conditions.push(eq(schema.aiCalls.jobName, input.jobName));
       if (input.userId) conditions.push(eq(schema.aiCalls.userId, input.userId));
       if (input.status) conditions.push(eq(schema.aiCalls.status, input.status));

@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~
 import { trpc } from "~/lib/trpc";
 
 const aiCostsSearchSchema = z.object({
-  window: z.enum(["24h", "7d"]).optional(),
+  timeframe: z.enum(["24h", "7d"]).optional(),
   jobName: z.string().optional(),
   status: z.enum(["success", "failed"]).optional(),
   userId: z.string().optional(),
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/dashboard/ai-costs")({
   validateSearch: aiCostsSearchSchema,
 });
 
-const WINDOW_TABS: { key: "24h" | "7d"; label: string }[] = [
+const TIMEFRAME_TABS: { key: "24h" | "7d"; label: string }[] = [
   { key: "24h", label: "Ostatnie 24h" },
   { key: "7d", label: "Ostatnie 7 dni" },
 ];
@@ -60,7 +60,7 @@ function AiCostsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const search = Route.useSearch();
 
-  const timeWindow = search.window ?? "24h";
+  const timeframe = search.timeframe ?? "24h";
   const statusFilter = search.status ?? "all";
   const jobNameFilter = search.jobName;
   const userFilter = search.userId;
@@ -82,15 +82,15 @@ function AiCostsPage() {
 
   const refetchInterval = isLive ? 30_000 : false;
 
-  const summary24h = trpc.aiCosts.summary.useQuery({ window: "24h" }, { refetchInterval });
-  const summary7d = trpc.aiCosts.summary.useQuery({ window: "7d" }, { refetchInterval });
-  const byJobName = trpc.aiCosts.byJobName.useQuery({ window: timeWindow }, { refetchInterval });
-  const byModel = trpc.aiCosts.byModel.useQuery({ window: timeWindow }, { refetchInterval });
-  const byDay = trpc.aiCosts.byDay.useQuery({ window: "7d" }, { refetchInterval });
-  const topUsers = trpc.aiCosts.topUsers.useQuery({ window: timeWindow, limit: 20 }, { refetchInterval });
+  const summary24h = trpc.aiCosts.summary.useQuery({ timeframe: "24h" }, { refetchInterval });
+  const summary7d = trpc.aiCosts.summary.useQuery({ timeframe: "7d" }, { refetchInterval });
+  const byJobName = trpc.aiCosts.byJobName.useQuery({ timeframe }, { refetchInterval });
+  const byModel = trpc.aiCosts.byModel.useQuery({ timeframe }, { refetchInterval });
+  const byDay = trpc.aiCosts.byDay.useQuery({ timeframe: "7d" }, { refetchInterval });
+  const topUsers = trpc.aiCosts.topUsers.useQuery({ timeframe, limit: 20 }, { refetchInterval });
   const feed = trpc.aiCosts.feed.useQuery(
     {
-      window: timeWindow,
+      timeframe,
       jobName: jobNameFilter,
       userId: userFilter,
       status: statusFilter === "all" ? undefined : statusFilter,
@@ -124,13 +124,13 @@ function AiCostsPage() {
         {/* Filter toolbar */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            {WINDOW_TABS.map((tab) => (
+            {TIMEFRAME_TABS.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => updateSearch({ window: tab.key })}
+                onClick={() => updateSearch({ timeframe: tab.key })}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  timeWindow === tab.key
+                  timeframe === tab.key
                     ? "bg-foreground text-background"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
