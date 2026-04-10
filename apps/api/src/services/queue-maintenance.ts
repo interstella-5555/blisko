@@ -12,7 +12,11 @@ interface PrunePushLogJob {
   type: "prune-push-log";
 }
 
-type MaintenanceJob = FlushPushLogJob | PrunePushLogJob;
+interface ConsistencySweepJob {
+  type: "consistency-sweep";
+}
+
+type MaintenanceJob = FlushPushLogJob | PrunePushLogJob | ConsistencySweepJob;
 
 // --- Queue (lazy init) ---
 
@@ -50,6 +54,10 @@ async function processMaintenanceJob(job: Job<MaintenanceJob>) {
       console.log("[queue:maintenance] pruned old push log entries");
       break;
     }
+    case "consistency-sweep": {
+      const { runConsistencySweep } = await import("./consistency-sweep");
+      return await runConsistencySweep();
+    }
   }
 }
 
@@ -80,6 +88,11 @@ export function startMaintenanceWorker() {
     "prune-push-log",
     { every: 3_600_000 },
     { name: "prune-push-log", data: { type: "prune-push-log" } },
+  );
+  void queue.upsertJobScheduler(
+    "consistency-sweep",
+    { pattern: "0 3 * * *" },
+    { name: "consistency-sweep", data: { type: "consistency-sweep" } },
   );
 
   console.log("[queue:maintenance] Maintenance worker started");

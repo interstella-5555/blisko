@@ -2,6 +2,7 @@ import { Queue, QueueEvents } from "bullmq";
 
 const AI_QUEUE_NAME = "ai";
 const OPS_QUEUE_NAME = "ops";
+const MAINTENANCE_QUEUE_NAME = "maintenance";
 const JOB_TIMEOUT_MS = 15_000;
 
 function getConnectionConfig() {
@@ -18,6 +19,8 @@ let _aiQueue: Queue | null = null;
 let _aiQueueEvents: QueueEvents | null = null;
 let _opsQueue: Queue | null = null;
 let _opsQueueEvents: QueueEvents | null = null;
+let _maintenanceQueue: Queue | null = null;
+let _maintenanceQueueEvents: QueueEvents | null = null;
 
 export function getAiQueue(): Queue {
   if (!_aiQueue) {
@@ -35,6 +38,15 @@ export function getOpsQueue(): Queue {
     });
   }
   return _opsQueue;
+}
+
+export function getMaintenanceQueue(): Queue {
+  if (!_maintenanceQueue) {
+    _maintenanceQueue = new Queue(MAINTENANCE_QUEUE_NAME, {
+      connection: { ...getConnectionConfig(), connectTimeout: 3000 },
+    });
+  }
+  return _maintenanceQueue;
 }
 
 function getAiQueueEvents(): QueueEvents {
@@ -83,4 +95,28 @@ export async function enqueueOpsAndWait<T extends Record<string, unknown>>(
   });
 
   await job.waitUntilFinished(getOpsQueueEvents(), JOB_TIMEOUT_MS);
+}
+
+function getMaintenanceQueueEvents(): QueueEvents {
+  if (!_maintenanceQueueEvents) {
+    _maintenanceQueueEvents = new QueueEvents(MAINTENANCE_QUEUE_NAME, { connection: getConnectionConfig() });
+  }
+  return _maintenanceQueueEvents;
+}
+
+/** Enqueue a maintenance job and wait for it to finish. Returns the job's return value. */
+export async function enqueueMaintenanceAndWait<T extends Record<string, unknown>>(
+  jobName: string,
+  data: T,
+): Promise<unknown> {
+  if (!process.env.REDIS_URL) {
+    throw new Error("REDIS_URL is not configured");
+  }
+
+  const job = await getMaintenanceQueue().add(jobName, data, {
+    removeOnComplete: { count: 10 },
+    removeOnFail: { count: 10 },
+  });
+
+  return await job.waitUntilFinished(getMaintenanceQueueEvents(), 30_000);
 }

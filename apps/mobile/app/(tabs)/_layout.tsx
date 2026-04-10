@@ -129,6 +129,7 @@ export default function TabsLayout() {
       utilsRef.current.waves.getReceived.refetch();
       utilsRef.current.waves.getSent.refetch();
       utilsRef.current.messages.getConversations.refetch();
+      utilsRef.current.profiles.me.refetch();
     }
     if (msg.type === "profileReady") {
       // AI pipeline completed — refresh profile with embedding/interests
@@ -179,6 +180,17 @@ export default function TabsLayout() {
     enabled: !!user && !hasCheckedProfile,
     retry: 2, // Retry twice on failure
   });
+
+  // Startup health check — if AI pipeline never completed, re-enqueue
+  const retryProfileAI = trpc.profiles.retryProfileAI.useMutation();
+  useEffect(() => {
+    if (!profileData) return;
+    const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+    const isStale = profileData.updatedAt && new Date(profileData.updatedAt).getTime() < fiveMinAgo;
+    if (profileData.bio && !profileData.portrait && isStale) {
+      retryProfileAI.mutate();
+    }
+  }, [profileData?.bio, profileData?.portrait, profileData?.updatedAt, retryProfileAI.mutate]);
 
   // Waves hydration query — store is the source of truth, useBackgroundSync handles periodic reconciliation
   const { data: receivedWaves } = trpc.waves.getReceived.useQuery(undefined, { enabled: !!user && !!profile });
