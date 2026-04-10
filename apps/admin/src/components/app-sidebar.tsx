@@ -3,6 +3,7 @@
 import {
   BellIcon,
   BrainCircuitIcon,
+  LayersIcon,
   LayoutDashboardIcon,
   MessageCircleIcon,
   Settings2Icon,
@@ -52,9 +53,14 @@ const navMain = [
     icon: <BrainCircuitIcon />,
     items: [
       { title: "Analizy", url: "/dashboard/matching" },
-      { title: "Kolejka", url: "/dashboard/queue" },
       { title: "Prompty", url: "#" },
     ],
+  },
+  {
+    title: "Kolejki",
+    url: "/dashboard/queue",
+    icon: <LayersIcon />,
+    items: [{ title: "Live feed", url: "/dashboard/queue" }],
   },
   {
     title: "Moderacja",
