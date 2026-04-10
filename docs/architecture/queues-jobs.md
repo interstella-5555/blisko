@@ -8,6 +8,7 @@
 > Updated 2026-04-10 — Self-healing profile generation: `profilingFailed` event, `generate-profile-from-qa` BullMQ deduplication (BLI-162).
 > Updated 2026-04-10 — Self-healing profile AI: `profileFailed` event, `retryProfileAI` mutation (BLI-163).
 > Updated 2026-04-10 — Self-healing status matching: `statusMatchingFailed` event, BullMQ deduplication, `retryStatusMatching` mutation (BLI-164).
+> Updated 2026-04-10 — GDPR-safe export retry: 10 attempts/60s exponential backoff (~8.5h), `removeOnFail: false`, admin + user emails on permanent failure (BLI-165).
 
 Single BullMQ queue powering all background work: AI analysis, profile generation, status matching, GDPR compliance, and admin actions. Source: `apps/api/src/services/queue.ts`.
 
@@ -225,7 +226,11 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 
 **JobId:** `export-{userId}-{timestamp}` (allows multiple exports)
 
-**`removeOnComplete`:** true (explicit)
+**Retry:** 10 attempts, exponential backoff (60s base → ~8.5h total). Overrides queue default because GDPR export is a legal obligation.
+
+**`removeOnFail`:** false — failed export jobs are never auto-removed. Every failure must be resolved.
+
+**Failure handling:** After all retries exhausted: (1) user gets "export delayed" email, (2) prominent `GDPR EXPORT FAILED` console error. Admin alerting TODO(BLI-169). See `data-export.md` for details.
 
 ### 11. `admin-soft-delete-user` — Admin Soft Delete
 

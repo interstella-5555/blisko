@@ -13,6 +13,7 @@
  * - `signInOtp(otp, deepLink)` — sign-in email with deep link button + OTP fallback.
  * - `changeEmailOtp(otp)` — verification code for email address change.
  * - `dataExportReady(downloadUrl)` — GDPR data export download link.
+ * - `dataExportDelayed()` — notifies user their export is taking longer than expected.
  *
  * Adding a new template:
  * 1. Export a function returning `{ subject: string; html: string }`.
@@ -102,6 +103,17 @@ export function changeEmailOtp(otp: string) {
       <p style="font-size: 15px; color: #3A3A3A; line-height: 1.6;">Kod weryfikacyjny do zmiany adresu email:</p>
       ${otpBlock(otp)}
       <p style="font-size: 13px; color: #8B8680; line-height: 1.6;">Kod wygaśnie za 5 minut.</p>
+    `),
+  };
+}
+
+export function dataExportDelayed() {
+  return {
+    subject: "Eksport danych z Blisko — opóźnienie",
+    html: layout(`
+      <p style="font-size: 15px; color: #3A3A3A; line-height: 1.6;">Cześć!</p>
+      <p style="font-size: 15px; color: #3A3A3A; line-height: 1.6;">Eksport Twoich danych trwa dłużej niż zwykle. Nasz zespół został powiadomiony i dane zostaną wysłane jak najszybciej.</p>
+      <p style="font-size: 13px; color: #8B8680; line-height: 1.6;">Nie musisz nic robić — skontaktujemy się gdy eksport będzie gotowy.</p>
     `),
   };
 }
