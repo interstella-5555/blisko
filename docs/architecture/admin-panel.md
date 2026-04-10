@@ -70,6 +70,31 @@ Schema + connection factory shared between API and admin.
 | `/dashboard/conversations` | conversations (type=dm) + participants | DM list with participant info, message counts |
 | `/dashboard/groups` | conversations (type=group) + member counts | Group list with discoverable filter |
 | `/dashboard/matching` | connectionAnalyses + user profiles | AI match scores with score range filter, color-coded |
+| `/dashboard/queue` | BullMQ (ai/ops/maintenance queues) | Live feed of jobs with per-source tabs (AI/Ops/Maintenance), state tabs, job type filter. All filters stored in URL query string via `Route.validateSearch` (zod schema: `source`, `state`, `type`, `expanded`). Lives under the dedicated "Kolejki" sidebar category. |
+| `/dashboard/push-log` | `metrics.push_sends` | Push notification send log (7d retention) |
+
+## Sidebar Navigation
+
+Top-level categories in `apps/admin/src/components/app-sidebar.tsx`:
+
+- **Użytkownicy** → users list
+- **Wiadomości** → conversations, groups
+- **Waves** → wave list
+- **AI Matching** → analyses, prompts
+- **Kolejki** → queue live feed (ai, ops, maintenance — separate from AI Matching because ops/maintenance aren't AI-related)
+- **Moderacja**, **Powiadomienia**, **Ustawienia** — most items placeholder
+
+## URL State Pattern
+
+`/dashboard/queue` is the first admin route to use TanStack Router's `validateSearch` for URL-persisted filter state. Pattern:
+
+1. Define zod schema for search params at the top of the route file
+2. `Route.validateSearch: schema` on `createFileRoute(...)`
+3. `Route.useSearch()` replaces `useState` for filter values
+4. Helper `updateSearch(patch)` via `navigate({ search: (prev) => ... })` — strips empty/default values to keep URL clean
+5. Ephemeral UI state (e.g., `isLive` toggle) stays in `useState`
+
+Benefits: shareable filtered views, browser back button, refresh-safe. New admin pages with filters should follow this pattern.
 
 ## Admin Actions
 

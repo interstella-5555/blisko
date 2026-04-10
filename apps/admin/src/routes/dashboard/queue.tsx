@@ -1,16 +1,33 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { format, isToday } from "date-fns";
 import { pl } from "date-fns/locale";
 import { CircleIcon, LoaderIcon, PauseIcon, PlayIcon, WrenchIcon } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import { z } from "zod";
 import { DashboardHeader } from "~/components/dashboard-header";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
 import { trpc } from "~/lib/trpc";
 
+const JOB_STATES = ["active", "waiting", "delayed", "completed", "failed"] as const;
+type JobState = (typeof JOB_STATES)[number];
+
+const JOB_SOURCES = ["ai", "ops", "maintenance"] as const;
+type JobSource = (typeof JOB_SOURCES)[number];
+
+const queueSearchSchema = z.object({
+  source: z.enum(JOB_SOURCES).optional(),
+  state: z.enum(JOB_STATES).optional(),
+  type: z.string().optional(),
+  expanded: z.string().optional(),
+});
+
+type QueueSearch = z.infer<typeof queueSearchSchema>;
+
 export const Route = createFileRoute("/dashboard/queue")({
   component: QueuePage,
+  validateSearch: queueSearchSchema,
 });
 
 const JOB_TYPES = [
@@ -27,11 +44,19 @@ const JOB_TYPES = [
   "admin-soft-delete-user",
   "admin-restore-user",
   "admin-force-disconnect",
+  "flush-push-log",
+  "prune-push-log",
+  "consistency-sweep",
 ] as const;
 
-type JobState = "active" | "waiting" | "delayed" | "completed" | "failed";
+const SOURCE_TABS: { key: JobSource | "all"; label: string }[] = [
+  { key: "all", label: "Wszystkie" },
+  { key: "ai", label: "AI" },
+  { key: "ops", label: "Ops" },
+  { key: "maintenance", label: "Maintenance" },
+];
 
-const TABS: { key: JobState | "all"; label: string }[] = [
+const STATE_TABS: { key: JobState | "all"; label: string }[] = [
   { key: "all", label: "Wszystkie" },
   { key: "active", label: "Aktywne" },
   { key: "waiting", label: "Oczekujące" },
@@ -49,10 +74,26 @@ const STATE_COLORS: Record<string, string> = {
 };
 
 function QueuePage() {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const search = Route.useSearch();
+  const sourceFilter: JobSource | "all" = search.source ?? "all";
+  const stateFilter: JobState | "all" = search.state ?? "all";
+  const typeFilter = search.type ?? "";
+  const expandedId = search.expanded ?? null;
+
   const [isLive, setIsLive] = useState(true);
-  const [typeFilter, setTypeFilter] = useState("");
-  const [stateFilter, setStateFilter] = useState<JobState | "all">("all");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const updateSearch = (patch: Partial<QueueSearch>) =>
+    navigate({
+      search: (prev) => {
+        const next = { ...prev, ...patch };
+        // Strip empty values so URL stays clean
+        for (const key of Object.keys(next) as (keyof QueueSearch)[]) {
+          if (next[key] === undefined || next[key] === "" || next[key] === "all") delete next[key];
+        }
+        return next;
+      },
+    });
 
   const sweep = trpc.queue.runConsistencySweep.useMutation();
 
@@ -62,6 +103,7 @@ function QueuePage() {
 
   const feed = trpc.queue.feed.useQuery(
     {
+      source: sourceFilter === "all" ? undefined : sourceFilter,
       type: typeFilter || undefined,
       state: stateFilter === "all" ? undefined : stateFilter,
       limit: 100,
@@ -74,32 +116,69 @@ function QueuePage() {
   const jobs = feed.data?.jobs ?? [];
   const nameMap = feed.data?.nameMap ?? {};
 
+  const activeCounts = stats.data?.[sourceFilter === "all" ? "total" : sourceFilter] ?? {
+    active: 0,
+    waiting: 0,
+    delayed: 0,
+    completed: 0,
+    failed: 0,
+  };
+
   const stateCounts: Record<string, number> = {
     all:
-      (stats.data?.active ?? 0) +
-      (stats.data?.waiting ?? 0) +
-      (stats.data?.delayed ?? 0) +
-      (stats.data?.completed ?? 0) +
-      (stats.data?.failed ?? 0),
-    active: stats.data?.active ?? 0,
-    waiting: stats.data?.waiting ?? 0,
-    delayed: stats.data?.delayed ?? 0,
-    completed: stats.data?.completed ?? 0,
-    failed: stats.data?.failed ?? 0,
+      activeCounts.active + activeCounts.waiting + activeCounts.delayed + activeCounts.completed + activeCounts.failed,
+    active: activeCounts.active,
+    waiting: activeCounts.waiting,
+    delayed: activeCounts.delayed,
+    completed: activeCounts.completed,
+    failed: activeCounts.failed,
+  };
+
+  const sourceCounts: Record<JobSource | "all", number> = {
+    all: sumCounts(stats.data?.total),
+    ai: sumCounts(stats.data?.ai),
+    ops: sumCounts(stats.data?.ops),
+    maintenance: sumCounts(stats.data?.maintenance),
   };
 
   return (
     <>
-      <DashboardHeader title="Kolejka zadań" />
+      <DashboardHeader title="Kolejki" />
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        {/* Tabs + controls */}
+        {/* Source filter (queue) */}
+        <div className="flex items-center gap-1 border-b pb-3">
+          {SOURCE_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => updateSearch({ source: tab.key === "all" ? undefined : tab.key, expanded: undefined })}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
+                sourceFilter === tab.key
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              {tab.label}
+              {sourceCounts[tab.key] > 0 && (
+                <Badge
+                  variant={sourceFilter === tab.key ? "secondary" : "outline"}
+                  className="ml-0.5 px-1.5 py-0 text-xs tabular-nums"
+                >
+                  {sourceCounts[tab.key]}
+                </Badge>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* State tabs + controls */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            {TABS.map((tab) => (
+            {STATE_TABS.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setStateFilter(tab.key)}
+                onClick={() => updateSearch({ state: tab.key === "all" ? undefined : tab.key, expanded: undefined })}
                 className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   stateFilter === tab.key
                     ? "bg-foreground text-background"
@@ -122,7 +201,7 @@ function QueuePage() {
           <div className="flex items-center gap-2">
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={(e) => updateSearch({ type: e.target.value || undefined, expanded: undefined })}
               className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
             >
               <option value="">Wszystkie typy</option>
@@ -210,15 +289,15 @@ function QueuePage() {
               </TableHeader>
               <TableBody>
                 {jobs.map((job) => {
-                  const isExpanded = expandedId === job.id;
+                  const rowKey = `${job.source}:${job.id}`;
+                  const isExpanded = expandedId === rowKey;
                   return (
-                    <>
+                    <Fragment key={rowKey}>
                       <TableRow
-                        key={job.id}
                         className={`cursor-pointer transition-colors ${
                           job.state === "failed" ? "hover:bg-red-50" : "hover:bg-muted/50"
                         }`}
-                        onClick={() => setExpandedId(isExpanded ? null : job.id)}
+                        onClick={() => updateSearch({ expanded: isExpanded ? undefined : rowKey })}
                       >
                         <TableCell className="text-sm tabular-nums text-muted-foreground">
                           {formatTime(job.createdAt)}
@@ -251,7 +330,7 @@ function QueuePage() {
                         </TableCell>
                       </TableRow>
                       {isExpanded && (
-                        <TableRow key={`${job.id}-detail`}>
+                        <TableRow>
                           <TableCell colSpan={7} className="bg-muted/30 p-4">
                             <div className="space-y-2 text-sm">
                               <div>
@@ -283,7 +362,7 @@ function QueuePage() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
                 {jobs.length === 0 && (
@@ -300,6 +379,13 @@ function QueuePage() {
       </div>
     </>
   );
+}
+
+function sumCounts(
+  counts: { active: number; waiting: number; delayed: number; completed: number; failed: number } | undefined,
+): number {
+  if (!counts) return 0;
+  return counts.active + counts.waiting + counts.delayed + counts.completed + counts.failed;
 }
 
 function formatState(state: string): string {

@@ -1,17 +1,35 @@
 import { schema } from "@repo/db";
-import type { Job } from "bullmq";
+import type { Job, Queue } from "bullmq";
 import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
-import { enqueueMaintenanceAndWait, getAiQueue, getOpsQueue } from "~/lib/queue";
+import { enqueueMaintenanceAndWait, getAiQueue, getMaintenanceQueue, getOpsQueue } from "~/lib/queue";
 import { protectedProcedure, router } from "../trpc";
 
 const JOB_STATES = ["active", "waiting", "delayed", "completed", "failed"] as const;
+const JOB_SOURCES = ["ai", "ops", "maintenance"] as const;
+type JobSource = (typeof JOB_SOURCES)[number];
+
+type StateCounts = Record<(typeof JOB_STATES)[number], number>;
+
+const EMPTY_COUNTS: StateCounts = { active: 0, waiting: 0, delayed: 0, completed: 0, failed: 0 };
+
+function getQueueBySource(source: JobSource): Queue {
+  switch (source) {
+    case "ai":
+      return getAiQueue();
+    case "ops":
+      return getOpsQueue();
+    case "maintenance":
+      return getMaintenanceQueue();
+  }
+}
 
 export const queueRouter = router({
   feed: protectedProcedure
     .input(
       z.object({
+        source: z.enum(JOB_SOURCES).optional(),
         type: z.string().optional(),
         state: z.enum(JOB_STATES).optional(),
         limit: z.number().min(1).max(200).default(50),
@@ -23,10 +41,8 @@ export const queueRouter = router({
 
       let result: ReturnType<typeof mapJob>[];
       try {
-        const queues = [
-          { queue: getAiQueue(), source: "ai" as const },
-          { queue: getOpsQueue(), source: "ops" as const },
-        ];
+        const sources: JobSource[] = input.source ? [input.source] : [...JOB_SOURCES];
+        const queues = sources.map((source) => ({ queue: getQueueBySource(source), source }));
         const { type, state, limit } = input;
 
         const statesToFetch = state ? [state] : [...JOB_STATES];
@@ -86,26 +102,53 @@ export const queueRouter = router({
   }),
 
   stats: protectedProcedure.query(async () => {
-    if (!process.env.REDIS_URL) {
-      return { active: 0, waiting: 0, delayed: 0, completed: 0, failed: 0 };
-    }
+    const empty = {
+      ai: { ...EMPTY_COUNTS },
+      ops: { ...EMPTY_COUNTS },
+      maintenance: { ...EMPTY_COUNTS },
+      total: { ...EMPTY_COUNTS },
+    };
+
+    if (!process.env.REDIS_URL) return empty;
 
     try {
-      const [aiCounts, opsCounts] = await Promise.all([getAiQueue().getJobCounts(), getOpsQueue().getJobCounts()]);
+      const [ai, ops, maintenance] = await Promise.all([
+        getAiQueue().getJobCounts(),
+        getOpsQueue().getJobCounts(),
+        getMaintenanceQueue().getJobCounts(),
+      ]);
+
+      const pick = (c: Record<string, number>): StateCounts => ({
+        active: c.active ?? 0,
+        waiting: c.waiting ?? 0,
+        delayed: c.delayed ?? 0,
+        completed: c.completed ?? 0,
+        failed: c.failed ?? 0,
+      });
+
+      const aiCounts = pick(ai);
+      const opsCounts = pick(ops);
+      const maintenanceCounts = pick(maintenance);
+
       return {
-        active: (aiCounts.active ?? 0) + (opsCounts.active ?? 0),
-        waiting: (aiCounts.waiting ?? 0) + (opsCounts.waiting ?? 0),
-        delayed: (aiCounts.delayed ?? 0) + (opsCounts.delayed ?? 0),
-        completed: (aiCounts.completed ?? 0) + (opsCounts.completed ?? 0),
-        failed: (aiCounts.failed ?? 0) + (opsCounts.failed ?? 0),
+        ai: aiCounts,
+        ops: opsCounts,
+        maintenance: maintenanceCounts,
+        total: {
+          active: aiCounts.active + opsCounts.active + maintenanceCounts.active,
+          waiting: aiCounts.waiting + opsCounts.waiting + maintenanceCounts.waiting,
+          delayed: aiCounts.delayed + opsCounts.delayed + maintenanceCounts.delayed,
+          completed: aiCounts.completed + opsCounts.completed + maintenanceCounts.completed,
+          failed: aiCounts.failed + opsCounts.failed + maintenanceCounts.failed,
+        },
       };
     } catch {
-      return { active: 0, waiting: 0, delayed: 0, completed: 0, failed: 0 };
+      return empty;
     }
   }),
 });
 
-function mapJob(job: Job, state: string, source: "ai" | "ops") {
+function mapJob(job: Job, state: string, source: JobSource) {
   return {
     id: job.id ?? "",
     type: job.name,
