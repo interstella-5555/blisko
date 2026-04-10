@@ -1,6 +1,7 @@
 import { Queue, QueueEvents } from "bullmq";
 
-const QUEUE_NAME = "ai-jobs";
+const AI_QUEUE_NAME = "ai";
+const OPS_QUEUE_NAME = "ops";
 const JOB_TIMEOUT_MS = 15_000;
 
 function getConnectionConfig() {
@@ -13,26 +14,59 @@ function getConnectionConfig() {
   };
 }
 
-let _queue: Queue | null = null;
-let _queueEvents: QueueEvents | null = null;
+let _aiQueue: Queue | null = null;
+let _aiQueueEvents: QueueEvents | null = null;
+let _opsQueue: Queue | null = null;
+let _opsQueueEvents: QueueEvents | null = null;
 
-export function getQueue(): Queue {
-  if (!_queue) {
-    _queue = new Queue(QUEUE_NAME, {
+export function getAiQueue(): Queue {
+  if (!_aiQueue) {
+    _aiQueue = new Queue(AI_QUEUE_NAME, {
       connection: { ...getConnectionConfig(), connectTimeout: 3000 },
     });
   }
-  return _queue;
+  return _aiQueue;
 }
 
-function getQueueEvents(): QueueEvents {
-  if (!_queueEvents) {
-    _queueEvents = new QueueEvents(QUEUE_NAME, { connection: getConnectionConfig() });
+export function getOpsQueue(): Queue {
+  if (!_opsQueue) {
+    _opsQueue = new Queue(OPS_QUEUE_NAME, {
+      connection: { ...getConnectionConfig(), connectTimeout: 3000 },
+    });
   }
-  return _queueEvents;
+  return _opsQueue;
 }
 
-export async function enqueueAndWait<T extends Record<string, unknown>>(
+function getAiQueueEvents(): QueueEvents {
+  if (!_aiQueueEvents) {
+    _aiQueueEvents = new QueueEvents(AI_QUEUE_NAME, { connection: getConnectionConfig() });
+  }
+  return _aiQueueEvents;
+}
+
+function getOpsQueueEvents(): QueueEvents {
+  if (!_opsQueueEvents) {
+    _opsQueueEvents = new QueueEvents(OPS_QUEUE_NAME, { connection: getConnectionConfig() });
+  }
+  return _opsQueueEvents;
+}
+
+/** Enqueue an AI job and wait for it to finish. For admin-triggered AI operations (reanalyze, regenerate). */
+export async function enqueueAiAndWait<T extends Record<string, unknown>>(jobName: string, data: T): Promise<void> {
+  if (!process.env.REDIS_URL) {
+    throw new Error("REDIS_URL is not configured");
+  }
+
+  const job = await getAiQueue().add(jobName, data, {
+    removeOnComplete: { count: 200, age: 3600 },
+    removeOnFail: { count: 100 },
+  });
+
+  await job.waitUntilFinished(getAiQueueEvents(), JOB_TIMEOUT_MS);
+}
+
+/** Enqueue an ops job and wait for it to finish. For admin actions (delete, restore, disconnect). */
+export async function enqueueOpsAndWait<T extends Record<string, unknown>>(
   jobName: string,
   data: T,
   opts?: { jobId?: string },
@@ -41,14 +75,12 @@ export async function enqueueAndWait<T extends Record<string, unknown>>(
     throw new Error("REDIS_URL is not configured");
   }
 
-  const queue = getQueue();
-  const queueEvents = getQueueEvents();
-
-  const job = await queue.add(jobName, data, {
+  const job = await getOpsQueue().add(jobName, data, {
     jobId: opts?.jobId,
     removeOnComplete: { count: 200, age: 3600 },
-    removeOnFail: { count: 100 },
+    // Matches ops queue default (admin actions are low-volume, 90-day audit retention)
+    removeOnFail: { age: 7_776_000 },
   });
 
-  await job.waitUntilFinished(queueEvents, JOB_TIMEOUT_MS);
+  await job.waitUntilFinished(getOpsQueueEvents(), JOB_TIMEOUT_MS);
 }

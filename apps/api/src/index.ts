@@ -252,10 +252,14 @@ import { initWsRedisBridge } from "./ws/redis-bridge";
 
 initWsRedisBridge();
 
-// Start BullMQ worker for connection analysis
-import { startWorker } from "./services/queue";
+// Start BullMQ workers
+import { startAiWorker } from "./services/queue";
+import { startMaintenanceWorker } from "./services/queue-maintenance";
+import { startOpsWorker } from "./services/queue-ops";
 
-startWorker();
+startAiWorker();
+startOpsWorker();
+startMaintenanceWorker();
 
 const port = Number(process.env.PORT) || 3000;
 

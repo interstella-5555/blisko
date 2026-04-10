@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db, schema } from "@/db";
-import { enqueueDataExport } from "@/services/queue";
+import { enqueueDataExport } from "@/services/queue-ops";
 import { softDeleteUser } from "@/services/user-actions";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";

@@ -10,7 +10,7 @@ Blisko processes personal data under RODO (Polish implementation of GDPR). Polis
 |------------|------|-------------|
 | Usuwanie konta | `requestDeletion` mutation, `hard-delete-user` BullMQ job | "Usun konto" |
 | Grace period / okres karencji | `user.deletedAt` + 14-day delayed job | "Twoje konto jest w trakcie usuwania" |
-| Anonimizacja | `processHardDeleteUser()` in `queue.ts`, `user.anonymizedAt` | "Usunięty użytkownik" (displayed to others) |
+| Anonimizacja | `processHardDeleteUser()` in `queue-ops.ts`, `user.anonymizedAt` | "Usunięty użytkownik" (displayed to others) |
 | Eksport danych | `requestDataExport` mutation, `export-user-data` BullMQ job | "Pobierz moje dane" |
 | Polityka prywatnosci | `/privacy` route in website | "Polityka Prywatnosci" |
 | Regulamin | `/terms` route in website | "Regulamin" |
@@ -118,7 +118,7 @@ Karol Wypchlo, individual developer (jednoosobowa dzialalnosc). Not a company en
 When adding tables or queries that reference users, check all four:
 
 1. **Soft-delete filtering** — Should soft-deleted users be excluded from this query? Standard pattern: INNER JOIN to `user` with `isNull(schema.user.deletedAt)`.
-2. **Anonymization** — Does `processHardDeleteUser()` in `queue.ts` need to clear/overwrite data in this table?
+2. **Anonymization** — Does `processHardDeleteUser()` in `queue-ops.ts` need to clear/overwrite data in this table?
 3. **Data export** — Does `collectAndExportUserData()` in `data-export.ts` need to include this data? If it references other users, are their identities anonymized?
 4. **Privacy policy** — Does the privacy policy at `apps/website/src/routes/privacy.tsx` need to disclose this data category?
 

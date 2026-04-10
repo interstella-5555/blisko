@@ -2,7 +2,7 @@ import { schema } from "@repo/db";
 import { and, count, eq, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
-import { enqueueAndWait } from "~/lib/queue";
+import { enqueueAiAndWait, enqueueOpsAndWait } from "~/lib/queue";
 import { protectedProcedure, router } from "../trpc";
 
 export const usersRouter = router({
@@ -187,7 +187,7 @@ export const usersRouter = router({
   }),
 
   softDelete: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
-    await enqueueAndWait("admin-soft-delete-user", {
+    await enqueueOpsAndWait("admin-soft-delete-user", {
       type: "admin-soft-delete-user",
       userId: input.userId,
     });
@@ -195,7 +195,7 @@ export const usersRouter = router({
   }),
 
   restore: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
-    await enqueueAndWait("admin-restore-user", {
+    await enqueueOpsAndWait("admin-restore-user", {
       type: "admin-restore-user",
       userId: input.userId,
     });
@@ -212,7 +212,7 @@ export const usersRouter = router({
       throw new Error("Użytkownik nie ma udostępnionej lokalizacji");
     }
 
-    await enqueueAndWait("analyze-user-pairs", {
+    await enqueueAiAndWait("analyze-user-pairs", {
       type: "analyze-user-pairs",
       userId: input.userId,
       latitude: profile.latitude,
@@ -232,7 +232,7 @@ export const usersRouter = router({
       throw new Error("Profil nie znaleziony");
     }
 
-    await enqueueAndWait("generate-profile-ai", {
+    await enqueueAiAndWait("generate-profile-ai", {
       type: "generate-profile-ai",
       userId: input.userId,
       bio: profile.bio ?? "",
@@ -241,7 +241,7 @@ export const usersRouter = router({
 
     // Re-analyze nearby pairs if user has location
     if (profile.latitude && profile.longitude) {
-      await enqueueAndWait("analyze-user-pairs", {
+      await enqueueAiAndWait("analyze-user-pairs", {
         type: "analyze-user-pairs",
         userId: input.userId,
         latitude: profile.latitude,
@@ -254,7 +254,7 @@ export const usersRouter = router({
   }),
 
   forceDisconnect: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
-    await enqueueAndWait("admin-force-disconnect", {
+    await enqueueOpsAndWait("admin-force-disconnect", {
       type: "admin-force-disconnect",
       userId: input.userId,
     });

@@ -9,8 +9,9 @@
 > Updated 2026-04-10 — Self-healing profile AI: `profileFailed` event, `retryProfileAI` mutation (BLI-163).
 > Updated 2026-04-10 — Self-healing status matching: `statusMatchingFailed` event, BullMQ deduplication, `retryStatusMatching` mutation (BLI-164).
 > Updated 2026-04-10 — GDPR-safe export retry: 10 attempts/60s exponential backoff (~8.5h), `removeOnFail: false`, admin + user emails on permanent failure (BLI-165).
+> Updated 2026-04-10 — Split single `ai-jobs` queue into 3 queues (`ai`, `ops`, `maintenance`) grouped by bottleneck. Shared utilities in `queue-shared.ts` (BLI-171).
 
-Single BullMQ queue powering all background work: AI analysis, profile generation, status matching, GDPR compliance, and admin actions. Source: `apps/api/src/services/queue.ts`.
+Three BullMQ queues grouped by bottleneck: AI (OpenAI-bound), Ops (DB/S3/email-bound critical operations), Maintenance (periodic fire-and-forget). Each has its own worker with independent concurrency and retention policies. Source files: `apps/api/src/services/queue.ts` (AI), `queue-ops.ts` (Ops), `queue-maintenance.ts` (Maintenance), `queue-shared.ts` (shared utilities).
 
 ## Terminology & Product Alignment
 
@@ -25,31 +26,41 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 | Account deletion (soft + hard) | `hard-delete-user` delayed job | "Usunięty użytkownik" |
 | Data export (GDPR) | `export-user-data` job | Export danych |
 
-## Queue Configuration
+## Queue Architecture
 
-**What:** Single BullMQ queue named `ai-jobs` backed by Redis (via `REDIS_URL`). BullMQ uses ioredis internally; all other Redis operations use Bun's native `RedisClient`.
+Three queues backed by Redis (`REDIS_URL`). BullMQ uses ioredis internally; all other Redis operations use Bun's native `RedisClient`. Shared connection config and worker logging in `queue-shared.ts`.
 
-**Config:**
-- Queue name: `ai-jobs`
-- `removeOnComplete: true` (default for all jobs)
-- `removeOnFail: { count: 100 }` — keeps last 100 failed jobs for inspection
-- `attempts: 3` — three retries on failure
-- `backoff: { type: "exponential", delay: 5000 }` — 5s, 10s, 20s between retries
+| Queue | Name | Source file | Concurrency | Job types | Bottleneck |
+|---|---|---|---|---|---|
+| **AI** | `ai` | `queue.ts` | 50 | 8 (OpenAI-calling jobs) | OpenAI RPM/TPM |
+| **Ops** | `ops` | `queue-ops.ts` | 10 | 5 (GDPR, admin actions) | DB/S3/email |
+| **Maintenance** | `maintenance` | `queue-maintenance.ts` | 2 | 2 (periodic flush/prune) | None |
+
+**Why 3 queues:** Jobs grouped by shared bottleneck. AI jobs all compete for OpenAI API capacity and benefit from cross-type priority (`promotePairAnalysis`). Ops jobs are rare but critical — admin clicking "delete account" shouldn't wait behind 200 AI analysis jobs. Maintenance is fire-and-forget and needs no concurrency with either.
+
+### Default job options per queue
+
+| Queue | `removeOnComplete` | `removeOnFail` | `attempts` | `backoff` |
+|---|---|---|---|---|
+| AI | `{ count: 200, age: 3600 }` | `{ count: 100 }` | 3 | exponential 5s |
+| Ops | `{ count: 200, age: 3600 }` | `{ age: 7_776_000 }` (90 days) | 3 | exponential 5s |
+| Maintenance | `{ count: 10 }` | `{ count: 10 }` | 3 | exponential 5s |
+
+**Why 90-day retention for ops failures:** GDPR and admin ops must be auditable. A failed `hard-delete-user` or `export-user-data` job needs to be visible for investigation months later.
 
 **Why exponential backoff:** Most failures are transient (LLM API rate limits, Redis hiccups). Exponential backoff avoids hammering external services.
 
-## Worker
+### Workers
 
-**What:** Single worker instance processing from `ai-jobs` queue.
+All three workers start at server startup from `src/index.ts`: `startAiWorker()`, `startOpsWorker()`, `startMaintenanceWorker()`. Each no-ops gracefully when `REDIS_URL` is not set (local dev without Redis). Shared logging via `attachWorkerLogger()` in `queue-shared.ts` records Prometheus metrics and console output.
 
-**Config:**
-- `concurrency: 50` — up to 50 jobs processed simultaneously
-- Initialized at server startup via `startWorker()` (called from `src/index.ts`)
-- No-ops gracefully when `REDIS_URL` is not set (local dev without Redis)
+### Legacy migration
 
-**Why concurrency 50:** Most jobs are I/O-bound (waiting on LLM API calls, DB queries). High concurrency keeps throughput up while the worker waits on external calls.
+On startup, `startOpsWorker()` runs a one-time migration that moves any delayed `hard-delete-user` jobs from the old `ai-jobs` Redis queue to the new `ops` queue, preserving remaining delay time and job IDs. This handles the transition from the single-queue architecture.
 
-## Job Types (13 total)
+## Job Types (15 total)
+
+### AI Queue (8 types) — `queue.ts`
 
 ### 1. `analyze-pair` — Full Connection Analysis (T3)
 
@@ -196,6 +207,8 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 
 **`removeOnComplete`:** true (explicit)
 
+### Ops Queue (5 types) — `queue-ops.ts`
+
 ### 9. `hard-delete-user` — GDPR Anonymization
 
 **What:** Permanently anonymizes user data 14 days after soft-delete.
@@ -262,11 +275,13 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 
 **`removeOnComplete`:** true (via admin enqueue options)
 
+### Maintenance Queue (2 types) — `queue-maintenance.ts`
+
 ### 14. `flush-push-log` — Push Log Batch Flush
 
 **What:** Drains the `blisko:push-log` Redis list and batch-inserts all buffered push notification events into the `push_sends` database table.
 
-**Trigger:** BullMQ repeatable job scheduler, every 15 seconds. Registered in `startWorker()` via `queue.upsertJobScheduler()`.
+**Trigger:** BullMQ repeatable job scheduler, every 15 seconds. Registered in `startMaintenanceWorker()` via `queue.upsertJobScheduler()`.
 
 **Processor logic:**
 1. Atomically swap the Redis list (`RENAME blisko:push-log blisko:push-log:processing`)
@@ -282,7 +297,7 @@ Single BullMQ queue powering all background work: AI analysis, profile generatio
 
 **What:** Deletes push log entries older than 7 days from the `push_sends` table.
 
-**Trigger:** BullMQ repeatable job scheduler, every hour. Registered in `startWorker()`.
+**Trigger:** BullMQ repeatable job scheduler, every hour. Registered in `startMaintenanceWorker()`.
 
 **Processor logic:** `DELETE FROM push_sends WHERE created_at < NOW() - 7 days`.
 
@@ -341,7 +356,7 @@ Redis (`REDIS_URL`) serves 5 distinct purposes in the API:
 
 | Use | Client | Key pattern | TTL |
 |---|---|---|---|
-| **BullMQ queue** | ioredis (internal) | `bull:ai-jobs:*` | Managed by BullMQ |
+| **BullMQ queues (3)** | ioredis (internal) | `bull:ai:*`, `bull:ops:*`, `bull:maintenance:*` | Managed by BullMQ |
 | **WS pub/sub bridge** | Bun `RedisClient` | Channel: `ws-events` | N/A (pub/sub) |
 | **Analysis notification** | Bun `RedisClient` | Channel: `analysis:ready` | N/A (pub/sub) |
 | **Rate limiting** | Bun `RedisClient` | `rl:{context}:{userId}:{window}` | 2x window seconds |
@@ -367,21 +382,28 @@ In `apps/api/src/index.ts`:
 1. Hono app created with middleware (metrics, logger, CORS)
 2. Routes registered (health, metrics, auth, uploads, tRPC)
 3. `initWsRedisBridge()` — sets up Redis pub/sub for cross-replica WS events
-4. `startWorker()` — starts BullMQ worker consuming `ai-jobs` queue
-5. Bun server starts on `PORT` (default 3000) with WS upgrade handler
+4. `startAiWorker()` — starts AI queue worker (concurrency 50)
+5. `startOpsWorker()` — starts ops queue worker (concurrency 10) + legacy migration
+6. `startMaintenanceWorker()` — starts maintenance worker (concurrency 2) + registers repeatable schedulers
+7. Bun server starts on `PORT` (default 3000) with WS upgrade handler
 
 ## Impact Map
 
 If you change this system, also check:
-- **Job type added/removed:** Update `AIJob` union type, `processJob` switch, add enqueue function
+- **AI job type added/removed:** Update `AIJob` union in `queue.ts`, `processJob` switch, add enqueue function
+- **Ops job type added/removed:** Update `OpsJob` union in `queue-ops.ts`, `processOpsJob` switch, add enqueue function
+- **Maintenance job type added:** Update `MaintenanceJob` union in `queue-maintenance.ts`, `processMaintenanceJob` switch
 - **Profile schema changed:** `analyze-pair` and `quick-score` fetch profiles — update field lists. Profile hash calculation uses `bio` + `lookingFor`
 - **Status schema changed:** `status-matching` and `proximity-status-matching` both query status fields
-- **Redis connection:** BullMQ, rate limiter, WS bridge, ambient push, message idempotency all share `REDIS_URL`
-- **Queue config (attempts, backoff):** Affects all 13 job types
-- **Service functions (`user-actions.ts`):** `softDeleteUser` and `restoreUser` are called by both user tRPC and admin BullMQ workers — changes affect both paths
-- **Admin BullMQ client:** Admin app connects to same Redis via `REDIS_URL` as queue producer only. See `admin-panel.md`
-- **Worker concurrency:** Affects throughput of all jobs — higher = more parallel LLM calls
+- **Redis connection:** All 3 BullMQ queues, rate limiter, WS bridge, ambient push, message idempotency share `REDIS_URL`
+- **Queue config (attempts, backoff):** Each queue has its own defaults in its source file. Exception: `export-user-data` overrides ops defaults
+- **Service functions (`user-actions.ts`):** `softDeleteUser` and `restoreUser` are called by both user tRPC and ops BullMQ worker — changes affect both paths
+- **Admin BullMQ client:** Admin app connects to same Redis via `REDIS_URL`. Reads from `ai` + `ops` queues for the live feed. Writes via `enqueueAiAndWait` (AI jobs: reanalyze, regenerate) or `enqueueOpsAndWait` (ops jobs: delete, restore, disconnect). See `admin-panel.md`
+- **Admin live feed:** Polls `ai` + `ops` queues, merges results. Maintenance queue intentionally excluded. Source: `apps/admin/src/server/routers/queue.ts`
+- **Worker concurrency:** Each queue has independent concurrency. AI=50 (OpenAI I/O-bound), Ops=10 (DB-bound), Maintenance=2 (periodic)
+- **Shared worker logger:** `attachWorkerLogger()` in `queue-shared.ts` — handles Prometheus metrics + console logging for all 3 workers
 - **Debounce TTLs:** Changing profile-ai debounce affects how quickly profile updates propagate; proximity-status debounce affects how responsive ambient matching is to movement
-- **`hard-delete-user` processor:** Must be updated when new tables store personal data (check `security/new-tables-check` rule)
+- **`hard-delete-user` processor:** In `queue-ops.ts`. Must be updated when new tables store personal data (check `security/new-tables-check` rule)
 - **`analysis:ready` Redis channel:** Chatbot subscribes to this — changing format breaks bot wave acceptance
 - **`connectionAnalyses` table:** Both `analyze-pair` and `quick-score` write to it — schema changes affect both
+- **Queue name constants:** `QUEUE_NAMES` in `queue-shared.ts`. Admin app has matching local constants — keep in sync

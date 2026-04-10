@@ -3,7 +3,7 @@ import type { Job } from "bullmq";
 import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
-import { getQueue } from "~/lib/queue";
+import { getAiQueue, getOpsQueue } from "~/lib/queue";
 import { protectedProcedure, router } from "../trpc";
 
 const JOB_STATES = ["active", "waiting", "delayed", "completed", "failed"] as const;
@@ -23,19 +23,24 @@ export const queueRouter = router({
 
       let result: ReturnType<typeof mapJob>[];
       try {
-        const queue = getQueue();
+        const queues = [
+          { queue: getAiQueue(), source: "ai" as const },
+          { queue: getOpsQueue(), source: "ops" as const },
+        ];
         const { type, state, limit } = input;
 
         const statesToFetch = state ? [state] : [...JOB_STATES];
 
-        const jobsByState = await Promise.all(
-          statesToFetch.map(async (s) => {
-            const jobs = await queue.getJobs([s], 0, limit - 1);
-            return jobs.map((job) => mapJob(job, s));
-          }),
+        const jobsByStatePerQueue = await Promise.all(
+          queues.flatMap(({ queue, source }) =>
+            statesToFetch.map(async (s) => {
+              const jobs = await queue.getJobs([s], 0, limit - 1);
+              return jobs.map((job) => mapJob(job, s, source));
+            }),
+          ),
         );
 
-        let allJobs = jobsByState.flat();
+        let allJobs = jobsByStatePerQueue.flat();
 
         if (type) {
           allJobs = allJobs.filter((j) => j.type === type);
@@ -77,14 +82,13 @@ export const queueRouter = router({
     }
 
     try {
-      const queue = getQueue();
-      const counts = await queue.getJobCounts();
+      const [aiCounts, opsCounts] = await Promise.all([getAiQueue().getJobCounts(), getOpsQueue().getJobCounts()]);
       return {
-        active: counts.active ?? 0,
-        waiting: counts.waiting ?? 0,
-        delayed: counts.delayed ?? 0,
-        completed: counts.completed ?? 0,
-        failed: counts.failed ?? 0,
+        active: (aiCounts.active ?? 0) + (opsCounts.active ?? 0),
+        waiting: (aiCounts.waiting ?? 0) + (opsCounts.waiting ?? 0),
+        delayed: (aiCounts.delayed ?? 0) + (opsCounts.delayed ?? 0),
+        completed: (aiCounts.completed ?? 0) + (opsCounts.completed ?? 0),
+        failed: (aiCounts.failed ?? 0) + (opsCounts.failed ?? 0),
       };
     } catch {
       return { active: 0, waiting: 0, delayed: 0, completed: 0, failed: 0 };
@@ -92,11 +96,12 @@ export const queueRouter = router({
   }),
 });
 
-function mapJob(job: Job, state: string) {
+function mapJob(job: Job, state: string, source: "ai" | "ops") {
   return {
     id: job.id ?? "",
     type: job.name,
     state,
+    source,
     data: job.data as Record<string, unknown>,
     createdAt: job.timestamp,
     processedOn: job.processedOn ?? null,
