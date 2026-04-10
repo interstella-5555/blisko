@@ -19,7 +19,6 @@ import { sendPushToUser } from "./push";
 import { prunePushLog, pushLogBuffer } from "./push-log";
 import { recordJobCompleted, recordJobFailed } from "./queue-metrics";
 import { getConnectionConfig, getRedisPub } from "./queue-shared";
-import { restoreUser, softDeleteUser } from "./user-actions";
 
 // --- Job types ---
 
@@ -84,32 +83,6 @@ interface ProximityStatusMatchingJob {
   longitude: number;
 }
 
-interface HardDeleteUserJob {
-  type: "hard-delete-user";
-  userId: string;
-}
-
-interface ExportUserDataJob {
-  type: "export-user-data";
-  userId: string;
-  email: string;
-}
-
-interface AdminSoftDeleteUserJob {
-  type: "admin-soft-delete-user";
-  userId: string;
-}
-
-interface AdminRestoreUserJob {
-  type: "admin-restore-user";
-  userId: string;
-}
-
-interface AdminForceDisconnectJob {
-  type: "admin-force-disconnect";
-  userId: string;
-}
-
 interface FlushPushLogJob {
   type: "flush-push-log";
 }
@@ -127,11 +100,6 @@ type AIJob =
   | GenerateProfileFromQAJob
   | StatusMatchingJob
   | ProximityStatusMatchingJob
-  | HardDeleteUserJob
-  | ExportUserDataJob
-  | AdminSoftDeleteUserJob
-  | AdminRestoreUserJob
-  | AdminForceDisconnectJob
   | FlushPushLogJob
   | PrunePushLogJob;
 
@@ -893,173 +861,6 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
   }
 }
 
-// --- Hard delete processor ---
-
-async function processHardDeleteUser(userId: string) {
-  console.log(`[queue] anonymize-user starting for ${userId}`);
-
-  // Skip if already anonymized
-  const userData = await db.query.user.findFirst({
-    where: eq(schema.user.id, userId),
-    columns: { anonymizedAt: true },
-  });
-  if (userData?.anonymizedAt) {
-    console.log(`[queue] user ${userId} already anonymized, skipping`);
-    return;
-  }
-
-  // 1. Get S3 file keys from profile before overwriting
-  const profile = await db.query.profiles.findFirst({
-    where: eq(schema.profiles.userId, userId),
-    columns: { avatarUrl: true, portrait: true },
-  });
-
-  // 2. Delete S3 files (avatar, portrait)
-  if (profile) {
-    const keysToDelete: string[] = [];
-    for (const url of [profile.avatarUrl, profile.portrait]) {
-      if (url) {
-        const match = url.match(/uploads\/[^?]+/);
-        if (match) keysToDelete.push(match[0]);
-      }
-    }
-    if (keysToDelete.length > 0) {
-      const { S3Client } = await import("bun");
-      const s3 = new S3Client({
-        accessKeyId: process.env.BUCKET_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.BUCKET_SECRET_ACCESS_KEY!,
-        endpoint: process.env.BUCKET_ENDPOINT!,
-        bucket: process.env.BUCKET_NAME!,
-      });
-      for (const key of keysToDelete) {
-        try {
-          await s3.delete(key);
-          console.log(`[queue] deleted S3 key: ${key}`);
-        } catch (err) {
-          console.error(`[queue] failed to delete S3 key ${key}:`, err);
-        }
-      }
-    }
-  }
-
-  const now = new Date();
-  const anonymizedEmail = `${crypto.randomUUID()}@deleted.localhost`;
-
-  // 3. Anonymize user + profile + profiling data in a transaction
-  await db.transaction(async (tx) => {
-    await tx
-      .update(schema.user)
-      .set({
-        name: "Usunięty użytkownik",
-        email: anonymizedEmail,
-        emailVerified: false,
-        image: null,
-        updatedAt: now,
-        anonymizedAt: now,
-      })
-      .where(eq(schema.user.id, userId));
-
-    await tx
-      .update(schema.profiles)
-      .set({
-        displayName: "Usunięty użytkownik",
-        avatarUrl: null,
-        bio: "",
-        lookingFor: "",
-        socialLinks: null,
-        visibilityMode: "ninja",
-        interests: null,
-        embedding: null,
-        portrait: null,
-        portraitSharedForMatching: false,
-        isComplete: false,
-        currentStatus: null,
-        statusExpiresAt: null,
-        statusEmbedding: null,
-        statusSetAt: null,
-        statusVisibility: "public",
-        statusCategories: null,
-        dateOfBirth: null,
-        superpower: null,
-        superpowerTags: null,
-        offerType: null,
-        doNotDisturb: false,
-        latitude: null,
-        longitude: null,
-        lastLocationUpdate: null,
-        updatedAt: now,
-      })
-      .where(eq(schema.profiles.userId, userId));
-
-    await tx
-      .update(schema.profilingSessions)
-      .set({ generatedBio: null, generatedLookingFor: null, generatedPortrait: null })
-      .where(eq(schema.profilingSessions.userId, userId));
-
-    const sessionIds = await tx
-      .select({ id: schema.profilingSessions.id })
-      .from(schema.profilingSessions)
-      .where(eq(schema.profilingSessions.userId, userId));
-
-    if (sessionIds.length > 0) {
-      await tx
-        .update(schema.profilingQA)
-        .set({ answer: null })
-        .where(
-          inArray(
-            schema.profilingQA.sessionId,
-            sessionIds.map((s) => s.id),
-          ),
-        );
-    }
-  });
-
-  // 4. Anonymize metrics (outside transaction — separate schema, non-critical)
-  try {
-    await db.update(schema.requestEvents).set({ userId: null }).where(eq(schema.requestEvents.userId, userId));
-    await db
-      .update(schema.requestEvents)
-      .set({ targetUserId: null })
-      .where(eq(schema.requestEvents.targetUserId, userId));
-  } catch (err) {
-    console.error(`[queue] failed to anonymize metrics for ${userId}:`, err);
-  }
-
-  console.log(`[queue] anonymize-user completed for ${userId}`);
-}
-
-// --- Export user data processor ---
-
-async function processExportUserData(userId: string, email: string) {
-  console.log(`[queue] export-user-data starting for ${userId}`);
-  const { collectAndExportUserData } = await import("./data-export");
-  await collectAndExportUserData(userId, email);
-  console.log(`[queue] export-user-data completed for ${userId}`);
-}
-
-async function handleExportFailure(userId: string, userEmail: string, jobId: string, errorMessage: string) {
-  const { sendEmail, dataExportDelayed } = await import("./email");
-
-  // Send delay email only if no other failed export for this user in the last 7 days
-  const queue = getQueue();
-  const failedJobs = await queue.getJobs(["failed"]);
-  const priorFailed = failedJobs.some(
-    (j) =>
-      j.data.type === "export-user-data" &&
-      j.data.userId === userId &&
-      j.id !== jobId &&
-      j.timestamp > Date.now() - 7 * 24 * 60 * 60 * 1000,
-  );
-  if (!priorFailed) {
-    await sendEmail(userEmail, dataExportDelayed());
-  }
-
-  // TODO(BLI-169): Add proper admin alerting (Sentry, Discord webhook, etc.)
-  console.error(
-    `[queue] GDPR EXPORT FAILED — userId: ${userId}, email: ${userEmail}, job: ${jobId}, error: ${errorMessage}`,
-  );
-}
-
 // --- Main job processor ---
 
 async function processJob(job: Job<AIJob>) {
@@ -1092,21 +893,6 @@ async function processJob(job: Job<AIJob>) {
     case "proximity-status-matching":
       await processProximityStatusMatching(data.userId, data.latitude, data.longitude);
       break;
-    case "hard-delete-user":
-      await processHardDeleteUser(data.userId);
-      break;
-    case "export-user-data":
-      await processExportUserData(data.userId, data.email);
-      break;
-    case "admin-soft-delete-user":
-      await softDeleteUser(data.userId);
-      break;
-    case "admin-restore-user":
-      await restoreUser(data.userId);
-      break;
-    case "admin-force-disconnect":
-      publishEvent("forceDisconnect", { userId: data.userId });
-      break;
     case "flush-push-log": {
       const count = await pushLogBuffer.flush();
       if (count > 0) console.log(`[queue] flushed ${count} push log events`);
@@ -1125,7 +911,7 @@ async function processJob(job: Job<AIJob>) {
 
 let _worker: Worker | null = null;
 
-export function startWorker() {
+export function startAiWorker() {
   if (!process.env.REDIS_URL) {
     console.warn("REDIS_URL not set, skipping queue worker");
     return;
@@ -1139,12 +925,12 @@ export function startWorker() {
   _worker.on("completed", (job) => {
     const durationMs = job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : 0;
     recordJobCompleted("ai-jobs", durationMs);
-    console.log(`[queue] Job ${job.id} completed (${job.data.type}) ${durationMs}ms`);
+    console.log(`[queue:ai] Job ${job.id} completed (${job.data.type}) ${durationMs}ms`);
   });
 
   _worker.on("failed", (job, err) => {
     recordJobFailed("ai-jobs");
-    console.error(`[queue] Job ${job?.id} failed:`, err.message);
+    console.error(`[queue:ai] Job ${job?.id} failed:`, err.message);
 
     if (!job || !job.opts.attempts || job.attemptsMade < job.opts.attempts) return;
 
@@ -1174,11 +960,6 @@ export function startWorker() {
     if (data.type === "status-matching") {
       publishEvent("statusMatchingFailed", { userId: data.userId });
     }
-    if (data.type === "export-user-data") {
-      handleExportFailure(data.userId, data.email, job.id ?? "unknown", err.message).catch((e) => {
-        console.error("[queue] Failed to send export failure notifications:", e);
-      });
-    }
   });
 
   // Register periodic maintenance jobs
@@ -1194,7 +975,7 @@ export function startWorker() {
     { name: "prune-push-log", data: { type: "prune-push-log" } },
   );
 
-  console.log("[queue] AI jobs worker started");
+  console.log("[queue:ai] AI jobs worker started");
 }
 
 // --- Helpers for safe job enqueue ---
@@ -1398,52 +1179,6 @@ export async function enqueueProximityStatusMatching(userId: string, latitude: n
     {
       jobId: `proximity-status-${userId}-${Date.now()}`,
       debounce: { id: `proximity-status-${userId}`, ttl: ms("2m") },
-    },
-  );
-}
-
-export async function enqueueHardDeleteUser(userId: string) {
-  if (!process.env.REDIS_URL) return;
-
-  const queue = getQueue();
-  const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
-  await queue.add(
-    "hard-delete-user",
-    { type: "hard-delete-user", userId },
-    {
-      jobId: `hard-delete-${userId}`,
-      delay: FOURTEEN_DAYS_MS,
-    },
-  );
-}
-
-export async function cancelHardDeleteUser(userId: string) {
-  if (!process.env.REDIS_URL) return;
-
-  const queue = getQueue();
-  const job = await queue.getJob(`hard-delete-${userId}`);
-  if (job) {
-    try {
-      await job.remove();
-    } catch {
-      /* job may have already run */
-    }
-  }
-}
-
-export async function enqueueDataExport(userId: string, email: string) {
-  if (!process.env.REDIS_URL) return;
-
-  const queue = getQueue();
-  await queue.add(
-    "export-user-data",
-    { type: "export-user-data", userId, email },
-    {
-      jobId: `export-${userId}-${Date.now()}`,
-      // GDPR-critical: aggressive retry (10 attempts over ~8.5h), never auto-remove failures
-      attempts: 10,
-      backoff: { type: "exponential", delay: 60_000 },
-      removeOnFail: false,
     },
   );
 }

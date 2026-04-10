@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { cancelHardDeleteUser, enqueueHardDeleteUser } from "@/services/queue";
+import { cancelHardDeleteUser, enqueueHardDeleteUser } from "@/services/queue-ops";
 import { publishEvent } from "@/ws/redis-bridge";
 
 export async function softDeleteUser(userId: string) {
