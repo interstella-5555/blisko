@@ -187,10 +187,16 @@ export default function TabsLayout() {
     if (!profileData) return;
     const fiveMinAgo = Date.now() - 5 * 60 * 1000;
     const isStale = profileData.updatedAt && new Date(profileData.updatedAt).getTime() < fiveMinAgo;
-    if (profileData.bio && !profileData.portrait && isStale) {
+    if (profileData.bio && !profileData.portrait && isStale && !retryProfileAI.isPending) {
       retryProfileAI.mutate();
     }
-  }, [profileData?.bio, profileData?.portrait, profileData?.updatedAt, retryProfileAI.mutate]);
+  }, [
+    profileData?.bio,
+    profileData?.portrait,
+    profileData?.updatedAt,
+    retryProfileAI.mutate,
+    retryProfileAI.isPending,
+  ]);
 
   // Waves hydration query — store is the source of truth, useBackgroundSync handles periodic reconciliation
   const { data: receivedWaves } = trpc.waves.getReceived.useQuery(undefined, { enabled: !!user && !!profile });

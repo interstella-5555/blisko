@@ -118,5 +118,5 @@ export async function enqueueMaintenanceAndWait<T extends Record<string, unknown
     removeOnFail: { count: 10 },
   });
 
-  return await job.waitUntilFinished(getMaintenanceQueueEvents(), 30_000);
+  return await job.waitUntilFinished(getMaintenanceQueueEvents(), 60_000);
 }
