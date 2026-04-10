@@ -49,10 +49,13 @@ RESP_A=$(auto_login "$EMAIL_A")
 USER_ID_A=$(echo "$RESP_A" | jq -r '.user.id')
 TOKEN_A=$(echo "$RESP_A" | jq -r '.token')
 
-# Create profile for A
+# Create profile for A + mark complete (E2E needs isComplete for waves/groups)
 trpc_mutate "$TOKEN_A" "profiles.create" \
   '{"displayName":"Chat User A","bio":"Testowy uzytkownik A do testow czatu w Blisko","lookingFor":"Szukam ludzi do rozmow i testowania czatu"}' \
   > /dev/null
+curl -sf "$API/dev/mark-complete" \
+  -H "Content-Type: application/json" \
+  -d "{\"userId\":\"$USER_ID_A\"}" > /dev/null
 
 # Update location for A (Warsaw)
 trpc_mutate "$TOKEN_A" "profiles.updateLocation" \
@@ -79,10 +82,13 @@ RESP_B=$(auto_login "$EMAIL_B")
 USER_ID_B=$(echo "$RESP_B" | jq -r '.user.id')
 TOKEN_B=$(echo "$RESP_B" | jq -r '.token')
 
-# Create profile for B
+# Create profile for B + mark complete
 trpc_mutate "$TOKEN_B" "profiles.create" \
   '{"displayName":"Chat User B","bio":"Testowy uzytkownik B do testow czatu w Blisko","lookingFor":"Szukam ludzi do rozmow i testowania czatu"}' \
   > /dev/null
+curl -sf "$API/dev/mark-complete" \
+  -H "Content-Type: application/json" \
+  -d "{\"userId\":\"$USER_ID_B\"}" > /dev/null
 
 # Update location for B (Warsaw, slightly offset)
 trpc_mutate "$TOKEN_B" "profiles.updateLocation" \

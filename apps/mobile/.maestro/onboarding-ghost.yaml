@@ -21,7 +21,8 @@ appId: com.blisko.app
     id: "email-input"
 - inputRandomNumber
 - inputText: "@example.com"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn: "(?i)Wyślij kod"
 
 # --- HOOK SCREEN (auto-advances in 5s) ---
@@ -45,7 +46,8 @@ appId: com.blisko.app
     id: "name-input"
 - eraseText: 30
 - inputText: "Ghost User E2E"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - waitForAnimationToEnd
 
 - tapOn:

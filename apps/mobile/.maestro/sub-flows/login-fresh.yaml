@@ -21,7 +21,8 @@ appId: com.blisko.app
     id: "email-input"
 - inputRandomNumber
 - inputText: "@example.com"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - tapOn: "(?i)Wyślij kod"
 
 # --- HOOK (auto-advances in 5s) ---
@@ -43,7 +44,8 @@ appId: com.blisko.app
     id: "name-input"
 - eraseText: 30
 - inputText: "Test User"
-- hideKeyboard
+- tapOn:
+    point: "50%,10%"
 - waitForAnimationToEnd
 - tapOn:
     id: "age-confirm-toggle"

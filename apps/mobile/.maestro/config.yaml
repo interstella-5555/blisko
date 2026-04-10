@@ -1,0 +1,7 @@
+appId: com.blisko.app
+
+# Fresh tests (no seeding required) — run via `maestro test .maestro/`
+# Seeded tests (chat, groups) require API + seeding — run via `.maestro/chat/run-all.sh`
+flows:
+  - "*"
+

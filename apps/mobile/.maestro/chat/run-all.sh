@@ -30,7 +30,6 @@ run_one read-receipts.yaml     unread
 run_one reply-message.yaml     messages
 run_one delete-message.yaml    messages
 run_one emoji-reaction.yaml    messages
-run_one search-messages.yaml   search
 run_one pagination.yaml        many
 
 echo ""

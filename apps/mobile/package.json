@@ -10,10 +10,8 @@
     "web": "expo start --web",
     "test": "vitest",
     "test:e2e": "maestro test .maestro/",
-    "test:e2e:auth": "maestro test .maestro/auth/login.yaml",
     "test:e2e:onboarding": "maestro test .maestro/onboarding.yaml",
-    "test:e2e:waves": "maestro test .maestro/waves/",
-    "test:e2e:waves:empty": "maestro test .maestro/waves/empty-waves.yaml",
+    "test:e2e:chat": "bash .maestro/chat/run-all.sh",
     "typecheck": "tsc --noEmit",
     "testflight": "bash scripts/testflight.sh"
   },
