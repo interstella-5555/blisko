@@ -26,7 +26,7 @@ import { GroupRow } from "../../src/components/nearby/GroupRow";
 import type { UserRowStatus } from "../../src/components/nearby/UserRow";
 import { UserRow } from "../../src/components/nearby/UserRow";
 import { Button } from "../../src/components/ui/Button";
-import { IconPin, IconSettings } from "../../src/components/ui/icons";
+import { IconFilter, IconPin } from "../../src/components/ui/icons";
 import { useRetryStatusMatchingOnFailure } from "../../src/hooks/useRetryStatusMatchingOnFailure";
 import { trpc } from "../../src/lib/trpc";
 import { useWebSocket, type WSMessage } from "../../src/lib/ws";
@@ -615,7 +615,7 @@ export default function NearbyScreen() {
           style={[styles.filterFunnel, hasActiveFilters && styles.filterFunnelActive]}
           onPress={() => router.push("/filters" as never)}
         >
-          <IconSettings size={16} color={hasActiveFilters ? colors.accent : colors.muted} />
+          <IconFilter size={16} color={hasActiveFilters ? colors.accent : colors.muted} />
           {hasActiveFilters && <View style={styles.filterDot} />}
         </Pressable>
       </View>
