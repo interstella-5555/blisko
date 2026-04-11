@@ -146,6 +146,7 @@ export default function ChatsScreen() {
         /* Pings list */
         pendingPings.length > 0 ? (
           <FlatList
+            key="pings-list"
             testID="pings-list"
             data={pendingPings}
             keyExtractor={(item) => item.wave.id}
@@ -192,6 +193,7 @@ export default function ChatsScreen() {
       ) : (
         /* Conversations list */
         <FlatList
+          key="chats-list"
           testID="chats-list"
           data={filteredConversations}
           keyExtractor={(item) => item.id}
