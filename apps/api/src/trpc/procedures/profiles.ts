@@ -464,8 +464,30 @@ export const profilesRouter = router({
     }),
 
   // Ensure T3 analysis exists — lightweight "poke" to re-enqueue if stuck/failed.
-  // A T2 row is NOT "ready" — still promote to T3.
+  // A T2 row is NOT "ready" — still promote to T3. Silent no-op for blocked/incomplete/
+  // soft-deleted target (returns "ready") so mobile self-heal stops without revealing state.
   ensureAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ ctx, input }) => {
+    const block = await db.query.blocks.findFirst({
+      where: or(
+        and(eq(schema.blocks.blockerId, ctx.userId), eq(schema.blocks.blockedId, input.userId)),
+        and(eq(schema.blocks.blockerId, input.userId), eq(schema.blocks.blockedId, ctx.userId)),
+      ),
+    });
+    if (block) return { status: "ready" as const };
+
+    const myProfile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+      columns: { isComplete: true },
+    });
+    if (!myProfile?.isComplete) return { status: "ready" as const };
+
+    const [target] = await db
+      .select({ isComplete: schema.profiles.isComplete })
+      .from(schema.profiles)
+      .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+      .where(and(eq(schema.profiles.userId, input.userId), isNull(schema.user.deletedAt)));
+    if (!target?.isComplete) return { status: "ready" as const };
+
     const existing = await db.query.connectionAnalyses.findFirst({
       where: and(
         eq(schema.connectionAnalyses.fromUserId, ctx.userId),
@@ -496,11 +518,14 @@ export const profilesRouter = router({
     });
     if (!myProfile?.isComplete) return null;
 
-    const theirProfile = await db.query.profiles.findFirst({
-      where: eq(schema.profiles.userId, input.userId),
-      columns: { isComplete: true },
-    });
-    if (!theirProfile?.isComplete) return null;
+    // Soft-delete filter: inner-join user so a soft-deleted target disappears even if
+    // the map query raced and handed the userId to mobile before the deletion landed.
+    const [target] = await db
+      .select({ isComplete: schema.profiles.isComplete })
+      .from(schema.profiles)
+      .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+      .where(and(eq(schema.profiles.userId, input.userId), isNull(schema.user.deletedAt)));
+    if (!target?.isComplete) return null;
 
     const analysis = await db.query.connectionAnalyses.findFirst({
       where: and(
@@ -525,46 +550,6 @@ export const profilesRouter = router({
       status: "queued" as const,
       matchScore: analysis?.aiMatchScore ?? null,
     };
-  }),
-
-  // Get AI connection analysis for a specific user
-  getConnectionAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).query(async ({ ctx, input }) => {
-    // Block check — blocked users should not see connection analysis
-    const block = await db.query.blocks.findFirst({
-      where: or(
-        and(eq(schema.blocks.blockerId, ctx.userId), eq(schema.blocks.blockedId, input.userId)),
-        and(eq(schema.blocks.blockerId, input.userId), eq(schema.blocks.blockedId, ctx.userId)),
-      ),
-    });
-    if (block) return null;
-
-    // Return null if either user has incomplete profile
-    const myProfile = await db.query.profiles.findFirst({
-      where: eq(schema.profiles.userId, ctx.userId),
-      columns: { isComplete: true },
-    });
-    if (!myProfile?.isComplete) return null;
-
-    const theirProfile = await db.query.profiles.findFirst({
-      where: eq(schema.profiles.userId, input.userId),
-      columns: { isComplete: true },
-    });
-    if (!theirProfile?.isComplete) return null;
-
-    const analysis = await db.query.connectionAnalyses.findFirst({
-      where: and(
-        eq(schema.connectionAnalyses.fromUserId, ctx.userId),
-        eq(schema.connectionAnalyses.toUserId, input.userId),
-      ),
-    });
-
-    return analysis
-      ? {
-          shortSnippet: analysis.shortSnippet,
-          longDescription: analysis.longDescription,
-          aiMatchScore: analysis.aiMatchScore,
-        }
-      : null;
   }),
 
   // Get profile by user ID
