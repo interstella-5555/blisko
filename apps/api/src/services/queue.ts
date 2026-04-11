@@ -143,6 +143,25 @@ function profileHash(bio: string, lookingFor: string): string {
 
 // --- Connection analysis processors (unchanged) ---
 
+/**
+ * Writer-side staleness gate for T3 pair analysis.
+ *
+ * Only a `t3` row with matching hashes counts as "already done" — a `t2` row with
+ * matching hashes is NOT up to date, because T2 doesn't write `shortSnippet`/
+ * `longDescription`. Skipping on `t2` would make `promotePairAnalysis` a no-op and
+ * leave the modal stuck on the `commonInterests` fallback forever (BLI-194).
+ */
+export function isPairAnalysisUpToDate(
+  existing:
+    | { tier: "t1" | "t2" | "t3"; fromProfileHash: string | null; toProfileHash: string | null }
+    | null
+    | undefined,
+  hashA: string,
+  hashB: string,
+): boolean {
+  return existing?.tier === "t3" && existing.fromProfileHash === hashA && existing.toProfileHash === hashB;
+}
+
 async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, userBId: string) {
   const t0 = performance.now();
 
@@ -174,7 +193,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
 
   const tFetch = performance.now();
 
-  if (existingAB && existingAB.fromProfileHash === hashA && existingAB.toProfileHash === hashB) {
+  if (isPairAnalysisUpToDate(existingAB, hashA, hashB)) {
     console.log(
       `[queue] analyze-pair done | db-fetch: ${(tFetch - t0).toFixed(0)}ms | total: ${(tFetch - t0).toFixed(0)}ms | pair: ${nameA} → ${nameB} | skipped: true`,
     );
