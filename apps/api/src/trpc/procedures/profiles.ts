@@ -679,7 +679,8 @@ export const profilesRouter = router({
       })
       .from(schema.statusMatches)
       .innerJoin(schema.profiles, eq(schema.statusMatches.matchedUserId, schema.profiles.userId))
-      .where(eq(schema.statusMatches.userId, ctx.userId));
+      .innerJoin(schema.user, eq(schema.statusMatches.matchedUserId, schema.user.id))
+      .where(and(eq(schema.statusMatches.userId, ctx.userId), isNull(schema.user.deletedAt)));
 
     return rows.map((row) => ({
       id: row.id,
