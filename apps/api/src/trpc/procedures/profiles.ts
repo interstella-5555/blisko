@@ -464,16 +464,16 @@ export const profilesRouter = router({
     }),
 
   // Ensure T3 analysis exists — lightweight "poke" to re-enqueue if stuck/failed.
-  // A T2 row (shortSnippet IS NULL) is NOT "ready" — still promote to T3.
+  // A T2 row is NOT "ready" — still promote to T3.
   ensureAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ ctx, input }) => {
     const existing = await db.query.connectionAnalyses.findFirst({
       where: and(
         eq(schema.connectionAnalyses.fromUserId, ctx.userId),
         eq(schema.connectionAnalyses.toUserId, input.userId),
       ),
-      columns: { shortSnippet: true },
+      columns: { tier: true },
     });
-    if (existing?.shortSnippet) return { status: "ready" as const };
+    if (existing?.tier === "t3") return { status: "ready" as const };
 
     await enqueuePairAnalysis(ctx.userId, input.userId);
     return { status: "queued" as const };
@@ -507,10 +507,10 @@ export const profilesRouter = router({
         eq(schema.connectionAnalyses.fromUserId, ctx.userId),
         eq(schema.connectionAnalyses.toUserId, input.userId),
       ),
-      columns: { shortSnippet: true, longDescription: true, aiMatchScore: true },
+      columns: { tier: true, shortSnippet: true, longDescription: true, aiMatchScore: true },
     });
 
-    if (analysis?.shortSnippet) {
+    if (analysis?.tier === "t3") {
       return {
         status: "ready" as const,
         matchScore: analysis.aiMatchScore,
@@ -519,7 +519,7 @@ export const profilesRouter = router({
       };
     }
 
-    // No T3 yet (either no row or T2 row without snippet) — promote to top of queue
+    // No T3 yet (either no row or T2 row) — promote to top of queue
     await promotePairAnalysis(ctx.userId, input.userId);
     return {
       status: "queued" as const,
