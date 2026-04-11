@@ -538,29 +538,11 @@ Hot-path prepared statements:
 
 ## Migration History
 
-| # | Name | Type | What |
-|---|------|------|------|
-| 0000 | `baseline` | no-op | Marker for pre-migration schema (created via `db:push`) |
-| 0001 | `add_metrics_schema` | DDL | `metrics` schema + `request_events` + `slo_targets` + initial indexes |
-| 0002 | `add_deeper_insight_columns` | DDL | `target_user_id`, `target_group_id`, `db_query_count`, `db_duration_ms` on request_events |
-| 0003 | `drop_profiling_qa_suggestions` | DDL | Drop unused `suggestions` column from `profiling_qa` |
-| 0004 | `add_user_anonymized_at` | DDL | `anonymized_at` on `user` for GDPR phase 2 |
-| 0005 | `add_status_visibility` | DDL | `status_visibility` on `profiles` |
-| 0006 | `add_sender_status_snapshot` | DDL | `sender_status_snapshot` on `waves` |
-| 0007 | `add_recipient_snapshot_and_conversation_metadata` | DDL | `recipient_status_snapshot` on `waves`, `metadata` on `conversations` |
-| 0008 | `add_wave_responded_at` | DDL | `responded_at` on `waves` |
-| 0009 | `add_date_of_birth` | DDL | `date_of_birth` on `profiles` |
-| 0010 | `add_conversation_delete_and_ratings` | DDL | `conversation_ratings` table, `deleted_at` on `conversations` |
-| 0011 | `add_status_categories` | DDL | `status_categories` text[] on `profiles` |
-| 0012 | `rename_visibility_modes_add_dnd` | DML+DDL (custom) | Rename visibility modes (`visible`->`semi_open`, `hidden`->`ninja`), add `do_not_disturb` |
-| 0013 | `add_superpower_fields` | DDL | `superpower`, `superpower_tags`, `offer_type` on `profiles` |
-| 0014 | `add_status_matches_unique` | DDL | Unique constraint on `status_matches(user_id, matched_user_id)` |
-| 0015 | `nullable_snippet_description` | DDL (custom) | Make `short_snippet` and `long_description` nullable for T2 quick-score |
-| 0016 | `add_missing_fk_indexes` | DDL | Indexes on `account.user_id`, `session.user_id`, `conversation_ratings` FKs |
-| 0017 | `add_push_sends` | DDL | Create `push_sends` table with user, title, body, data, collapse_id, status, suppression_reason, token_count columns + 3 indexes |
-| 0018 | `add_ai_calls` | DDL | Create `metrics.ai_calls` table for AI cost tracking (BLI-174) — 14 columns + 4 indexes |
-| 0019 | `fix_ca_pair_unique_index` | DDL (custom) | Drop non-unique `ca_pair_idx` and add the missing `ca_pair_uniq` unique index on `connection_analyses(user_id, target_user_id)`. Fixes schema drift where `schema.ts` had the unique constraint but the real DB (pre-migration baseline) was created via `db:push` with a non-unique index. |
-| 0020 | `add_tier_to_connection_analyses` | DDL + DML | Add `tier` text column (`t1`/`t2`/`t3`) to `connection_analyses`, backfill existing rows (`short_snippet IS NULL` → `t2`, otherwise `t3`), set `NOT NULL`. Tracks which tier of the AI matching pipeline produced each analysis. |
+Migration files live in `apps/api/drizzle/`, one `.sql` per migration numbered sequentially (`0000_…`, `0001_…`, …). **That folder is the authoritative history** — this document will not mirror it, because the mirror kept drifting out of sync with the real files.
+
+Each migration file starts with a comment header explaining the motivation (ticket ID + one paragraph of context) — the SQL body itself describes the mechanical change. See `migrations/document-reason` in `.claude/rules/migrations.md`. To read the history chronologically: `ls apps/api/drizzle/*.sql` and open each file's header.
+
+Drizzle's internal state for the migrator — schema snapshots and the journal — lives in `apps/api/drizzle/meta/`. Do not edit manually; `drizzle-kit generate` and `drizzle-kit drop` are the only supported operations.
 
 ## Drizzle Relations
 

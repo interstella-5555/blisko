@@ -14,6 +14,8 @@ Architecture reference docs live in `docs/architecture/`. These are the source o
 
 - `architect/new-table-checklist` — When a new table is added: (1) update `database.md`, (2) check GDPR impact (`gdpr-compliance.md`), (3) check if data-export needs updating, (4) check if soft-delete filtering applies.
 
+- `architect/index-synced` — Every file matching `docs/architecture/*.md` must appear in the index table below, in the same PR that creates the doc. Exceptions: `.review-log.md`, `.quality-scores.json` (internal compile artifacts, not architecture docs). A doc that exists on disk but isn't in the index is effectively invisible during `architect/must-read-first` — nobody will find it. Drift observed in compile 2026-04-12: `admin-panel.md`, `ai-cost-tracking.md`, `demo-chatbot.md` all existed for weeks without being indexed.
+
 ## Skills
 
 | Skill | When | What |
