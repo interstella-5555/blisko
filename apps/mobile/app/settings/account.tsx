@@ -172,16 +172,12 @@ export default function AccountScreen() {
 
   const { showToast } = useToast();
   const requestExport = trpc.accounts.requestDataExport.useMutation({
-    onSuccess: (data) => {
-      if (data.status === "already_requested") {
-        showToast({ type: "info", title: "Eksport danych", message: "Eksport jest już w trakcie przygotowywania." });
-      } else {
-        showToast({
-          type: "success",
-          title: "Eksport danych",
-          message: "Eksport został zlecony. Sprawdź swój e-mail.",
-        });
-      }
+    onSuccess: () => {
+      showToast({
+        type: "success",
+        title: "Eksport danych",
+        message: "Eksport został zlecony. Sprawdź swój e-mail.",
+      });
     },
     onError: () => {
       showToast({ type: "error", title: "Błąd", message: "Nie udało się zlecić eksportu. Spróbuj ponownie." });
