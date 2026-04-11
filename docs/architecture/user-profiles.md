@@ -1,6 +1,7 @@
 # User Profiles & Visibility
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-11 — `getDetailedAnalysis` zyskał block + isComplete gate (wcześniej tylko `getConnectionAnalysis`); impact map uwzględnia obie procedury (BLI-188).
 
 Source: `apps/api/src/db/schema.ts`, `apps/api/src/trpc/procedures/profiles.ts`, `packages/shared/src/validators.ts`, `apps/api/src/services/ai.ts`, `apps/api/src/trpc/middleware/featureGate.ts`.
 
@@ -155,7 +156,7 @@ One profile per user. `profiles.userId` is a unique FK to `user.id` with `ON DEL
 | Pair analysis (T3) | Skipped: "incomplete profile" | `queue.ts` line 193, 332 |
 | Status matching | Skipped | `queue.ts` line 599, 617, 722, 759 |
 | Proximity status matching | Skipped | `queue.ts` line 476 |
-| Connection analysis fetch | Returns `null` | `profiles.getConnectionAnalysis` |
+| Connection analysis fetch | Returns `null` | `profiles.getConnectionAnalysis`, `profiles.getDetailedAnalysis` |
 | Feature-gated endpoints | Blocked with `FORBIDDEN` | `featureGate.ts` middleware |
 
 ## Feature Gates (ABAC)
@@ -266,7 +267,7 @@ If you change this system, also check:
 |--------|-----------|
 | Add/remove profile column | `data-export.ts` (GDPR export), anonymization job in `queue.ts`, account deletion doc |
 | Change `visibilityMode` values | Every nearby query in `profiles.ts`, `queue.ts` (pair analysis, status matching, proximity matching) |
-| Change `isComplete` semantics | `featureGate.ts`, all queue workers that skip incomplete profiles, `getConnectionAnalysis` |
+| Change `isComplete` semantics | `featureGate.ts`, all queue workers that skip incomplete profiles, `getConnectionAnalysis`, `getDetailedAnalysis` |
 | Modify portrait generation prompt | All AI consumers (`analyzeConnection`, `quickScore`, `extractInterests`, `generateEmbedding`) |
 | Add new `statusCategory` | `STATUS_CATEGORIES` in `validators.ts`, `evaluateStatusMatch` in `ai.ts`, mobile category selector |
 | Change DND behavior | `push.ts` (`sendPushToUser`), mobile notification handling |
