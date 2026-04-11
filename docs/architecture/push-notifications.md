@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — Push send logging via Redis batch buffer + `push_sends` table. Every push (sent, suppressed, failed) is now recorded.
+> Updated 2026-04-11 — `usePushNotifications` now bidirectionally syncs the device's push_tokens row with system permission on every `AppState === "active"`. Local mirror of server state lives in `authStore.pushToken`; register on grant, unregister on revoke, both also on mount. Drops SecureStore coordination between hook and `signOutAndReset` (BLI-205).
 
 Expo Push API delivering notifications to iOS and Android devices. Source: `apps/api/src/services/push.ts`, `apps/api/src/trpc/procedures/pushTokens.ts`.
 
@@ -26,15 +27,41 @@ Expo Push API delivering notifications to iOS and Android devices. Source: `apps
 
 ## Token Management
 
-Source: `apps/api/src/trpc/procedures/pushTokens.ts`
+Source: `apps/api/src/trpc/procedures/pushTokens.ts`, `apps/mobile/src/hooks/usePushNotifications.ts`
 
 **Register:** `pushTokens.register` mutation. Accepts `{ token: string, platform: "ios" | "android" }`. Uses `onConflictDoUpdate` on the unique `token` column — if the same device token is registered by a different user (e.g., after logout + login on same device), ownership transfers to the new user.
 
-**Unregister:** `pushTokens.unregister` mutation. Deletes the token for the current user. Called on logout.
+**Unregister:** `pushTokens.unregister` mutation. Deletes the token for the current user. Called on logout (via `signOutAndReset`) and on foreground resume when system permission has been revoked (via `usePushNotifications`).
 
 **Multi-device:** One user can have multiple tokens (phone + tablet). All tokens receive the push.
 
 **Stale token cleanup:** When Expo API returns a ticket with `status: "error"` and `details.error === "DeviceNotRegistered"`, the corresponding token row is deleted from the database immediately. This handles uninstalled apps and expired tokens.
+
+### Client-side sync via `authStore.pushToken`
+
+**What:** `usePushNotifications` in `apps/mobile/src/hooks/usePushNotifications.ts` runs a `sync()` function on mount (login / cold start) and on every `AppState === "active"` transition. The function reconciles three values and fires at most one mutation per sync:
+
+1. **System permission** — `Notifications.getPermissionsAsync()` (with a one-time `requestPermissionsAsync()` prompt when status is `undetermined`).
+2. **Device push token** — `Notifications.getExpoPushTokenAsync()`, cached natively on iOS per device.
+3. **Local mirror** — `authStore.pushToken`, a `string | null` field that represents what we believe the server currently has for *this* device.
+
+Decision matrix:
+
+| Permission | `syncedToken` | Action |
+|---|---|---|
+| `granted` | `=== deviceToken` | no-op (already registered) |
+| `granted` | `!== deviceToken` (null or stale) | `pushTokens.register` → `setPushToken(deviceToken)` |
+| not granted | `null` | no-op (already unregistered) |
+| not granted | non-null | `pushTokens.unregister(syncedToken)` → `setPushToken(null)` |
+
+**Why this shape:**
+
+- **One source of truth for "what we told the server".** The local mirror lives in `authStore` — no SecureStore, no dedicated store, no `useRef`. `authStore.reset()` (already called by `signOutAndReset`) clears it for free.
+- **No GET-list round-trip.** We never fetch `push_tokens` state from the server. The client only writes, and `authStore.pushToken` holds the last successful write. Cold start starts with `pushToken: null` → first `sync()` POSTs register → value mirrors server. Idempotent via `onConflictDoUpdate`.
+- **No coordination between modules through storage.** `usePushNotifications` writes `authStore.pushToken`, `signOutAndReset` reads it to know what to unregister. Both sides agree on an in-memory field; no SecureStore contract.
+- **Permission changes in system Settings** (`granted → denied` or `denied → granted`) are picked up on the next foreground resume because opening Settings and coming back always transitions AppState to active.
+- **Simulator safety:** `getExpoPushTokenAsync` throws on iOS simulator; the catch returns silently so the hook is a no-op there.
+- **Failure handling:** register/unregister mutation errors are swallowed; next foreground resume retries. `authStore.pushToken` is only advanced on successful mutation, so a transient failure leaves local and server state consistent (both still `null` or both still stale — next retry converges).
 
 ## `sendPushToUser` Flow
 
@@ -239,3 +266,4 @@ If you change this system, also check:
 - **Ambient push cooldown TTL:** Changing 3600s affects how often users get ambient match notifications — too low = spam, too high = missed matches
 - **Push log (`push_sends` table):** Admin push log page reads from this table. Batch buffer uses Redis list `blisko:push-log`. Prune job deletes entries older than 7 days
 - **`batch-buffer.ts`:** Generic utility — changes affect all batch buffer consumers (currently only push log)
+- **Client lifecycle sync (`usePushNotifications` + `authStore.pushToken`):** Mobile hook reconciles permission state with `push_tokens` on every foreground resume, using `authStore.pushToken` as the local mirror of server state. Changes to `pushTokens.register`/`unregister` shape must be reflected on both sides. `signOutAndReset` reads `authStore.pushToken` to know what to unregister on logout — don't drop that read without replacing the mechanism

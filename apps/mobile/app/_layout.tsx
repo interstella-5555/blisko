@@ -107,14 +107,15 @@ export const queryClient = new QueryClient({
 // Auth session + SecureStore tokens. Leaves `locationStore` (device state) and `preferencesStore`
 // (intentionally persisted) untouched.
 export async function signOutAndReset() {
-  try {
-    const pushToken = await SecureStore.getItemAsync("lastRegisteredPushToken");
-    if (pushToken) {
+  const pushToken = useAuthStore.getState().pushToken;
+  if (pushToken) {
+    try {
       await trpcClient.pushTokens.unregister.mutate({ token: pushToken });
-      await SecureStore.deleteItemAsync("lastRegisteredPushToken");
+    } catch {
+      // Best-effort — token unregister must not block logout. authStore.reset()
+      // below nulls the local mirror regardless; server-side DeviceNotRegistered
+      // cleanup catches orphaned rows if this POST never lands.
     }
-  } catch {
-    // Best-effort — token unregister must not block logout.
   }
 
   try {

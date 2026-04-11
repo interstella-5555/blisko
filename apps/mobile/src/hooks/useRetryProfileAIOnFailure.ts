@@ -7,15 +7,15 @@ import { useWebSocket, type WSMessage } from "@/lib/ws";
  * profile AI generation. Guards against rapid re-fires with isPending.
  */
 export function useRetryProfileAIOnFailure() {
-  const retryProfileAI = trpc.profiles.retryProfileAI.useMutation();
+  const { mutate: retryProfileAI, isPending } = trpc.profiles.retryProfileAI.useMutation();
 
   const wsHandler = useCallback(
     (msg: WSMessage) => {
-      if (msg.type === "profileFailed" && !retryProfileAI.isPending) {
-        retryProfileAI.mutate();
+      if (msg.type === "profileFailed" && !isPending) {
+        retryProfileAI();
       }
     },
-    [retryProfileAI.isPending, retryProfileAI.mutate],
+    [isPending, retryProfileAI],
   );
   useWebSocket(wsHandler);
 }

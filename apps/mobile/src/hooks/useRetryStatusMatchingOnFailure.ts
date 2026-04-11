@@ -7,15 +7,15 @@ import { useWebSocket, type WSMessage } from "@/lib/ws";
  * status matching. Guards against rapid re-fires with isPending.
  */
 export function useRetryStatusMatchingOnFailure() {
-  const retryStatusMatching = trpc.profiles.retryStatusMatching.useMutation();
+  const { mutate: retryStatusMatching, isPending } = trpc.profiles.retryStatusMatching.useMutation();
 
   const wsHandler = useCallback(
     (msg: WSMessage) => {
-      if (msg.type === "statusMatchingFailed" && !retryStatusMatching.isPending) {
-        retryStatusMatching.mutate();
+      if (msg.type === "statusMatchingFailed" && !isPending) {
+        retryStatusMatching();
       }
     },
-    [retryStatusMatching.isPending, retryStatusMatching.mutate],
+    [isPending, retryStatusMatching],
   );
   useWebSocket(wsHandler);
 }

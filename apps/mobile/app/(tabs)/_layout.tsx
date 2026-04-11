@@ -183,20 +183,15 @@ export default function TabsLayout() {
   });
 
   // Startup health check — if AI pipeline never completed, re-enqueue
-  const retryProfileAI = trpc.profiles.retryProfileAI.useMutation();
+  const { mutate: retryProfileAI, isPending: isRetryingProfileAI } = trpc.profiles.retryProfileAI.useMutation();
+  const bio = profileData?.bio;
+  const portrait = profileData?.portrait;
+  const updatedAt = profileData?.updatedAt;
   useEffect(() => {
-    if (!profileData) return;
-    const isStale = profileData.updatedAt && new Date(profileData.updatedAt) < subMinutes(new Date(), 5);
-    if (profileData.bio && !profileData.portrait && isStale && !retryProfileAI.isPending) {
-      retryProfileAI.mutate();
-    }
-  }, [
-    profileData?.bio,
-    profileData?.portrait,
-    profileData?.updatedAt,
-    retryProfileAI.mutate,
-    retryProfileAI.isPending,
-  ]);
+    if (!bio || portrait || !updatedAt) return;
+    const isStale = new Date(updatedAt) < subMinutes(new Date(), 5);
+    if (isStale && !isRetryingProfileAI) retryProfileAI();
+  }, [bio, portrait, updatedAt, retryProfileAI, isRetryingProfileAI]);
 
   // Waves hydration query — store is the source of truth, useBackgroundSync handles periodic reconciliation
   const { data: receivedWaves } = trpc.waves.getReceived.useQuery(undefined, { enabled: !!user && !!profile });
