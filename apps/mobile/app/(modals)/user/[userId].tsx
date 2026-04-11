@@ -142,7 +142,7 @@ export default function UserProfileScreen() {
   const utils = trpc.useUtils();
 
   // Self-healing: if T3 still not ready after 10s, poke backend
-  const ensureAnalysisMutation = trpc.profiles.ensureAnalysis.useMutation();
+  const { mutate: ensureAnalysis } = trpc.profiles.ensureAnalysis.useMutation();
 
   // WS: invalidate analysis when backend signals it's ready, retry on failure
   const wsHandler = useCallback(
@@ -151,19 +151,19 @@ export default function UserProfileScreen() {
         utils.profiles.getDetailedAnalysis.invalidate({ userId });
       }
       if (msg.type === "analysisFailed" && msg.aboutUserId === userId) {
-        ensureAnalysisMutation.mutate({ userId });
+        ensureAnalysis({ userId });
       }
     },
-    [userId, utils.profiles.getDetailedAnalysis.invalidate, ensureAnalysisMutation.mutate],
+    [userId, utils.profiles.getDetailedAnalysis.invalidate, ensureAnalysis],
   );
   useWebSocket(wsHandler);
   useEffect(() => {
     if (!analysisFetched || analysis?.status === "ready") return;
     const timer = setTimeout(() => {
-      ensureAnalysisMutation.mutate({ userId });
+      ensureAnalysis({ userId });
     }, 10_000);
     return () => clearTimeout(timer);
-  }, [analysisFetched, analysis, userId, ensureAnalysisMutation.mutate]);
+  }, [analysisFetched, analysis, userId, ensureAnalysis]);
 
   // Read wave/conversation state from stores
   const sentWaves = useWavesStore((s) => s.sent);

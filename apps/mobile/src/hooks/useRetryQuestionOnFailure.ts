@@ -7,15 +7,15 @@ import { useWebSocket, type WSMessage } from "@/lib/ws";
  * question generation. Guards against rapid re-fires with isPending.
  */
 export function useRetryQuestionOnFailure(sessionId: string | null) {
-  const retryQuestion = trpc.profiling.retryQuestion.useMutation();
+  const { mutate: retryQuestion, isPending } = trpc.profiling.retryQuestion.useMutation();
 
   const wsHandler = useCallback(
     (msg: WSMessage) => {
-      if (msg.type === "questionFailed" && msg.sessionId === sessionId && !retryQuestion.isPending) {
-        retryQuestion.mutate({ sessionId: msg.sessionId });
+      if (msg.type === "questionFailed" && msg.sessionId === sessionId && !isPending) {
+        retryQuestion({ sessionId: msg.sessionId });
       }
     },
-    [sessionId, retryQuestion.isPending, retryQuestion.mutate],
+    [sessionId, isPending, retryQuestion],
   );
   useWebSocket(wsHandler);
 }
