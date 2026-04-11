@@ -132,31 +132,33 @@ export default function UserProfileScreen() {
     }
   }, [profile, userId]);
 
-  const { data: analysis, isFetched: analysisFetched } = trpc.profiles.getConnectionAnalysis.useQuery(
+  // Opening the modal is the hot path that promotes T2 → T3 (via promotePairAnalysis
+  // inside the procedure). Re-reads after WS analysisReady pick up the fresh snippet.
+  const { data: analysis, isFetched: analysisFetched } = trpc.profiles.getDetailedAnalysis.useQuery(
     { userId },
     { enabled: !!userId },
   );
 
   const utils = trpc.useUtils();
 
-  // Self-healing: if analysis confirmed missing after 10s, poke backend
+  // Self-healing: if T3 still not ready after 10s, poke backend
   const ensureAnalysisMutation = trpc.profiles.ensureAnalysis.useMutation();
 
   // WS: invalidate analysis when backend signals it's ready, retry on failure
   const wsHandler = useCallback(
     (msg: WSMessage) => {
       if (msg.type === "analysisReady" && msg.aboutUserId === userId) {
-        utils.profiles.getConnectionAnalysis.invalidate({ userId });
+        utils.profiles.getDetailedAnalysis.invalidate({ userId });
       }
       if (msg.type === "analysisFailed" && msg.aboutUserId === userId) {
         ensureAnalysisMutation.mutate({ userId });
       }
     },
-    [userId, utils.profiles.getConnectionAnalysis.invalidate, ensureAnalysisMutation.mutate],
+    [userId, utils.profiles.getDetailedAnalysis.invalidate, ensureAnalysisMutation.mutate],
   );
   useWebSocket(wsHandler);
   useEffect(() => {
-    if (!analysisFetched || analysis) return;
+    if (!analysisFetched || analysis?.status === "ready") return;
     const timer = setTimeout(() => {
       ensureAnalysisMutation.mutate({ userId });
     }, 10_000);
@@ -344,7 +346,7 @@ export default function UserProfileScreen() {
   const resolvedLookingFor = cached?.lookingFor ?? profile?.lookingFor;
   const resolvedDistance = cached?.distance ?? distance;
   const resolvedMatchScore = cached?.matchScore ?? matchScore;
-  const matchPercent = analysis ? Math.round(analysis.aiMatchScore) : resolvedMatchScore;
+  const matchPercent = analysis?.matchScore != null ? Math.round(analysis.matchScore) : resolvedMatchScore;
 
   if (!isLoading && !profile && !cached) {
     return (
@@ -423,7 +425,7 @@ export default function UserProfileScreen() {
         )}
 
         {/* AI connection analysis */}
-        {analysis?.longDescription ? (
+        {analysis?.status === "ready" && analysis.longDescription ? (
           <View style={styles.snippetBlock}>
             <Text style={styles.snippetLabel}>WSPÓLNE</Text>
             <Text style={styles.snippetText}>{analysis.longDescription}</Text>
@@ -439,12 +441,12 @@ export default function UserProfileScreen() {
               ))}
             </View>
           </View>
-        ) : !analysis ? (
+        ) : (
           <View style={styles.snippetBlock}>
             <Text style={styles.snippetLabel}>WSPÓLNE</Text>
             <SkeletonLines count={3} />
           </View>
-        ) : null}
+        )}
 
         {/* Bio */}
         <View style={styles.section}>

@@ -463,23 +463,45 @@ export const profilesRouter = router({
       return { users: results, totalCount, nextCursor, myStatus };
     }),
 
-  // Ensure analysis exists — lightweight "poke" to re-enqueue if stuck/failed
+  // Ensure T3 analysis exists — lightweight "poke" to re-enqueue if stuck/failed.
+  // A T2 row (shortSnippet IS NULL) is NOT "ready" — still promote to T3.
   ensureAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ ctx, input }) => {
     const existing = await db.query.connectionAnalyses.findFirst({
       where: and(
         eq(schema.connectionAnalyses.fromUserId, ctx.userId),
         eq(schema.connectionAnalyses.toUserId, input.userId),
       ),
-      columns: { id: true },
+      columns: { shortSnippet: true },
     });
-    if (existing) return { status: "ready" as const };
+    if (existing?.shortSnippet) return { status: "ready" as const };
 
     await enqueuePairAnalysis(ctx.userId, input.userId);
     return { status: "queued" as const };
   }),
 
-  // On-demand T3: return full analysis if ready, otherwise promote to top of queue
+  // On-demand T3: return full analysis if ready, otherwise promote to top of queue.
+  // Called from the profile modal on tap — this is the hot path that turns T2 rows into T3.
   getDetailedAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).query(async ({ ctx, input }) => {
+    const block = await db.query.blocks.findFirst({
+      where: or(
+        and(eq(schema.blocks.blockerId, ctx.userId), eq(schema.blocks.blockedId, input.userId)),
+        and(eq(schema.blocks.blockerId, input.userId), eq(schema.blocks.blockedId, ctx.userId)),
+      ),
+    });
+    if (block) return null;
+
+    const myProfile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+      columns: { isComplete: true },
+    });
+    if (!myProfile?.isComplete) return null;
+
+    const theirProfile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, input.userId),
+      columns: { isComplete: true },
+    });
+    if (!theirProfile?.isComplete) return null;
+
     const analysis = await db.query.connectionAnalyses.findFirst({
       where: and(
         eq(schema.connectionAnalyses.fromUserId, ctx.userId),
@@ -497,7 +519,7 @@ export const profilesRouter = router({
       };
     }
 
-    // No T3 yet — promote to highest priority so it runs next
+    // No T3 yet (either no row or T2 row without snippet) — promote to top of queue
     await promotePairAnalysis(ctx.userId, input.userId);
     return {
       status: "queued" as const,
