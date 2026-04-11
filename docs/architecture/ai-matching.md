@@ -5,6 +5,7 @@
 > Updated 2026-04-11 — All AI calls now logged via `withAiLogging()` into `metrics.ai_calls`; Cost Estimates section points to the admin dashboard as source of truth (BLI-174).
 > Updated 2026-04-11 — `connection_analyses.tier` records which tier wrote each row (`t2` from `processQuickScore`, `t3` from `processAnalyzePair`); T1 still not persisted. Admin matching list (`/dashboard/matching`) surfaces and filters on this (BLI-184).
 > Updated 2026-04-11 — Per-user diagnostic view at `/dashboard/users/{userId}` lists all persisted T2/T3 rows for a given user plus a full nearby list (replicates `getNearbyUsersForMap` without side-effects — no job enqueue, no block/ninja/soft-delete filters). The nearby list labels each pair with a synthetic `t1` tier when no `connection_analyses` row exists — T1 remains unpersisted in the DB, the label is computed server-side per request (BLI-187).
+> Updated 2026-04-11 — Modal profilu (mobile) zhookowany na `getDetailedAnalysis` (wcześniej wołał `getConnectionAnalysis` — read-only, bez promocji T3; ta procedura została usunięta jako dead code). `ensureAnalysis` i `getDetailedAnalysis` sprawdzają `tier === 't3'` jako readiness, nie "row exists", i mają pełen zestaw gate'ów (block, bilateral isComplete, target soft-delete). Tier invariant udokumentowany explicite (BLI-188).
 
 All AI calls use OpenAI via Vercel AI SDK (`@ai-sdk/openai`, `ai` package). Models defined in `packages/shared/src/models.ts`. Source files: `apps/api/src/services/ai.ts` (AI functions), `apps/api/src/services/queue.ts` (BullMQ processors + enqueue helpers), `apps/api/src/trpc/procedures/profiles.ts` (triggers), `apps/api/src/trpc/procedures/waves.ts` (wave-send promotion).
 
@@ -102,6 +103,21 @@ Three tiers exist to avoid O(N^2) pre-computation. The design came from the scal
 **Storage:** `connectionAnalyses` table, unique on `(fromUserId, toUserId)`. One API call produces two rows (A's view of B, B's view of A). Upserts via `onConflictDoUpdate`. Each row has `tier = 't3'` set in both `.values()` and the conflict `set` clause, so even a row previously written by T2 gets upgraded to `t3` on full analysis.
 
 **WebSocket:** Emits `analysisReady` with the `shortSnippet` to both users. Also publishes to Redis channel `analysis:ready` for cross-replica delivery.
+
+### Tier Invariant & Readiness Checks
+
+A single `connection_analyses` row carries the latest tier written for that pair. The `tier` column (added in BLI-184, `NOT NULL`, enum `t2` | `t3`) is the **source of truth** — never derive tier from `shortSnippet IS NULL`, never assume "row exists" means "T3 ready".
+
+**Enforced invariant:** `tier='t3' ⟺ shortSnippet IS NOT NULL`. How it's held:
+
+1. **T3 always writes both** — `processAnalyzePair` sets `tier='t3'` AND a non-null `shortSnippet`/`longDescription` in the same upsert (`.values()` and the conflict `set` clause).
+2. **T2 never touches T3 rows** — `processQuickScore` has three guards:
+   - Early return at the top if `existing.shortSnippet` is non-null (BLI-181 skip logic).
+   - The `set` clause does NOT include `shortSnippet` — an existing T3 snippet is never overwritten even if the other guards were bypassed.
+   - `setWhere: isNull(connectionAnalyses.shortSnippet)` blocks the update at the SQL level when the existing row has a T3 snippet.
+3. **T2 only writes `tier='t2'`** — which, combined with `setWhere`, means `tier` can only transition forward `t2 → t3`, never `t3 → t2`.
+
+**Consequence for readiness checks:** Procedures like `getDetailedAnalysis` and `ensureAnalysis` must treat `tier !== 't3'` as "T3 not ready, promote". Before BLI-188 these checks used `if (existing)` (any row = ready), which quietly broke T3 promotion after T2 filled in the row — users saw only `commonInterests` pills forever (BLI-188 regression from BLI-185). Current procedures check `existing?.tier === 't3'` explicitly.
 
 ## Priority Queue & Deduplication
 
