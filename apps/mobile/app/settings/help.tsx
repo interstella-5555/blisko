@@ -1,23 +1,6 @@
 import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
-import Svg, { Polyline } from "react-native-svg";
+import { IconChevronRight } from "../../src/components/ui/icons";
 import { colors, fonts, spacing } from "../../src/theme";
-
-function IconChevronRight({ size = 16 }: { size?: number }) {
-  return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={colors.muted}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <Polyline points="9,18 15,12 9,6" />
-    </Svg>
-  );
-}
 
 interface RowProps {
   label: string;
@@ -28,7 +11,7 @@ function Row({ label, onPress }: RowProps) {
   return (
     <Pressable style={styles.row} onPress={onPress}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <IconChevronRight />
+      <IconChevronRight size={16} color={colors.muted} />
     </Pressable>
   );
 }

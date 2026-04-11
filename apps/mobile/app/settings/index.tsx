@@ -1,121 +1,17 @@
 import { Redirect, router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle, Line, Path, Polyline, Rect } from "react-native-svg";
 import { Avatar } from "../../src/components/ui/Avatar";
+import {
+  IconAccount,
+  IconBell,
+  IconChevronRight,
+  IconHelp,
+  IconPerson,
+  IconPrivacy,
+} from "../../src/components/ui/icons";
 import { useAuthStore } from "../../src/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "../../src/theme";
 import { signOutAndReset } from "../_layout";
-
-// -- Icons for settings groups --
-
-const iconColor = "#1A1A1A";
-
-function IconProfile({ size = 20 }: { size?: number }) {
-  return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={iconColor}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <Circle cx={12} cy={8} r={4} />
-      <Path d="M20 21a8 8 0 1 0-16 0" />
-    </Svg>
-  );
-}
-
-function IconAccount({ size = 20 }: { size?: number }) {
-  return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={iconColor}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <Rect x={3} y={11} width={18} height={11} rx={2} ry={2} />
-      <Path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </Svg>
-  );
-}
-
-function IconPrivacy({ size = 20 }: { size?: number }) {
-  return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={iconColor}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </Svg>
-  );
-}
-
-function IconNotifications({ size = 20 }: { size?: number }) {
-  return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={iconColor}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <Path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <Path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </Svg>
-  );
-}
-
-function IconHelp({ size = 20 }: { size?: number }) {
-  return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={iconColor}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <Circle cx={12} cy={12} r={10} />
-      <Path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-      <Line x1={12} y1={17} x2={12.01} y2={17} />
-    </Svg>
-  );
-}
-
-function IconChevronRight({ size = 16 }: { size?: number }) {
-  return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={colors.muted}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <Polyline points="9,18 15,12 9,6" />
-    </Svg>
-  );
-}
 
 // -- Group row data --
 
@@ -128,31 +24,31 @@ interface GroupRow {
 
 const groups: GroupRow[] = [
   {
-    icon: <IconProfile />,
+    icon: <IconPerson size={20} />,
     label: "Profil",
     description: "Edytuj profil, automatyczne profilowanie",
     route: "/settings/profile",
   },
   {
-    icon: <IconAccount />,
+    icon: <IconAccount size={20} />,
     label: "Konto",
     description: "Połączone konta, email",
     route: "/settings/account",
   },
   {
-    icon: <IconPrivacy />,
+    icon: <IconPrivacy size={20} />,
     label: "Prywatność",
     description: "Widoczność, zablokowani użytkownicy",
     route: "/settings/privacy",
   },
   {
-    icon: <IconNotifications />,
+    icon: <IconBell size={20} />,
     label: "Powiadomienia",
     description: "Pingi, wiadomości",
     route: "/settings/notifications",
   },
   {
-    icon: <IconHelp />,
+    icon: <IconHelp size={20} />,
     label: "Pomoc",
     description: "FAQ, zgłoś problem, regulamin",
     route: "/settings/help",
@@ -193,7 +89,7 @@ export default function SettingsHubScreen() {
               <Text style={styles.groupLabel}>{group.label}</Text>
               <Text style={styles.groupDescription}>{group.description}</Text>
             </View>
-            <IconChevronRight />
+            <IconChevronRight size={16} color={colors.muted} />
           </Pressable>
         ))}
       </View>

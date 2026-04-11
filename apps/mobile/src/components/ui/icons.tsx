@@ -1,4 +1,4 @@
-import Svg, { Circle, Line, Path, Polygon, Polyline } from "react-native-svg";
+import Svg, { Circle, Line, Path, Polygon, Polyline, Rect } from "react-native-svg";
 
 interface IconProps {
   size?: number;
@@ -467,6 +467,94 @@ export function IconGroup({ size = defaultSize, color = defaultColor }: IconProp
       <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
       <Path d="M23 21v-2a4 4 0 0 0-3-3.87" />
       <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </Svg>
+  );
+}
+
+export function IconChevronRight({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Polyline points="9,18 15,12 9,6" />
+    </Svg>
+  );
+}
+
+export function IconAccount({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Rect x={3} y={11} width={18} height={11} rx={2} ry={2} />
+      <Path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </Svg>
+  );
+}
+
+export function IconPrivacy({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </Svg>
+  );
+}
+
+export function IconHelp({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Circle cx={12} cy={12} r={10} />
+      <Path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <Line x1={12} y1={17} x2={12.01} y2={17} />
+    </Svg>
+  );
+}
+
+export function IconEdit({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
     </Svg>
   );
 }
