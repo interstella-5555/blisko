@@ -3,6 +3,7 @@
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — `messagesStore.updateMessage()` added for in-place message patches (fixes delete dropping message from list).
 > Updated 2026-04-11 — Single sign-out path `signOutAndReset()` exported from `app/_layout.tsx` — the 4 logout sites (settings, account deletion, onboarding abort, ACCOUNT_DELETED error handler) now call it instead of reimplementing store resets. Clears auth/profiles/conversations/messages/waves/onboarding stores + `queryClient` + SecureStore tokens; `locationStore` and `preferencesStore` intentionally untouched (BLI-204).
+> Updated 2026-04-11 — Fixed pings-list crash in `(tabs)/chats.tsx`: two sibling `FlatList`-es (pings vs conversations) in a ternary were sharing one React instance; switching filter mutated `onViewableItemsChanged` from function → undefined, triggering `Invariant Violation: Changing onViewableItemsChanged nullability on the fly is not supported` (SIGABRT). Fix: distinct `key` props so React treats them as separate instances. See "Gotchas" below.
 
 React Native 0.81.5, Expo SDK 54, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
 
@@ -226,6 +227,39 @@ Handled events: `newWave` ("Pinguje Cie!"), `waveResponded` accepted ("Przyjal(a
 **Typography:** InstrumentSerif (Regular, Italic) for headings/display. DM Sans (Regular, Medium, SemiBold) for body. Design system in `apps/mobile/src/theme.ts`.
 
 **Colors:** ink #1A1A1A, bg #FAF7F2, accent #C0392B, rule #D5D0C4, muted #8B8680, mapBg #F0ECE3.
+
+---
+
+## Gotchas
+
+### Conditional `FlatList` / `VirtualizedList` instances must have distinct `key` props
+
+When you render two or more virtualized lists in the same JSX position via ternary or `&&` (e.g. `showPings ? <FlatList pings… /> : <FlatList chats… />`), React reconciliation will **reuse one instance** across branches because the component type matches. If the branches differ in any **mount-time-only** prop — `onViewableItemsChanged`, `viewabilityConfig`, `horizontal`, `inverted`, `keyboardShouldPersistTaps` — React Native's `VirtualizedList` throws:
+
+```
+Invariant Violation: Changing onViewableItemsChanged nullability on the fly is not supported
+```
+
+In release builds this is **uncatchable** — it fires during render inside the JS microtask drain, the unhandled exception propagates up, and the app dies with SIGABRT (or, on older Hermes, manifests as a confusing SIGSEGV inside `addOwnProperty` / `BoundFunction::create` because the error construction itself corrupts heap state). Native crash reports point at Hermes internals, not at the real JS-level invariant — the only way to see the real cause is to stream device logs via `Console.app`.
+
+**Fix:** give each branch a distinct `key` so React treats them as separate instances (full unmount + remount on filter switch).
+
+```tsx
+{showPings ? (
+  <FlatList key="pings-list" data={pendingPings} … />        // no onViewableItemsChanged
+) : (
+  <FlatList key="chats-list" data={conversations}
+    onViewableItemsChanged={…} viewabilityConfig={…} … />
+)}
+```
+
+**Repro history:** crashed reliably in `apps/mobile/app/(tabs)/chats.tsx` whenever a user had pending pings and tapped the sonar pill to switch the chats tab from conversations to pings. Three confirmed production crash reports (Blisko builds 24 + 25) traced back to this single bug before the `key` fix landed.
+
+**Scope check done 2026-04-11:** only `chats.tsx` had the pattern. Other FlatList usages (`(tabs)/index.tsx` nearby list, `chat/[id].tsx` messages, `group/members/[id].tsx`) render a single unconditional instance — safe.
+
+The same reasoning applies to any component with mount-time-only side effects (observers, refs installed in `componentDidMount`, etc.) — if you're about to write `cond ? <X … /> : <X … />` and the two `<X>` instances differ meaningfully, reach for `key`.
+
+Captured as lint-adjacent rule: `.claude/rules/mobile.md#mobile/conditional-flatlist-needs-key`.
 
 ---
 
