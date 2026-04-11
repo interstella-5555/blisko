@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — Quick-score dedup switched to BullMQ `deduplication` option for self-healing (BLI-158).
 > Updated 2026-04-11 — All AI calls now logged via `withAiLogging()` into `metrics.ai_calls`; Cost Estimates section points to the admin dashboard as source of truth (BLI-174).
+> Updated 2026-04-11 — `connection_analyses.tier` records which tier wrote each row (`t2` from `processQuickScore`, `t3` from `processAnalyzePair`); T1 still not persisted. Admin matching list (`/dashboard/matching`) surfaces and filters on this (BLI-184).
 
 All AI calls use OpenAI via Vercel AI SDK (`@ai-sdk/openai`, `ai` package). Models defined in `packages/shared/src/models.ts`. Source files: `apps/api/src/services/ai.ts` (AI functions), `apps/api/src/services/queue.ts` (BullMQ processors + enqueue helpers), `apps/api/src/trpc/procedures/profiles.ts` (triggers), `apps/api/src/trpc/procedures/waves.ts` (wave-send promotion).
 
@@ -59,7 +60,7 @@ Three tiers exist to avoid O(N^2) pre-computation. The design came from the scal
 - Map view: `getNearbyUsersForMap` enqueues T2 for any nearby user without an existing `connectionAnalyses` row (`enqueueQuickScore`)
 - BullMQ job type: `quick-score`, jobId: `quick-score-{sortedUserA}-{sortedUserB}`
 
-**Skip logic:** If a T3 full analysis already exists (row has non-null `shortSnippet`), the processor returns immediately. T2 only writes to `connectionAnalyses` when `shortSnippet IS NULL` (conditional upsert via `setWhere`).
+**Skip logic:** If a T3 full analysis already exists (row has non-null `shortSnippet`), the processor returns immediately. T2 only writes to `connectionAnalyses` when `shortSnippet IS NULL` (conditional upsert via `setWhere`). T2 writes set `tier = 't2'`; the `setWhere` guard also prevents `tier` from being downgraded from `t3` → `t2`.
 
 **WebSocket:** Emits `analysisReady` with `shortSnippet: null` to both users after scoring.
 
@@ -97,7 +98,7 @@ Three tiers exist to avoid O(N^2) pre-computation. The design came from the scal
 
 **Staleness detection:** Each `connectionAnalyses` row stores `fromProfileHash` and `toProfileHash` — SHA-256 of `"{bio}|{lookingFor}"` truncated to 8 hex chars. `processAnalyzePair` compares stored hashes with current profile hashes and skips if unchanged. This means profiles can be viewed thousands of times without re-running the analysis, but editing bio/lookingFor automatically invalidates stale analyses.
 
-**Storage:** `connectionAnalyses` table, unique on `(fromUserId, toUserId)`. One API call produces two rows (A's view of B, B's view of A). Upserts via `onConflictDoUpdate`.
+**Storage:** `connectionAnalyses` table, unique on `(fromUserId, toUserId)`. One API call produces two rows (A's view of B, B's view of A). Upserts via `onConflictDoUpdate`. Each row has `tier = 't3'` set in both `.values()` and the conflict `set` clause, so even a row previously written by T2 gets upgraded to `t3` on full analysis.
 
 **WebSocket:** Emits `analysisReady` with the `shortSnippet` to both users. Also publishes to Redis channel `analysis:ready` for cross-replica delivery.
 

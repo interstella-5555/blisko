@@ -364,7 +364,6 @@ export const profilesRouter = router({
         myStatusMatchRows.map((m) => [m.matchedUserId, { reason: m.reason, matchedVia: m.matchedVia }]),
       );
 
-      const now = new Date();
       const myStatusActive = currentProfile ? isStatusActive(currentProfile) : false;
 
       // Fetch extra rows to account for blocked users being filtered out
