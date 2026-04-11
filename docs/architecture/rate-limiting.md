@@ -87,17 +87,19 @@ Pre-auth endpoints (OTP) must use IP because there is no user identity yet. The 
 
 | Config key | Limit | Window | Why |
 |------------|-------|--------|-----|
-| `waves.send` | 30 | 4 hours | Bumble allows 25/day, Tinder ~50-100/day. 30 per 4h is generous but catches mass-waving bots. |
-| `waves.respond` | 60 | 1 hour | A user returning to the app may have dozens of pending pings queued up. |
+| `waves.send` | 300 | 4 hours | **Temporarily inflated (BLI-189).** Will revert to 30/4h once map polling has proper debounce/dedup — see note below. The meaningful daily cap on real users is still the business limit in `pingLimits.ts` (5/day Basic). |
+| `waves.respond` | 600 | 1 hour | **Temporarily inflated (BLI-189).** Will revert to 60/1h after BLI-189. |
 | `messages.send` | 30 | 1 min | Per-conversation. Normal conversation: a few messages/min. 30 = clearly not spam. Uses `keySuffix` to append `conversationId`. |
 | `messages.sendGlobal` | 500 | 1 hour | Safety net for cross-conversation spam (one person flooding multiple chats). |
 | `profiles.update` | 10 | 1 hour | Normal use: 1-3 edits. Profile updates trigger AI re-analysis jobs, so rapid updates waste compute. |
 | `uploads` | 10 | 1 hour | S3 write protection (avatar + photos). |
-| `profiles.getNearby` | 30 | 1 min | Pull-to-refresh protection. ~1 request per 2 seconds is generous for map browsing. |
+| `profiles.getNearby` | 600 | 1 min | **Temporarily inflated (BLI-189) — root cause.** The map screen burns through the bucket because `getNearbyUsersForMap` has no client-side debounce/dedup. Once BLI-189 fixes the polling pattern this should drop back to 30/min. |
 | `dataExport` | 1 | 24 hours | Heavy aggregation query. GDPR export once per day is reasonable. |
 | `metrics.summary` | 30 | 1 min | Prevents scraping of system health data. Applied via Hono middleware (IP-based). |
 | `metrics.prometheus` | 30 | 1 min | Prevents Prometheus endpoint abuse. Applied via Hono middleware (IP-based). |
-| `global` | 200 | 1 min | Catch-all for all authenticated requests. Normal usage: ~20-50 req/min max. |
+| `global` | 2000 | 1 min | **Temporarily inflated (BLI-189).** Was 200/min; raised so the inflated `profiles.getNearby` calls don't immediately hit the global cap. Will drop back to 200/min once BLI-189 lands. |
+
+> **Note (BLI-189 mitigation):** Four limits above are currently set ~10× higher than their long-term values as a workaround for the map burning through buckets when there is no client-side debounce/dedup on `getNearbyUsersForMap`. The fix is tracked in [BLI-189](https://linear.app/blisko/issue/BLI-189) — once the map polling pattern is corrected, revert `waves.send` 300→30, `waves.respond` 600→60, `profiles.getNearby` 600→30, `global` 2000→200.
 | `profiling.submitOnboarding` | 5 | 5 min | Onboarding submission. Makes an inline AI call (~2-3s) for follow-up generation. 5 per 5 min prevents repeated expensive calls. |
 | `profiling.retryQuestion` | 10 | 1 hour | Self-healing re-enqueue after `questionFailed` WS event. Prevents retry-loop abuse. |
 | `profiling.retryProfileGeneration` | 10 | 1 hour | Self-healing re-enqueue after `profilingFailed` WS event. |
@@ -151,7 +153,7 @@ The procedure checks limits in this order (early exit on first failure):
 
 #### Distinction from rate limits
 
-Rate limits (`rateLimits.ts`) protect infrastructure: 30 pings per 4 hours catches bots hammering the endpoint. Business limits (`pingLimits.ts`) shape the product experience: 5 pings per day forces intentional use. A bot would hit the rate limit; a real user hits the business limit first.
+Rate limits (`rateLimits.ts`) protect infrastructure: the current 300 pings per 4 hours (or the long-term 30/4h post-BLI-189) catches bots hammering the endpoint. Business limits (`pingLimits.ts`) shape the product experience: 5 pings per day forces intentional use. A bot would hit the rate limit; a real user hits the business limit first.
 
 ## Response Format
 

@@ -35,7 +35,7 @@ The `accounts.requestDeletion` tRPC mutation (in `apps/api/src/trpc/procedures/a
 - Delete all rows from `pushTokens` for this userId (stops push notifications)
 
 **Post-transaction (non-atomic):**
-- Emit `forceDisconnect` event via EventEmitter, which broadcasts `{ type: "forceDisconnect" }` to all active WebSocket connections for this userId (handled in `apps/api/src/ws/handler.ts`)
+- Emit `forceDisconnect` via `publishEvent("forceDisconnect", { userId })` (Redis pub/sub bridge in `apps/api/src/ws/redis-bridge.ts`), which fans out to **every API replica** and broadcasts `{ type: "forceDisconnect" }` to all WebSocket connections for this userId. Cross-replica delivery matters because the WS connection may live on a different replica from the one that handled the deletion request — a local-only `EventEmitter` would miss it.
 - Enqueue `hard-delete-user` BullMQ job with 14-day delay
 
 **Admin path:** Admin panel uses the same `softDeleteUser()` function via the `admin-soft-delete-user` BullMQ job (no OTP required). See `admin-panel.md`.
@@ -49,7 +49,7 @@ OTP verification prevents account deletion via stolen session tokens. Deleting s
 - OTP length: 6 digits
 - Grace period: 14 days (1,209,600,000 ms), configured as `FOURTEEN_DAYS_MS` in `enqueueHardDeleteUser()`
 - BullMQ job ID: `hard-delete-${userId}` (deterministic, enables cancellation lookup)
-- Queue name: `ai-jobs` (shared queue for all background jobs)
+- Queue name: `ops` (operations queue — BLI-171 split `ai-jobs` into `ai`/`ops`/`maintenance`; `hard-delete-user` runs on `ops`, enqueued via `enqueueHardDeleteUser()` in `queue-ops.ts`)
 
 ## Login Block During Grace Period
 
@@ -172,7 +172,14 @@ Runs outside the main transaction because metrics live in a separate PostgreSQL 
 | `userId` | `null` (where it matched this user) |
 | `targetUserId` | `null` (where it matched this user) |
 
-Errors are caught and logged but do not fail the job.
+**`metrics.aiCalls` table:**
+
+| Field | Anonymized value |
+|-------|-----------------|
+| `userId` | `null` (where it matched this user) |
+| `targetUserId` | `null` (where it matched this user) |
+
+Both tables are wiped in the same post-transaction phase (`queue-ops.ts` hard-delete processor). Errors are caught and logged but do not fail the job — metrics anonymization is best-effort, the user-facing identity in `user`/`profiles` has already been overwritten inside the transaction.
 
 ### What Gets Preserved
 

@@ -42,7 +42,7 @@ No OTP because the user is already authenticated (unlike deletion, which is irre
 - Rate limit: 1 request per 24 hours (`rateLimits.dataExport` in `apps/api/src/config/rateLimits.ts`)
 - Rate limit message: "Eksport danych jest dostepny raz na 24 godziny."
 - BullMQ job ID: `export-${userId}-${Date.now()}` (unique per request)
-- Queue name: `ai-jobs` (shared queue)
+- Queue name: `ops` (operations queue — BLI-171 split `ai-jobs` into `ai`/`ops`/`maintenance`; `export-user-data` runs on `ops`, enqueued via `enqueueExportUserData()` in `queue-ops.ts`)
 - Retry: 10 attempts with exponential backoff (60s base → ~8.5h total). Overrides the queue default (3 attempts) because GDPR export is a legal obligation.
 - `removeOnFail: false` — failed export jobs are never auto-removed from Redis. Every failure must be resolved by admin.
 
@@ -105,7 +105,7 @@ The export queries 12 database tables. All data belonging to the requesting user
 | `createdAt` | `profile.createdAt` | ISO 8601 |
 | `updatedAt` | `profile.updatedAt` | ISO 8601 |
 
-**Not exported (intentional):** `embedding` and `statusEmbedding` (machine-generated vector arrays, not human-readable), `isComplete` flag, `lastLocationUpdate` timestamp, `portraitSharedForMatching` consent flag, profile hashes.
+**Not exported (intentional):** `embedding` and `statusEmbedding` (machine-generated vector arrays, not human-readable), `isComplete` flag, `lastLocationUpdate` timestamp, `portraitSharedForMatching` consent flag, `statusSetAt` / `statusExpiresAt` (internal ambient-match scheduling metadata — the current status text itself is exported), profile hashes.
 
 #### `account` table (connected OAuth accounts)
 

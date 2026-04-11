@@ -29,7 +29,10 @@ Both pages set `<html lang="pl">`, have proper meta tags (title, viewport), disp
 
 #### Config
 
-- Last updated date: "7 marca 2026" (hardcoded in component)
+- Last updated dates (hardcoded in each route, independent per document):
+  - `privacy.tsx` → "Ostatnia aktualizacja: 8 kwietnia 2026"
+  - `terms.tsx` → "Ostatnia aktualizacja: 7 marca 2026"
+  Each document ships its own date because the Privacy Policy gets amended more often than Terms (RODO/schema changes vs. commercial terms). Update the relevant route whenever you change the corresponding legal content.
 - Privacy title meta: "Polityka Prywatnosci -- Blisko"
 - Terms title meta: "Regulamin -- Blisko"
 
@@ -169,10 +172,19 @@ Questions: kontakt@blisko.app.
 | Status matches | `statusMatches` | Contract (b) | Preserved (anonymized user) | 2 |
 | Conversation ratings | `conversationRatings` | Contract (b) | Preserved | 2 |
 | Behavioral metrics | `metrics.requestEvents` | Legitimate interest (f) | userId nullified on deletion | 2 |
+| AI cost metrics | `metrics.aiCalls` | Legitimate interest (f) | userId nullified on deletion | 2 |
 
 ## Gaps
 
-No known gaps. All data categories in the database are explicitly disclosed in the privacy policy (section 2). Last audit: April 2026.
+**Re-audit pending (2026-04-12).** The following profile fields have been added since the last privacy-policy cross-reference pass and need to be checked against the Polish copy in `privacy.tsx`:
+
+- `superpower`, `superpowerTags`, `offerType` — user-provided strengths and offers (visible to other users)
+- `dateOfBirth` — optional, never exposed beyond age-in-years on profile
+- `statusCategories`, `currentStatus`, `statusExpiresAt`, `statusSetAt`, `statusVisibility` — ambient status system (BLI-108)
+- `doNotDisturb` — per-user push mute flag (BLI-157)
+- `metrics.aiCalls` table — added in BLI-174 for AI cost tracking
+
+Action: confirm each field is either covered by an existing disclosure section in `privacy.tsx` or that the policy needs an amendment + fresh "Ostatnia aktualizacja" date.
 
 ## Impact Map
 

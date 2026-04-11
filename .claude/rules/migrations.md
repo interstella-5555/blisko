@@ -26,6 +26,22 @@ Schema: `apps/api/src/db/schema.ts`. Migrations: `apps/api/drizzle/`. Config: `a
 
 - `migrations/custom-comments` — Custom migrations (`--custom`) must have SQL comments explaining WHY the custom approach is needed.
 
+- `migrations/document-reason` — Every migration SQL file in `apps/api/drizzle/` must start with a header comment explaining the motivation in one paragraph. The SQL body tells the reader **what** the change is (a `CREATE TABLE` / `ALTER TABLE` is self-describing); the header tells them **why** — ticket ID, context, related decisions. This is how we stopped duplicating "history" in `database.md` — the migration folder IS the history. Write the header when generating the migration, not as a follow-up. Example format:
+
+  ```sql
+  -- 0019_fix_ca_pair_unique_index — schema drift repair
+  --
+  -- schema.ts defines ca_pair_uniq as a UNIQUE index, but production has
+  -- a non-unique ca_pair_idx on the same columns. The table pre-dates the
+  -- migration workflow (0000_baseline.sql is a no-op). Dropping + recreating
+  -- as unique brings prod back in line with schema.ts. BLI-181.
+
+  DROP INDEX IF EXISTS "ca_pair_idx";
+  CREATE UNIQUE INDEX "ca_pair_uniq" ON "connection_analyses" ("user_id", "target_user_id");
+  ```
+
+  This extends `migrations/custom-comments` (which only covered `--custom` migrations) to all migrations including auto-generated DDL. Auto-generated migrations get the header added manually after `drizzle-kit generate` — takes 30 seconds and makes the migration folder readable as a changelog.
+
 - `migrations/check-data-export` — After any schema change, check if `apps/api/src/services/data-export.ts` needs updating (GDPR/RODO data export).
 
 - `migrations/rebase-conflicts` — When rebasing a branch with migration conflicts (e.g. duplicate `0009_` numbers), use `npx drizzle-kit drop` to cleanly remove the stale migration (updates journal + snapshot), then `npx drizzle-kit generate --name=...` to regenerate with the correct sequence number. Never manually delete migration files or edit `_journal.json`.

@@ -34,7 +34,7 @@ Animated dark screen with 10 pulsing orange bubbles (#D4851C) and a headline: "S
 
 **File:** `apps/mobile/app/onboarding/index.tsx`
 
-Labeled "Krok 1". User enters display name (2--30 characters, `autoCapitalize: "words"`). Pre-filled from OAuth `user.name` if available. Age confirmation toggle: "Potwierdzam, ze mam ukonczone 18 lat" --- must be toggled on to proceed.
+Labeled "Krok 1". User enters display name (server validator allows 2--50 characters, see `user-profiles.md`; the onboarding `TextInput` caps at `maxLength={30}` to keep the first-impression tile compact — users can extend it later via profile edit). `autoCapitalize: "words"`. Pre-filled from OAuth `user.name` if available. Age confirmation toggle: "Potwierdzam, ze mam ukonczone 18 lat" --- must be toggled on to proceed.
 
 **Why display name is locked:** Prevents name-change spam. Once set, it can only be changed through profile edit (which has rate limiting).
 
@@ -212,7 +212,7 @@ Users can redo profiling from Settings > Profilowanie (`settings/profiling.tsx`)
 
 ## Validation & Moderation
 
-- Display name: 2--30 characters
+- Display name: server validator 2--50 chars; onboarding UI capped at 30 chars (`maxLength` on the `TextInput`)
 - Question answers: max 500 characters each
 - Bio and lookingFor: min 10 chars to apply, max 500
 - All user text runs through `moderateContent()` (AI-powered content filter) before storage

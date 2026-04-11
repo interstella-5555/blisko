@@ -108,7 +108,7 @@ Every query that surfaces users to other users checks the blocks table. Here is 
 - API endpoint: `https://api.openai.com/v1/moderations`
 - Auth: `OPENAI_API_KEY` environment variable
 - Input: concatenated text fields (e.g., displayName + bio + lookingFor joined by `\n\n`)
-- On flag: throws `TRPCError` with code `BAD_REQUEST`, message "Treść narusza regulamin" (Polish: "Content violates terms of service")
+- On flag: throws `TRPCError` with code `BAD_REQUEST` and `message: JSON.stringify({ error: "CONTENT_MODERATED" })`. The message is a JSON-encoded error code rather than a human-readable string so the mobile client can dispatch on `error === "CONTENT_MODERATED"` and render its own localized toast (avoids duplicating Polish copy across server and client, and keeps the door open for future i18n).
 
 #### Graceful degradation
 **What:** If `OPENAI_API_KEY` is not set, moderation is silently skipped (function returns immediately). If the API returns a non-200 response, the error is logged and the function returns without throwing.

@@ -45,6 +45,7 @@ blisko/
     design/       @repo/design    Design book (TanStack Start)
     website/      @repo/website   Marketing site (TanStack Start)
     admin/        @repo/admin     Admin panel (TanStack Start)
+    tasks/        (no package)    Dev-only Bun.serve task viewer — serves index.html + tasks.json on port 3456. Not in the workspace, not deployed, invoked via `bun apps/tasks/serve.ts`.
   packages/
     shared/       @repo/shared    Types, Zod validators, AI model constants, haversine
     dev-cli/      @repo/dev-cli   CLI for development (user management, monitoring)
@@ -79,13 +80,20 @@ Key root scripts:
 | Script | Maps To |
 |--------|---------|
 | `api:dev` | `bun run --filter '@repo/api' dev` (watch mode) |
+| `api:dev:production` | `bun run --filter '@repo/api' dev:prod` (local API process pointed at production env) |
 | `api:test` | `bun run --filter '@repo/api' test` |
+| `api:scatter` | `bun run --filter '@repo/api' scatter` — re-scatter seed users via API |
+| `api:scatter:production` | `bun run --filter '@repo/api' scatter:production` — same against production env |
+| `api:seed:slo` | `bun run --filter '@repo/api' seed:slo` — backfill SLO targets in `metrics` schema |
 | `chatbot:dev` | `bun run --filter '@repo/chatbot' dev` |
 | `design:dev` | `bun run --filter '@repo/design' dev` |
 | `website:dev` | `bun run --filter '@repo/website' dev` |
 | `admin:dev` | `bun run --filter '@repo/admin' dev` |
 | `dev-cli` | `bun run --filter '@repo/dev-cli' cli` |
+| `dev-cli:queue-monitor` | `bun run --filter '@repo/dev-cli' monitor` — live BullMQ queue state |
+| `dev-cli:chatbot-monitor` | `bun run --filter '@repo/dev-cli' chatbot-monitor` — chatbot activity feed |
 | `mobile:testflight` | `bun run --filter '@repo/mobile' testflight` |
+| `ralph` / `ralph:dry` | `bash scripts/ralph.sh [--dry-run]` — Ralph Protocol runner (auto-ticket execution) |
 | `check` | `biome check .` |
 | `check:fix` | `biome check --fix .` |
 

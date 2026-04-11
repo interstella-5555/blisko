@@ -211,7 +211,7 @@ Note: `statusExpiresAt` is defined in the schema but `isStatusActive` does not c
 | `status-matching` | BullMQ `deduplication` with id `status-matching-{userId}` | None | Auto-releases on completion/failure — enables self-healing re-enqueue |
 | `proximity-status-matching` | `jobId: proximity-status-{userId}-{timestamp}` | 2 min (`ttl: ms("2m")`) | Debounced --- rapid location updates don't flood |
 
-BullMQ queue: `ai-jobs`, concurrency 50, 3 attempts with exponential backoff (5s base).
+BullMQ queue: `ai` (shared with other AI job types after the BLI-171 queue split), concurrency 50, 3 attempts with exponential backoff (5s base).
 
 ## Impact Map
 

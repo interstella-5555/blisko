@@ -14,6 +14,8 @@ Architecture reference docs live in `docs/architecture/`. These are the source o
 
 - `architect/new-table-checklist` — When a new table is added: (1) update `database.md`, (2) check GDPR impact (`gdpr-compliance.md`), (3) check if data-export needs updating, (4) check if soft-delete filtering applies.
 
+- `architect/index-synced` — Every file matching `docs/architecture/*.md` must appear in the index table below, in the same PR that creates the doc. Exceptions: `.review-log.md`, `.quality-scores.json` (internal compile artifacts, not architecture docs). A doc that exists on disk but isn't in the index is effectively invisible during `architect/must-read-first` — nobody will find it. Drift observed in compile 2026-04-12: `admin-panel.md`, `ai-cost-tracking.md`, `demo-chatbot.md` all existed for weeks without being indexed.
+
 ## Skills
 
 | Skill | When | What |
@@ -30,7 +32,7 @@ Architecture reference docs live in `docs/architecture/`. These are the source o
 | `ai-matching.md` | Tiered scoring (T1 cosine, T2 quick-score, T3 analysis), prompts |
 | `ai-profiling.md` | Onboarding Q&A, portrait/bio/interest generation, moderation |
 | `queues-jobs.md` | BullMQ queue, all job types, retry policies, Redis usage |
-| `websockets-realtime.md` | WS events (17 types), Redis pub/sub bridge, subscriptions |
+| `websockets-realtime.md` | WS events (22 types), Redis pub/sub bridge, subscriptions |
 | `auth-sessions.md` | Better Auth, OAuth providers, magic link, dev login |
 | `user-profiles.md` | Profile model, visibility modes, DND, superpower, status |
 | `waves-connections.md` | Wave lifecycle, mutual ping, status snapshots |
@@ -50,6 +52,9 @@ Architecture reference docs live in `docs/architecture/`. These are the source o
 | `rate-limiting.md` | Sliding window, Redis Lua, limits |
 | `privacy-terms.md` | RODO/GDPR legal docs |
 | `nearby-group-members.md` | Group members on map |
+| `admin-panel.md` | Admin TanStack Start app — pages, BullMQ-based write actions, auth |
+| `ai-cost-tracking.md` | `withAiLogging` wrapper, `metrics.ai_calls` buffering, pricing |
+| `demo-chatbot.md` | Seed user AI responder app — polling, accept curves, dev-login |
 | `monetization.md` | Subscription tiers (planned, not implemented) |
 | `friends-system.md` | Friends/contacts (planned, not implemented) |
 | `e2e-test-coverage.md` | E2E test coverage map (flow → test status) |
