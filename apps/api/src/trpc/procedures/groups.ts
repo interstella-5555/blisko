@@ -543,12 +543,14 @@ export const groupsRouter = router({
   getDiscoverable: protectedProcedure.input(getDiscoverableGroupsSchema).query(async ({ input }) => {
     const { latitude, longitude, radiusMeters, limit, cursor } = input;
 
-    // Haversine distance filter
+    // Haversine distance filter — acos() arg clamped to [-1,1] to avoid fp drift crashing PG at ~0m.
     const distanceSql = sql<number>`
         6371000 * acos(
-          cos(radians(${latitude})) * cos(radians(${schema.conversations.latitude})) *
-          cos(radians(${schema.conversations.longitude}) - radians(${longitude})) +
-          sin(radians(${latitude})) * sin(radians(${schema.conversations.latitude}))
+          LEAST(1.0, GREATEST(-1.0,
+            cos(radians(${latitude})) * cos(radians(${schema.conversations.latitude})) *
+            cos(radians(${schema.conversations.longitude}) - radians(${longitude})) +
+            sin(radians(${latitude})) * sin(radians(${schema.conversations.latitude}))
+          ))
         )
       `;
 
@@ -569,9 +571,11 @@ export const groupsRouter = router({
               AND cp.location_visible = true
               AND p.latitude IS NOT NULL
               AND 6371000 * acos(
-                cos(radians(${latitude})) * cos(radians(p.latitude)) *
-                cos(radians(p.longitude) - radians(${longitude})) +
-                sin(radians(${latitude})) * sin(radians(p.latitude))
+                LEAST(1.0, GREATEST(-1.0,
+                  cos(radians(${latitude})) * cos(radians(p.latitude)) *
+                  cos(radians(p.longitude) - radians(${longitude})) +
+                  sin(radians(${latitude})) * sin(radians(p.latitude))
+                ))
               ) <= ${radiusMeters}
           )`.as("nearby_member_count"),
       })
