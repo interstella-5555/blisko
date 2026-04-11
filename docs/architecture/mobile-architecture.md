@@ -4,6 +4,7 @@
 > Updated 2026-04-10 — `messagesStore.updateMessage()` added for in-place message patches (fixes delete dropping message from list).
 > Updated 2026-04-11 — Single sign-out path `signOutAndReset()` exported from `app/_layout.tsx` — the 4 logout sites (settings, account deletion, onboarding abort, ACCOUNT_DELETED error handler) now call it instead of reimplementing store resets. Clears auth/profiles/conversations/messages/waves/onboarding stores + `queryClient` + SecureStore tokens; `locationStore` and `preferencesStore` intentionally untouched (BLI-204).
 > Updated 2026-04-11 — Fixed pings-list crash in `(tabs)/chats.tsx`: two sibling `FlatList`-es (pings vs conversations) in a ternary were sharing one React instance; switching filter mutated `onViewableItemsChanged` from function → undefined, triggering `Invariant Violation: Changing onViewableItemsChanged nullability on the fly is not supported` (SIGABRT). Fix: distinct `key` props so React treats them as separate instances. See "Gotchas" below.
+> Updated 2026-04-11 — Chats tab `tabBarBadge` now sums unread messages **and** unviewed pending pings (was: unread messages only). Mirrors the `unviewedPingCount` already shown on the sonar pill inside the chats screen — both numbers come from the same `wavesStore.viewedWaveIds` cursor, so the user sees a consistent "things demanding attention" count from the tab bar and from inside the screen (BLI-207). See "Tab badges" under Key Conventions.
 
 React Native 0.81.5, Expo SDK 54, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
 
@@ -223,6 +224,12 @@ Handled events: `newWave` ("Pinguje Cie!"), `waveResponded` accepted ("Przyjal(a
 **Back button:** Always `IconChevronLeft` from `@/components/ui/icons`, size 24, `colors.ink`, `hitSlop={8}`. No text.
 
 **Path aliases:** `@/*` maps to `src/*` (tsconfig). Same-directory `./` is fine.
+
+**Tab badges:** Computed in `app/(tabs)/_layout.tsx` from store selectors — never from network. Single source of truth per badge:
+
+- **Chats tab (`Czaty`)** — `unread messages + unviewed pending pings`. Unread comes from `conversationsStore.conversations[].unreadCount` (server-computed in `messages.getConversations`, kept in sync by WS `newMessage`/`markAsRead` events). Unviewed pings come from `wavesStore.received` filtered to `wave.status === "pending"` AND not in `wavesStore.viewedWaveIds`. The pings cursor is bumped client-side via `markViewed(waveId)` from `chats.tsx#handlePingPress` — i.e. the moment a user taps a ping row to open the sender's profile. Same number is shown on the sonar pill inside the chats screen, so the tab badge and the in-screen pill stay consistent.
+- Pings cursor is **in-memory only** (Set, not persisted) — surviving an app restart re-marks all pending pings as unviewed. This is intentional: a fresh launch should resurface anything still demanding attention.
+- Other tabs currently have no badges. If you add one, follow the same pattern: derive in `_layout.tsx`, never duplicate the count in another component, and document the formula here.
 
 **Typography:** InstrumentSerif (Regular, Italic) for headings/display. DM Sans (Regular, Medium, SemiBold) for body. Design system in `apps/mobile/src/theme.ts`.
 

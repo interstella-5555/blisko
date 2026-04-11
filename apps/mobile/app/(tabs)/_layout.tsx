@@ -286,8 +286,14 @@ export default function TabsLayout() {
     }
   }, [chatConversations]);
 
-  // Read badges from stores (single source of truth)
+  // Read badges from stores (single source of truth).
+  // Chats tab badge = unread messages + pending pings the user hasn't tapped yet.
+  // The pings half mirrors `unviewedPingCount` shown on the sonar pill inside the chats screen.
   const totalUnread = useConversationsStore((s) => s.conversations.reduce((sum, c) => sum + c.unreadCount, 0));
+  const unviewedPings = useWavesStore((s) =>
+    s.received.reduce((n, w) => (w.wave.status === "pending" && !s.viewedWaveIds.has(w.wave.id) ? n + 1 : n), 0),
+  );
+  const chatsTabBadge = totalUnread + unviewedPings;
 
   useEffect(() => {
     // Only set profile from query if we haven't checked yet
@@ -383,7 +389,7 @@ export default function TabsLayout() {
           title: "Czaty",
           tabBarIcon: ({ color }) => <IconChat size={20} color={color} />,
           tabBarAccessibilityLabel: "tab-chats",
-          tabBarBadge: totalUnread > 0 ? totalUnread : undefined,
+          tabBarBadge: chatsTabBadge > 0 ? chatsTabBadge : undefined,
           tabBarBadgeStyle: {
             backgroundColor: colors.accent,
             fontFamily: fonts.sansSemiBold,
