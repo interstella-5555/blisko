@@ -1,4 +1,3 @@
-import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -37,13 +36,14 @@ export function usePushNotifications() {
       if (finalStatus !== "granted") return;
 
       try {
-        const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? undefined;
-        const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
+        // projectId is auto-resolved by expo-notifications from Constants.easConfig /
+        // Constants.expoConfig.extra.eas.projectId — no need to forward it ourselves.
+        const { data: token } = await Notifications.getExpoPushTokenAsync();
         if (registeredTokenRef.current === token) return;
         await registerPushToken({ token, platform: Platform.OS as "ios" | "android" });
         registeredTokenRef.current = token;
       } catch {
-        // Simulator, network, or config error — next foreground resume retries
+        // Simulator, network, or missing projectId — next foreground resume retries
       }
     };
 
