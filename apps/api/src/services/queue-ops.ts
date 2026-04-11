@@ -289,7 +289,9 @@ export function startOpsWorker() {
 
   console.log("[queue:ops] Ops worker started");
 
-  // One-time migration: move delayed hard-delete jobs from legacy "ai-jobs" queue
+  // One-time cleanup of the pre-BLI-171 "ai-jobs" queue:
+  // 1. Rescue any delayed hard-delete-user jobs (they'd otherwise sit forever — no worker listens on ai-jobs anymore)
+  // 2. Obliterate everything else: old failed/completed analyze-pair jobs and the flush/prune-push-log repeatable schedulers
   void (async () => {
     try {
       const legacyQueue = new Queue("ai-jobs", { connection: getConnectionConfig() });
@@ -308,9 +310,16 @@ export function startOpsWorker() {
         }
       }
       if (migrated > 0) console.log(`[queue:ops] Migrated ${migrated} delayed hard-delete jobs from legacy queue`);
+
+      const counts = await legacyQueue.getJobCounts("waiting", "active", "delayed", "failed", "completed");
+      const total = counts.waiting + counts.active + counts.delayed + counts.failed + counts.completed;
+      if (total > 0) {
+        await legacyQueue.obliterate({ force: true });
+        console.log(`[queue:ops] Obliterated legacy ai-jobs queue (${JSON.stringify(counts)})`);
+      }
       await legacyQueue.close();
     } catch (err) {
-      console.error("[queue:ops] Legacy queue migration failed (non-critical):", err);
+      console.error("[queue:ops] Legacy queue cleanup failed (non-critical):", err);
     }
   })();
 }

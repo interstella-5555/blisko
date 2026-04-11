@@ -1,17 +1,10 @@
 import { Redirect, router } from "expo-router";
-import * as SecureStore from "expo-secure-store";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Path, Polyline, Rect } from "react-native-svg";
 import { Avatar } from "../../src/components/ui/Avatar";
-import { authClient } from "../../src/lib/auth";
-import { trpcClient } from "../../src/lib/trpc";
 import { useAuthStore } from "../../src/stores/authStore";
-import { useConversationsStore } from "../../src/stores/conversationsStore";
-import { useMessagesStore } from "../../src/stores/messagesStore";
-import { useProfilesStore } from "../../src/stores/profilesStore";
-import { useWavesStore } from "../../src/stores/wavesStore";
 import { colors, fonts, spacing, type as typ } from "../../src/theme";
-import { queryClient } from "../_layout";
+import { signOutAndReset } from "../_layout";
 
 // -- Icons for settings groups --
 
@@ -169,28 +162,8 @@ const groups: GroupRow[] = [
 export default function SettingsHubScreen() {
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
-  const reset = useAuthStore((state) => state.reset);
 
-  const handleLogout = async () => {
-    // Unregister push token before clearing auth
-    try {
-      const pushToken = await SecureStore.getItemAsync("lastRegisteredPushToken");
-      if (pushToken) {
-        await trpcClient.pushTokens.unregister.mutate({ token: pushToken });
-        await SecureStore.deleteItemAsync("lastRegisteredPushToken");
-      }
-    } catch {}
-
-    await authClient.signOut();
-    await SecureStore.deleteItemAsync("blisko_session_token");
-    queryClient.clear();
-    reset();
-    useProfilesStore.getState().reset();
-    useConversationsStore.getState().reset();
-    useMessagesStore.getState().reset();
-    useWavesStore.getState().reset();
-    router.replace("/(auth)/login");
-  };
+  const handleLogout = () => signOutAndReset();
 
   if (!user) {
     return <Redirect href="/(auth)/login" />;

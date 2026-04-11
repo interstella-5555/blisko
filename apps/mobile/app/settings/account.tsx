@@ -17,6 +17,7 @@ import { trpc } from "@/lib/trpc";
 import { useToast } from "@/providers/ToastProvider";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
+import { signOutAndReset } from "../_layout";
 
 function FacebookIcon() {
   return (
@@ -219,9 +220,7 @@ export default function AccountScreen() {
     setOtpLoading(true);
     try {
       await requestDeletion.mutateAsync({ otp });
-      await authClient.signOut();
-      useAuthStore.getState().reset();
-      router.replace("/(auth)/login");
+      await signOutAndReset();
     } catch {
       Alert.alert("Błąd", "Nieprawidłowy kod. Spróbuj ponownie.");
     }

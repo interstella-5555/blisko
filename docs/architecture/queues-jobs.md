@@ -12,6 +12,7 @@
 > Updated 2026-04-10 — Split single `ai-jobs` queue into 3 queues (`ai`, `ops`, `maintenance`) grouped by bottleneck. Shared utilities in `queue-shared.ts` (BLI-171).
 > Updated 2026-04-10 — Nightly consistency sweep: `consistency-sweep` maintenance job (daily 3 AM), admin trigger, mobile startup health check (BLI-168).
 > Updated 2026-04-11 — AI cost tracking: `flush-ai-calls` (15s batch flush) and `prune-ai-calls` (hourly cleanup) repeatable jobs, Redis buffer entry (BLI-174).
+> Updated 2026-04-11 — Legacy `ai-jobs` cleanup in `startOpsWorker` extended from "rescue hard-delete" to full `obliterate` so stale failed analyze-pair rows and orphaned repeatable schedulers drop out of Redis; `dev-cli:queue-monitor` now reads `ai`/`ops`/`maintenance` instead of the dead `ai-jobs` key (BLI-204).
 
 Three BullMQ queues grouped by bottleneck: AI (OpenAI-bound), Ops (DB/S3/email-bound critical operations), Maintenance (periodic fire-and-forget). Each has its own worker with independent concurrency and retention policies. Source files: `apps/api/src/services/queue.ts` (AI), `queue-ops.ts` (Ops), `queue-maintenance.ts` (Maintenance), `queue-shared.ts` (shared utilities).
 
@@ -60,7 +61,7 @@ All three workers start at server startup from `src/index.ts`: `startAiWorker()`
 
 ### Legacy migration
 
-On startup, `startOpsWorker()` runs a one-time migration that moves any delayed `hard-delete-user` jobs from the old `ai-jobs` Redis queue to the new `ops` queue, preserving remaining delay time and job IDs. This handles the transition from the single-queue architecture.
+On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jobs` Redis queue: it first rescues any delayed `hard-delete-user` jobs by re-adding them to `ops` with preserved remaining delay and job ID, then calls `legacyQueue.obliterate({ force: true })` to remove everything else that stuck around — stale failed `analyze-pair` entries, old completed jobs, and the `flush-push-log`/`prune-push-log` repeatable schedulers that no worker consumes anymore. Both steps no-op gracefully on an empty queue; failures are logged but non-fatal (BLI-204).
 
 ## Job Types (18 total)
 

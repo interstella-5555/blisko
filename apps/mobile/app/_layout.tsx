@@ -4,6 +4,7 @@ import { router, Stack } from "expo-router";
 // Workaround: expo-router 6.0.22 bug — Stack uses useLinkPreviewContext
 // but ExpoRoot's provider doesn't always reach it
 import { LinkPreviewContextProvider } from "expo-router/build/link/preview/LinkPreviewContext";
+import * as SecureStore from "expo-secure-store";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, Alert, AppState, Platform, Pressable, Text, View } from "react-native";
@@ -18,6 +19,11 @@ import { useWebSocket } from "@/lib/ws";
 import { NotificationProvider } from "@/providers/NotificationProvider";
 import { showToastGlobal, ToastProvider } from "@/providers/ToastProvider";
 import { useAuthStore } from "@/stores/authStore";
+import { useConversationsStore } from "@/stores/conversationsStore";
+import { useMessagesStore } from "@/stores/messagesStore";
+import { useOnboardingStore } from "@/stores/onboardingStore";
+import { useProfilesStore } from "@/stores/profilesStore";
+import { useWavesStore } from "@/stores/wavesStore";
 import { colors, fonts, spacing } from "@/theme";
 
 let accountDeletedAlertShown = false;
@@ -31,9 +37,7 @@ function handleAccountDeleted(error: unknown) {
         text: "OK",
         onPress: () => {
           accountDeletedAlertShown = false;
-          authClient.signOut();
-          useAuthStore.getState().reset();
-          router.replace("/(auth)/login");
+          void signOutAndReset();
         },
       },
     ]);
@@ -97,6 +101,39 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Single sign-out path for all logout flows (settings, account deletion, onboarding abort,
+// ACCOUNT_DELETED error handler). Clears every user-scoped store + React Query cache + Better
+// Auth session + SecureStore tokens. Leaves `locationStore` (device state) and `preferencesStore`
+// (intentionally persisted) untouched.
+export async function signOutAndReset() {
+  try {
+    const pushToken = await SecureStore.getItemAsync("lastRegisteredPushToken");
+    if (pushToken) {
+      await trpcClient.pushTokens.unregister.mutate({ token: pushToken });
+      await SecureStore.deleteItemAsync("lastRegisteredPushToken");
+    }
+  } catch {
+    // Best-effort — token unregister must not block logout.
+  }
+
+  try {
+    await authClient.signOut();
+  } catch {
+    // Server may already consider the session invalid (e.g. ACCOUNT_DELETED). Continue cleanup.
+  }
+  await SecureStore.deleteItemAsync("blisko_session_token");
+
+  queryClient.clear();
+  useAuthStore.getState().reset();
+  useProfilesStore.getState().reset();
+  useConversationsStore.getState().reset();
+  useMessagesStore.getState().reset();
+  useWavesStore.getState().reset();
+  useOnboardingStore.getState().reset();
+
+  router.replace("/(auth)/login");
+}
 
 export default function RootLayout() {
   const setUser = useAuthStore((state) => state.setUser);
