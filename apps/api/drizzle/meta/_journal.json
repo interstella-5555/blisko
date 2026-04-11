@@ -134,6 +134,13 @@
       "when": 1775862420605,
       "tag": "0018_add_ai_calls",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1775866253994,
+      "tag": "0019_fix_ca_pair_unique_index",
+      "breakpoints": true
     }
   ]
 }
