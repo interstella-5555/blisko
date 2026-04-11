@@ -103,8 +103,8 @@ The central push function. Every push notification in the app goes through this 
 | Group message (first unread) | `"{groupName}"` | `"{senderName}: {preview}"` | none | Yes | `messages.ts` |
 | Group message (has unreads) | `"{groupName}"` | `"{N} nowych wiadomosci"` | `"group:{conversationId}"` | No (silent) | `messages.ts` |
 | Ambient status match | `"Blisko"` | `"Ktos z pasujacym profilem jest w poblizu"` | `"ambient-match"` | No (silent) | `queue.ts` |
-| Group invite (create) | `"{groupName}"` | `"Nowe zaproszenie do grupy"` | none | Yes | `groups.ts` |
-| Group invite (addMember) | `"{groupName}"` | `"Nowe zaproszenie do grupy"` | none | Yes | `groups.ts` |
+| Group invite (create) | `"{groupName}"` | `"Nowe zaproszenie do grupy"` | `"group-invite:{conversationId}"` | No (silent) | `groups.ts` |
+| Group invite (addMember) | `"{groupName}"` | `"Nowe zaproszenie do grupy"` | `"group-invite:{conversationId}"` | No (silent) | `groups.ts` |
 
 ### Wave push details
 
@@ -171,6 +171,16 @@ The central push function. Every push notification in the app goes through this 
 
 **Why collapseId on ambient:** If two ambient pushes somehow slip through (race condition), the second replaces the first on the device rather than stacking.
 
+## Conversation Mute (Per-Participant Push Suppression)
+
+**What:** A user can mute a specific DM or group conversation via `messages.muteConversation` (see `messaging.md`). When mute is active (`conversationParticipants.mutedUntil > now`), `sendPushToUser` skips that recipient for any push originating from that conversation (DM message, group message, group invite).
+
+**How:** When resolving recipients for a conversation push, `messages.ts` reads `mutedUntil` for each target participant in the same query that fetches push tokens and DND. Skip happens before the Expo chunking stage, so muted recipients aren't in the batch send at all.
+
+**Durations:** `1h`, `8h`, or `forever` (stored as `new Date("9999-12-31")`). `unmuteConversation` sets it to `null`.
+
+**Crucial:** Mute only suppresses push notifications. The WebSocket event still fires and the message is stored — the recipient sees the new message on their next app open or WS refresh.
+
 ## WebSocket Fallback (Push Suppression)
 
 **What:** `sendPushToUser` checks `isUserConnected(userId)` first. If the user has any active WebSocket connection, push is skipped entirely.
@@ -191,7 +201,7 @@ This means:
 - First group message (no unreads): audible (no collapseId)
 - Subsequent group messages: silent (collapseId = `"group:{conversationId}"`)
 - Ambient match: silent (collapseId = `"ambient-match"`)
-- Group invites: audible (no collapseId)
+- Group invites: silent (collapseId = `"group-invite:{conversationId}"`) — multiple invitations in quick succession (e.g. owner adds several members) replace each other on the device rather than stacking
 
 **Why tie sound to collapseId:** CollapseId is used for notifications that update/replace previous ones. If the device already buzzed for the first notification, subsequent updates should silently replace the content without re-alerting. This is a UX decision: one buzz per "batch" of related events.
 

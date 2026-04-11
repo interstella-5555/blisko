@@ -25,7 +25,7 @@ Events are flushed in batches by the `flush-ai-calls` BullMQ maintenance job eve
 #### Why
 
 - **Batch flush avoids per-call DB writes.** AI calls happen in hot paths (`quick-score` every map view); batching keeps the write amplification proportional to time, not volume.
-- **Wrapper inside `ai.ts` (not at worker sites).** 9 AI functions, ~15 call sites — inlining logging at every worker processor would bloat `queue.ts`. Wrapper keeps workers clean and makes `usage` extraction private to the AI module.
+- **Wrapper inside `ai.ts` (not at worker sites).** 9 AI functions, 12 logged call sites — inlining logging at every worker processor would bloat `queue.ts`. Wrapper keeps workers clean and makes `usage` extraction private to the AI module.
 - **Preserves graceful degradation.** Existing functions catch errors and return fallbacks (`generatePortrait` → raw bio, `generateEmbedding` → `[]`). The wrapper logs the failure but rethrows, so the original `catch` still runs. Logging errors are swallowed in `safeAppend()` — the AI call's result/error always wins.
 - **7-day retention.** Same as `push_sends`. This is operational telemetry — long-term budgeting should be done via external BI on a daily aggregate, not this raw table.
 
@@ -64,7 +64,7 @@ Full column list lives in `database.md`. Summary:
 
 ## Logged Call Sites
 
-All AI functions in `ai.ts` and `profiling-ai.ts` accept an optional `ctx?: AiLogCtx`. When present, logging fires; when absent, the call runs without logging (keeps tests and one-off scripts ergonomic).
+All AI functions in `ai.ts` and `profiling-ai.ts` take a **required** `ctx: AiLogCtx` parameter — every call site must thread one through. There is no opt-out: making `ctx` mandatory was a deliberate choice so that adding a new call site cannot accidentally bypass cost tracking. Tests and one-off scripts pass a dummy ctx (e.g. `{ jobName: "test", userId: null, targetUserId: null }`).
 
 | Function | Call site | `jobName` |
 |---|---|---|

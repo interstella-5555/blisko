@@ -4,7 +4,7 @@
 > Updated 2026-04-11 — Added `metrics.ai_calls` table (BLI-174).
 > Updated 2026-04-11 — `connection_analyses.tier` column (`t1`/`t2`/`t3`) records which scoring tier produced each row, surfaced in admin matching list (BLI-184).
 
-PostgreSQL on Railway. ORM: Drizzle `^0.45.1` with `postgres` (postgres.js) `^3.4.0` driver. Schema source: `apps/api/src/db/schema.ts`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`.
+PostgreSQL on Railway. ORM: Drizzle `^0.45.1` with `postgres` (postgres.js) `^3.4.0` driver. Schema source: `packages/db/src/schema.ts` (the `@repo/db` workspace package). `apps/api/src/db/schema.ts` is now a 3-line re-export wrapper (`export * from "@repo/db/schema"`) preserved so existing `@/db` / `@/db/schema` imports keep working — the real schema definitions live in `@repo/db`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`.
 
 ## Terminology & Product Alignment
 
@@ -522,7 +522,7 @@ Performance targets per endpoint.
 
 ## Connection Pattern and Query Instrumentation
 
-`apps/api/src/db/index.ts` exports `{ db, schema }`. All application code imports from `@/db` and accesses tables as `schema.profiles`, `schema.user`. Individual table imports from schema.ts are forbidden (enforced by convention).
+`apps/api/src/db/index.ts` exports `{ db, schema }`. `schema` is re-exported from `@repo/db/schema` (`packages/db/src/schema.ts` — 695 lines, the real source). All application code imports from `@/db` and accesses tables as `schema.profiles`, `schema.user`. Individual table imports from schema.ts are forbidden (enforced by convention).
 
 **Query instrumentation** works by monkey-patching `postgres.js`'s `client.unsafe()` method. Drizzle-orm internally calls `client.unsafe()` for all queries. The patch wraps `.then()` and `.values()` on the returned `PendingQuery` to record timing via `AsyncLocalStorage` (`apps/api/src/services/query-tracker.ts`). Each request gets its own `QueryContext` with `queryCount` and `dbDurationMs`, tracked through the metrics middleware and written to `metrics.request_events`.
 
@@ -559,6 +559,8 @@ Hot-path prepared statements:
 | 0016 | `add_missing_fk_indexes` | DDL | Indexes on `account.user_id`, `session.user_id`, `conversation_ratings` FKs |
 | 0017 | `add_push_sends` | DDL | Create `push_sends` table with user, title, body, data, collapse_id, status, suppression_reason, token_count columns + 3 indexes |
 | 0018 | `add_ai_calls` | DDL | Create `metrics.ai_calls` table for AI cost tracking (BLI-174) — 14 columns + 4 indexes |
+| 0019 | `fix_ca_pair_unique_index` | DDL (custom) | Drop non-unique `ca_pair_idx` and add the missing `ca_pair_uniq` unique index on `connection_analyses(user_id, target_user_id)`. Fixes schema drift where `schema.ts` had the unique constraint but the real DB (pre-migration baseline) was created via `db:push` with a non-unique index. |
+| 0020 | `add_tier_to_connection_analyses` | DDL + DML | Add `tier` text column (`t1`/`t2`/`t3`) to `connection_analyses`, backfill existing rows (`short_snippet IS NULL` → `t2`, otherwise `t3`), set `NOT NULL`. Tracks which tier of the AI matching pipeline produced each analysis. |
 
 ## Drizzle Relations
 

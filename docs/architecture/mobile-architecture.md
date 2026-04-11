@@ -173,6 +173,8 @@ Persisted to SecureStore. `nearbyRadiusMeters`: 500 / 1000 / 2000 (default 2000)
 
 **Event types handled in tabs layout:** `newWave`, `waveResponded`, `newMessage`, `reaction`, `profileReady`, `groupMember`, `groupUpdated`, `topicEvent`, `conversationDeleted`, `groupInvited`, `reconnected`.
 
+**Self-healing failure events** (handled by dedicated retry hooks — see Hook Catalog below): `analysisFailed`, `profilingFailed`, `profileFailed`, `questionFailed`, `statusMatchingFailed`. Each failure event triggers the corresponding retry mutation from its own hook, separate from the main tabs-layout handler so the retry logic only mounts where the user is actually waiting on that job (e.g. profile retry on the onboarding result screen, not the map tab).
+
 **Typing indicators:** `useTypingIndicator(conversationId)` hook. Sends typing state, auto-stops after 3s. Receives others' typing, auto-clears after 5s.
 
 ---
@@ -204,6 +206,51 @@ Handled events: `newWave` ("Pinguje Cie!"), `waveResponded` accepted ("Przyjal(a
 **App resume:** If backgrounded > 10s, refetches waves and conversations on return to foreground.
 
 **Periodic:** Every 60s, refetches waves and conversations regardless. Silent failures --- next cycle retries.
+
+---
+
+## Providers (Overlay Ownership)
+
+Two provider components wrap the root layout in `app/_layout.tsx`, each owning a screen-level overlay:
+
+| Provider | Owns | Used by | Overlay component |
+|---|---|---|---|
+| `ToastProvider` (`providers/ToastProvider.tsx`) | Imperative toast queue | `useToast()` hook + `showToastGlobal` escape hatch (used by tRPC error interceptor for rate-limit toasts) | `ToastOverlay` (renders active toast at top of screen) |
+| `NotificationProvider` (`providers/NotificationProvider.tsx`) | In-app notification queue for WS-driven banners | `useInAppNotifications` hook (via WS listeners) | `NotificationOverlay` (renders active banner below status bar) |
+
+Both providers sit below the Zustand stores (stores are globals, not context) but above the router. Neither persists state across sessions — they are ephemeral in-memory queues. The Push Notifications section's "in-app notification overlay handles those instead" refers to `NotificationOverlay` driven by `NotificationProvider`.
+
+---
+
+## Hook Catalog
+
+Hooks live in `apps/mobile/src/hooks/`. All are React hooks, mounted high in the tree (typically `app/_layout.tsx` or `app/(tabs)/_layout.tsx`) rather than per-screen so subscriptions live for the entire session.
+
+| Hook | Purpose |
+|---|---|
+| `usePushNotifications` | Token registration + permission sync + tap routing (see Push Notifications section) |
+| `useInAppNotifications` | WS → in-app banner routing (see In-App Notifications section) |
+| `useBackgroundSync` | App-resume + periodic refetch (see Background Sync section) |
+| `useProfileGate` | Imperative "require complete profile" check used by action buttons (waves, groups, status). Reads `profilesStore.isComplete` and surfaces a non-dismissable `ProfileGateSheet` when blocked; returns a predicate/action wrapper rather than rendering anything itself. The third gate layer below routing guards. |
+| `usePrefetchMessages` | Warms React Query caches for conversations the user is likely to open next (last-active DM + ambient matches). Fires on tab focus. |
+| `useRetryProfileOnFailure` | Listens for `profilingFailed` WS event, calls `profiling.retryProfileGeneration` — self-healing for `generate-profile-from-qa` failures (BLI-162) |
+| `useRetryProfileAIOnFailure` | Listens for `profileFailed` WS event, calls `profiles.retryProfileAI` — self-healing for `generate-profile-ai` failures (BLI-163), the final onboarding step |
+| `useRetryQuestionOnFailure` | Listens for `questionFailed` WS event, calls `profiling.retryQuestion` — self-healing for next-question generation failures during profiling Q&A (BLI-161) |
+| `useRetryStatusMatchingOnFailure` | Listens for `statusMatchingFailed` WS event, calls `profiles.retryStatusMatching` — self-healing for the ambient status-matching pipeline (BLI-164) |
+
+The four retry hooks collectively implement the client side of the BLI-158/161/162/163/164 self-healing pattern (see `queues-jobs.md` worker-failure section). Each one is a thin wrapper around a specific WS-event → tRPC-retry-mutation pair; they exist as separate files because each mount point differs (question retry only on profiling Q&A screen, profile retry only after onboarding submit, etc.).
+
+---
+
+## SecureStore Keys
+
+| Key | Set by | Cleared by `signOutAndReset` | Purpose |
+|---|---|---|---|
+| `blisko_session_token` | `lib/trpc.ts` (after login), `lib/ws.ts` (dev fallback) | Yes | Bearer token for tRPC + WS auth. |
+| `onboarding-storage` | `onboardingStore` (zustand `persist` middleware) | Yes | Onboarding draft state — survives app force-quit mid-flow. Cleared on successful submission or sign-out. |
+| `blisko_nearby_radius` | `preferencesStore` (`RADIUS_KEY`) | No (intentional) | Map nearby radius (500/1000/2000m). Preserved across logout. |
+| `blisko_notification_prefs` | `preferencesStore` (`NOTIF_PREFS_KEY`) | No (intentional) | In-app notification toggles (newWaves, waveResponses, newMessages, groupInvites). Preserved across logout. |
+| Better Auth internal keys | `lib/auth.ts` (Expo plugin, `storagePrefix: "blisko"`, SecureStore backend) | Yes (via `authClient.signOut()`) | Better Auth manages its own session + cookie storage under this namespace. Not touched directly. |
 
 ---
 

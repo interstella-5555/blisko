@@ -22,7 +22,9 @@ Bun native WebSocket server delivering real-time events to mobile clients. Sourc
 | Group member action | `groupMember` event | Dolaczyl/opuscil grupe |
 | Nie przeszkadzaj | DND — client-side suppression only, WS still delivers | Ikona DND |
 
-## Event Types (22 total)
+## Event Types (22 distinct server→client types)
+
+> The table below has more rows than 22 because inbound (auth, subscribe, typing) and outbound (typing) variants are listed separately. The "22" count refers to the unique `type` strings that the server emits to clients.
 
 | Event | Direction | Trigger | Payload shape |
 |---|---|---|---|

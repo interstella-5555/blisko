@@ -244,16 +244,20 @@ Triggered by `enqueueProfileAI` when a profile is created or bio/lookingFor chan
 | `generate-profile-ai` | BullMQ debounce (`debounce.id`) | 30 seconds |
 | `analyze-user-pairs` | BullMQ debounce (`debounce.id`) | 30 seconds |
 | `proximity-status-matching` | BullMQ debounce (`debounce.id`) | 2 minutes |
-| `quick-score` | BullMQ jobId dedup (idempotent add) | N/A |
-| `analyze-pair` | `safeEnqueuePairJob` (manual dedup) | N/A |
-| `status-matching` | BullMQ jobId dedup | N/A |
+| `quick-score` | BullMQ `deduplication` option (auto-released on completion or failure) | N/A |
+| `analyze-pair` | `safeEnqueuePairJob` (manual dedup with priority promotion) | N/A |
+| `status-matching` | BullMQ `deduplication` option (auto-released on completion or failure) | N/A |
+
+The two `deduplication`-based jobs (`quick-score`, `status-matching`) get auto-released when the job completes or fails. This is what enables the self-healing retry pattern (BLI-158/164) — after a failed run the dedup key is gone, so the client can re-enqueue without manual cleanup.
 
 ## BullMQ Configuration
 
-- Queue name: `ai-jobs`
+- Queue name: `ai` (BLI-171 split `ai-jobs` into `ai`/`ops`/`maintenance` — AI matching + profiling jobs run on `ai`)
 - Worker concurrency: 50
-- Default job options: `removeOnComplete: true`, `removeOnFail: { count: 100 }`, attempts: 3, exponential backoff starting at 5 seconds
-- All job types share a single queue and worker
+- Default job options: `removeOnComplete: { count: 200, age: 3600 }`, `removeOnFail: { count: 100 }`, attempts: 3, exponential backoff starting at 5 seconds
+- All AI jobs (matching + profiling) share the `ai` worker; ops and maintenance jobs run on separate workers — see `queues-jobs.md` for the full queue split
+
+**Self-healing on failure:** the `worker.on("failed")` handler in `queue.ts` emits a per-job-type WS event after the final retry attempt: `analysisFailed` for `analyze-pair`/`quick-score`, `statusMatchingFailed` for `status-matching`, plus the profiling-side events documented in `ai-profiling.md`. The mobile app's retry hooks (see `mobile-architecture.md`) listen for these and call the matching `retry*` tRPC procedure. This is why the dedup keys must auto-release on failure — so the retry can re-enqueue without colliding.
 
 ## Cost Tracking
 

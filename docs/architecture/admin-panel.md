@@ -66,13 +66,14 @@ Schema + connection factory shared between API and admin.
 | `/dashboard` | — | Layout with sidebar, renders child routes |
 | `/dashboard/` | — | Home (placeholder cards) |
 | `/dashboard/users` | users + profiles + wave/msg/group counts | User list with search, status filter, seed toggle, profile detail panel |
-| `/dashboard/users/{userId}` | connectionAnalyses + profiles (nearby query) | Per-user diagnostic: T2/T3 analyses list + full nearby list (read-only, no AI side-effects, no privacy filters). Nearby rows synthesize a `t1` tier client-side for pairs without a persisted analysis row. |
+| `/dashboard/users/{userId}` | connectionAnalyses + profiles (nearby query) | Per-user diagnostic: T2/T3 analyses list + full nearby list (read-only, no AI side-effects, no privacy filters). Nearby rows synthesize a `t1` tier client-side for pairs without a persisted analysis row. Backed by `user-analyses.ts` router — split out from `users.ts` because the analysis-browsing queries share no shape with the user listing endpoints. |
 | `/dashboard/waves` | waves + from/to user profiles | Wave list with status filter, accept rate stats |
 | `/dashboard/conversations` | conversations (type=dm) + participants | DM list with participant info, message counts |
 | `/dashboard/groups` | conversations (type=group) + member counts | Group list with discoverable filter |
 | `/dashboard/matching` | connectionAnalyses + user profiles | AI match scores with score range filter, color-coded |
 | `/dashboard/queue` | BullMQ (ai/ops/maintenance queues) | Live feed of jobs with per-source tabs (AI/Ops/Maintenance), state tabs, job type filter. All filters stored in URL query string via `Route.validateSearch` (zod schema: `source`, `state`, `type`, `expanded`). Lives under the dedicated "Kolejki" sidebar category. |
 | `/dashboard/push-log` | `metrics.push_sends` | Push notification send log (7d retention) |
+| `/dashboard/ai-costs` | `metrics.ai_calls` | AI cost dashboard — per-job/per-model/per-user breakdowns, daily charts, recent-call feed. Backed by `ai-costs.ts` router which aggregates `metrics.ai_calls` (7d retention, see `ai-cost-tracking.md`). Introduced in BLI-174. |
 
 ## Sidebar Navigation
 
@@ -109,7 +110,13 @@ Implemented via BLI-154. Admin tRPC mutations enqueue BullMQ jobs, wait for API 
 | Regenerate profile | `users.regenerateProfile` | `generate-profile-ai` (existing) + `analyze-user-pairs` | — (reads bio/lookingFor from DB) |
 | Force disconnect | `users.forceDisconnect` | `admin-force-disconnect` | `publishEvent("forceDisconnect")` |
 
-**BullMQ setup in admin** (`apps/admin/src/lib/queue.ts`): `Queue` + `QueueEvents` client connected via `REDIS_URL`. Single exported function `enqueueAndWait(jobName, data)` handles enqueue + wait pattern.
+**BullMQ setup in admin** (`apps/admin/src/lib/queue.ts`): three lazy `Queue` singletons (`getAiQueue`, `getOpsQueue`, `getMaintenanceQueue`) matching the BLI-171 queue split. Three enqueue-and-wait wrappers route to the correct queue:
+
+- `enqueueAiAndWait(jobName, data)` — AI matching / profiling jobs
+- `enqueueOpsAndWait(jobName, data)` — user actions (soft-delete, restore, force-disconnect, data export, hard-delete)
+- `enqueueMaintenanceAndWait(jobName, data)` — flush/prune jobs, consistency sweep
+
+Each wrapper creates a scoped `QueueEvents` client, enqueues with a unique `jobId`, awaits `waitUntilFinished` (15s for ai/ops, 60s for maintenance), and closes the events client. No shared `QueueEvents` instance — the wrapper is transactional per call.
 
 ## Auth
 

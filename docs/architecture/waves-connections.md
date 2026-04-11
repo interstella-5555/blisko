@@ -157,10 +157,12 @@ From `rateLimits.ts` (sliding window on Redis):
 
 | Endpoint | Limit | Window |
 |---|---|---|
-| `waves.send` | 30 requests | 4 hours |
-| `waves.respond` | 60 requests | 1 hour |
+| `waves.send` | 300 requests | 4 hours |
+| `waves.respond` | 600 requests | 1 hour |
 
-These are abuse-prevention limits, separate from the business logic limits in `pingLimits.ts`. A normal user sending 5 pings/day will never hit the 30/4h rate limit.
+These are abuse-prevention limits, separate from the business logic limits in `pingLimits.ts`. A normal user sending 5 pings/day will never come close — the daily business cap in `pingLimits.ts` is the limit that shapes real usage.
+
+> **Temporary values (BLI-189):** Both numbers above are currently inflated 10× as a mitigation for the map burning through `profiles.getNearby` buckets and cascading into the `global` catch-all. Long-term values (post-BLI-189): `waves.send` 30/4h, `waves.respond` 60/1h. See `rate-limiting.md` for the full BLI-189 note.
 
 ## Middleware Chain
 
@@ -182,8 +184,8 @@ The `getReceived`, `getSent`, and `getBlocked` queries use only `protectedProced
 | Per-person cooldown | 24 hours | `PER_PERSON_COOLDOWN_HOURS` |
 | Decline cooldown | 24 hours | `DECLINE_COOLDOWN_HOURS` |
 | Mutual ping window | 30 seconds | `MUTUAL_PING_WINDOW_SECONDS` |
-| Rate limit (send) | 30 / 4h | `rateLimits["waves.send"]` |
-| Rate limit (respond) | 60 / 1h | `rateLimits["waves.respond"]` |
+| Rate limit (send) | 300 / 4h (BLI-189 temp; long-term 30/4h) | `rateLimits["waves.send"]` |
+| Rate limit (respond) | 600 / 1h (BLI-189 temp; long-term 60/1h) | `rateLimits["waves.respond"]` |
 
 ## Impact Map
 

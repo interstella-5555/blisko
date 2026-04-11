@@ -30,7 +30,7 @@ Architecture reference docs live in `docs/architecture/`. These are the source o
 | `ai-matching.md` | Tiered scoring (T1 cosine, T2 quick-score, T3 analysis), prompts |
 | `ai-profiling.md` | Onboarding Q&A, portrait/bio/interest generation, moderation |
 | `queues-jobs.md` | BullMQ queue, all job types, retry policies, Redis usage |
-| `websockets-realtime.md` | WS events (17 types), Redis pub/sub bridge, subscriptions |
+| `websockets-realtime.md` | WS events (22 types), Redis pub/sub bridge, subscriptions |
 | `auth-sessions.md` | Better Auth, OAuth providers, magic link, dev login |
 | `user-profiles.md` | Profile model, visibility modes, DND, superpower, status |
 | `waves-connections.md` | Wave lifecycle, mutual ping, status snapshots |
@@ -50,6 +50,9 @@ Architecture reference docs live in `docs/architecture/`. These are the source o
 | `rate-limiting.md` | Sliding window, Redis Lua, limits |
 | `privacy-terms.md` | RODO/GDPR legal docs |
 | `nearby-group-members.md` | Group members on map |
+| `admin-panel.md` | Admin TanStack Start app — pages, BullMQ-based write actions, auth |
+| `ai-cost-tracking.md` | `withAiLogging` wrapper, `metrics.ai_calls` buffering, pricing |
+| `demo-chatbot.md` | Seed user AI responder app — polling, accept curves, dev-login |
 | `monetization.md` | Subscription tiers (planned, not implemented) |
 | `friends-system.md` | Friends/contacts (planned, not implemented) |
 | `e2e-test-coverage.md` | E2E test coverage map (flow → test status) |

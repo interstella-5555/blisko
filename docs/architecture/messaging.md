@@ -230,6 +230,25 @@ Typing events flow two ways:
 
 ---
 
+## Mute Conversation
+
+**What:** Per-participant push suppression via `conversationParticipants.mutedUntil`.
+
+**Endpoints:** `messages.muteConversation({ conversationId, duration })` and `messages.unmuteConversation({ conversationId })`. Mutations only — reading the muted state happens via `getConversations` which returns `mutedUntil` per conversation.
+
+**Durations:**
+- `"1h"` → `Date.now() + 3_600_000`
+- `"8h"` → `Date.now() + 28_800_000`
+- `"forever"` → `new Date("9999-12-31")` (sentinel far-future date — keeps the column non-null when muted indefinitely so the comparison stays trivial)
+
+`unmuteConversation` sets `mutedUntil = null`.
+
+**Enforcement:** When `sendPushToUser` resolves recipients for a conversation push (DM or group), it checks `participant.mutedUntil` — if not null and > now, the recipient is skipped. The message still arrives via WebSocket (the mute only suppresses the push notification), so the recipient sees it on their next app open or WS refresh.
+
+**No WS event on mute change.** The mutation is local to the acting user, and the next `getConversations` refresh reflects the new state. No other participants need to know.
+
+---
+
 ## Conversation List (`getConversations`)
 
 **What:** Returns all conversations for the current user with last message, unread count, and participant info.
