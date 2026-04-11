@@ -1,20 +1,13 @@
 import { router } from "expo-router";
-import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import { Button } from "../../src/components/ui/Button";
 import { Input } from "../../src/components/ui/Input";
 import { IconX } from "../../src/components/ui/icons";
-import { authClient } from "../../src/lib/auth";
-import { trpcClient } from "../../src/lib/trpc";
 import { useAuthStore } from "../../src/stores/authStore";
-import { useConversationsStore } from "../../src/stores/conversationsStore";
-import { useMessagesStore } from "../../src/stores/messagesStore";
 import { useOnboardingStore } from "../../src/stores/onboardingStore";
-import { useProfilesStore } from "../../src/stores/profilesStore";
-import { useWavesStore } from "../../src/stores/wavesStore";
 import { colors, fonts, spacing, type as typ } from "../../src/theme";
-import { queryClient } from "../_layout";
+import { signOutAndReset } from "../_layout";
 
 export default function OnboardingNameScreen() {
   const user = useAuthStore((state) => state.user);
@@ -22,26 +15,7 @@ export default function OnboardingNameScreen() {
   const [name, setName] = useState(displayName || user?.name || "");
   const [ageConfirmed, setAgeConfirmed] = useState(false);
 
-  const handleLogout = async () => {
-    try {
-      const pushToken = await SecureStore.getItemAsync("lastRegisteredPushToken");
-      if (pushToken) {
-        await trpcClient.pushTokens.unregister.mutate({ token: pushToken });
-        await SecureStore.deleteItemAsync("lastRegisteredPushToken");
-      }
-    } catch {}
-
-    await authClient.signOut();
-    await SecureStore.deleteItemAsync("blisko_session_token");
-    queryClient.clear();
-    useAuthStore.getState().reset();
-    useOnboardingStore.getState().reset();
-    useProfilesStore.getState().reset();
-    useConversationsStore.getState().reset();
-    useMessagesStore.getState().reset();
-    useWavesStore.getState().reset();
-    router.replace("/(auth)/login");
-  };
+  const handleLogout = () => signOutAndReset();
 
   const canProceed = name.trim().length >= 2 && ageConfirmed;
 

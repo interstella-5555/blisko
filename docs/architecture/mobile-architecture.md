@@ -2,6 +2,7 @@
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — `messagesStore.updateMessage()` added for in-place message patches (fixes delete dropping message from list).
+> Updated 2026-04-11 — Single sign-out path `signOutAndReset()` exported from `app/_layout.tsx` — the 4 logout sites (settings, account deletion, onboarding abort, ACCOUNT_DELETED error handler) now call it instead of reimplementing store resets. Clears auth/profiles/conversations/messages/waves/onboarding stores + `queryClient` + SecureStore tokens; `locationStore` and `preferencesStore` intentionally untouched (BLI-204).
 
 React Native 0.81.5, Expo SDK 54, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
 
@@ -236,6 +237,6 @@ If you change this system, also check:
 - **tRPC router changes** --- mobile auto-imports AppRouter type from `api/src/trpc/router`, but tRPC client URL and auth headers are in `apps/mobile/src/lib/trpc.ts`
 - **Store shape changes** --- all stores are imported across multiple screens; changing store interfaces affects any screen reading that state
 - **Navigation routes** --- deep links from push notifications (`usePushNotifications.ts`), in-app notification tap handlers, and `router.push()` calls throughout the codebase
-- **Auth flow** --- `authStore.reset()` + `authClient.signOut()` must be called together; SecureStore keys (`blisko_session_token`, `lastRegisteredPushToken`) must be cleaned
+- **Auth flow** --- Use `signOutAndReset()` from `app/_layout.tsx` for every logout path (it wraps `authClient.signOut()`, store resets, `queryClient.clear()`, and SecureStore cleanup). Never roll your own logout — missing a store leaks cached data (e.g. `onboardingStore` draft) into the next account
 - **Onboarding screens** --- `onboarding/_layout.tsx` defines the screen order; adding screens requires updating both the layout and the profiling API procedures
 - **Expo config** --- `app.json` plugins list, iOS `infoPlist` permissions, EAS project ID (`34d895cd-60a0-4c82-affe-7c6fa2b963ee`)

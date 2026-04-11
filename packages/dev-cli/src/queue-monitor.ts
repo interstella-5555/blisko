@@ -1,5 +1,5 @@
 /**
- * Live dashboard for the `ai-jobs` BullMQ queue.
+ * Live dashboard for the 3 BullMQ queues (ai, ops, maintenance).
  *
  * Shows queue counts (waiting, active, delayed, failed, completed),
  * recent completed jobs with wait/process/total times, averages by
@@ -64,9 +64,14 @@ function pairLabel(data: Record<string, unknown> | undefined): string {
 
 // --- Main ---
 
-const queue = new Queue("ai-jobs", { connection: getConnectionConfig() });
+const QUEUE_NAMES = ["ai", "ops", "maintenance"] as const;
+const queues: Record<string, Queue> = Object.fromEntries(
+  QUEUE_NAMES.map((name) => [name, new Queue(name, { connection: getConnectionConfig() })]),
+);
 
-async function render() {
+async function renderQueue(name: string, queue: Queue): Promise<string[]> {
+  const lines: string[] = [];
+
   const [waiting, active, delayed, failed, completed] = await Promise.all([
     queue.getWaitingCount(),
     queue.getActiveCount(),
@@ -75,140 +80,90 @@ async function render() {
     queue.getCompletedCount(),
   ]);
 
-  // Fetch recent completed jobs for timing data
-  const completedJobs = await queue.getJobs(["completed"], 0, 99);
-  const failedJobs = await queue.getJobs(["failed"], 0, 19);
-
-  // Sort by finishedOn descending
+  const completedJobs = await queue.getJobs(["completed"], 0, 29);
   completedJobs.sort((a, b) => (b.finishedOn ?? 0) - (a.finishedOn ?? 0));
-
-  // --- Build output ---
-  const lines: string[] = [];
 
   const totalPending = waiting + active + delayed;
 
-  lines.push("");
-  lines.push("  Queue: ai-jobs");
+  lines.push(`  Queue: ${name}`);
   lines.push(`  ${"─".repeat(60)}`);
   lines.push(
-    `  Waiting: ${padLeft(String(waiting), 4)}    Active: ${padLeft(String(active), 3)}    Delayed: ${padLeft(String(delayed), 3)}    Failed: ${padLeft(String(failed), 3)}`,
-  );
-  lines.push(
-    `  Completed: ${padLeft(String(completed), 4)}    Total pending: ${padLeft(String(totalPending), 4)}    Rate limit: 20/min`,
-  );
-  lines.push("");
-
-  // --- Recent jobs ---
-  lines.push("  Recent Jobs (last 20 completed)");
-  lines.push(`  ${"─".repeat(100)}`);
-  lines.push(
-    `  ${pad("Type", 18)} ${pad("Pair", 28)} ${pad("For", 12)} ${padLeft("Wait", 8)} ${padLeft("Process", 8)} ${padLeft("Total", 8)}  St`,
+    `  Waiting: ${padLeft(String(waiting), 4)}    Active: ${padLeft(String(active), 3)}    Delayed: ${padLeft(String(delayed), 3)}    Failed: ${padLeft(String(failed), 3)}    Completed: ${padLeft(String(completed), 4)}    Pending: ${padLeft(String(totalPending), 4)}`,
   );
 
-  const recent = completedJobs.slice(0, 20);
-  for (const job of recent) {
-    const waitMs = job.processedOn && job.timestamp ? job.processedOn - job.timestamp : 0;
-    const processMs = job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : 0;
-    const totalMs = waitMs + processMs;
-
-    const type = (job.data?.type ?? "?").slice(0, 17);
-    const pair = pairLabel(job.data);
-    const reqBy = (job.data?.requestedBy ?? "").slice(0, 11);
-
+  // Recent completed (top 5 per queue to keep the dashboard compact with 3 queues)
+  const recent = completedJobs.slice(0, 5);
+  if (recent.length > 0) {
     lines.push(
-      `  ${pad(type, 18)} ${pad(pair, 28)} ${pad(reqBy, 12)} ${padLeft(fmtDuration(waitMs), 8)} ${padLeft(fmtDuration(processMs), 8)} ${padLeft(fmtDuration(totalMs), 8)}  ✓`,
+      `  ${pad("Type", 22)} ${pad("Pair", 28)} ${padLeft("Wait", 8)} ${padLeft("Process", 8)} ${padLeft("Total", 8)}`,
     );
-  }
-
-  if (recent.length === 0) {
-    lines.push("  (none)");
-  }
-
-  // --- Recent failed ---
-  if (failedJobs.length > 0) {
-    lines.push("");
-    lines.push(`  Recent Failed (${failedJobs.length})`);
-    lines.push(`  ${"─".repeat(60)}`);
-    for (const job of failedJobs.slice(0, 5)) {
-      const type = (job.data?.type ?? "?").slice(0, 17);
+    for (const job of recent) {
+      const waitMs = job.processedOn && job.timestamp ? job.processedOn - job.timestamp : 0;
+      const processMs = job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : 0;
+      const totalMs = waitMs + processMs;
+      const type = (job.data?.type ?? job.name ?? "?").slice(0, 21);
       const pair = pairLabel(job.data);
-      const reason = (job.failedReason ?? "unknown").slice(0, 50);
-      lines.push(`  ${pad(type, 18)} ${pad(pair || (job.id ?? "?").slice(0, 27), 28)} ${reason}`);
+      lines.push(
+        `  ${pad(type, 22)} ${pad(pair, 28)} ${padLeft(fmtDuration(waitMs), 8)} ${padLeft(fmtDuration(processMs), 8)} ${padLeft(fmtDuration(totalMs), 8)}`,
+      );
     }
   }
 
-  // --- Averages by type ---
-  lines.push("");
-  lines.push("  Averages (from completed jobs in Redis)");
-  lines.push(`  ${"─".repeat(60)}`);
-
-  const byType = new Map<string, { waits: number[]; processes: number[]; totals: number[] }>();
-
-  for (const job of completedJobs) {
-    const type = job.data?.type ?? "unknown";
-    if (!byType.has(type)) byType.set(type, { waits: [], processes: [], totals: [] });
-    const bucket = byType.get(type)!;
-
-    const waitMs = job.processedOn && job.timestamp ? job.processedOn - job.timestamp : 0;
-    const processMs = job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : 0;
-
-    bucket.waits.push(waitMs);
-    bucket.processes.push(processMs);
-    bucket.totals.push(waitMs + processMs);
-  }
-
-  for (const [type, bucket] of byType) {
-    const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
-    const n = bucket.waits.length;
-    lines.push(
-      `  ${pad(`${type}:`, 28)} avg wait ${padLeft(fmtDuration(avg(bucket.waits)), 8)}   avg process ${padLeft(fmtDuration(avg(bucket.processes)), 8)}   avg total ${padLeft(fmtDuration(avg(bucket.totals)), 8)}   (${n} jobs)`,
-    );
-  }
-
-  if (byType.size === 0) {
-    lines.push("  (no completed jobs yet)");
-  }
-
-  // --- Active jobs detail ---
-  if (active > 0) {
-    const activeJobs = await queue.getJobs(["active"], 0, 9);
-    lines.push("");
-    lines.push(`  Active Jobs (${active})`);
-    lines.push(`  ${"─".repeat(60)}`);
-    for (const job of activeJobs) {
-      const type = (job.data?.type ?? "?").slice(0, 17);
+  // Failed jobs (top 3)
+  if (failed > 0) {
+    const failedJobs = await queue.getJobs(["failed"], 0, 2);
+    lines.push("  Failed:");
+    for (const job of failedJobs) {
+      const type = (job.data?.type ?? job.name ?? "?").slice(0, 21);
       const pair = pairLabel(job.data);
-      const reqBy = (job.data?.requestedBy ?? "").slice(0, 11);
+      const reason = (job.failedReason ?? "unknown").slice(0, 60);
+      lines.push(`    ${pad(type, 22)} ${pad(pair || (job.id ?? "?").slice(0, 27), 28)} ${reason}`);
+    }
+  }
+
+  // Active jobs
+  if (active > 0) {
+    const activeJobs = await queue.getJobs(["active"], 0, 4);
+    lines.push("  Active:");
+    for (const job of activeJobs) {
+      const type = (job.data?.type ?? job.name ?? "?").slice(0, 21);
+      const pair = pairLabel(job.data);
       const elapsed = job.processedOn ? Date.now() - job.processedOn : 0;
       lines.push(
-        `  ${pad(type, 18)} ${pad(pair || (job.id ?? "?").slice(0, 27), 28)} ${pad(reqBy, 12)} running ${fmtDuration(elapsed)}`,
+        `    ${pad(type, 22)} ${pad(pair || (job.id ?? "?").slice(0, 27), 28)} running ${fmtDuration(elapsed)}`,
       );
     }
   }
 
-  // --- Waiting jobs (next in queue) ---
+  // Waiting jobs (next 5)
   if (waiting > 0) {
-    const waitingJobs = await queue.getJobs(["waiting"], 0, 14);
-    lines.push("");
-    lines.push(`  Waiting Jobs (showing ${Math.min(waitingJobs.length, 15)} of ${waiting})`);
-    lines.push(`  ${"─".repeat(60)}`);
+    const waitingJobs = await queue.getJobs(["waiting"], 0, 4);
+    lines.push(`  Waiting (next ${waitingJobs.length} of ${waiting}):`);
     for (const job of waitingJobs) {
-      const type = (job.data?.type ?? "?").slice(0, 17);
+      const type = (job.data?.type ?? job.name ?? "?").slice(0, 21);
       const pair = pairLabel(job.data);
-      const reqBy = (job.data?.requestedBy ?? "").slice(0, 11);
       const age = Date.now() - job.timestamp;
-      lines.push(
-        `  ${pad(type, 18)} ${pad(pair || (job.id ?? "?").slice(0, 27), 28)} ${pad(reqBy, 12)} queued ${fmtDuration(age)}`,
-      );
+      lines.push(`    ${pad(type, 22)} ${pad(pair || (job.id ?? "?").slice(0, 27), 28)} queued ${fmtDuration(age)}`);
     }
+  }
+
+  return lines;
+}
+
+async function render() {
+  const blocks = await Promise.all(QUEUE_NAMES.map((name) => renderQueue(name, queues[name])));
+
+  const lines: string[] = [];
+  lines.push("");
+  for (const block of blocks) {
+    lines.push(...block);
+    lines.push("");
   }
 
   const now = new Date().toLocaleTimeString();
-  lines.push("");
   lines.push(`  Last updated: ${now}  (refreshing every 2s, Ctrl+C to exit)`);
   lines.push("");
 
-  // Clear and draw
   process.stdout.write("\x1Bc");
   console.log(lines.join("\n"));
 }
