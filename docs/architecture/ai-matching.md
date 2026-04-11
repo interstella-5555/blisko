@@ -4,6 +4,7 @@
 > Updated 2026-04-10 — Quick-score dedup switched to BullMQ `deduplication` option for self-healing (BLI-158).
 > Updated 2026-04-11 — All AI calls now logged via `withAiLogging()` into `metrics.ai_calls`; Cost Estimates section points to the admin dashboard as source of truth (BLI-174).
 > Updated 2026-04-11 — `connection_analyses.tier` records which tier wrote each row (`t2` from `processQuickScore`, `t3` from `processAnalyzePair`); T1 still not persisted. Admin matching list (`/dashboard/matching`) surfaces and filters on this (BLI-184).
+> Updated 2026-04-11 — Per-user diagnostic view at `/dashboard/users/{userId}` lists all persisted T2/T3 rows for a given user plus a full nearby list (replicates `getNearbyUsersForMap` without side-effects — no job enqueue, no block/ninja/soft-delete filters). The nearby list labels each pair with a synthetic `t1` tier when no `connection_analyses` row exists — T1 remains unpersisted in the DB, the label is computed server-side per request (BLI-187).
 
 All AI calls use OpenAI via Vercel AI SDK (`@ai-sdk/openai`, `ai` package). Models defined in `packages/shared/src/models.ts`. Source files: `apps/api/src/services/ai.ts` (AI functions), `apps/api/src/services/queue.ts` (BullMQ processors + enqueue helpers), `apps/api/src/trpc/procedures/profiles.ts` (triggers), `apps/api/src/trpc/procedures/waves.ts` (wave-send promotion).
 

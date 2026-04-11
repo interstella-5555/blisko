@@ -24,6 +24,7 @@ import { Route as DashboardAiCostsRouteImport } from './routes/dashboard/ai-cost
 import { Route as ApiVerifyOtpRouteImport } from './routes/api/verify-otp'
 import { Route as ApiRequestOtpRouteImport } from './routes/api/request-otp'
 import { Route as ApiLogoutRouteImport } from './routes/api/logout'
+import { Route as DashboardUsersUserIdRouteImport } from './routes/dashboard/users.$userId'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
 
 const LoginRoute = LoginRouteImport.update({
@@ -101,6 +102,11 @@ const ApiLogoutRoute = ApiLogoutRouteImport.update({
   path: '/api/logout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardUsersUserIdRoute = DashboardUsersUserIdRouteImport.update({
+  id: '/$userId',
+  path: '/$userId',
+  getParentRoute: () => DashboardUsersRoute,
+} as any)
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   id: '/api/trpc/$',
   path: '/api/trpc/$',
@@ -120,10 +126,11 @@ export interface FileRoutesByFullPath {
   '/dashboard/matching': typeof DashboardMatchingRoute
   '/dashboard/push-log': typeof DashboardPushLogRoute
   '/dashboard/queue': typeof DashboardQueueRoute
-  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/users': typeof DashboardUsersRouteWithChildren
   '/dashboard/waves': typeof DashboardWavesRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/dashboard/users/$userId': typeof DashboardUsersUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -137,10 +144,11 @@ export interface FileRoutesByTo {
   '/dashboard/matching': typeof DashboardMatchingRoute
   '/dashboard/push-log': typeof DashboardPushLogRoute
   '/dashboard/queue': typeof DashboardQueueRoute
-  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/users': typeof DashboardUsersRouteWithChildren
   '/dashboard/waves': typeof DashboardWavesRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/dashboard/users/$userId': typeof DashboardUsersUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -156,10 +164,11 @@ export interface FileRoutesById {
   '/dashboard/matching': typeof DashboardMatchingRoute
   '/dashboard/push-log': typeof DashboardPushLogRoute
   '/dashboard/queue': typeof DashboardQueueRoute
-  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/users': typeof DashboardUsersRouteWithChildren
   '/dashboard/waves': typeof DashboardWavesRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/dashboard/users/$userId': typeof DashboardUsersUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/dashboard/waves'
     | '/dashboard/'
     | '/api/trpc/$'
+    | '/dashboard/users/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/dashboard/waves'
     | '/dashboard'
     | '/api/trpc/$'
+    | '/dashboard/users/$userId'
   id:
     | '__root__'
     | '/'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/dashboard/waves'
     | '/dashboard/'
     | '/api/trpc/$'
+    | '/dashboard/users/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -334,6 +346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLogoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/users/$userId': {
+      id: '/dashboard/users/$userId'
+      path: '/$userId'
+      fullPath: '/dashboard/users/$userId'
+      preLoaderRoute: typeof DashboardUsersUserIdRouteImport
+      parentRoute: typeof DashboardUsersRoute
+    }
     '/api/trpc/$': {
       id: '/api/trpc/$'
       path: '/api/trpc/$'
@@ -344,6 +363,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DashboardUsersRouteChildren {
+  DashboardUsersUserIdRoute: typeof DashboardUsersUserIdRoute
+}
+
+const DashboardUsersRouteChildren: DashboardUsersRouteChildren = {
+  DashboardUsersUserIdRoute: DashboardUsersUserIdRoute,
+}
+
+const DashboardUsersRouteWithChildren = DashboardUsersRoute._addFileChildren(
+  DashboardUsersRouteChildren,
+)
+
 interface DashboardRouteChildren {
   DashboardAiCostsRoute: typeof DashboardAiCostsRoute
   DashboardConversationsRoute: typeof DashboardConversationsRoute
@@ -351,7 +382,7 @@ interface DashboardRouteChildren {
   DashboardMatchingRoute: typeof DashboardMatchingRoute
   DashboardPushLogRoute: typeof DashboardPushLogRoute
   DashboardQueueRoute: typeof DashboardQueueRoute
-  DashboardUsersRoute: typeof DashboardUsersRoute
+  DashboardUsersRoute: typeof DashboardUsersRouteWithChildren
   DashboardWavesRoute: typeof DashboardWavesRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
@@ -363,7 +394,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardMatchingRoute: DashboardMatchingRoute,
   DashboardPushLogRoute: DashboardPushLogRoute,
   DashboardQueueRoute: DashboardQueueRoute,
-  DashboardUsersRoute: DashboardUsersRoute,
+  DashboardUsersRoute: DashboardUsersRouteWithChildren,
   DashboardWavesRoute: DashboardWavesRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }

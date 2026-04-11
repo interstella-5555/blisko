@@ -66,6 +66,7 @@ Schema + connection factory shared between API and admin.
 | `/dashboard` | — | Layout with sidebar, renders child routes |
 | `/dashboard/` | — | Home (placeholder cards) |
 | `/dashboard/users` | users + profiles + wave/msg/group counts | User list with search, status filter, seed toggle, profile detail panel |
+| `/dashboard/users/{userId}` | connectionAnalyses + profiles (nearby query) | Per-user diagnostic: T2/T3 analyses list + full nearby list (read-only, no AI side-effects, no privacy filters). Nearby rows synthesize a `t1` tier client-side for pairs without a persisted analysis row. |
 | `/dashboard/waves` | waves + from/to user profiles | Wave list with status filter, accept rate stats |
 | `/dashboard/conversations` | conversations (type=dm) + participants | DM list with participant info, message counts |
 | `/dashboard/groups` | conversations (type=group) + member counts | Group list with discoverable filter |
