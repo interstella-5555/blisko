@@ -558,16 +558,19 @@ export const groupsRouter = router({
       .select({
         conversation: schema.conversations,
         distance: distanceSql.as("distance"),
+        // Bare `"id"` via ${schema.conversations.id} gets shadowed by `"user".id` (text)
+        // inside the correlated subquery's scope → `operator does not exist: uuid = text`.
+        // Qualify explicitly to force resolution to the outer conversations.id (uuid).
         memberCount: sql<number>`(
             SELECT count(*) FROM conversation_participants cp2
             INNER JOIN "user" u ON cp2.user_id = u.id AND u.deleted_at IS NULL
-            WHERE cp2.conversation_id = ${schema.conversations.id}
+            WHERE cp2.conversation_id = ${sql`"conversations"."id"`}
           )`.as("member_count"),
         nearbyMemberCount: sql<number>`(
             SELECT count(*) FROM conversation_participants cp
             INNER JOIN "user" u ON cp.user_id = u.id AND u.deleted_at IS NULL
             INNER JOIN profiles p ON cp.user_id = p.user_id
-            WHERE cp.conversation_id = ${schema.conversations.id}
+            WHERE cp.conversation_id = ${sql`"conversations"."id"`}
               AND cp.location_visible = true
               AND p.latitude IS NOT NULL
               AND 6371000 * acos(
