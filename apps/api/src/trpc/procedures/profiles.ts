@@ -432,7 +432,7 @@ export const profilesRouter = router({
           matchScore: Math.round(matchScore * 100),
           commonInterests,
           shortSnippet: analysis?.shortSnippet ?? null,
-          analysisReady: !!analysis?.shortSnippet,
+          analysisReady: !!analysis,
           hasStatusMatch: myStatusActive && theirStatusActive && statusMatchMap.has(u.profile.userId),
         });
       }
