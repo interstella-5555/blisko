@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import Svg, { Polyline } from "react-native-svg";
+import { IconChevronRight } from "../../src/components/ui/icons";
 import { trpc } from "../../src/lib/trpc";
 import { useAuthStore } from "../../src/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "../../src/theme";
@@ -25,23 +25,6 @@ const VISIBILITY_OPTIONS: { key: VisibilityMode; name: string; desc: string }[] 
     desc: 'Widoczny i otwarty — w profilu pojawi się "Podejdź śmiało".',
   },
 ];
-
-function IconChevronRight({ size = 16 }: { size?: number }) {
-  return (
-    <Svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={colors.muted}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <Polyline points="9,18 15,12 9,6" />
-    </Svg>
-  );
-}
 
 export default function PrivacyScreen() {
   const profile = useAuthStore((state) => state.profile);
@@ -105,7 +88,7 @@ export default function PrivacyScreen() {
       <View style={styles.section}>
         <Pressable style={styles.blockedRow} onPress={() => router.push("/settings/blocked-users" as never)}>
           <Text style={styles.blockedLabel}>Zablokowani uzytkownicy</Text>
-          <IconChevronRight />
+          <IconChevronRight size={16} color={colors.muted} />
         </Pressable>
       </View>
     </ScrollView>
