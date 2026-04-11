@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   BotIcon,
   BrainIcon,
@@ -9,6 +9,7 @@ import {
   EyeIcon,
   LoaderIcon,
   MoreHorizontalIcon,
+  NetworkIcon,
   RotateCcwIcon,
   SearchIcon,
   ShieldAlertIcon,
@@ -16,10 +17,10 @@ import {
   UnplugIcon,
   WandSparklesIcon,
 } from "lucide-react";
-import type React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DashboardHeader } from "~/components/dashboard-header";
+import { PaginationButton } from "~/components/pagination-button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,6 +69,7 @@ const VISIBILITY_LABELS: Record<string, string> = {
 const PAGE_SIZE = 25;
 
 function UsersPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<UserStatus | "all">("all");
   const [showSeed, setShowSeed] = useState(true);
@@ -268,6 +270,17 @@ function UsersPage() {
                             <EyeIcon className="text-muted-foreground" />
                             Podgląd profilu
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() =>
+                              navigate({
+                                to: "/dashboard/users/$userId",
+                                params: { userId: user.id },
+                              })
+                            }
+                          >
+                            <NetworkIcon className="text-muted-foreground" />
+                            Analizy i nearby
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onSelect={() => reanalyzeMutation.mutate({ userId: user.id })}
@@ -446,27 +459,6 @@ function StatCard({ label, value }: { label: string; value?: number }) {
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="text-2xl font-semibold tabular-nums">{value !== undefined ? value : "—"}</p>
     </div>
-  );
-}
-
-function PaginationButton({
-  children,
-  onClick,
-  disabled,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="flex size-8 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-    >
-      {children}
-    </button>
   );
 }
 

@@ -7,10 +7,13 @@ import {
   LoaderIcon,
   SearchIcon,
 } from "lucide-react";
-import type React from "react";
 import { useState } from "react";
 import { DashboardHeader } from "~/components/dashboard-header";
+import { PaginationButton } from "~/components/pagination-button";
+import { ScoreBadge } from "~/components/score-badge";
+import { TierBadge } from "~/components/tier-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
+import { UserCell } from "~/components/user-cell";
 import { trpc } from "~/lib/trpc";
 
 export const Route = createFileRoute("/dashboard/matching")({
@@ -18,7 +21,6 @@ export const Route = createFileRoute("/dashboard/matching")({
 });
 
 type TierFilter = "all" | "t1" | "t2" | "t3";
-type Tier = "t1" | "t2" | "t3";
 type SortOption = "newest" | "highest";
 
 const TIER_FILTER_LABELS: Record<TierFilter, string> = {
@@ -157,7 +159,7 @@ function MatchingPage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <TierBadge tier={analysis.tier as Tier} />
+                      <TierBadge tier={analysis.tier} />
                     </TableCell>
                     <TableCell>
                       <ScoreBadge score={analysis.aiMatchScore} />
@@ -202,95 +204,11 @@ function MatchingPage() {
   );
 }
 
-const TIER_STYLES: Record<Tier, string> = {
-  t1: "bg-muted text-muted-foreground ring-border",
-  t2: "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900",
-  t3: "bg-emerald-500 text-white ring-emerald-600",
-};
-
-function TierBadge({ tier }: { tier: Tier }) {
-  const label = tier.toUpperCase();
-  return (
-    <span
-      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset tabular-nums ${TIER_STYLES[tier]}`}
-    >
-      {label}
-    </span>
-  );
-}
-
-function ScoreBadge({ score }: { score: number }) {
-  const rounded = Math.round(score);
-  let colorClass: string;
-  if (rounded >= 75) {
-    colorClass = "bg-green-500";
-  } else if (rounded >= 50) {
-    colorClass = "bg-yellow-500";
-  } else {
-    colorClass = "bg-red-500";
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <span className={`size-2 rounded-full ${colorClass}`} />
-      <span className="font-medium text-sm tabular-nums">{rounded}</span>
-    </div>
-  );
-}
-
-function UserCell({
-  displayName,
-  avatarUrl,
-  email,
-}: {
-  displayName: string | null;
-  avatarUrl: string | null;
-  email: string;
-}) {
-  const name = displayName ?? email;
-  return (
-    <div className="flex items-center gap-3">
-      {avatarUrl ? (
-        <img src={avatarUrl} alt="" className="size-8 rounded-full object-cover" />
-      ) : (
-        <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
-          {name.charAt(0).toUpperCase()}
-        </div>
-      )}
-      <div className="min-w-0">
-        <span className="truncate font-medium text-sm block">{name}</span>
-        <span className="text-xs text-muted-foreground truncate block">{email}</span>
-      </div>
-    </div>
-  );
-}
-
 function StatCard({ label, value }: { label: string; value?: number | string }) {
   return (
     <div className="rounded-lg border bg-card p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="text-2xl font-semibold tabular-nums">{value !== undefined ? value : "\u2014"}</p>
     </div>
-  );
-}
-
-function PaginationButton({
-  children,
-  onClick,
-  disabled,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="flex size-8 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-    >
-      {children}
-    </button>
   );
 }
