@@ -1,6 +1,6 @@
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { AppState, Platform } from "react-native";
 import { trpc } from "../lib/trpc";
 import { useAuthStore } from "../stores/authStore";
@@ -19,40 +19,52 @@ Notifications.setNotificationHandler({
 export function usePushNotifications() {
   const userId = useAuthStore((s) => s.user?.id);
   const { mutateAsync: registerPushToken } = trpc.pushTokens.register.useMutation();
-  const registeredTokenRef = useRef<string | null>(null);
+  const { mutateAsync: unregisterPushToken } = trpc.pushTokens.unregister.useMutation();
 
-  // Try to register the push token on mount and on every foreground resume.
-  // Covers the user-grants-permission-later case: if they denied initially and
-  // flipped it on in system Settings, coming back to the app re-attempts register.
-  // If they later revoke, we accept the stale server token — iOS drops silently
-  // and server-side DeviceNotRegistered cleanup catches it eventually.
+  // Sync this device's push_tokens row with current permission state. Runs on
+  // mount (login / cold start) and on every foreground resume. authStore.pushToken
+  // mirrors what we believe the server has for THIS device: register bumps it to
+  // the device token, unregister nulls it. Permission changes in system Settings
+  // are picked up on the next foreground resume.
   useEffect(() => {
     if (!userId) return;
 
-    const tryRegister = async () => {
+    const sync = async () => {
       const existing = await Notifications.getPermissionsAsync();
-      const finalStatus =
+      const status =
         existing.status === "undetermined" ? (await Notifications.requestPermissionsAsync()).status : existing.status;
-      if (finalStatus !== "granted") return;
+
+      let deviceToken: string;
+      try {
+        deviceToken = (await Notifications.getExpoPushTokenAsync()).data;
+      } catch {
+        // Simulator, missing projectId, or network — next foreground resume retries
+        return;
+      }
+
+      const { pushToken: syncedToken, setPushToken } = useAuthStore.getState();
 
       try {
-        // projectId is auto-resolved by expo-notifications from Constants.easConfig /
-        // Constants.expoConfig.extra.eas.projectId — no need to forward it ourselves.
-        const { data: token } = await Notifications.getExpoPushTokenAsync();
-        if (registeredTokenRef.current === token) return;
-        await registerPushToken({ token, platform: Platform.OS as "ios" | "android" });
-        registeredTokenRef.current = token;
+        if (status === "granted") {
+          if (syncedToken !== deviceToken) {
+            await registerPushToken({ token: deviceToken, platform: Platform.OS as "ios" | "android" });
+            setPushToken(deviceToken);
+          }
+        } else if (syncedToken !== null) {
+          await unregisterPushToken({ token: syncedToken });
+          setPushToken(null);
+        }
       } catch {
-        // Simulator, network, or missing projectId — next foreground resume retries
+        // Mutation failed — next foreground resume retries
       }
     };
 
-    tryRegister();
+    sync();
     const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active") tryRegister();
+      if (state === "active") sync();
     });
     return () => sub.remove();
-  }, [userId, registerPushToken]);
+  }, [userId, registerPushToken, unregisterPushToken]);
 
   // Deep link on notification tap
   useEffect(() => {

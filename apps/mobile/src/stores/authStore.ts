@@ -40,11 +40,15 @@ interface AuthState {
   profile: Profile | null;
   isLoading: boolean;
   hasCheckedProfile: boolean;
+  // Mirror of this device's row in push_tokens for the current session. Set by
+  // usePushNotifications after a successful register/unregister; cleared on reset.
+  pushToken: string | null;
   setUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
   setProfile: (profile: Profile | null) => void;
   setLoading: (loading: boolean) => void;
   setHasCheckedProfile: (checked: boolean) => void;
+  setPushToken: (token: string | null) => void;
   reset: () => void;
 }
 
@@ -54,11 +58,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   profile: null,
   isLoading: true,
   hasCheckedProfile: false,
+  pushToken: null,
   setUser: (user) => set({ user }),
   setSession: (session) => set({ session }),
   setProfile: (profile) => set({ profile }),
   setLoading: (isLoading) => set({ isLoading }),
   setHasCheckedProfile: (hasCheckedProfile) => set({ hasCheckedProfile }),
+  setPushToken: (pushToken) => set({ pushToken }),
   reset: () =>
     set({
       user: null,
@@ -66,5 +72,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       profile: null,
       isLoading: false,
       hasCheckedProfile: false,
+      pushToken: null,
     }),
 }));

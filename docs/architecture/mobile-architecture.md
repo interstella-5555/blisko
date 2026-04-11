@@ -179,7 +179,7 @@ Persisted to SecureStore. `nearbyRadiusMeters`: 500 / 1000 / 2000 (default 2000)
 
 `apps/mobile/src/hooks/usePushNotifications.ts`. Uses Expo Notifications SDK.
 
-**Token registration:** On user login, requests permission, gets Expo push token, registers via `pushTokens.register` tRPC mutation. Token cached in SecureStore (`lastRegisteredPushToken`) to avoid re-registering same token. Simulator gracefully skips (no push support).
+**Token registration:** On mount (login / cold start) and on every foreground resume, `usePushNotifications` reconciles system permission + `getExpoPushTokenAsync()` + `authStore.pushToken` (local mirror of server state). Registers via `pushTokens.register` when granted and local mirror is stale; unregisters via `pushTokens.unregister` when permission is revoked and the mirror is non-null. `authStore.reset()` (called by `signOutAndReset`) clears the mirror on logout. Simulator gracefully skips (no push support).
 
 **Foreground suppression:** `setNotificationHandler` suppresses all system banners/sounds in foreground --- in-app notification overlay handles those instead.
 
