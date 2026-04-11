@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-11 — Added `metrics.ai_calls` table (BLI-174).
+> Updated 2026-04-11 — `connection_analyses.tier` column (`t1`/`t2`/`t3`) records which scoring tier produced each row, surfaced in admin matching list (BLI-184).
 
 PostgreSQL on Railway. ORM: Drizzle `^0.45.1` with `postgres` (postgres.js) `^3.4.0` driver. Schema source: `apps/api/src/db/schema.ts`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`.
 
@@ -372,6 +373,7 @@ Bidirectional AI compatibility analysis. Each pair generates TWO rows (A->B and 
 | `short_snippet` | text | yes | -- | Max ~90 chars "pitch". Nullable for T2 quick-score rows. Made nullable in `0015`. |
 | `long_description` | text | yes | -- | Max ~500 chars rich description. Nullable for T2. Made nullable in `0015`. |
 | `ai_match_score` | real | no | -- | 0-100, asymmetric per direction |
+| `tier` | text | no | -- | `t1` / `t2` / `t3` -- which scoring tier produced this row. T1 is never persisted in practice (computed inline at query time) but the enum reserves it for future. Added in `0020`. |
 | `from_profile_hash` | varchar(8) | no | -- | SHA256(bio+lookingFor) truncated. Detects stale analyses. |
 | `to_profile_hash` | varchar(8) | no | -- | |
 | `created_at` | timestamp | no | `now()` | |
@@ -382,6 +384,8 @@ Bidirectional AI compatibility analysis. Each pair generates TWO rows (A->B and 
 - `ca_to_user_idx` on `to_user_id` -- "who has analyzed me" queries
 
 **Why `short_snippet` and `long_description` are nullable:** The tiered matching system has T2 (quick-score) which writes only the numeric score without generating text. T3 (full analysis) fills in the text later. Made nullable in `0015`.
+
+**Why `tier`:** So the admin matching list (`/dashboard/matching`) can show which path produced each row without having to infer it from `short_snippet` nullability. Backfill in `0020` used exactly that inference (`t2` when `short_snippet IS NULL`, else `t3`) because T3 is the only writer that fills the snippet.
 
 **Why profile hashes:** When a user updates their bio/lookingFor, the queue job checks if the hash changed before spending an AI call. If hashes match, the existing analysis is still valid -- skip.
 

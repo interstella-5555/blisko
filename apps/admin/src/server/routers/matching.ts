@@ -9,14 +9,14 @@ export const matchingRouter = router({
     .input(
       z.object({
         search: z.string().optional(),
-        scoreRange: z.enum(["all", "high", "medium", "low"]).default("all"),
+        tierFilter: z.enum(["all", "t1", "t2", "t3"]).default("all"),
         sort: z.enum(["newest", "highest"]).default("newest"),
         limit: z.number().min(1).max(100).default(25),
         offset: z.number().min(0).default(0),
       }),
     )
     .query(async ({ input }) => {
-      const { search, scoreRange, sort, limit, offset } = input;
+      const { search, tierFilter, sort, limit, offset } = input;
 
       const fromUser = aliasedTable(schema.user, "from_user");
       const toUser = aliasedTable(schema.user, "to_user");
@@ -25,13 +25,8 @@ export const matchingRouter = router({
 
       const conditions = [];
 
-      if (scoreRange === "high") {
-        conditions.push(gte(schema.connectionAnalyses.aiMatchScore, 75));
-      } else if (scoreRange === "medium") {
-        conditions.push(gte(schema.connectionAnalyses.aiMatchScore, 50));
-        conditions.push(lt(schema.connectionAnalyses.aiMatchScore, 75));
-      } else if (scoreRange === "low") {
-        conditions.push(lt(schema.connectionAnalyses.aiMatchScore, 50));
+      if (tierFilter !== "all") {
+        conditions.push(eq(schema.connectionAnalyses.tier, tierFilter));
       }
 
       if (search) {
@@ -52,6 +47,7 @@ export const matchingRouter = router({
       const selectFields = {
         id: schema.connectionAnalyses.id,
         aiMatchScore: schema.connectionAnalyses.aiMatchScore,
+        tier: schema.connectionAnalyses.tier,
         shortSnippet: schema.connectionAnalyses.shortSnippet,
         createdAt: schema.connectionAnalyses.createdAt,
         fromDisplayName: fromProfile.displayName,

@@ -212,6 +212,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       shortSnippet: result.snippetForA,
       longDescription: result.descriptionForA,
       aiMatchScore: result.matchScoreForA,
+      tier: "t3",
       fromProfileHash: hashA,
       toProfileHash: hashB,
       createdAt: now,
@@ -223,6 +224,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
         shortSnippet: result.snippetForA,
         longDescription: result.descriptionForA,
         aiMatchScore: result.matchScoreForA,
+        tier: "t3",
         fromProfileHash: hashA,
         toProfileHash: hashB,
         updatedAt: now,
@@ -251,6 +253,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       shortSnippet: result.snippetForB,
       longDescription: result.descriptionForB,
       aiMatchScore: result.matchScoreForB,
+      tier: "t3",
       fromProfileHash: hashB,
       toProfileHash: hashA,
       createdAt: now,
@@ -262,6 +265,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
         shortSnippet: result.snippetForB,
         longDescription: result.descriptionForB,
         aiMatchScore: result.matchScoreForB,
+        tier: "t3",
         fromProfileHash: hashB,
         toProfileHash: hashA,
         updatedAt: now,
@@ -346,6 +350,7 @@ async function processQuickScore(userAId: string, userBId: string) {
       shortSnippet: null,
       longDescription: null,
       aiMatchScore: result.scoreForA,
+      tier: "t2",
       fromProfileHash: hashA,
       toProfileHash: hashB,
       createdAt: now,
@@ -353,7 +358,13 @@ async function processQuickScore(userAId: string, userBId: string) {
     })
     .onConflictDoUpdate({
       target: [schema.connectionAnalyses.fromUserId, schema.connectionAnalyses.toUserId],
-      set: { aiMatchScore: result.scoreForA, fromProfileHash: hashA, toProfileHash: hashB, updatedAt: now },
+      set: {
+        aiMatchScore: result.scoreForA,
+        tier: "t2",
+        fromProfileHash: hashA,
+        toProfileHash: hashB,
+        updatedAt: now,
+      },
       setWhere: isNull(schema.connectionAnalyses.shortSnippet),
     });
 
@@ -368,6 +379,7 @@ async function processQuickScore(userAId: string, userBId: string) {
       shortSnippet: null,
       longDescription: null,
       aiMatchScore: result.scoreForB,
+      tier: "t2",
       fromProfileHash: hashB,
       toProfileHash: hashA,
       createdAt: now,
@@ -375,7 +387,13 @@ async function processQuickScore(userAId: string, userBId: string) {
     })
     .onConflictDoUpdate({
       target: [schema.connectionAnalyses.fromUserId, schema.connectionAnalyses.toUserId],
-      set: { aiMatchScore: result.scoreForB, fromProfileHash: hashB, toProfileHash: hashA, updatedAt: now },
+      set: {
+        aiMatchScore: result.scoreForB,
+        tier: "t2",
+        fromProfileHash: hashB,
+        toProfileHash: hashA,
+        updatedAt: now,
+      },
       setWhere: isNull(schema.connectionAnalyses.shortSnippet),
     });
 
@@ -922,7 +940,7 @@ export function startAiWorker() {
   attachWorkerLogger(_worker, QUEUE_NAMES.ai);
 
   // Self-healing failure handlers — publish WS events so mobile clients can retry
-  _worker.on("failed", (job, err) => {
+  _worker.on("failed", (job) => {
     if (!job || !job.opts.attempts || job.attemptsMade < job.opts.attempts) return;
 
     const data = job.data as AIJob;

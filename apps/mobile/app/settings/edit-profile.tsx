@@ -22,7 +22,7 @@ export default function EditProfileScreen() {
   const profile = useAuthStore((state) => state.profile);
   const setProfile = useAuthStore((state) => state.setProfile);
 
-  const [displayName, setDisplayName] = useState(profile?.displayName || "");
+  const [displayName, _setDisplayName] = useState(profile?.displayName || "");
   const [bio, setBio] = useState(profile?.bio || "");
   const [lookingFor, setLookingFor] = useState(profile?.lookingFor || "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || null);

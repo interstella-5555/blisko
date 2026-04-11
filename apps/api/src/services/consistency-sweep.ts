@@ -1,5 +1,5 @@
 import { subHours } from "date-fns";
-import { and, between, eq, gt, isNotNull, isNull, lt } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, lt } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { enqueueProfileAI, enqueueProfileFromQA } from "./queue";
 

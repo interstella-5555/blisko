@@ -17,14 +17,15 @@ export const Route = createFileRoute("/dashboard/matching")({
   component: MatchingPage,
 });
 
-type ScoreRange = "all" | "high" | "medium" | "low";
+type TierFilter = "all" | "t1" | "t2" | "t3";
+type Tier = "t1" | "t2" | "t3";
 type SortOption = "newest" | "highest";
 
-const SCORE_RANGE_LABELS: Record<ScoreRange, string> = {
-  all: "Wszystkie wyniki",
-  high: "Wysoki (\u226575)",
-  medium: "Sredni (50\u201374)",
-  low: "Niski (<50)",
+const TIER_FILTER_LABELS: Record<TierFilter, string> = {
+  all: "Wszystkie tiery",
+  t1: "T1 — cosine",
+  t2: "T2 — quick score",
+  t3: "T3 — full analysis",
 };
 
 const SORT_LABELS: Record<SortOption, string> = {
@@ -36,14 +37,14 @@ const PAGE_SIZE = 25;
 
 function MatchingPage() {
   const [search, setSearch] = useState("");
-  const [scoreRange, setScoreRange] = useState<ScoreRange>("all");
+  const [tierFilter, setTierFilter] = useState<TierFilter>("all");
   const [sort, setSort] = useState<SortOption>("newest");
   const [page, setPage] = useState(0);
 
   const stats = trpc.matching.stats.useQuery();
   const analyses = trpc.matching.list.useQuery({
     search: search || undefined,
-    scoreRange,
+    tierFilter,
     sort,
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
@@ -84,14 +85,14 @@ function MatchingPage() {
             />
           </div>
           <select
-            value={scoreRange}
+            value={tierFilter}
             onChange={(e) => {
-              setScoreRange(e.target.value as ScoreRange);
+              setTierFilter(e.target.value as TierFilter);
               resetPage();
             }}
             className="rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
-            {Object.entries(SCORE_RANGE_LABELS).map(([value, label]) => (
+            {Object.entries(TIER_FILTER_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
@@ -132,6 +133,7 @@ function MatchingPage() {
                 <TableRow>
                   <TableHead className="w-[220px]">U\u017cytkownik 1</TableHead>
                   <TableHead className="w-[220px]">U\u017cytkownik 2</TableHead>
+                  <TableHead className="w-[80px]">Tier</TableHead>
                   <TableHead className="w-[100px]">Score</TableHead>
                   <TableHead>Kr\u00f3tki opis</TableHead>
                   <TableHead className="w-[130px]">Data analizy</TableHead>
@@ -153,6 +155,9 @@ function MatchingPage() {
                         avatarUrl={analysis.toAvatarUrl}
                         email={analysis.toEmail}
                       />
+                    </TableCell>
+                    <TableCell>
+                      <TierBadge tier={analysis.tier as Tier} />
                     </TableCell>
                     <TableCell>
                       <ScoreBadge score={analysis.aiMatchScore} />
@@ -194,6 +199,23 @@ function MatchingPage() {
         )}
       </div>
     </>
+  );
+}
+
+const TIER_STYLES: Record<Tier, string> = {
+  t1: "bg-muted text-muted-foreground ring-border",
+  t2: "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-900",
+  t3: "bg-emerald-500 text-white ring-emerald-600",
+};
+
+function TierBadge({ tier }: { tier: Tier }) {
+  const label = tier.toUpperCase();
+  return (
+    <span
+      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset tabular-nums ${TIER_STYLES[tier]}`}
+    >
+      {label}
+    </span>
   );
 }
 

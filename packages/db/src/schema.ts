@@ -394,6 +394,7 @@ export const connectionAnalyses = pgTable(
     shortSnippet: text("short_snippet"),
     longDescription: text("long_description"),
     aiMatchScore: real("ai_match_score").notNull(),
+    tier: text("tier", { enum: ["t1", "t2", "t3"] }).notNull(),
     fromProfileHash: varchar("from_profile_hash", { length: 8 }).notNull(),
     toProfileHash: varchar("to_profile_hash", { length: 8 }).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
