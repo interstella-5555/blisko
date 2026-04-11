@@ -26,23 +26,21 @@ The `accounts.requestDataExport` tRPC mutation (in `apps/api/src/trpc/procedures
 
 **Flow:**
 1. User taps "Pobierz moje dane" in mobile settings
-2. Backend checks for existing recent export job (24h cooldown)
-3. If no recent job, enqueues `export-user-data` BullMQ job with `{ userId, email }`
-4. Returns `{ status: "queued" }` or `{ status: "already_requested" }`
+2. `rateLimit("dataExport")` middleware enforces 1/24h per userId (sliding window, Redis) — duplicate requests are blocked at the tRPC layer before the mutation body runs
+3. Enqueues `export-user-data` BullMQ job with `{ userId, email }`
+4. Returns `{ status: "queued" }`
 5. Mobile shows success toast: "Eksport zostal zlecony. Sprawdz swoj e-mail."
-
-**Duplicate detection:** Queries BullMQ for jobs in `completed`, `active`, `waiting`, `delayed` states matching this userId and `export-user-data` type within the last 24 hours.
 
 #### Why
 
-No OTP because the user is already authenticated (unlike deletion, which is irreversible). Rate limiting prevents abuse of a heavy database operation.
+No OTP because the user is already authenticated (unlike deletion, which is irreversible). Rate limiting prevents abuse of a heavy database operation. The 24h duplicate guard lives in the tRPC middleware — that is the single source of truth for "one export per day". There is no secondary job-level dedup check; it was dead code pre-BLI-211 (queried the legacy `ai-jobs` queue that BLI-171 split and BLI-204 deleted on worker startup).
 
 #### Config
 
 - Rate limit: 1 request per 24 hours (`rateLimits.dataExport` in `apps/api/src/config/rateLimits.ts`)
 - Rate limit message: "Eksport danych jest dostepny raz na 24 godziny."
 - BullMQ job ID: `export-${userId}-${Date.now()}` (unique per request)
-- Queue name: `ops` (operations queue — BLI-171 split `ai-jobs` into `ai`/`ops`/`maintenance`; `export-user-data` runs on `ops`, enqueued via `enqueueExportUserData()` in `queue-ops.ts`)
+- Queue name: `ops` (operations queue — BLI-171 split `ai-jobs` into `ai`/`ops`/`maintenance`; `export-user-data` runs on `ops`, enqueued via `enqueueDataExport()` in `queue-ops.ts`)
 - Retry: 10 attempts with exponential backoff (60s base → ~8.5h total). Overrides the queue default (3 attempts) because GDPR export is a legal obligation.
 - `removeOnFail: false` — failed export jobs are never auto-removed from Redis. Every failure must be resolved by admin.
 
@@ -248,5 +246,5 @@ If you change this system, also check:
 - **Fields referencing other users** -- ensure the new field uses the `label()` anonymization helper
 - **Changing S3 bucket config** -- verify `data-export.ts` uses the same env vars as other S3 operations
 - **Changing email templates** -- `dataExportReady()` in `apps/api/src/services/email.ts`
-- **Changing rate limits** -- `rateLimits.dataExport` in `apps/api/src/config/rateLimits.ts` and the 24h job dedup check in `accounts.requestDataExport`
+- **Changing rate limits** -- `rateLimits.dataExport` in `apps/api/src/config/rateLimits.ts` is the only place to change the 1/24h export cadence
 - **Privacy policy** -- section 7 discloses the right to data export; update if export scope changes

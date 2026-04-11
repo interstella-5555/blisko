@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import { subDays } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/auth";
@@ -100,7 +99,6 @@ export const accountsRouter = router({
     }),
 
   requestDataExport: protectedProcedure.use(rateLimit("dataExport")).mutation(async ({ ctx }) => {
-    // Get user email
     const userData = await db.query.user.findFirst({
       where: eq(schema.user.id, ctx.userId),
       columns: { email: true },
@@ -108,34 +106,6 @@ export const accountsRouter = router({
 
     if (!userData) {
       throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
-    }
-
-    // Rate limit: check for recent export jobs (24h cooldown)
-    const { Queue } = await import("bullmq");
-    const url = new URL(process.env.REDIS_URL!);
-    const queue = new Queue("ai-jobs", {
-      connection: {
-        host: url.hostname,
-        port: Number(url.port) || 6379,
-        password: url.password || undefined,
-        maxRetriesPerRequest: null as null,
-      },
-    });
-
-    try {
-      const jobs = await queue.getJobs(["completed", "active", "waiting", "delayed"]);
-      const recentExport = jobs.find(
-        (j) =>
-          j.data.type === "export-user-data" &&
-          j.data.userId === ctx.userId &&
-          j.timestamp > subDays(new Date(), 1).getTime(),
-      );
-
-      if (recentExport) {
-        return { status: "already_requested" as const };
-      }
-    } finally {
-      await queue.close();
     }
 
     await enqueueDataExport(ctx.userId, userData.email);
