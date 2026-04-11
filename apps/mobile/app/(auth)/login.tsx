@@ -93,7 +93,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>BLISKO</Text>
-        <Text style={styles.subtitle}>Świat jest pełen ludzi, którzy siebie potrzebują.{"\n"}My skracamy dystans.</Text>
+        <Text style={styles.subtitle}>To nie przypadek. To Blisko.</Text>
 
         <View style={styles.form}>
           {Platform.OS === "ios" && (
