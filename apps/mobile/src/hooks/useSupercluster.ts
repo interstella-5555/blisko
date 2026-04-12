@@ -15,8 +15,8 @@ export interface MarkerPoint {
 type SC = Supercluster<MarkerPoint, { statusMatchCount: number }>;
 
 const SUPERCLUSTER_OPTIONS: Supercluster.Options<MarkerPoint, { statusMatchCount: number }> = {
-  radius: 40,
-  maxZoom: 18,
+  radius: 30,
+  maxZoom: 20,
   minPoints: 2,
   map: (props) => ({ statusMatchCount: props.statusMatch ? 1 : 0 }),
   reduce: (acc, props) => {

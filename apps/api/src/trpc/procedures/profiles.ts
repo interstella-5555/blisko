@@ -393,12 +393,11 @@ export const profilesRouter = router({
       for (const u of nearbyProfiles) {
         if (allBlockedIds.has(u.userId)) continue;
 
-        const grid = toGridCenter(u.latitude!, u.longitude!);
         ids.push(u.userId);
         names.push(u.displayName ?? "");
         avatars.push(u.avatarUrl ? u.avatarUrl : null);
-        lats.push(grid.gridLat);
-        lngs.push(grid.gridLng);
+        lats.push(u.latitude!);
+        lngs.push(u.longitude!);
 
         const theirStatusActive = isStatusActive(u);
         statusMatch.push(myStatusActive && theirStatusActive && statusMatchSet.has(u.userId) ? 1 : 0);
