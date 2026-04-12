@@ -12,13 +12,11 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
 import { IconChevronLeft } from "@/components/ui/icons";
-import { NotificationOverlay } from "@/components/ui/NotificationOverlay";
 import { authClient } from "@/lib/auth";
 import { getRateLimitMessage } from "@/lib/rateLimitMessages";
 import { showToast } from "@/lib/toast";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useWebSocket } from "@/lib/ws";
-import { NotificationProvider } from "@/providers/NotificationProvider";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationsStore } from "@/stores/conversationsStore";
 import { useMessagesStore } from "@/stores/messagesStore";
@@ -183,77 +181,74 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <NotificationProvider>
-            <StatusBar style="dark" />
-            <LinkPreviewContextProvider>
-              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="settings" options={{ headerShown: false }} />
-                <Stack.Screen name="onboarding" />
-                <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
-                <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
-                <Stack.Screen
-                  name="create-group"
-                  options={{
-                    headerShown: true,
-                    header: () => (
-                      <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            paddingHorizontal: spacing.section,
-                            height: 58,
-                          }}
-                        >
-                          <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
-                            <IconChevronLeft size={24} color={colors.ink} />
-                          </Pressable>
-                          <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
-                          <View style={{ width: 24 }} />
-                        </View>
-                      </SafeAreaView>
-                    ),
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-                <Stack.Screen
-                  name="set-status"
-                  options={{
-                    presentation: "formSheet",
-                    headerShown: false,
-                    sheetAllowedDetents: "fitToContents",
-                    sheetGrabberVisible: true,
-                    sheetCornerRadius: 20,
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-                <Stack.Screen
-                  name="filters"
-                  options={{
-                    presentation: "formSheet",
-                    headerShown: false,
-                    sheetAllowedDetents: "fitToContents",
-                    sheetGrabberVisible: true,
-                    sheetCornerRadius: 20,
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-              </Stack>
-            </LinkPreviewContextProvider>
-            <NotificationOverlay />
-            <Toaster
-              position="top-center"
-              duration={4000}
-              visibleToasts={3}
-              swipeToDismissDirection="up"
-              richColors
-              theme="light"
-              offset={0}
-            />
-          </NotificationProvider>
+          <StatusBar style="dark" />
+          <LinkPreviewContextProvider>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="settings" options={{ headerShown: false }} />
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
+              <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
+              <Stack.Screen
+                name="create-group"
+                options={{
+                  headerShown: true,
+                  header: () => (
+                    <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingHorizontal: spacing.section,
+                          height: 58,
+                        }}
+                      >
+                        <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
+                          <IconChevronLeft size={24} color={colors.ink} />
+                        </Pressable>
+                        <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
+                        <View style={{ width: 24 }} />
+                      </View>
+                    </SafeAreaView>
+                  ),
+                  contentStyle: { backgroundColor: colors.bg },
+                }}
+              />
+              <Stack.Screen
+                name="set-status"
+                options={{
+                  presentation: "formSheet",
+                  headerShown: false,
+                  sheetAllowedDetents: "fitToContents",
+                  sheetGrabberVisible: true,
+                  sheetCornerRadius: 20,
+                  contentStyle: { backgroundColor: colors.bg },
+                }}
+              />
+              <Stack.Screen
+                name="filters"
+                options={{
+                  presentation: "formSheet",
+                  headerShown: false,
+                  sheetAllowedDetents: "fitToContents",
+                  sheetGrabberVisible: true,
+                  sheetCornerRadius: 20,
+                  contentStyle: { backgroundColor: colors.bg },
+                }}
+              />
+            </Stack>
+          </LinkPreviewContextProvider>
+          <Toaster
+            position="top-center"
+            duration={4000}
+            visibleToasts={3}
+            swipeToDismissDirection="up"
+            richColors
+            theme="light"
+            offset={0}
+          />
         </QueryClientProvider>
       </trpc.Provider>
     </GestureHandlerRootView>
