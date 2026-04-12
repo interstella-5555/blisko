@@ -1,4 +1,3 @@
-import { keepPreviousData } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -15,27 +14,24 @@ import {
   View,
 } from "react-native";
 import type { Region } from "react-native-maps";
-import {
-  type GridCluster,
-  type MapGroup,
-  type MapUser,
-  type NearbyMapRef,
-  NearbyMapView,
-} from "../../src/components/nearby";
-import { GroupRow } from "../../src/components/nearby/GroupRow";
-import type { UserRowStatus } from "../../src/components/nearby/UserRow";
-import { UserRow } from "../../src/components/nearby/UserRow";
-import { Button } from "../../src/components/ui/Button";
-import { IconFilter, IconPin } from "../../src/components/ui/icons";
-import { useRetryStatusMatchingOnFailure } from "../../src/hooks/useRetryStatusMatchingOnFailure";
-import { trpc } from "../../src/lib/trpc";
-import { useWebSocket, type WSMessage } from "../../src/lib/ws";
-import { useAuthStore } from "../../src/stores/authStore";
-import { useLocationStore } from "../../src/stores/locationStore";
-import { usePreferencesStore } from "../../src/stores/preferencesStore";
-import { useProfilesStore } from "../../src/stores/profilesStore";
-import { useWavesStore } from "../../src/stores/wavesStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { ListShimmer, type NearbyMapRef, NearbyMapView, ViewportIndicator } from "@/components/nearby";
+import { GroupRow } from "@/components/nearby/GroupRow";
+import type { UserRowStatus } from "@/components/nearby/UserRow";
+import { UserRow } from "@/components/nearby/UserRow";
+import { Button } from "@/components/ui/Button";
+import { IconFilter, IconPin } from "@/components/ui/icons";
+import { useNearbyList } from "@/hooks/useNearbyList";
+import { useNearbyMapMarkers } from "@/hooks/useNearbyMapMarkers";
+import { useRetryStatusMatchingOnFailure } from "@/hooks/useRetryStatusMatchingOnFailure";
+import { useSupercluster } from "@/hooks/useSupercluster";
+import { trpc } from "@/lib/trpc";
+import { useWebSocket, type WSMessage } from "@/lib/ws";
+import { useAuthStore } from "@/stores/authStore";
+import { useLocationStore } from "@/stores/locationStore";
+import { usePreferencesStore } from "@/stores/preferencesStore";
+import { useProfilesStore } from "@/stores/profilesStore";
+import { useWavesStore } from "@/stores/wavesStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.4;
@@ -49,10 +45,9 @@ const FILTER_CHIPS: { key: NearbyFilter; label: string }[] = [
 ];
 
 export default function NearbyScreen() {
-  const [selectedCluster, setSelectedCluster] = useState<GridCluster | null>(null);
   const [nearbyFilter, setNearbyFilter] = useState<NearbyFilter>("all");
   const { latitude, longitude, permissionStatus, setLocation, setPermissionStatus } = useLocationStore();
-  const { nearbyRadiusMeters, loadPreferences, photoOnly, nearbyOnly } = usePreferencesStore();
+  const { nearbyRadiusMeters, loadPreferences, photoOnly } = usePreferencesStore();
 
   const [mapExpanded, setMapExpanded] = useState(true);
   const mapHeight = useRef(new Animated.Value(MAP_EXPANDED_HEIGHT)).current;
@@ -60,73 +55,50 @@ export default function NearbyScreen() {
   mapExpandedRef.current = mapExpanded;
   const mapRef = useRef<NearbyMapRef>(null);
 
-  const [mapRegion, setMapRegion] = useState<Region | null>(null);
-  const hasActiveFilters = photoOnly || nearbyOnly;
-
-  const utils = trpc.useUtils();
+  const hasActiveFilters = photoOnly;
 
   const { mutateAsync: updateLocationAsync } = trpc.profiles.updateLocation.useMutation();
   const { mutate: ensureAnalysisMutate } = trpc.profiles.ensureAnalysis.useMutation();
 
-  const allListUsersRef = useRef<Array<{ profile: { userId: string }; analysisReady: boolean }>>([]);
-
-  const wsHandler = useCallback(
-    (msg: WSMessage) => {
-      if (msg.type === "analysisReady" || msg.type === "nearbyChanged" || msg.type === "statusMatchesReady") {
-        utils.profiles.getNearbyUsersForMap.invalidate();
-      }
-      if (msg.type === "analysisFailed") {
-        const inList = allListUsersRef.current.some((u) => u.profile.userId === msg.aboutUserId);
-        if (inList) ensureAnalysisMutate({ userId: msg.aboutUserId });
-      }
-    },
-    [utils.profiles.getNearbyUsersForMap.invalidate, ensureAnalysisMutate],
-  );
-  useWebSocket(wsHandler);
-  useRetryStatusMatchingOnFailure();
-
-  const [isManualRefresh, setIsManualRefresh] = useState(false);
-
-  // Infinite query for the list (paginated)
+  // Split queries: markers for map, list for user rows
+  const { points, refetch: refetchMarkers } = useNearbyMapMarkers();
   const {
-    data: listData,
+    users: listUsers,
+    totalCount,
+    myStatus: listMyStatus,
     isLoading: isLoadingList,
-    fetchNextPage,
-    hasNextPage,
     isFetchingNextPage,
-  } = trpc.profiles.getNearbyUsersForMap.useInfiniteQuery(
-    {
-      latitude: latitude!,
-      longitude: longitude!,
-      radiusMeters: nearbyRadiusMeters,
-      limit: 20,
-      photoOnly: photoOnly || undefined,
+    hasNextPage,
+    fetchNextPage,
+    refetch: refetchList,
+    onRegionChange: onListRegionChange,
+    showAll,
+    toggleShowAll,
+    resetToViewport,
+    viewportUserCount,
+  } = useNearbyList();
+  const { getClusters, getExpansionZoom } = useSupercluster(points);
+
+  const [clusters, setClusters] = useState<ReturnType<typeof getClusters>>([]);
+
+  const handleRegionChangeComplete = useCallback(
+    (region: Region) => {
+      setClusters(getClusters(region));
+      onListRegionChange(region);
     },
-    {
-      enabled: !!latitude && !!longitude,
-      staleTime: 30000,
-      getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-      initialCursor: 0,
-    },
+    [getClusters, onListRegionChange],
   );
 
-  // Separate query for map markers (needs all users, no pagination)
-  const { data: mapData } = trpc.profiles.getNearbyUsersForMap.useQuery(
-    {
-      latitude: latitude!,
-      longitude: longitude!,
-      radiusMeters: nearbyRadiusMeters,
-      limit: 100,
-      photoOnly: photoOnly || undefined,
+  const handleClusterPress = useCallback(
+    (clusterId: number, lat: number, lng: number) => {
+      const zoom = getExpansionZoom(clusterId);
+      mapRef.current?.animateToRegion(lat, lng, zoom);
+      resetToViewport();
     },
-    {
-      enabled: !!latitude && !!longitude,
-      staleTime: 30000,
-      placeholderData: keepPreviousData,
-    },
+    [getExpansionZoom, resetToViewport],
   );
 
-  // Groups query — only when filter includes groups
+  // Groups query — kept for list detail (member counts, descriptions)
   const { data: nearbyGroups } = trpc.groups.getDiscoverable.useQuery(
     {
       latitude: latitude!,
@@ -139,31 +111,23 @@ export default function NearbyScreen() {
     },
   );
 
-  const mapUsers = mapData?.users;
-  const totalCount = listData?.pages[0]?.totalCount ?? 0;
   // Derive status from auth store (optimistic) with query fallback
   const profile = useAuthStore((s) => s.profile);
   const myStatus = useMemo(() => {
     if (profile?.currentStatus) {
       return { text: profile.currentStatus };
     }
-    return listData?.pages[0]?.myStatus ?? null;
-  }, [profile?.currentStatus, listData]);
+    return listMyStatus ?? null;
+  }, [profile?.currentStatus, listMyStatus]);
 
   // Wave status from store (populated by _layout.tsx hydration + WS)
   const waveStatusByUserId = useWavesStore((s) => s.waveStatusByUserId);
 
-  // Flatten all pages into a single list
-  const allListUsers = useMemo(() => {
-    if (!listData?.pages) return [];
-    return listData.pages.flatMap((page) => page.users);
-  }, [listData]);
-
   // Populate profiles store for instant profile navigation
   useEffect(() => {
-    if (allListUsers.length === 0) return;
+    if (listUsers.length === 0) return;
     useProfilesStore.getState().mergeMany(
-      allListUsers.map((u) => ({
+      listUsers.map((u) => ({
         userId: u.profile.userId,
         displayName: u.profile.displayName,
         avatarUrl: u.profile.avatarUrl,
@@ -176,69 +140,64 @@ export default function NearbyScreen() {
         _partial: true,
       })),
     );
-  }, [allListUsers]);
+  }, [listUsers]);
 
   // Self-healing: if analyses are stuck, poke backend after 30s
-  allListUsersRef.current = allListUsers;
+  const listUsersRef = useRef<typeof listUsers>([]);
+  listUsersRef.current = listUsers;
 
   useEffect(() => {
-    const unanalyzed = allListUsers.filter((u) => !u.analysisReady);
+    const unanalyzed = listUsers.filter((u) => !u.analysisReady);
     if (unanalyzed.length === 0) return;
 
     const timer = setTimeout(() => {
-      const stillUnanalyzed = allListUsersRef.current.filter((u) => !u.analysisReady);
+      const stillUnanalyzed = listUsersRef.current.filter((u) => !u.analysisReady);
       for (const u of stillUnanalyzed.slice(0, 5)) {
         ensureAnalysisMutate({ userId: u.profile.userId });
       }
     }, 30_000);
 
     return () => clearTimeout(timer);
-  }, [allListUsers, ensureAnalysisMutate]);
+  }, [listUsers, ensureAnalysisMutate]);
 
-  // Users to display in list: filtered by cluster, nearby viewport, or all
-  const displayUsers = useMemo(() => {
-    let users: MapUser[];
-    if (selectedCluster) {
-      users = selectedCluster.users;
-    } else {
-      users = allListUsers as MapUser[];
-    }
-    if (nearbyOnly && mapRegion) {
-      const latMin = mapRegion.latitude - mapRegion.latitudeDelta / 2;
-      const latMax = mapRegion.latitude + mapRegion.latitudeDelta / 2;
-      const lngMin = mapRegion.longitude - mapRegion.longitudeDelta / 2;
-      const lngMax = mapRegion.longitude + mapRegion.longitudeDelta / 2;
-      users = users.filter(
-        (u) => u.gridLat >= latMin && u.gridLat <= latMax && u.gridLng >= lngMin && u.gridLng <= lngMax,
-      );
-    }
-    return users;
-  }, [selectedCluster, allListUsers, nearbyOnly, mapRegion]);
+  // WS handler — smart cache patching
+  const wsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Groups for map markers
-  const mapGroups = useMemo((): MapGroup[] => {
-    if (!nearbyGroups) return [];
-    return nearbyGroups
-      .filter((g): g is typeof g & { latitude: number; longitude: number } => g.latitude != null && g.longitude != null)
-      .map((g) => ({
-        id: g.id,
-        name: g.name,
-        avatarUrl: g.avatarUrl,
-        latitude: g.latitude,
-        longitude: g.longitude,
-        nearbyMemberCount: g.nearbyMemberCount,
-      }));
-  }, [nearbyGroups]);
+  const wsHandler = useCallback(
+    (msg: WSMessage) => {
+      if (msg.type === "nearbyChanged") {
+        // Debounce 3s — only refetch list
+        if (wsDebounceRef.current) clearTimeout(wsDebounceRef.current);
+        wsDebounceRef.current = setTimeout(() => {
+          refetchList();
+        }, 3000);
+      }
+      if (msg.type === "analysisReady") {
+        // Analysis completed for a nearby user — refetch list to show new snippet/score
+        refetchList();
+      }
+      if (msg.type === "statusMatchesReady") {
+        refetchMarkers();
+        refetchList();
+      }
+      if (msg.type === "analysisFailed") {
+        const inList = listUsersRef.current.some((u) => u.profile.userId === msg.aboutUserId);
+        if (inList) ensureAnalysisMutate({ userId: msg.aboutUserId });
+      }
+    },
+    [refetchList, refetchMarkers, ensureAnalysisMutate],
+  );
+  useWebSocket(wsHandler);
+  useRetryStatusMatchingOnFailure();
 
-  const handleGroupPress = useCallback((group: MapGroup) => {
-    router.push(`/(modals)/group/${group.id}`);
-  }, []);
+  const [isManualRefresh, setIsManualRefresh] = useState(false);
 
   // Build combined list data for FlatList
   type NearbyGroup = NonNullable<typeof nearbyGroups>[number];
+  type ListUser = (typeof listUsers)[number];
   type ListItem =
     | { type: "userHeader"; count: number }
-    | { type: "user"; data: MapUser }
+    | { type: "user"; data: ListUser }
     | { type: "groupHeader"; count: number }
     | { type: "group"; data: NearbyGroup }
     | { type: "groupsEmpty" };
@@ -248,8 +207,7 @@ export default function NearbyScreen() {
     const groups = nearbyGroups ?? [];
 
     if (nearbyFilter === "people") {
-      // People only — same as before, header handled outside FlatList
-      for (const u of displayUsers) {
+      for (const u of listUsers) {
         items.push({ type: "user", data: u });
       }
     } else if (nearbyFilter === "groups") {
@@ -262,9 +220,9 @@ export default function NearbyScreen() {
       }
     } else {
       // "all" — users section then groups section
-      if (displayUsers.length > 0) {
-        items.push({ type: "userHeader", count: selectedCluster ? displayUsers.length : totalCount });
-        for (const u of displayUsers) {
+      if (listUsers.length > 0) {
+        items.push({ type: "userHeader", count: totalCount });
+        for (const u of listUsers) {
           items.push({ type: "user", data: u });
         }
       }
@@ -276,7 +234,7 @@ export default function NearbyScreen() {
       }
     }
     return items;
-  }, [nearbyFilter, displayUsers, nearbyGroups, selectedCluster, totalCount]);
+  }, [nearbyFilter, listUsers, nearbyGroups, totalCount]);
 
   const updateLocation = useCallback(async () => {
     try {
@@ -290,8 +248,6 @@ export default function NearbyScreen() {
       });
     } catch (error) {
       console.warn("Error getting location:", error);
-      // Location fetch failed but permission may still be granted — retry after delay
-      // Don't set permissionStatus to "denied" here (that's a permission issue, not a GPS issue)
       setTimeout(() => {
         Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
           .then((loc) => {
@@ -299,7 +255,6 @@ export default function NearbyScreen() {
             updateLocationAsync({ latitude: loc.coords.latitude, longitude: loc.coords.longitude }).catch(() => {});
           })
           .catch(() => {
-            // Still no location — show error state but don't claim permission denied
             console.warn("Location retry failed");
           });
       }, 3000);
@@ -319,21 +274,10 @@ export default function NearbyScreen() {
     requestLocationPermission();
   }, [loadPreferences, requestLocationPermission]);
 
-  const handleClusterPress = useCallback((cluster: GridCluster) => {
-    setSelectedCluster(cluster);
-    mapRef.current?.animateToRegion(cluster.gridLat, cluster.gridLng);
-  }, []);
-
-  const handleClearFilter = useCallback(() => {
-    setSelectedCluster(null);
-  }, []);
-
   const handleRefresh = useCallback(() => {
     setIsManualRefresh(true);
-    Promise.all([utils.profiles.getNearbyUsersForMap.invalidate(), utils.groups.getDiscoverable.invalidate()]).finally(
-      () => setIsManualRefresh(false),
-    );
-  }, [utils]);
+    Promise.all([refetchMarkers(), refetchList()]).finally(() => setIsManualRefresh(false));
+  }, [refetchMarkers, refetchList]);
 
   const mapPanResponder = useRef(
     PanResponder.create({
@@ -389,8 +333,6 @@ export default function NearbyScreen() {
     }),
   ).current;
 
-  const displayCount = displayUsers.length;
-
   // Permission denied
   if (permissionStatus === "denied") {
     return (
@@ -415,32 +357,13 @@ export default function NearbyScreen() {
     );
   }
 
-  // Loading data
-  if (isLoadingList && !allListUsers.length) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.ink} />
-        <Text style={styles.loadingText}>Ładowanie mapy...</Text>
-      </View>
-    );
-  }
-
   const renderItem = ({ item }: { item: ListItem }) => {
     switch (item.type) {
       case "userHeader": {
         const count = item.count;
         return (
           <View style={styles.listHeader}>
-            <Text style={styles.listHeaderTitle}>
-              {selectedCluster
-                ? `${displayCount} ${displayCount === 1 ? "OSOBA" : "OSÓB"} W TYM MIEJSCU`
-                : `${count} ${count === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}
-            </Text>
-            {selectedCluster && (
-              <Text style={styles.clearButtonText} onPress={handleClearFilter}>
-                POKAŻ WSZYSTKICH
-              </Text>
-            )}
+            <Text style={styles.listHeaderTitle}>{`${count} ${count === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}</Text>
           </View>
         );
       }
@@ -570,14 +493,13 @@ export default function NearbyScreen() {
         <View style={{ height: MAP_EXPANDED_HEIGHT }}>
           <NearbyMapView
             ref={mapRef}
-            users={(mapUsers as MapUser[] | undefined) || []}
+            clusters={clusters}
             userLatitude={latitude!}
             userLongitude={longitude!}
             onClusterPress={handleClusterPress}
-            highlightedGridId={selectedCluster?.gridId}
-            groups={nearbyFilter !== "people" ? mapGroups : undefined}
-            onGroupPress={handleGroupPress}
-            onRegionChangeComplete={setMapRegion}
+            onUserPress={(userId) => router.push({ pathname: "/(modals)/user/[userId]", params: { userId } })}
+            onGroupPress={(groupId) => router.push({ pathname: "/(modals)/group/[id]", params: { id: groupId } })}
+            onRegionChangeComplete={handleRegionChangeComplete}
           />
         </View>
       </Animated.View>
@@ -620,52 +542,49 @@ export default function NearbyScreen() {
         </Pressable>
       </View>
 
+      {/* Viewport indicator */}
+      <ViewportIndicator
+        viewportCount={viewportUserCount}
+        totalCount={totalCount}
+        showAll={showAll}
+        onToggle={toggleShowAll}
+      />
+
       {/* People-only header (when filter = people) */}
       {nearbyFilter === "people" && (
         <View style={styles.listHeader}>
-          <Text style={styles.listHeaderTitle}>
-            {selectedCluster
-              ? `${displayCount} ${displayCount === 1 ? "OSOBA" : "OSÓB"} W TYM MIEJSCU`
-              : `${totalCount} ${totalCount === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}
-          </Text>
-          {selectedCluster && (
-            <Text style={styles.clearButtonText} onPress={handleClearFilter}>
-              POKAŻ WSZYSTKICH
-            </Text>
-          )}
+          <Text style={styles.listHeaderTitle}>{`${totalCount} ${totalCount === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}</Text>
         </View>
       )}
 
       {/* Combined list */}
-      <FlatList
-        data={listItems}
-        keyExtractor={getItemKey}
-        renderItem={renderItem}
-        ListEmptyComponent={
-          nearbyFilter === "people" ? (
-            <View style={styles.emptyList}>
-              <Text style={styles.emptyListText}>Nikogo w pobliżu</Text>
-            </View>
-          ) : null
-        }
-        onRefresh={handleRefresh}
-        refreshing={isManualRefresh}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        onEndReached={() => {
-          if (nearbyFilter !== "groups" && hasNextPage && !isFetchingNextPage && !selectedCluster) {
-            fetchNextPage();
+      {isLoadingList && !listUsers.length ? (
+        <ListShimmer count={4} />
+      ) : (
+        <FlatList
+          data={listItems}
+          keyExtractor={getItemKey}
+          renderItem={renderItem}
+          ListEmptyComponent={
+            nearbyFilter === "people" ? (
+              <View style={styles.emptyList}>
+                <Text style={styles.emptyListText}>Nikogo w pobliżu</Text>
+              </View>
+            ) : null
           }
-        }}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={
-          isFetchingNextPage ? (
-            <View style={styles.loadingFooter}>
-              <ActivityIndicator size="small" color={colors.muted} />
-            </View>
-          ) : null
-        }
-      />
+          onRefresh={handleRefresh}
+          refreshing={isManualRefresh}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          onEndReachedThreshold={0.5}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+          }}
+          ListFooterComponent={
+            isFetchingNextPage ? <ActivityIndicator style={{ padding: 16 }} color={colors.ink} /> : null
+          }
+        />
+      )}
     </View>
   );
 }
@@ -798,12 +717,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     color: colors.muted,
   },
-  clearButtonText: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 10,
-    letterSpacing: 1,
-    color: colors.accent,
-  },
   listContent: {
     paddingBottom: 40,
   },
@@ -814,10 +727,6 @@ const styles = StyleSheet.create({
   emptyListText: {
     ...typ.body,
     color: colors.muted,
-  },
-  loadingFooter: {
-    paddingVertical: spacing.column,
-    alignItems: "center",
   },
   filterFunnel: {
     width: 36,

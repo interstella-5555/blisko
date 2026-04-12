@@ -1,6 +1,7 @@
 import {
   cosineSimilarity,
   createProfileSchema,
+  getNearbyMapMarkersSchema,
   getNearbyUsersForMapSchema,
   getNearbyUsersSchema,
   setStatusSchema,
@@ -269,6 +270,167 @@ export const profilesRouter = router({
       return results;
     }),
 
+  // Lightweight map markers — all users in radius with minimal data (no scoring, no embeddings)
+  getNearbyMapMarkers: protectedProcedure
+    .use(rateLimit("profiles.getNearbyMap"))
+    .input(getNearbyMapMarkersSchema)
+    .query(async ({ ctx, input }) => {
+      const { latitude, longitude, radiusMeters, photoOnly } = input;
+
+      // Bounding box for index-based pre-filter
+      const latDelta = radiusMeters / 111000;
+      const lonDelta = radiusMeters / (111000 * Math.cos((latitude * Math.PI) / 180));
+      const minLat = latitude - latDelta;
+      const maxLat = latitude + latDelta;
+      const minLon = longitude - lonDelta;
+      const maxLon = longitude + lonDelta;
+
+      // Haversine distance
+      const distanceFormula = sql<number>`
+        6371000 * acos(
+          LEAST(1.0, GREATEST(-1.0,
+            cos(radians(${latitude})) * cos(radians(${schema.profiles.latitude})) *
+            cos(radians(${schema.profiles.longitude}) - radians(${longitude})) +
+            sin(radians(${latitude})) * sin(radians(${schema.profiles.latitude}))
+          ))
+        )
+      `;
+
+      // Haversine for group locations (conversations table)
+      const groupDistanceFormula = sql<number>`
+        6371000 * acos(
+          LEAST(1.0, GREATEST(-1.0,
+            cos(radians(${latitude})) * cos(radians(${schema.conversations.latitude})) *
+            cos(radians(${schema.conversations.longitude}) - radians(${longitude})) +
+            sin(radians(${latitude})) * sin(radians(${schema.conversations.latitude}))
+          ))
+        )
+      `;
+
+      // Parallel: blocked users (both directions), nearby profiles, current user profile, status matches, discoverable groups
+      const [blockedUsers, blockedByUsers, nearbyProfiles, currentProfile, myStatusMatchRows, nearbyGroups] =
+        await Promise.all([
+          db
+            .select({ blockedId: schema.blocks.blockedId })
+            .from(schema.blocks)
+            .where(eq(schema.blocks.blockerId, ctx.userId)),
+          db
+            .select({ blockerId: schema.blocks.blockerId })
+            .from(schema.blocks)
+            .where(eq(schema.blocks.blockedId, ctx.userId)),
+          db
+            .select({
+              userId: schema.profiles.userId,
+              avatarUrl: schema.profiles.avatarUrl,
+              latitude: schema.profiles.latitude,
+              longitude: schema.profiles.longitude,
+              currentStatus: schema.profiles.currentStatus,
+              statusVisibility: schema.profiles.statusVisibility,
+            })
+            .from(schema.profiles)
+            .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+            .where(
+              and(
+                ne(schema.profiles.userId, ctx.userId),
+                ne(schema.profiles.visibilityMode, "ninja"),
+                between(schema.profiles.latitude, minLat, maxLat),
+                between(schema.profiles.longitude, minLon, maxLon),
+                lte(distanceFormula, radiusMeters),
+                isNull(schema.user.deletedAt),
+                ...(photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
+              ),
+            )
+            .limit(5000),
+          db.query.profiles.findFirst({
+            where: eq(schema.profiles.userId, ctx.userId),
+            columns: { currentStatus: true },
+          }),
+          db
+            .select({ matchedUserId: schema.statusMatches.matchedUserId })
+            .from(schema.statusMatches)
+            .where(eq(schema.statusMatches.userId, ctx.userId)),
+          db
+            .select({
+              id: schema.conversations.id,
+              name: schema.conversations.name,
+              avatarUrl: schema.conversations.avatarUrl,
+              latitude: schema.conversations.latitude,
+              longitude: schema.conversations.longitude,
+            })
+            .from(schema.conversations)
+            .where(
+              and(
+                eq(schema.conversations.type, "group"),
+                eq(schema.conversations.isDiscoverable, true),
+                isNull(schema.conversations.deletedAt),
+                isNotNull(schema.conversations.latitude),
+                isNotNull(schema.conversations.longitude),
+                between(schema.conversations.latitude, minLat, maxLat),
+                between(schema.conversations.longitude, minLon, maxLon),
+                lte(groupDistanceFormula, radiusMeters),
+              ),
+            )
+            .limit(500),
+        ]);
+
+      const allBlockedIds = new Set([
+        ...blockedUsers.map((b) => b.blockedId),
+        ...blockedByUsers.map((b) => b.blockerId),
+      ]);
+
+      const statusMatchSet = new Set(myStatusMatchRows.map((m) => m.matchedUserId));
+      const myStatusActive = currentProfile ? isStatusActive(currentProfile) : false;
+
+      // Build columnar user response
+      const ids: string[] = [];
+      const avatars: (string | null)[] = [];
+      const lats: number[] = [];
+      const lngs: number[] = [];
+      const statusMatch: (0 | 1)[] = [];
+
+      for (const u of nearbyProfiles) {
+        if (allBlockedIds.has(u.userId)) continue;
+
+        const grid = toGridCenter(u.latitude!, u.longitude!);
+        ids.push(u.userId);
+        avatars.push(u.avatarUrl ? u.avatarUrl.split("/").pop()! : null);
+        lats.push(grid.gridLat);
+        lngs.push(grid.gridLng);
+
+        const theirStatusActive = isStatusActive(u);
+        statusMatch.push(myStatusActive && theirStatusActive && statusMatchSet.has(u.userId) ? 1 : 0);
+      }
+
+      // Build columnar group response
+      const groupIds: string[] = [];
+      const groupNames: (string | null)[] = [];
+      const groupAvatars: (string | null)[] = [];
+      const groupLats: number[] = [];
+      const groupLngs: number[] = [];
+      const groupMembers: number[] = [];
+
+      for (const g of nearbyGroups) {
+        groupIds.push(g.id);
+        groupNames.push(g.name);
+        groupAvatars.push(g.avatarUrl ? g.avatarUrl.split("/").pop()! : null);
+        groupLats.push(g.latitude!);
+        groupLngs.push(g.longitude!);
+        groupMembers.push(0);
+      }
+
+      return {
+        users: { ids, avatars, lats, lngs, statusMatch },
+        groups: {
+          ids: groupIds,
+          names: groupNames,
+          avatars: groupAvatars,
+          lats: groupLats,
+          lngs: groupLngs,
+          members: groupMembers,
+        },
+      };
+    }),
+
   // Get nearby users for map view (with grid-based privacy + ranking)
   getNearbyUsersForMap: protectedProcedure
     .use(rateLimit("profiles.getNearby"))
@@ -286,6 +448,12 @@ export const profilesRouter = router({
       const minLon = longitude - lonDelta;
       const maxLon = longitude + lonDelta;
 
+      // When bbox provided, intersect viewport with radius bounding box
+      const effectiveMinLat = input.bbox ? Math.max(minLat, input.bbox.south) : minLat;
+      const effectiveMaxLat = input.bbox ? Math.min(maxLat, input.bbox.north) : maxLat;
+      const effectiveMinLon = input.bbox ? Math.max(minLon, input.bbox.west) : minLon;
+      const effectiveMaxLon = input.bbox ? Math.min(maxLon, input.bbox.east) : maxLon;
+
       // Haversine distance formula
       const distanceFormula = sql<number>`
         6371000 * acos(
@@ -301,8 +469,8 @@ export const profilesRouter = router({
       const baseWhere = and(
         ne(schema.profiles.userId, ctx.userId),
         ne(schema.profiles.visibilityMode, "ninja"),
-        between(schema.profiles.latitude, minLat, maxLat),
-        between(schema.profiles.longitude, minLon, maxLon),
+        between(schema.profiles.latitude, effectiveMinLat, effectiveMaxLat),
+        between(schema.profiles.longitude, effectiveMinLon, effectiveMaxLon),
         lte(distanceFormula, radiusMeters),
         isNull(schema.user.deletedAt),
         ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
@@ -437,8 +605,11 @@ export const profilesRouter = router({
         });
       }
 
-      // Sort by rankScore descending
-      results.sort((a, b) => b.rankScore - a.rankScore);
+      // Sort: status matches first, then rankScore descending
+      results.sort((a, b) => {
+        if (a.hasStatusMatch !== b.hasStatusMatch) return a.hasStatusMatch ? -1 : 1;
+        return b.rankScore - a.rankScore;
+      });
 
       // Safety net: queue T2 quick scores for users without any analysis
       const missingAnalysisUserIds = results

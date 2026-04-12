@@ -57,7 +57,7 @@ export type WSMessage =
   | { type: "analysisReady"; aboutUserId: string; shortSnippet: string }
   | { type: "analysisFailed"; aboutUserId: string }
   | { type: "nearbyChanged" }
-  | { type: "statusMatchesReady" }
+  | { type: "statusMatchesReady"; matchedUserIds?: string[] }
   | { type: "statusMatchingFailed" }
   | { type: "profileReady" }
   | { type: "profileFailed" }

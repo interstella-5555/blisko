@@ -2,6 +2,7 @@
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — `messagesStore.updateMessage()` added for in-place message patches (fixes delete dropping message from list).
+> Updated 2026-04-12 — Nearby screen rewrite: supercluster clustering, viewport-synced list, split endpoints (`useNearbyMapMarkers` + `useNearbyList` + `useSupercluster` hooks), removed `nearbyOnly` toggle (BLI-189).
 > Updated 2026-04-11 — Single sign-out path `signOutAndReset()` exported from `app/_layout.tsx` — the 4 logout sites (settings, account deletion, onboarding abort, ACCOUNT_DELETED error handler) now call it instead of reimplementing store resets. Clears auth/profiles/conversations/messages/waves/onboarding stores + `queryClient` + SecureStore tokens; `locationStore` and `preferencesStore` intentionally untouched (BLI-204).
 > Updated 2026-04-11 — Fixed pings-list crash in `(tabs)/chats.tsx`: two sibling `FlatList`-es (pings vs conversations) in a ternary were sharing one React instance; switching filter mutated `onViewableItemsChanged` from function → undefined, triggering `Invariant Violation: Changing onViewableItemsChanged nullability on the fly is not supported` (SIGABRT). Fix: distinct `key` props so React treats them as separate instances. See "Gotchas" below.
 > Updated 2026-04-11 — Chats tab `tabBarBadge` now sums unread messages **and** unviewed pending pings (was: unread messages only). Mirrors the `unviewedPingCount` already shown on the sonar pill inside the chats screen — both numbers come from the same `wavesStore.viewedWaveIds` cursor, so the user sees a consistent "things demanding attention" count from the tab bar and from inside the screen (BLI-207). See "Tab badges" under Key Conventions.
@@ -39,7 +40,7 @@ _layout.tsx                         Root Stack (tRPC + QueryClient + WS + Notifi
 |
 +-- (tabs)/                         Main tab navigator (redirects to auth/onboarding as needed)
 |   +-- _layout.tsx                 Tabs: 3 tabs, WS handler, hydration, background sync
-|   +-- index.tsx                   "W okolicy" --- map + nearby list (sonar ping filter)
+|   +-- index.tsx                   "W okolicy" --- map (supercluster) + viewport-synced list
 |   +-- chats.tsx                   "Czaty" --- conversation list (DM + group), unread badge
 |   +-- profile.tsx                 "Profil" --- own profile view
 |
@@ -145,7 +146,7 @@ Tracks progress through the onboarding flow: `displayName`, `bio`, `lookingFor`,
 
 ### preferencesStore
 
-Persisted to SecureStore. `nearbyRadiusMeters`: 500 / 1000 / 2000 (default 2000). `photoOnly` and `nearbyOnly` filters. `notificationPrefs`: newWaves, waveResponses, newMessages, groupInvites (all default `true`).
+Persisted to SecureStore. `nearbyRadiusMeters`: 500 / 1000 / 2000 (default 2000). `photoOnly` filter (`nearbyOnly` removed in BLI-189 — viewport sync is default). `notificationPrefs`: newWaves, waveResponses, newMessages, groupInvites (all default `true`).
 
 ---
 

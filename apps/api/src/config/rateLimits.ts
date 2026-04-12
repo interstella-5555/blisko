@@ -29,10 +29,10 @@ export const rateLimits = {
   // -- Post-auth (key: userId) --
 
   // Wave sending — prevents mass-waving bots (Bumble: 25/day, Tinder: ~50/day)
-  "waves.send": { limit: 300, window: 4 * 60 * 60 },
+  "waves.send": { limit: 30, window: 4 * 60 * 60 },
 
   // Wave responding — generous for users catching up on pending waves
-  "waves.respond": { limit: 600, window: 60 * 60 },
+  "waves.respond": { limit: 60, window: 60 * 60 },
 
   // Messages per conversation — prevents flooding a single chat
   "messages.send": { limit: 30, window: 60 },
@@ -62,7 +62,10 @@ export const rateLimits = {
   uploads: { limit: 10, window: 60 * 60 },
 
   // Nearby user queries — pull-to-refresh protection
-  "profiles.getNearby": { limit: 600, window: 60 },
+  "profiles.getNearby": { limit: 30, window: 60 },
+
+  // Lightweight map markers — separate from rich list
+  "profiles.getNearbyMap": { limit: 30, window: 60 },
 
   // Data export — heavy operation, once per day
   dataExport: { limit: 1, window: 24 * 60 * 60 },
@@ -72,7 +75,7 @@ export const rateLimits = {
   "metrics.prometheus": { limit: 30, window: 60 },
 
   // Global catch-all — safety net for all authenticated requests
-  global: { limit: 2000, window: 60 },
+  global: { limit: 200, window: 60 },
 } as const;
 
 export type RateLimitName = keyof typeof rateLimits;

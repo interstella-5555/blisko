@@ -1,6 +1,7 @@
 # Location & Privacy
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-12 — Split nearby into three endpoints: `getNearbyMapMarkers` (lightweight columnar), `getNearbyUsersForMap` (rich list with bbox viewport filter), `getNearbyUsers` (simple list). Status-match-first sort. Separate rate limit buckets (BLI-189).
 
 ## Terminology & Product Alignment
 
@@ -91,7 +92,7 @@ Note: `updateLocation` does NOT enqueue pair analysis jobs. Those are triggered 
 
 ## Nearby Users Queries
 
-Two endpoints serve different use cases. Both share the same filtering logic with minor differences.
+Three endpoints serve different use cases. All share the same bounding box + haversine filtering with minor differences.
 
 ### getNearbyUsers (List View)
 
@@ -121,9 +122,39 @@ Two endpoints serve different use cases. Both share the same filtering logic wit
 
 **Returns:** `{ profile, distance, similarityScore }` where `similarityScore` is cosine similarity between profile embeddings (null if either embedding missing).
 
-### getNearbyUsersForMap (Map View)
+### getNearbyMapMarkers (Lightweight Map Markers)
 
-**What:** Returns nearby users with grid-snapped coordinates, ranking scores, status match flags, and cursor pagination.
+> Added BLI-189 — lightweight endpoint for map rendering, separate from rich list.
+
+**What:** Returns ALL users + groups in radius with minimal data (no scoring, no embeddings, no analysis joins). Columnar JSON response for compact payload.
+
+**Config (from `getNearbyMapMarkersSchema`):**
+
+| Param | Type | Range | Default |
+|---|---|---|---|
+| `latitude` | number | -90 to 90 | required |
+| `longitude` | number | -180 to 180 | required |
+| `radiusMeters` | number | 100 to 50,000 | 5000 |
+| `photoOnly` | boolean | --- | false |
+
+**Query:** Simple bounding box + haversine. Parallel fetch of blocked users (both directions), nearby profiles (userId + avatarUrl + status fields), current user profile (for status check), status matches, discoverable groups. No limit (safety cap 5000 users, 500 groups).
+
+**Columnar response:** Keys appear once, values in parallel arrays. Avatars are filenames only (client prepends CDN prefix). User positions are grid-snapped via `toGridCenter()`. Group positions are actual coordinates (not grid-snapped).
+
+```ts
+{
+  users:  { ids, avatars, lats, lngs, statusMatch },
+  groups: { ids, names, avatars, lats, lngs, members },
+}
+```
+
+**Rate limit:** Own bucket `profiles.getNearbyMap` (30/min), separate from the list endpoint.
+
+**Why separate from list:** Map needs ALL users (no limit) with minimal payload for supercluster client-side clustering. List needs rich data (bio, snippet, scores) with pagination. Combining them wastes bandwidth or forces artificial limits on the map.
+
+### getNearbyUsersForMap (Rich List View)
+
+**What:** Returns nearby users with grid-snapped coordinates, ranking scores, status match flags, and cursor pagination. Accepts optional viewport bounding box for list-map sync.
 
 **Config (from `getNearbyUsersForMapSchema`):**
 
@@ -135,6 +166,9 @@ Two endpoints serve different use cases. Both share the same filtering logic wit
 | `limit` | number | 1 to 100 | 50 |
 | `cursor` | number (int) | >= 0 | 0 |
 | `photoOnly` | boolean | --- | false |
+| `bbox` | object (optional) | `{ south, north, west, east }` | --- |
+
+**Viewport filtering (BLI-189):** When `bbox` is provided, the bounding box is intersected with the radius bounding box. This filters results to only users visible on the map viewport. Client debounces viewport changes (300ms) before sending a new request.
 
 **Additional data fetched in parallel** (7 concurrent queries):
 - Blocked users (both directions)
@@ -182,17 +216,18 @@ The weights favor match quality (60%) over proximity (40%).
 }
 ```
 
-**Sort:** Results are sorted by `rankScore` descending (highest match quality first) in application code after the distance-ordered SQL query.
+**Sort:** Status matches first, then by `rankScore` descending (highest match quality first) in application code after the distance-ordered SQL query. Status matches sort above all others because they represent active "looking for something now" intent.
 
 ## Rate Limits
 
 From `rateLimits.ts`:
 
-| Endpoint | Limit | Window | Applies to |
+| Config key | Limit | Window | Applies to |
 |---|---|---|---|
-| `profiles.getNearby` | 30 requests | 60 seconds | Both `getNearbyUsers` and `getNearbyUsersForMap` |
+| `profiles.getNearby` | 30 requests | 60 seconds | `getNearbyUsers` and `getNearbyUsersForMap` (rich list) |
+| `profiles.getNearbyMap` | 30 requests | 60 seconds | `getNearbyMapMarkers` (lightweight map markers) |
 
-This prevents pull-to-refresh abuse. Both endpoints share the same rate limit key.
+Map and list have separate buckets so they don't compete. Client-side debounce (300ms viewport changes) and supercluster (zero HTTP on zoom/pan) keep actual request rates well below limits.
 
 ## Haversine
 
@@ -241,12 +276,12 @@ Note: `semi_open` and `full_nomad` are functionally identical in the API. The di
 If you change this system, also check:
 
 - **`apps/api/src/lib/grid.ts`** --- `GRID_SIZE`, `toGridCenter()`, `roundDistance()`
-- **`apps/api/src/trpc/procedures/profiles.ts`** --- `updateLocation`, `getNearbyUsers`, `getNearbyUsersForMap`
-- **`packages/shared/src/validators.ts`** --- `updateLocationSchema`, `getNearbyUsersSchema`, `getNearbyUsersForMapSchema`
+- **`apps/api/src/trpc/procedures/profiles.ts`** --- `updateLocation`, `getNearbyUsers`, `getNearbyUsersForMap`, `getNearbyMapMarkers`
+- **`packages/shared/src/validators.ts`** --- `updateLocationSchema`, `getNearbyUsersSchema`, `getNearbyUsersForMapSchema`, `getNearbyMapMarkersSchema`
 - **`packages/shared/src/math.ts`** --- `cosineSimilarity()` (used in ranking)
 - **`apps/api/src/services/queue.ts`** --- `enqueueProximityStatusMatching` (triggered by location update), `processAnalyzeUserPairs` (uses same bounding box pattern)
 - **`apps/api/src/ws/redis-bridge.ts`** --- `nearbyChanged` event
-- **`apps/api/src/config/rateLimits.ts`** --- `profiles.getNearby` rate limit
+- **`apps/api/src/config/rateLimits.ts`** --- `profiles.getNearby` + `profiles.getNearbyMap` rate limits
 - **`apps/mobile/`** --- map rendering, bubble positioning, background location tracking frequency
 - **`docs/architecture/status-matching.md`** --- proximity-triggered matching pipeline
 - **`docs/architecture/waves-connections.md`** --- ninja mode blocks wave sending

@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — Added `analysisFailed` WS event for self-healing AI queue (BLI-158).
 > Updated 2026-04-10 — Added `questionFailed` WS event for self-healing profiling question generation (BLI-161).
+> Updated 2026-04-12 — `statusMatchesReady` event now includes optional `matchedUserIds: string[]` for client-side cache patching (BLI-189).
 > Updated 2026-04-10 — Added `profilingFailed` WS event for self-healing profile generation from Q&A (BLI-162).
 > Updated 2026-04-10 — Added `profileFailed` WS event for self-healing profile AI generation (BLI-163).
 > Updated 2026-04-10 — Added `statusMatchingFailed` WS event for self-healing status matching (BLI-164).
@@ -42,7 +43,7 @@ Bun native WebSocket server delivering real-time events to mobile clients. Sourc
 | `nearbyChanged` | server->client | Nearby users list changed | `{ type: "nearbyChanged" }` (signal-only, client refetches) |
 | `profileReady` | server->client | Profile AI generation done | `{ type: "profileReady" }` |
 | `profileFailed` | server->client | Profile AI generation permanently failed | `{ type: "profileFailed" }` |
-| `statusMatchesReady` | server->client | Status matches found | `{ type: "statusMatchesReady" }` (signal-only, client refetches) |
+| `statusMatchesReady` | server->client | Status matches found | `{ type: "statusMatchesReady", matchedUserIds?: string[] }` — includes matched user IDs when available (`processStatusMatching`); empty for proximity-triggered matches. |
 | `statusMatchingFailed` | server->client | Status matching permanently failed | `{ type: "statusMatchingFailed" }` |
 | `questionReady` | server->client | Next profiling question | `{ type: "questionReady", sessionId, questionNumber }` |
 | `questionFailed` | server->client | Profiling question generation permanently failed | `{ type: "questionFailed", sessionId, questionNumber }` |

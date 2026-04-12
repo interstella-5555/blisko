@@ -85,6 +85,22 @@ export const getNearbyUsersForMapSchema = z.object({
   limit: z.number().min(1).max(100).default(50),
   cursor: z.number().int().min(0).optional(),
   photoOnly: z.boolean().optional(),
+  bbox: z
+    .object({
+      south: z.number().min(-90).max(90),
+      north: z.number().min(-90).max(90),
+      west: z.number().min(-180).max(180),
+      east: z.number().min(-180).max(180),
+    })
+    .optional(),
+});
+
+// Lightweight map markers (columnar response, no scoring)
+export const getNearbyMapMarkersSchema = z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  radiusMeters: z.number().min(100).max(50000).default(5000),
+  photoOnly: z.boolean().optional(),
 });
 
 // Status "na teraz" validators
@@ -222,6 +238,7 @@ export type ReactToMessageInput = z.infer<typeof reactToMessageSchema>;
 export type SearchMessagesInput = z.infer<typeof searchMessagesSchema>;
 export type GetNearbyUsersInput = z.infer<typeof getNearbyUsersSchema>;
 export type GetNearbyUsersForMapInput = z.infer<typeof getNearbyUsersForMapSchema>;
+export type GetNearbyMapMarkersInput = z.infer<typeof getNearbyMapMarkersSchema>;
 export type SetStatusInput = z.infer<typeof setStatusSchema>;
 export type BlockUserInput = z.infer<typeof blockUserSchema>;
 export type StartProfilingInput = z.infer<typeof startProfilingSchema>;

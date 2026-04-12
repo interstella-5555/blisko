@@ -276,7 +276,7 @@ ee.on("profileFailed", (event: ProfileFailedEvent) => {
 });
 
 ee.on("statusMatchesReady", (event: StatusMatchesReadyEvent) => {
-  broadcastToUser(event.userId, { type: "statusMatchesReady" });
+  broadcastToUser(event.userId, { type: "statusMatchesReady", matchedUserIds: event.matchedUserIds });
 });
 
 ee.on("statusMatchingFailed", (event: StatusMatchingFailedEvent) => {
