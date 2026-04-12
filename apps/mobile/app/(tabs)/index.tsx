@@ -208,7 +208,21 @@ export default function NearbyScreen() {
 
   const listItems = useMemo((): ListItem[] => {
     const items: ListItem[] = [];
-    const groups = nearbyGroups ?? [];
+    const allGroups = nearbyGroups ?? [];
+    // Filter groups by viewport when not showing all
+    const groups = showAllNearby
+      ? allGroups
+      : allGroups.filter((g) => {
+          if (g.latitude == null || g.longitude == null) return false;
+          const halfLat = mapRegion.latitudeDelta / 2;
+          const halfLng = mapRegion.longitudeDelta / 2;
+          return (
+            g.latitude >= mapRegion.latitude - halfLat &&
+            g.latitude <= mapRegion.latitude + halfLat &&
+            g.longitude >= mapRegion.longitude - halfLng &&
+            g.longitude <= mapRegion.longitude + halfLng
+          );
+        });
 
     if (nearbyFilter === "people") {
       for (const u of listUsers) {
@@ -238,7 +252,7 @@ export default function NearbyScreen() {
       }
     }
     return items;
-  }, [nearbyFilter, listUsers, nearbyGroups, totalUserCount]);
+  }, [nearbyFilter, listUsers, nearbyGroups, totalUserCount, totalCount, showAllNearby, mapRegion]);
 
   const updateLocation = useCallback(async () => {
     try {
