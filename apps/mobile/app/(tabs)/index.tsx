@@ -20,7 +20,7 @@ import { GroupRow } from "@/components/nearby/GroupRow";
 import type { UserRowStatus } from "@/components/nearby/UserRow";
 import { UserRow } from "@/components/nearby/UserRow";
 import { Button } from "@/components/ui/Button";
-import { IconFilter, IconPin } from "@/components/ui/icons";
+import { IconFilter, IconPin, IconPlus } from "@/components/ui/icons";
 import { useNearbyList } from "@/hooks/useNearbyList";
 import { useNearbyMapMarkers } from "@/hooks/useNearbyMapMarkers";
 import { useRetryStatusMatchingOnFailure } from "@/hooks/useRetryStatusMatchingOnFailure";
@@ -476,9 +476,10 @@ export default function NearbyScreen() {
             <Text style={styles.emptyListText}>
               {isOutsideRadius ? `Pokazujemy grupy w promieniu ${radiusLabel} od Ciebie` : "Brak grup w okolicy"}
             </Text>
-            <View style={{ marginTop: spacing.gutter }}>
-              <Button title="Utwórz grupę" variant="accent" onPress={() => router.push("/create-group")} />
-            </View>
+            <Pressable style={styles.returnButton} onPress={() => router.push("/create-group")}>
+              <IconPlus size={14} color={colors.accent} />
+              <Text style={styles.returnButtonText}>Utwórz grupę</Text>
+            </Pressable>
             <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
               <IconPin size={14} color={colors.accent} />
               <Text style={styles.returnButtonText}>Wróć do mojej lokalizacji</Text>
