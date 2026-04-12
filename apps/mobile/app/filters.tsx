@@ -4,9 +4,7 @@ import { colors, fonts, spacing } from "../src/theme";
 
 export default function FiltersScreen() {
   const photoOnly = usePreferencesStore((s) => s.photoOnly);
-  const nearbyOnly = usePreferencesStore((s) => s.nearbyOnly);
   const setPhotoOnly = usePreferencesStore((s) => s.setPhotoOnly);
-  const setNearbyOnly = usePreferencesStore((s) => s.setNearbyOnly);
 
   return (
     <View style={styles.container}>
@@ -19,18 +17,6 @@ export default function FiltersScreen() {
         <Switch
           value={photoOnly}
           onValueChange={setPhotoOnly}
-          trackColor={{ false: "#C0BAA8", true: colors.ink }}
-          thumbColor="#FFFFFF"
-        />
-      </View>
-      <View style={[styles.toggleRow, styles.toggleRowBorder]}>
-        <View style={styles.toggleInfo}>
-          <Text style={styles.toggleLabel}>Tylko w widocznym obszarze</Text>
-          <Text style={styles.toggleDesc}>Ogranicz wyniki do aktualnego widoku mapy</Text>
-        </View>
-        <Switch
-          value={nearbyOnly}
-          onValueChange={setNearbyOnly}
           trackColor={{ false: "#C0BAA8", true: colors.ink }}
           thumbColor="#FFFFFF"
         />
@@ -56,10 +42,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: spacing.gutter,
-  },
-  toggleRowBorder: {
-    borderTopWidth: 1,
-    borderTopColor: colors.rule,
   },
   toggleInfo: {
     flex: 1,
