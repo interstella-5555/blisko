@@ -24,7 +24,7 @@
     "@ai-sdk/openai": "catalog:",
     "@better-auth/expo": "catalog:",
     "@hono/node-server": "^1.19.9",
-    "@hono/trpc-server": "^0.3.0",
+    "@hono/trpc-server": "^0.4.2",
     "@repo/db": "workspace:*",
     "@repo/shared": "workspace:*",
     "@trpc/server": "catalog:",
