@@ -200,7 +200,7 @@ export default function NearbyScreen() {
   type NearbyGroup = NonNullable<typeof nearbyGroups>[number];
   type ListUser = (typeof listUsers)[number];
   type ListItem =
-    | { type: "userHeader"; count: number }
+    | { type: "userHeader"; count: number; viewportCount: number }
     | { type: "user"; data: ListUser }
     | { type: "groupHeader"; count: number }
     | { type: "group"; data: NearbyGroup }
@@ -225,7 +225,7 @@ export default function NearbyScreen() {
     } else {
       // "all" — users section then groups section
       if (listUsers.length > 0) {
-        items.push({ type: "userHeader", count: totalUserCount });
+        items.push({ type: "userHeader", count: totalUserCount, viewportCount: totalCount });
         for (const u of listUsers) {
           items.push({ type: "user", data: u });
         }
@@ -364,10 +364,14 @@ export default function NearbyScreen() {
   const renderItem = ({ item }: { item: ListItem }) => {
     switch (item.type) {
       case "userHeader": {
-        const count = item.count;
+        const { count, viewportCount } = item;
         return (
           <View style={styles.listHeader}>
-            <Text style={styles.listHeaderTitle}>{`${count} ${count === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}</Text>
+            <Text style={styles.listHeaderTitle}>
+              {showAllNearby || viewportCount >= count
+                ? `${count} ${count === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`
+                : `${viewportCount} Z ${count} OSÓB W POBLIŻU`}
+            </Text>
           </View>
         );
       }
@@ -550,7 +554,9 @@ export default function NearbyScreen() {
       {nearbyFilter === "people" && (
         <View style={styles.listHeader}>
           <Text style={styles.listHeaderTitle}>
-            {`${totalUserCount} ${totalUserCount === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}
+            {showAllNearby || totalCount >= totalUserCount
+              ? `${totalUserCount} ${totalUserCount === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`
+              : `${totalCount} Z ${totalUserCount} OSÓB W POBLIŻU`}
           </Text>
         </View>
       )}
