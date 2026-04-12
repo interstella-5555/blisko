@@ -1,9 +1,11 @@
 import { keepPreviousData } from "@tanstack/react-query";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { Region } from "react-native-maps";
 import { trpc } from "@/lib/trpc";
 import { useLocationStore } from "@/stores/locationStore";
 import { usePreferencesStore } from "@/stores/preferencesStore";
+
+const PAGE_SIZE = 20;
 
 export function useNearbyList() {
   const { latitude, longitude } = useLocationStore();
@@ -12,21 +14,32 @@ export function useNearbyList() {
   const [bbox, setBbox] = useState<{ south: number; north: number; west: number; east: number } | undefined>(undefined);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data, isLoading, refetch, isFetching } = trpc.profiles.getNearbyUsersForMap.useQuery(
-    {
-      latitude: latitude!,
-      longitude: longitude!,
-      radiusMeters: nearbyRadiusMeters,
-      limit: 50,
-      photoOnly: photoOnly || undefined,
-      bbox: showAll ? undefined : bbox,
-    },
-    {
-      enabled: !!latitude && !!longitude,
-      staleTime: 30_000,
-      placeholderData: keepPreviousData,
-    },
-  );
+  const { data, isLoading, isFetching, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =
+    trpc.profiles.getNearbyUsersForMap.useInfiniteQuery(
+      {
+        latitude: latitude!,
+        longitude: longitude!,
+        radiusMeters: nearbyRadiusMeters,
+        limit: PAGE_SIZE,
+        photoOnly: photoOnly || undefined,
+        bbox: showAll ? undefined : bbox,
+      },
+      {
+        enabled: !!latitude && !!longitude,
+        staleTime: 30_000,
+        getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+        initialCursor: 0,
+        placeholderData: keepPreviousData,
+      },
+    );
+
+  const users = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap((page) => page.users);
+  }, [data]);
+
+  const totalCount = data?.pages[0]?.totalCount ?? 0;
+  const myStatus = data?.pages[0]?.myStatus ?? null;
 
   const onRegionChange = useCallback(
     (region: Region) => {
@@ -54,17 +67,19 @@ export function useNearbyList() {
   }, []);
 
   return {
-    users: data?.users ?? [],
-    totalCount: data?.totalCount ?? 0,
-    nextCursor: data?.nextCursor ?? null,
-    myStatus: data?.myStatus ?? null,
+    users,
+    totalCount,
+    myStatus,
     isLoading,
     isFetching,
+    isFetchingNextPage,
+    hasNextPage: hasNextPage ?? false,
+    fetchNextPage,
     refetch,
     onRegionChange,
     showAll,
     toggleShowAll,
     resetToViewport,
-    viewportUserCount: data?.users.length ?? 0,
+    viewportUserCount: users.length,
   };
 }

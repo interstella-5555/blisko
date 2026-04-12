@@ -67,6 +67,9 @@ export default function NearbyScreen() {
     totalCount,
     myStatus: listMyStatus,
     isLoading: isLoadingList,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     refetch: refetchList,
     onRegionChange: onListRegionChange,
     showAll,
@@ -574,7 +577,12 @@ export default function NearbyScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={null}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+          }}
+          ListFooterComponent={
+            isFetchingNextPage ? <ActivityIndicator style={{ padding: 16 }} color={colors.ink} /> : null
+          }
         />
       )}
     </View>
