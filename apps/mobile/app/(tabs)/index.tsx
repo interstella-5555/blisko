@@ -571,6 +571,13 @@ export default function NearbyScreen() {
           </Pressable>
         </View>
       )}
+      {nearbyFilter === "groups" && (nearbyGroups?.length ?? 0) > 0 && (
+        <View style={styles.listHeader}>
+          <Text style={styles.listHeaderTitle}>
+            {nearbyGroups?.length ?? 0} {(nearbyGroups?.length ?? 0) === 1 ? "GRUPA" : "GRUP"} W POBLIŻU
+          </Text>
+        </View>
+      )}
 
       {/* Combined list */}
       {isLoadingList && !listUsers.length ? (
