@@ -61,7 +61,7 @@ export default function NearbyScreen() {
   const { mutate: ensureAnalysisMutate } = trpc.profiles.ensureAnalysis.useMutation();
 
   // Split queries: markers for map, list for user rows
-  const { points, refetch: refetchMarkers } = useNearbyMapMarkers();
+  const { points, totalUserCount, refetch: refetchMarkers } = useNearbyMapMarkers();
   const {
     users: listUsers,
     totalCount,
@@ -230,7 +230,7 @@ export default function NearbyScreen() {
     } else {
       // "all" — users section then groups section
       if (listUsers.length > 0) {
-        items.push({ type: "userHeader", count: totalCount });
+        items.push({ type: "userHeader", count: totalUserCount });
         for (const u of listUsers) {
           items.push({ type: "user", data: u });
         }
@@ -243,7 +243,7 @@ export default function NearbyScreen() {
       }
     }
     return items;
-  }, [nearbyFilter, listUsers, nearbyGroups, totalCount]);
+  }, [nearbyFilter, listUsers, nearbyGroups, totalUserCount]);
 
   const updateLocation = useCallback(async () => {
     try {
@@ -553,8 +553,8 @@ export default function NearbyScreen() {
 
       {/* Viewport indicator */}
       <ViewportIndicator
-        viewportCount={viewportUserCount}
-        totalCount={totalCount}
+        viewportCount={totalCount}
+        totalCount={totalUserCount}
         showAll={showAll}
         onToggle={toggleShowAll}
       />
@@ -562,7 +562,9 @@ export default function NearbyScreen() {
       {/* People-only header (when filter = people) */}
       {nearbyFilter === "people" && (
         <View style={styles.listHeader}>
-          <Text style={styles.listHeaderTitle}>{`${totalCount} ${totalCount === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}</Text>
+          <Text
+            style={styles.listHeaderTitle}
+          >{`${totalUserCount} ${totalUserCount === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}</Text>
         </View>
       )}
 
