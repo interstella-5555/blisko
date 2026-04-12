@@ -99,7 +99,7 @@ export default function NearbyScreen() {
 
   const handleReturnToMyLocation = useCallback(() => {
     if (!latitude || !longitude) return;
-    mapRef.current?.animateToRegion(latitude, longitude);
+    mapRef.current?.animateToRegion(latitude, longitude, mapRegion.latitudeDelta);
   }, [latitude, longitude]);
 
   // Clusters recompute automatically when points or region change
