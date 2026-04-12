@@ -2,12 +2,13 @@
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-12 — Split nearby into three endpoints: `getNearbyMapMarkers` (lightweight columnar), `getNearbyUsersForMap` (rich list with bbox viewport filter), `getNearbyUsers` (simple list). Status-match-first sort. Separate rate limit buckets (BLI-189).
+> Updated 2026-04-12 — BLI-189 hotfix: `getNearbyMapMarkers` now returns **real coordinates** (not grid-snapped) for user positions; `displayName` added to columnar response. Rate limits tightened to 20/10s. Viewport debounce is 500ms. Supercluster config: `radius: 30`, `maxZoom: 20`.
 
 ## Terminology & Product Alignment
 
 | PRODUCT.md term | Codebase term | Notes |
 |---|---|---|
-| Banka na mapie (bubble) | Profile + grid position | Client renders bubbles from profile data + grid-snapped coords |
+| Banka na mapie (bubble) | Profile + position | Client renders bubbles from profile data + real coordinates (map markers endpoint) or grid-snapped coords (rich list endpoint) |
 | ~300m odleglosc (approximate distance) | `roundDistance()` | Rounds to nearest 100m |
 | Promien 500m | `GRID_SIZE = 0.0045` | Grid cells are ~500m x 500m |
 | Lokalizacja odswiezana co 3 minuty | `updateLocation` + mobile background task | Server receives updates; frequency controlled by mobile client |
@@ -139,11 +140,11 @@ Three endpoints serve different use cases. All share the same bounding box + hav
 
 **Query:** Simple bounding box + haversine. Parallel fetch of blocked users (both directions), nearby profiles (userId + avatarUrl + status fields), current user profile (for status check), status matches, discoverable groups. No limit (safety cap 5000 users, 500 groups).
 
-**Columnar response:** Keys appear once, values in parallel arrays. Avatars are filenames only (client prepends CDN prefix). User positions are grid-snapped via `toGridCenter()`. Group positions are actual coordinates (not grid-snapped).
+**Columnar response:** Keys appear once, values in parallel arrays. Avatars are filenames only (client prepends CDN prefix). User positions are **real coordinates** (`u.latitude` / `u.longitude` directly — not grid-snapped). Group positions are also real coordinates. `displayName` is included for users so map bubbles can show a name without a second query.
 
 ```ts
 {
-  users:  { ids, avatars, lats, lngs, statusMatch },
+  users:  { ids, names, avatars, lats, lngs, statusMatch },
   groups: { ids, names, avatars, lats, lngs, members },
 }
 ```
@@ -168,7 +169,7 @@ Three endpoints serve different use cases. All share the same bounding box + hav
 | `photoOnly` | boolean | --- | false |
 | `bbox` | object (optional) | `{ south, north, west, east }` | --- |
 
-**Viewport filtering (BLI-189):** When `bbox` is provided, the bounding box is intersected with the radius bounding box. This filters results to only users visible on the map viewport. Client debounces viewport changes (300ms) before sending a new request.
+**Viewport filtering (BLI-189):** When `bbox` is provided, the bounding box is intersected with the radius bounding box. This filters results to only users visible on the map viewport. Client debounces viewport changes (500ms) before sending a new request.
 
 **Additional data fetched in parallel** (7 concurrent queries):
 - Blocked users (both directions)
@@ -224,10 +225,10 @@ From `rateLimits.ts`:
 
 | Config key | Limit | Window | Applies to |
 |---|---|---|---|
-| `profiles.getNearby` | 30 requests | 60 seconds | `getNearbyUsers` and `getNearbyUsersForMap` (rich list) |
-| `profiles.getNearbyMap` | 30 requests | 60 seconds | `getNearbyMapMarkers` (lightweight map markers) |
+| `profiles.getNearby` | 20 requests | 10 seconds | `getNearbyUsers` and `getNearbyUsersForMap` (rich list) |
+| `profiles.getNearbyMap` | 20 requests | 10 seconds | `getNearbyMapMarkers` (lightweight map markers) |
 
-Map and list have separate buckets so they don't compete. Client-side debounce (300ms viewport changes) and supercluster (zero HTTP on zoom/pan) keep actual request rates well below limits.
+Map and list have separate buckets so they don't compete. Client-side viewport debounce (500ms) and supercluster (zero HTTP on zoom/pan) keep actual request rates well below limits — at 500ms debounce the client can fire at most 2 req/s, which fits exactly in the 20/10s window.
 
 ## Haversine
 

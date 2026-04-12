@@ -1,6 +1,7 @@
 # Groups & Discovery
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-12 — BLI-189 hotfix: `getDiscoverable` accepts optional `bbox` parameter for viewport filtering (intersected with radius bounding box).
 
 Source: `apps/api/src/trpc/procedures/groups.ts`, `apps/api/src/db/schema.ts`, `packages/shared/src/validators.ts`.
 Design decisions: `docs/architecture/nearby-group-members.md`.
@@ -119,8 +120,9 @@ Requires `isDiscoverable = true`. Feature-gated: `groups.joinDiscoverable`.
 **Why:** Haversine formula gives accurate great-circle distance. Nearby member count lets users see group activity before joining.
 
 **Config:**
-- Input: `latitude`, `longitude`, `radiusMeters` (100-50000, default 5000), `limit` (1-50, default 20), `cursor` (offset)
+- Input: `latitude`, `longitude`, `radiusMeters` (100-50000, default 5000), `limit` (1-50, default 20), `cursor` (offset), `bbox` (optional: `{ south, north, west, east }`)
 - Filters: `type = 'group'`, `isDiscoverable = true`, `deletedAt IS NULL`, within radius
+- **Viewport filter (BLI-189):** When `bbox` is provided, results are further filtered to groups whose anchor coordinates fall within the viewport bounding box. Intersected with the radius bounding box — only groups visible on the current map view are returned.
 - Soft-delete filter: member counts use `INNER JOIN "user" u ON ... AND u.deleted_at IS NULL`
 - Nearby member count subquery: checks `location_visible = true`, `latitude IS NOT NULL`, and haversine distance <= radiusMeters
 - Results ordered by distance ascending

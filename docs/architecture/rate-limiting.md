@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-12 — Reverted BLI-189 temporary inflation (waves.send 300→30, waves.respond 600→60, profiles.getNearby 600→30, global 2000→200). Added `profiles.getNearbyMap` bucket for new lightweight map markers endpoint.
+> Updated 2026-04-12 — BLI-189 hotfix: tightened `profiles.getNearby` and `profiles.getNearbyMap` to 20/10s (was 30/60s). Coupled with 500ms viewport debounce on client (max 2 req/s = 20 in 10s window).
 
 ## Terminology & Product Alignment
 
@@ -94,8 +95,8 @@ Pre-auth endpoints (OTP) must use IP because there is no user identity yet. The 
 | `messages.sendGlobal` | 500 | 1 hour | Safety net for cross-conversation spam (one person flooding multiple chats). |
 | `profiles.update` | 10 | 1 hour | Normal use: 1-3 edits. Profile updates trigger AI re-analysis jobs, so rapid updates waste compute. |
 | `uploads` | 10 | 1 hour | S3 write protection (avatar + photos). |
-| `profiles.getNearby` | 30 | 1 min | Rich list endpoint (`getNearbyUsersForMap`). Client debounces viewport changes (300ms) so this limit is rarely approached. |
-| `profiles.getNearbyMap` | 30 | 1 min | Lightweight map markers endpoint (`getNearbyMapMarkers`). Separate bucket — map and list don't compete. |
+| `profiles.getNearby` | 20 | 10 sec | Rich list endpoint (`getNearbyUsersForMap`). Client debounces viewport changes (500ms) so this limit is rarely approached — max 2 req/s = 20 in the 10s window. |
+| `profiles.getNearbyMap` | 20 | 10 sec | Lightweight map markers endpoint (`getNearbyMapMarkers`). Separate bucket — map and list don't compete. Same debounce coupling as above. |
 | `dataExport` | 1 | 24 hours | Heavy aggregation query. GDPR export once per day is reasonable. |
 | `metrics.summary` | 30 | 1 min | Prevents scraping of system health data. Applied via Hono middleware (IP-based). |
 | `metrics.prometheus` | 30 | 1 min | Prevents Prometheus endpoint abuse. Applied via Hono middleware (IP-based). |
@@ -154,7 +155,7 @@ The procedure checks limits in this order (early exit on first failure):
 
 #### Distinction from rate limits
 
-Rate limits (`rateLimits.ts`) protect infrastructure: the current 300 pings per 4 hours (or the long-term 30/4h post-BLI-189) catches bots hammering the endpoint. Business limits (`pingLimits.ts`) shape the product experience: 5 pings per day forces intentional use. A bot would hit the rate limit; a real user hits the business limit first.
+Rate limits (`rateLimits.ts`) protect infrastructure: the 30/4h `waves.send` limit catches bots hammering the endpoint. Business limits (`pingLimits.ts`) shape the product experience: 5 pings per day forces intentional use. A bot would hit the rate limit; a real user hits the business limit first.
 
 ## Response Format
 

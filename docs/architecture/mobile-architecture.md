@@ -3,6 +3,7 @@
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — `messagesStore.updateMessage()` added for in-place message patches (fixes delete dropping message from list).
 > Updated 2026-04-12 — Nearby screen rewrite: supercluster clustering, viewport-synced list, split endpoints (`useNearbyMapMarkers` + `useNearbyList` + `useSupercluster` hooks), removed `nearbyOnly` toggle (BLI-189).
+> Updated 2026-04-12 — BLI-189 hotfix: supercluster config `radius: 30`, `maxZoom: 20`; viewport debounce 500ms (coupled with 20/10s rate limit — max 2 req/s fits in the window).
 > Updated 2026-04-11 — Single sign-out path `signOutAndReset()` exported from `app/_layout.tsx` — the 4 logout sites (settings, account deletion, onboarding abort, ACCOUNT_DELETED error handler) now call it instead of reimplementing store resets. Clears auth/profiles/conversations/messages/waves/onboarding stores + `queryClient` + SecureStore tokens; `locationStore` and `preferencesStore` intentionally untouched (BLI-204).
 > Updated 2026-04-11 — Fixed pings-list crash in `(tabs)/chats.tsx`: two sibling `FlatList`-es (pings vs conversations) in a ternary were sharing one React instance; switching filter mutated `onViewableItemsChanged` from function → undefined, triggering `Invariant Violation: Changing onViewableItemsChanged nullability on the fly is not supported` (SIGABRT). Fix: distinct `key` props so React treats them as separate instances. See "Gotchas" below.
 > Updated 2026-04-11 — Chats tab `tabBarBadge` now sums unread messages **and** unviewed pending pings (was: unread messages only). Mirrors the `unviewedPingCount` already shown on the sonar pill inside the chats screen — both numbers come from the same `wavesStore.viewedWaveIds` cursor, so the user sees a consistent "things demanding attention" count from the tab bar and from inside the screen (BLI-207). See "Tab badges" under Key Conventions.
@@ -240,6 +241,18 @@ Hooks live in `apps/mobile/src/hooks/`. All are React hooks, mounted high in the
 | `useRetryStatusMatchingOnFailure` | Listens for `statusMatchingFailed` WS event, calls `profiles.retryStatusMatching` — self-healing for the ambient status-matching pipeline (BLI-164) |
 
 The four retry hooks collectively implement the client side of the BLI-158/161/162/163/164 self-healing pattern (see `queues-jobs.md` worker-failure section). Each one is a thin wrapper around a specific WS-event → tRPC-retry-mutation pair; they exist as separate files because each mount point differs (question retry only on profiling Q&A screen, profile retry only after onboarding submit, etc.).
+
+### Nearby screen hook stack
+
+The "W okolicy" tab (`(tabs)/index.tsx`) uses three dedicated hooks:
+
+| Hook | File | Purpose |
+|---|---|---|
+| `useNearbyMapMarkers` | `src/hooks/useNearbyMapMarkers.ts` | Fetches lightweight columnar markers (ids, names, avatars, real coords, statusMatch) — no scoring, no pagination |
+| `useNearbyList` | `src/hooks/useNearbyList.ts` | Fetches rich list (bio, match score, snippet, cursor pagination). Accepts `bbox` viewport filter. Debounces viewport changes at **500ms** before issuing a request |
+| `useSupercluster` | `src/hooks/useSupercluster.ts` | Client-side clustering of map markers using the `supercluster` library. Config: `radius: 30`, `maxZoom: 20`. Zoom/pan triggers re-cluster in JS — **no HTTP request** |
+
+**Rate limit coupling:** `useNearbyList` debounces at 500ms, which caps the client at 2 req/s. The server limit for `profiles.getNearby` is 20/10s. At sustained max rate (2 req/s × 10s = 20 req), the client reaches but never exceeds the limit. See `src/hooks/useNearbyList.ts` comment for the formula.
 
 ---
 
