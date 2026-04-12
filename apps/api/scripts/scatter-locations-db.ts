@@ -119,6 +119,10 @@ function randomPointInDistricts(districts: District[]): { lat: number; lng: numb
 // --- DB ---
 
 async function loadDatabaseUrl(): Promise<string> {
+  // 1. Environment variable (works with --env-file or DATABASE_URL=... bun run)
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+
+  // 2. Fall back to .env files
   const dir = `${import.meta.dir}/..`;
   const mainEnv = await Bun.file(`${dir}/.env`)
     .text()
@@ -128,7 +132,7 @@ async function loadDatabaseUrl(): Promise<string> {
     .catch(() => "");
   const allEnv = `${mainEnv}\n${localEnv}`;
   const match = allEnv.match(/DATABASE_URL=(.+)/);
-  if (!match) throw new Error("DATABASE_URL not found in apps/api/.env or .env.local");
+  if (!match) throw new Error("DATABASE_URL not found in env var or apps/api/.env");
   return match[1].trim();
 }
 
