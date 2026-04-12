@@ -6,6 +6,8 @@ import type { MarkerPoint } from "@/hooks/useSupercluster";
 import { GridClusterMarker } from "./GridClusterMarker";
 import { GroupMarker } from "./GroupMarker";
 
+export const DEFAULT_MAP_DELTA = 0.05;
+
 export interface NearbyMapRef {
   animateToRegion: (lat: number, lng: number, zoom?: number) => void;
 }
@@ -56,8 +58,8 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
           initialRegion={{
             latitude: userLatitude,
             longitude: userLongitude,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
+            latitudeDelta: DEFAULT_MAP_DELTA,
+            longitudeDelta: DEFAULT_MAP_DELTA,
           }}
           showsUserLocation
           showsMyLocationButton

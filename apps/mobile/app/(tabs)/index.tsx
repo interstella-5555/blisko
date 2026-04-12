@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import type { Region } from "react-native-maps";
-import { ListShimmer, type NearbyMapRef, NearbyMapView } from "@/components/nearby";
+import { DEFAULT_MAP_DELTA, ListShimmer, type NearbyMapRef, NearbyMapView } from "@/components/nearby";
 import { GroupRow } from "@/components/nearby/GroupRow";
 import type { UserRowStatus } from "@/components/nearby/UserRow";
 import { UserRow } from "@/components/nearby/UserRow";
@@ -44,7 +44,7 @@ function approxDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: nu
   return Math.sqrt(dLat * dLat + dLng * dLng);
 }
 
-const DEFAULT_ZOOM = 13; // ≈ 0.044° delta, close to initial 0.05°
+const DEFAULT_ZOOM = Math.round(Math.log2(360 / DEFAULT_MAP_DELTA));
 
 type NearbyFilter = "all" | "people" | "groups";
 
@@ -89,8 +89,8 @@ export default function NearbyScreen() {
   const [mapRegion, setMapRegion] = useState<Region>({
     latitude: latitude!,
     longitude: longitude!,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
+    latitudeDelta: DEFAULT_MAP_DELTA,
+    longitudeDelta: DEFAULT_MAP_DELTA,
   });
 
   // Detect when the viewport center has drifted outside the nearby radius
