@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import type { Region } from "react-native-maps";
-import { ListShimmer, type NearbyMapRef, NearbyMapView, ViewportIndicator } from "@/components/nearby";
+import { ListShimmer, type NearbyMapRef, NearbyMapView } from "@/components/nearby";
 import { GroupRow } from "@/components/nearby/GroupRow";
 import type { UserRowStatus } from "@/components/nearby/UserRow";
 import { UserRow } from "@/components/nearby/UserRow";
@@ -372,7 +372,14 @@ export default function NearbyScreen() {
         const count = item.count;
         return (
           <View style={styles.listHeader}>
-            <Text style={styles.listHeaderTitle}>{`${count} ${count === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}</Text>
+            <Text style={styles.listHeaderTitle}>
+              {showAll
+                ? `${count} ${count === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`
+                : `${totalCount} Z ${count} OSÓB W POBLIŻU`}
+            </Text>
+            <Pressable onPress={toggleShowAll} hitSlop={8}>
+              <Text style={styles.listHeaderAction}>{showAll ? "Wróć do mapy" : "Pokaż wszystkich"}</Text>
+            </Pressable>
           </View>
         );
       }
@@ -551,20 +558,17 @@ export default function NearbyScreen() {
         </Pressable>
       </View>
 
-      {/* Viewport indicator */}
-      <ViewportIndicator
-        viewportCount={totalCount}
-        totalCount={totalUserCount}
-        showAll={showAll}
-        onToggle={toggleShowAll}
-      />
-
-      {/* People-only header (when filter = people) */}
+      {/* List header with viewport info */}
       {nearbyFilter === "people" && (
         <View style={styles.listHeader}>
-          <Text
-            style={styles.listHeaderTitle}
-          >{`${totalUserCount} ${totalUserCount === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}</Text>
+          <Text style={styles.listHeaderTitle}>
+            {showAll
+              ? `${totalUserCount} ${totalUserCount === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`
+              : `${totalCount} Z ${totalUserCount} OSÓB W POBLIŻU`}
+          </Text>
+          <Pressable onPress={toggleShowAll} hitSlop={8}>
+            <Text style={styles.listHeaderAction}>{showAll ? "Wróć do mapy" : "Pokaż wszystkich"}</Text>
+          </Pressable>
         </View>
       )}
 
@@ -727,6 +731,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1.5,
     color: colors.muted,
+  },
+  listHeaderAction: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 11,
+    color: "#efa844",
   },
   listContent: {
     paddingBottom: 40,
