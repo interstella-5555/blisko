@@ -11,8 +11,7 @@ Expo Push API delivering notifications to iOS and Android devices. Source: `apps
 | PRODUCT.md | Code | UI (Polish) |
 |---|---|---|
 | Ping / wave | `newWave` trigger | "Name — nowy ping!" |
-| Ping accepted | `waveResponded` trigger | "Name — ping przyjety!" |
-| Mutual ping | Both waves accepted simultaneously | "Pingowaliscie sie wzajemnie — to rzadkie!" |
+| Ping accepted | `waveResponded` trigger | "Name — ping przyjęty! Możecie teraz pisać." |
 | Status Match (ambient) | `sendAmbientPushWithCooldown()` | "Ktos z pasujacym profilem jest w poblizu" |
 | Chat message (DM) | `sendMessage` in DM conversation | "Name: message preview" |
 | Chat message (group) | `sendMessage` in group conversation | "Name: preview" or "N nowych wiadomosci" |
@@ -92,13 +91,12 @@ The central push function. Every push notification in the app goes through this 
 
 **Why fire-and-forget (`void sendPushToUser(...)`):** All call sites use `void` — push is a side effect that should not block the main mutation response. Failures are logged but don't affect the user's action.
 
-## All Push Types (9 triggers)
+## All Push Types (8 triggers)
 
 | Trigger | Title | Body | collapseId | Sound | Source file |
 |---|---|---|---|---|---|
-| New wave (normal) | `"Blisko"` | `"{name} — nowy ping!"` | none | Yes | `waves.ts` |
-| Mutual wave (both users) | `"Blisko"` | `"Pingowaliscie sie wzajemnie — to rzadkie!"` | none | Yes | `waves.ts` |
-| Wave accepted | `"Blisko"` | `"{name} — ping przyjety!"` | none | Yes | `waves.ts` |
+| New wave | `"Blisko"` | `"{name} — nowy ping!"` | none | Yes | `waves.ts` |
+| Wave accepted | `"Blisko"` | `"{name} — ping przyjęty! Możecie teraz pisać."` | none | Yes | `waves.ts` |
 | DM message | `"{senderName}"` | `"{messagePreview}"` | none | Yes | `messages.ts` |
 | Group message (first unread) | `"{groupName}"` | `"{senderName}: {preview}"` | none | Yes | `messages.ts` |
 | Group message (has unreads) | `"{groupName}"` | `"{N} nowych wiadomosci"` | `"group:{conversationId}"` | No (silent) | `messages.ts` |
@@ -110,9 +108,7 @@ The central push function. Every push notification in the app goes through this 
 
 **New wave:** Sent to `input.toUserId`. Title is always "Blisko" (app name). Body includes sender's `displayName` with fallback to "Ktos". Data payload: `{ type: "wave", userId: senderId }` — client uses this to deep-link to the wave detail screen.
 
-**Mutual wave:** When user A pings user B, and user B already has a pending wave to user A (within 30-second window), it's a mutual ping. Both users receive the same push text. Data payload: `{ type: "chat", conversationId }` — client opens the newly created conversation directly.
-
-**Wave accepted:** Sent to the original wave sender (`wave.fromUserId`). Data payload: `{ type: "chat", conversationId }` — client opens the new conversation.
+**Wave accepted:** Sent to the original wave sender (`wave.fromUserId`). Fired by both the explicit accept path (`waves.respond` accept branch) and the implicit accept path inside `waves.send` (when the second user pings before their UI has flipped to the accept button — see `waves-connections.md` → "Implicit Accept on Conflict"). Data payload: `{ type: "chat", conversationId }` — client opens the new conversation. Both paths share the `acceptWaveCore` helper, so the push text is identical from the recipient's perspective.
 
 ### Message push details
 

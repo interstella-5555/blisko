@@ -150,6 +150,77 @@ Report as:
 - **MEDIUM**: `procedures/Y.ts` — new user-facing query without block check
 ```
 
+### 5b. Database schema drift (prod vs Drizzle)
+
+Compare the live production database schema against the Drizzle schema defined in `packages/db/src/schema.ts`. Catches objects that exist in prod but not in migrations (manual `CREATE INDEX`, hand-run DDL, aborted migrations, schema changes applied via `psql`) and vice versa — anything that would break a fresh local/dev setup or make prod silently carry undocumented state.
+
+**Procedure:**
+
+```bash
+# 1. Dump production schema (read-only — pg_dump takes no locks beyond AccessShare)
+set -a && source apps/api/.env.production && set +a
+pg_dump --schema-only --no-owner --no-privileges --no-comments "$DATABASE_URL" > /tmp/blisko-prod-schema.sql
+
+# 2. Export the Drizzle schema to SQL
+cd apps/api && DATABASE_URL="postgres://dummy" npx drizzle-kit export --sql > /tmp/blisko-drizzle-schema.sql
+cd ../..
+```
+
+Both outputs are in different dialects (pg_dump emits `ALTER TABLE ADD CONSTRAINT` for PKs/FKs, drizzle-kit inlines them; pg_dump writes `timestamp without time zone`, drizzle writes `timestamp`; `serial` becomes `integer` + sequence in pg_dump; defaults may be cast `'pending'::varchar`), so a raw `diff` is noisy. Normalize before comparing.
+
+**Normalization rules when diffing:**
+
+| Cosmetic (ignore) | Real drift (report) |
+|---|---|
+| `timestamp` ≡ `timestamp without time zone` | Column missing on one side |
+| `timestamptz` ≡ `timestamp with time zone` | Column type differs (after normalization) |
+| `serial` ≡ `integer` + `nextval(...)` sequence | Nullability differs |
+| `character varying` ≡ `varchar` | Default value differs (after stripping `::type` casts) |
+| `'x'::varchar` ≡ `'x'` | Index missing on one side |
+| `PRIMARY KEY` inline vs separate `ALTER TABLE` | Index columns or `WHERE` clause differ |
+| `ON DELETE NO ACTION` ≡ default (unspecified) | `ON DELETE CASCADE` vs `NO ACTION` (real FK semantics) |
+| `public.foo` ≡ `foo` when in search path | Constraint present on one side only |
+| Whitespace inside `UNIQUE(a,b)` vs `UNIQUE (a, b)` | `UNIQUE` columns differ |
+| `drizzle.__drizzle_migrations` table (prod-only, expected) | Any other prod-only table |
+
+**What to extract and compare:**
+
+1. **Tables** — set of `schema.table_name` (strip `public.` and `drizzle.__drizzle_migrations`).
+2. **Columns per table** — `(column_name, normalized_type, nullable, normalized_default)`.
+3. **Indexes** — `(index_name, table, columns, unique, where_clause)`. Partial indexes must match on the `WHERE` clause — this is the most common kind of drift (someone adds a `CREATE UNIQUE INDEX ... WHERE ...` manually and never migrates it).
+4. **Foreign keys** — `(name, table, columns, referenced_table, referenced_columns, on_delete, on_update)`. Normalize `NO ACTION` as the default.
+5. **Primary keys and unique constraints** — `(table, columns)`.
+6. **Check constraints** — full normalized body.
+
+Dispatch this as a parallel agent (it is I/O-bound — pg_dump over the network) using `dispatching-parallel-agents`. The agent should produce a single structured diff report, not raw SQL.
+
+**Report as:**
+
+```markdown
+### Database Schema Drift (prod vs Drizzle)
+
+#### Only in production (not in schema.ts or any migration)
+- **HIGH**: `CREATE UNIQUE INDEX waves_pending_unique ON waves (from_user_id, to_user_id) WHERE status = 'pending'` — partial unique index, likely added manually. Risk: fresh local/dev DBs won't have this invariant; bulk inserts bypassing waves.send won't be deduped.
+- **MEDIUM**: `conversations.archived_at` column — exists in prod, not in schema. Risk: schema.ts and prod disagree on the row shape.
+
+#### Only in Drizzle (not in production)
+- **CRITICAL**: migration `0042_add_foo_column.sql` defines `foo`, prod does not have it. The post-deploy hook may have failed silently — check Railway deploy logs.
+
+#### Semantic differences
+- **HIGH**: FK `messages.conversation_id -> conversations.id`: prod has `ON DELETE NO ACTION`, schema says `ON DELETE CASCADE`. One of them is wrong.
+- **MEDIUM**: Column `profiles.current_status` — prod default is `'idle'`, schema default is `''`.
+
+#### No drift
+- [nothing reported means prod matches schema.ts]
+```
+
+**Resolution policy:** every reported item needs one of three outcomes:
+1. **Adopt into schema** — add the object to `schema.ts`, run `drizzle-kit generate`, edit the generated SQL to use `IF NOT EXISTS` / `IF EXISTS` so the migration is idempotent (no-op on prod, creates the object on fresh DBs). Update the architecture doc that covers the domain.
+2. **Remove from prod** — write a migration that drops the object, after verifying no code depends on it.
+3. **Deliberate deviation** — document in the relevant architecture doc why prod diverges (rare; avoid unless there is a real reason).
+
+Never ignore a drift item. Silent divergence is the worst outcome — it bites during incidents when local repro doesn't match prod.
+
 ### 6. PRODUCT.md alignment check
 
 Read `PRODUCT.md` and compare with architecture docs:

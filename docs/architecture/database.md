@@ -555,6 +555,77 @@ Relations are defined for the v1 relational API (`relations()` from `drizzle-orm
 - `messages` has one `conversation`, `sender`, `topic`, `replyTo`; many `replies`, `reactions`
 - `profilingSessions` has one `user`, one `basedOnSession` (self-ref); many `questions`
 
+## Drizzle Schema Gotchas
+
+### Partial index `WHERE` clauses must use `sql\`\`` literals, not filter functions
+
+When adding a partial index in `schema.ts`, the `.where()` clause **must** be a `sql\`...\`` template with a literal value — not `eq()`, `and()`, or any other filter function from `drizzle-orm`:
+
+```ts
+// ✅ correct — literal value inside sql template
+pendingUnique: uniqueIndex("waves_pending_unique")
+  .on(table.fromUserId, table.toUserId)
+  .where(sql`${table.status} = 'pending'`),
+
+// ❌ broken — drizzle-kit emits parameterized SQL (`WHERE ... = $1`)
+pendingUnique: uniqueIndex("waves_pending_unique")
+  .on(table.fromUserId, table.toUserId)
+  .where(eq(table.status, "pending")),
+```
+
+Drizzle-kit's generator turns filter-function `where` clauses into parameterized SQL with `$1`/`$2`/… placeholders. Parameter placeholders have no binding context at `CREATE INDEX` time — the migration file is DDL, not a prepared statement — so the resulting migration is silently broken. Always read the generated `.sql` after running `db:generate` (rule `migrations/review-sql`); seeing `$N` inside a `CREATE INDEX ... WHERE ...` means the schema definition needs to be rewritten with `sql\`\``.
+
+The same rule applies to any other DDL context where drizzle-kit serializes an expression into static SQL (e.g. `check()` constraints).
+
+### `onConflictDoNothing` cannot target expression-based unique indexes directly — use a generated column
+
+The repo rule `drizzle/use-on-conflict` says to prefer `INSERT ... ON CONFLICT DO NOTHING` over the "select → if → update / insert" antipattern. That works fine when the conflict target is one or more plain columns. It does **not** work when the unique index is built on a SQL expression like `LEAST(col_a, col_b)` — drizzle-orm 0.45.x types `onConflictDoNothing({ target })` as `IndexColumn | IndexColumn[]` and the runtime calls `getColumnCasing(target)` on each element, which throws on raw `sql` values. PostgreSQL itself supports `ON CONFLICT (LEAST(a, b), GREATEST(a, b)) WHERE ... DO NOTHING`, but the Drizzle API does not surface it.
+
+**Workaround we use: STORED generated column.** Materialise the canonical value as a separate column with `GENERATED ALWAYS AS (...) STORED`, put the unique index on that plain column, and `onConflictDoNothing({ target: schema.table.col })` works normally.
+
+The `waves` table is the canonical example. We need uniqueness over the unordered pair `(from_user_id, to_user_id)`, so the table has:
+
+```ts
+pairKey: text("pair_key")
+  .notNull()
+  .generatedAlwaysAs(
+    sql`md5(LEAST("from_user_id", "to_user_id") || ':' || GREATEST("from_user_id", "to_user_id"))`,
+  ),
+```
+
+and:
+
+```ts
+activeUnique: uniqueIndex("waves_active_unique")
+  .on(table.pairKey)
+  .where(sql`${table.status} in ('pending', 'accepted')`),
+```
+
+Application code then uses standard onConflict:
+
+```ts
+await db.insert(schema.waves)
+  .values({ fromUserId, toUserId, ... })
+  .onConflictDoNothing({
+    target: schema.waves.pairKey,
+    where: sql`${schema.waves.status} in ('pending', 'accepted')`,
+  })
+  .returning();
+```
+
+**Why md5 specifically:** fixed-width 32-char hex string regardless of source ID length, identical for `(A,B)` and `(B,A)`, and the `:` separator is safe because Better Auth user IDs are nanoid-style alphanumeric. md5 is built into Postgres (no extension needed) and md5's "cryptographically broken" reputation does not matter here — we use it for collision-free deduplication, not security. Collision probability for our scale is on the order of `10^-25`.
+
+**Costs to be aware of:**
+
+- STORED generated columns are persisted on disk for **every row** in the table (PG does not yet support VIRTUAL generated columns). Storage cost is small but real — ~36 bytes per row for md5.
+- Adding a STORED generated column to a non-empty table requires a full table rewrite under `AccessExclusiveLock`. Sub-second on small tables, can be a problem on large ones; consider doing the rewrite in a maintenance window if the table has tens of millions of rows.
+- The column cannot be written to from application code — Postgres rejects any `INSERT`/`UPDATE` that supplies a value. Drizzle's types reflect this.
+
+The two alternatives we considered and rejected:
+
+- **Catch `23505` after a plain INSERT** — works but uses exceptions for normal flow control and adds an `isUniqueViolation` helper. Not idiomatic, and `drizzle/use-on-conflict` exists specifically to discourage this pattern.
+- **Raw `db.execute(sql\`...\`)`** with full hand-written SQL — violates `drizzle/no-raw-execute` and loses Drizzle's type-safe value binding.
+
 ## Impact Map
 
 If you change this system, also check:

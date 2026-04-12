@@ -225,26 +225,43 @@ export default function UserProfileScreen() {
         cached ? { displayName: cached.displayName, avatarUrl: cached.avatarUrl } : undefined,
       );
     try {
-      const wave = await sendWaveMutation.mutateAsync({ toUserId: userId });
-      // Replace optimistic with real
+      const result = await sendWaveMutation.mutateAsync({ toUserId: userId });
       useWavesStore.getState().removeSent("optimistic");
+
+      if (result.autoAccepted) {
+        // The other user already had a pending wave to us. The server
+        // implicitly accepted it on our behalf — we are now connected and
+        // a conversation exists. Flip the existing received pending wave
+        // to accepted in the local store (so the wave-status map sees us
+        // as `connected`), then jump straight into the chat.
+        useWavesStore.getState().updateStatus(result.wave.id, true);
+        setPendingWaveId(null);
+        await Promise.all([utils.waves.getReceived.invalidate(), utils.messages.getConversations.invalidate()]);
+        router.push(`/chat/${result.conversationId}`);
+        return;
+      }
+
+      // Normal flow — replace optimistic with the real sent wave
       useWavesStore.getState().addSent(
         {
-          id: wave.id,
-          fromUserId: wave.fromUserId,
-          toUserId: wave.toUserId,
-          status: wave.status,
-          createdAt: wave.createdAt.toString(),
+          id: result.wave.id,
+          fromUserId: result.wave.fromUserId,
+          toUserId: result.wave.toUserId,
+          status: result.wave.status,
+          createdAt: result.wave.createdAt.toString(),
         },
         cached ? { displayName: cached.displayName, avatarUrl: cached.avatarUrl } : undefined,
       );
-      setPendingWaveId(wave.id);
+      setPendingWaveId(result.wave.id);
       await utils.waves.getSent.invalidate();
     } catch (error: unknown) {
       useWavesStore.getState().removeSent("optimistic");
       const errorMsg = error instanceof Error ? error.message : String(error);
-      if (errorMsg.includes("already waved")) {
+      if (errorMsg.includes("already_waved")) {
         // Already waved — keep pending state, let next sync pick up the real ID
+      } else if (errorMsg.includes("already_connected")) {
+        setPendingWaveId(null);
+        Alert.alert("Jesteście połączeni", "Macie już ze sobą chat — otwórz go z listy rozmów.");
       } else if (errorMsg.includes("daily_limit")) {
         setPendingWaveId(null);
         Alert.alert("Limit dzienny", "Wykorzystałeś dzienny limit pingów. Wróć jutro!");
