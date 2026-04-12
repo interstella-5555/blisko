@@ -448,6 +448,12 @@ export const profilesRouter = router({
       const minLon = longitude - lonDelta;
       const maxLon = longitude + lonDelta;
 
+      // When bbox provided, intersect viewport with radius bounding box
+      const effectiveMinLat = input.bbox ? Math.max(minLat, input.bbox.south) : minLat;
+      const effectiveMaxLat = input.bbox ? Math.min(maxLat, input.bbox.north) : maxLat;
+      const effectiveMinLon = input.bbox ? Math.max(minLon, input.bbox.west) : minLon;
+      const effectiveMaxLon = input.bbox ? Math.min(maxLon, input.bbox.east) : maxLon;
+
       // Haversine distance formula
       const distanceFormula = sql<number>`
         6371000 * acos(
@@ -463,8 +469,8 @@ export const profilesRouter = router({
       const baseWhere = and(
         ne(schema.profiles.userId, ctx.userId),
         ne(schema.profiles.visibilityMode, "ninja"),
-        between(schema.profiles.latitude, minLat, maxLat),
-        between(schema.profiles.longitude, minLon, maxLon),
+        between(schema.profiles.latitude, effectiveMinLat, effectiveMaxLat),
+        between(schema.profiles.longitude, effectiveMinLon, effectiveMaxLon),
         lte(distanceFormula, radiusMeters),
         isNull(schema.user.deletedAt),
         ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
@@ -599,8 +605,11 @@ export const profilesRouter = router({
         });
       }
 
-      // Sort by rankScore descending
-      results.sort((a, b) => b.rankScore - a.rankScore);
+      // Sort: status matches first, then rankScore descending
+      results.sort((a, b) => {
+        if (a.hasStatusMatch !== b.hasStatusMatch) return a.hasStatusMatch ? -1 : 1;
+        return b.rankScore - a.rankScore;
+      });
 
       // Safety net: queue T2 quick scores for users without any analysis
       const missingAnalysisUserIds = results
