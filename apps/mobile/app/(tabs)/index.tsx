@@ -476,13 +476,13 @@ export default function NearbyScreen() {
             <Text style={styles.emptyListText}>
               {isOutsideRadius ? `Pokazujemy grupy w promieniu ${radiusLabel} od Ciebie` : "Brak grup w okolicy"}
             </Text>
-            <Pressable style={styles.returnButton} onPress={() => router.push("/create-group")}>
-              <IconPlus size={14} color={colors.accent} />
-              <Text style={styles.returnButtonText}>Utwórz grupę</Text>
-            </Pressable>
             <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
               <IconPin size={14} color={colors.accent} />
               <Text style={styles.returnButtonText}>Wróć do mojej lokalizacji</Text>
+            </Pressable>
+            <Pressable style={styles.returnButton} onPress={() => router.push("/create-group")}>
+              <IconPlus size={14} color={colors.accent} />
+              <Text style={styles.returnButtonText}>Utwórz grupę</Text>
             </Pressable>
           </View>
         );
