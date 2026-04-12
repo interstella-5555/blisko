@@ -169,6 +169,10 @@ export default function NearbyScreen() {
           refetchList();
         }, 3000);
       }
+      if (msg.type === "analysisReady") {
+        // Analysis completed for a nearby user — refetch list to show new snippet/score
+        refetchList();
+      }
       if (msg.type === "statusMatchesReady") {
         refetchMarkers();
         refetchList();
