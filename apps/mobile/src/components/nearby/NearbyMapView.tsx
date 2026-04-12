@@ -106,7 +106,11 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
                 onPress={() => onUserPress?.(leafProps.userId!)}
                 tracksViewChanges
               >
-                <GridClusterMarker avatarUrl={leafProps.avatar} highlighted={leafProps.statusMatch} />
+                <GridClusterMarker
+                  avatarUrl={leafProps.avatar}
+                  displayName={leafProps.name}
+                  highlighted={leafProps.statusMatch}
+                />
               </Marker>
             );
           })}

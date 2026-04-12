@@ -321,6 +321,7 @@ export const profilesRouter = router({
           db
             .select({
               userId: schema.profiles.userId,
+              displayName: schema.profiles.displayName,
               avatarUrl: schema.profiles.avatarUrl,
               latitude: schema.profiles.latitude,
               longitude: schema.profiles.longitude,
@@ -383,6 +384,7 @@ export const profilesRouter = router({
 
       // Build columnar user response
       const ids: string[] = [];
+      const names: string[] = [];
       const avatars: (string | null)[] = [];
       const lats: number[] = [];
       const lngs: number[] = [];
@@ -393,6 +395,7 @@ export const profilesRouter = router({
 
         const grid = toGridCenter(u.latitude!, u.longitude!);
         ids.push(u.userId);
+        names.push(u.displayName ?? "");
         avatars.push(u.avatarUrl ? u.avatarUrl : null);
         lats.push(grid.gridLat);
         lngs.push(grid.gridLng);
@@ -419,7 +422,7 @@ export const profilesRouter = router({
       }
 
       return {
-        users: { ids, avatars, lats, lngs, statusMatch },
+        users: { ids, names, avatars, lats, lngs, statusMatch },
         groups: {
           ids: groupIds,
           names: groupNames,

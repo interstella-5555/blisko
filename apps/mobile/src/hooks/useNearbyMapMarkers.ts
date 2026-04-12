@@ -38,6 +38,7 @@ export function useNearbyMapMarkers() {
         properties: {
           type: "user",
           userId: data.users.ids[i],
+          name: data.users.names[i] || null,
           avatar: data.users.avatars[i] ? data.users.avatars[i] : null,
           statusMatch: data.users.statusMatch[i] === 1,
         },
