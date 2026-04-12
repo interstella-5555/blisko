@@ -378,7 +378,7 @@ export default function NearbyScreen() {
                 : `${totalCount} Z ${count} OSÓB W POBLIŻU`}
             </Text>
             <Pressable onPress={toggleShowAll} hitSlop={8}>
-              <Text style={styles.listHeaderAction}>{showAll ? "Wróć do mapy" : "Pokaż wszystkich"}</Text>
+              <Text style={styles.listHeaderAction}>{showAll ? "Widoczni na mapie" : "Pokaż wszystkich"}</Text>
             </Pressable>
           </View>
         );
@@ -567,7 +567,7 @@ export default function NearbyScreen() {
               : `${totalCount} Z ${totalUserCount} OSÓB W POBLIŻU`}
           </Text>
           <Pressable onPress={toggleShowAll} hitSlop={8}>
-            <Text style={styles.listHeaderAction}>{showAll ? "Wróć do mapy" : "Pokaż wszystkich"}</Text>
+            <Text style={styles.listHeaderAction}>{showAll ? "Widoczni na mapie" : "Pokaż wszystkich"}</Text>
           </Pressable>
         </View>
       )}
