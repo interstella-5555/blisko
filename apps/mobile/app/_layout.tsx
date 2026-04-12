@@ -8,16 +8,17 @@ import * as SecureStore from "expo-secure-store";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, Alert, AppState, Platform, Pressable, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Toaster } from "sonner-native";
 import { IconChevronLeft } from "@/components/ui/icons";
 import { NotificationOverlay } from "@/components/ui/NotificationOverlay";
-import { ToastOverlay } from "@/components/ui/ToastOverlay";
 import { authClient } from "@/lib/auth";
 import { getRateLimitMessage } from "@/lib/rateLimitMessages";
+import { showToast } from "@/lib/toast";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useWebSocket } from "@/lib/ws";
 import { NotificationProvider } from "@/providers/NotificationProvider";
-import { showToastGlobal, ToastProvider } from "@/providers/ToastProvider";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationsStore } from "@/stores/conversationsStore";
 import { useMessagesStore } from "@/stores/messagesStore";
@@ -51,16 +52,10 @@ function handleRateLimitError(error: unknown) {
   try {
     const parsed = JSON.parse(err.message ?? "");
     if (parsed.error === "RATE_LIMITED") {
-      showToastGlobal({
-        type: "error",
-        title: getRateLimitMessage(parsed.context),
-      });
+      showToast("error", getRateLimitMessage(parsed.context));
     }
   } catch {
-    showToastGlobal({
-      type: "error",
-      title: getRateLimitMessage(),
-    });
+    showToast("error", getRateLimitMessage());
   }
 }
 
@@ -71,10 +66,7 @@ function handleContentModeration(error: unknown) {
   try {
     const parsed = JSON.parse(err.message ?? "");
     if (parsed.error === "CONTENT_MODERATED") {
-      showToastGlobal({
-        type: "error",
-        title: "Treść narusza regulamin",
-      });
+      showToast("error", "Treść narusza regulamin");
     }
   } catch {
     // Not a moderation error — ignore
@@ -188,10 +180,10 @@ export default function RootLayout() {
   }
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <NotificationProvider>
-          <ToastProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <NotificationProvider>
             <StatusBar style="dark" />
             <LinkPreviewContextProvider>
               <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
@@ -252,10 +244,18 @@ export default function RootLayout() {
               </Stack>
             </LinkPreviewContextProvider>
             <NotificationOverlay />
-            <ToastOverlay />
-          </ToastProvider>
-        </NotificationProvider>
-      </QueryClientProvider>
-    </trpc.Provider>
+            <Toaster
+              position="top-center"
+              duration={4000}
+              visibleToasts={3}
+              swipeToDismissDirection="up"
+              richColors
+              theme="light"
+              offset={0}
+            />
+          </NotificationProvider>
+        </QueryClientProvider>
+      </trpc.Provider>
+    </GestureHandlerRootView>
   );
 }
