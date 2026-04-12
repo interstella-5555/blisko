@@ -37,6 +37,15 @@ import { colors, fonts, spacing, type as typ } from "@/theme";
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.4;
 
+/** Equirectangular approximation — accurate enough for UI-level "are we near?" checks. */
+function approxDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dLat = (lat2 - lat1) * 111_000;
+  const dLng = (lng2 - lng1) * 111_000 * Math.cos(lat1 * (Math.PI / 180));
+  return Math.sqrt(dLat * dLat + dLng * dLng);
+}
+
+const DEFAULT_ZOOM = 13; // ≈ 0.044° delta, close to initial 0.05°
+
 type NearbyFilter = "all" | "people" | "groups";
 
 const FILTER_CHIPS: { key: NearbyFilter; label: string }[] = [
@@ -83,6 +92,19 @@ export default function NearbyScreen() {
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   });
+
+  // Detect when the viewport center has drifted outside the nearby radius
+  const isOutsideRadius = useMemo(() => {
+    if (!latitude || !longitude || showAllNearby) return false;
+    return approxDistanceMeters(latitude, longitude, mapRegion.latitude, mapRegion.longitude) > nearbyRadiusMeters;
+  }, [latitude, longitude, mapRegion.latitude, mapRegion.longitude, nearbyRadiusMeters, showAllNearby]);
+
+  const radiusLabel = nearbyRadiusMeters >= 1000 ? `${nearbyRadiusMeters / 1000} km` : `${nearbyRadiusMeters} m`;
+
+  const handleReturnToMyLocation = useCallback(() => {
+    if (!latitude || !longitude) return;
+    mapRef.current?.animateToRegion(latitude, longitude, DEFAULT_ZOOM);
+  }, [latitude, longitude]);
 
   // Clusters recompute automatically when points or region change
   const clusters = useMemo(() => getClusters(mapRegion), [getClusters, mapRegion]);
@@ -248,7 +270,7 @@ export default function NearbyScreen() {
       }
     }
     return items;
-  }, [nearbyFilter, listUsers, nearbyGroups, totalUserCount, totalCount, showAllNearby, mapRegion]);
+  }, [nearbyFilter, listUsers, nearbyGroups, totalUserCount, totalCount]);
 
   const updateLocation = useCallback(async () => {
     try {
@@ -451,10 +473,16 @@ export default function NearbyScreen() {
       case "groupsEmpty":
         return (
           <View style={styles.emptyList}>
-            <Text style={styles.emptyListText}>Brak grup w okolicy</Text>
+            <Text style={styles.emptyListText}>
+              {isOutsideRadius ? `Pokazujemy grupy w promieniu ${radiusLabel} od Ciebie` : "Brak grup w okolicy"}
+            </Text>
             <View style={{ marginTop: spacing.gutter }}>
               <Button title="Utwórz grupę" variant="accent" onPress={() => router.push("/create-group")} />
             </View>
+            <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
+              <IconPin size={14} color={colors.accent} />
+              <Text style={styles.returnButtonText}>Wróć do mojej lokalizacji</Text>
+            </Pressable>
           </View>
         );
       default:
@@ -589,7 +617,23 @@ export default function NearbyScreen() {
           ListEmptyComponent={
             nearbyFilter === "people" ? (
               <View style={styles.emptyList}>
-                <Text style={styles.emptyListText}>Nikogo w pobliżu</Text>
+                <Text style={styles.emptyListText}>
+                  {isOutsideRadius ? `Pokazujemy osoby w promieniu ${radiusLabel} od Ciebie` : "Nikogo w tej okolicy"}
+                </Text>
+                <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
+                  <IconPin size={14} color={colors.accent} />
+                  <Text style={styles.returnButtonText}>Wróć do mojej lokalizacji</Text>
+                </Pressable>
+              </View>
+            ) : nearbyFilter === "all" ? (
+              <View style={styles.emptyList}>
+                <Text style={styles.emptyListText}>
+                  {isOutsideRadius ? `Pokazujemy osoby w promieniu ${radiusLabel} od Ciebie` : "Nikogo w tej okolicy"}
+                </Text>
+                <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
+                  <IconPin size={14} color={colors.accent} />
+                  <Text style={styles.returnButtonText}>Wróć do mojej lokalizacji</Text>
+                </Pressable>
               </View>
             ) : null
           }
@@ -753,6 +797,21 @@ const styles = StyleSheet.create({
   emptyListText: {
     ...typ.body,
     color: colors.muted,
+    textAlign: "center",
+    paddingHorizontal: spacing.section,
+  },
+  returnButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: spacing.column,
+    paddingVertical: spacing.tight,
+    paddingHorizontal: spacing.column,
+  },
+  returnButtonText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    color: colors.accent,
   },
   filterFunnel: {
     width: 36,
