@@ -79,10 +79,10 @@ export default function NearbyScreen() {
   } = useNearbyList();
   const { getClusters, getExpansionZoom } = useSupercluster(points);
 
-  // Track current map region — initialized to user location, updated on every pan/zoom
+  // Track current map region — updated on every pan/zoom, initialized to user location
   const [mapRegion, setMapRegion] = useState<Region>({
-    latitude: latitude ?? 52.2297,
-    longitude: longitude ?? 21.0122,
+    latitude: latitude!,
+    longitude: longitude!,
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   });
