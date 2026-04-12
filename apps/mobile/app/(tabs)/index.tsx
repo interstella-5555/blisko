@@ -1,3 +1,4 @@
+import { keepPreviousData } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -120,6 +121,7 @@ export default function NearbyScreen() {
     {
       enabled: !!latitude && !!longitude && nearbyFilter !== "people",
       staleTime: 30000,
+      placeholderData: keepPreviousData,
     },
   );
 
