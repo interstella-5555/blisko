@@ -79,28 +79,23 @@ export default function NearbyScreen() {
   } = useNearbyList();
   const { getClusters, getExpansionZoom } = useSupercluster(points);
 
-  const [clusters, setClusters] = useState<ReturnType<typeof getClusters>>([]);
-  const lastRegionRef = useRef<Region | null>(null);
+  // Track current map region — initialized to user location, updated on every pan/zoom
+  const [mapRegion, setMapRegion] = useState<Region>({
+    latitude: latitude ?? 52.2297,
+    longitude: longitude ?? 21.0122,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  });
 
-  // Initialize clusters when points load (onRegionChangeComplete doesn't fire on mount)
-  useEffect(() => {
-    if (points.length === 0) return;
-    const region = lastRegionRef.current ?? {
-      latitude: latitude!,
-      longitude: longitude!,
-      latitudeDelta: 0.05,
-      longitudeDelta: 0.05,
-    };
-    setClusters(getClusters(region));
-  }, [points, getClusters, latitude, longitude]);
+  // Clusters recompute automatically when points or region change
+  const clusters = useMemo(() => getClusters(mapRegion), [getClusters, mapRegion]);
 
   const handleRegionChangeComplete = useCallback(
     (region: Region) => {
-      lastRegionRef.current = region;
-      setClusters(getClusters(region));
+      setMapRegion(region);
       onListRegionChange(region);
     },
-    [getClusters, onListRegionChange],
+    [onListRegionChange],
   );
 
   const handleClusterPress = useCallback(
