@@ -7,7 +7,7 @@ import {
   updateGroupSchema,
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
+import { and, between, eq, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
@@ -541,7 +541,7 @@ export const groupsRouter = router({
   }),
 
   getDiscoverable: protectedProcedure.input(getDiscoverableGroupsSchema).query(async ({ input }) => {
-    const { latitude, longitude, radiusMeters, limit, cursor } = input;
+    const { latitude, longitude, radiusMeters, limit, cursor, bbox } = input;
 
     // Haversine distance filter — acos() arg clamped to [-1,1] to avoid fp drift crashing PG at ~0m.
     const distanceSql = sql<number>`
@@ -589,6 +589,12 @@ export const groupsRouter = router({
           eq(schema.conversations.isDiscoverable, true),
           isNull(schema.conversations.deletedAt),
           lte(distanceSql, radiusMeters),
+          ...(bbox
+            ? [
+                between(schema.conversations.latitude, bbox.south, bbox.north),
+                between(schema.conversations.longitude, bbox.west, bbox.east),
+              ]
+            : []),
         ),
       )
       .orderBy(sql`distance`)

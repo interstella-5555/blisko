@@ -208,6 +208,14 @@ export const getDiscoverableGroupsSchema = z.object({
   radiusMeters: z.number().min(100).max(50000).default(5000),
   limit: z.number().min(1).max(50).default(20),
   cursor: z.number().int().min(0).optional(),
+  bbox: z
+    .object({
+      south: z.number().min(-90).max(90),
+      north: z.number().min(-90).max(90),
+      west: z.number().min(-180).max(180),
+      east: z.number().min(-180).max(180),
+    })
+    .optional(),
 });
 
 // Topic validators

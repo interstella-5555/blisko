@@ -108,6 +108,14 @@ export default function NearbyScreen() {
       latitude: latitude!,
       longitude: longitude!,
       radiusMeters: nearbyRadiusMeters,
+      bbox: showAllNearby
+        ? undefined
+        : {
+            south: mapRegion.latitude - mapRegion.latitudeDelta / 2,
+            north: mapRegion.latitude + mapRegion.latitudeDelta / 2,
+            west: mapRegion.longitude - mapRegion.longitudeDelta / 2,
+            east: mapRegion.longitude + mapRegion.longitudeDelta / 2,
+          },
     },
     {
       enabled: !!latitude && !!longitude && nearbyFilter !== "people",
@@ -208,21 +216,7 @@ export default function NearbyScreen() {
 
   const listItems = useMemo((): ListItem[] => {
     const items: ListItem[] = [];
-    const allGroups = nearbyGroups ?? [];
-    // Filter groups by viewport when not showing all
-    const groups = showAllNearby
-      ? allGroups
-      : allGroups.filter((g) => {
-          if (g.latitude == null || g.longitude == null) return false;
-          const halfLat = mapRegion.latitudeDelta / 2;
-          const halfLng = mapRegion.longitudeDelta / 2;
-          return (
-            g.latitude >= mapRegion.latitude - halfLat &&
-            g.latitude <= mapRegion.latitude + halfLat &&
-            g.longitude >= mapRegion.longitude - halfLng &&
-            g.longitude <= mapRegion.longitude + halfLng
-          );
-        });
+    const groups = nearbyGroups ?? [];
 
     if (nearbyFilter === "people") {
       for (const u of listUsers) {
