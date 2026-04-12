@@ -148,6 +148,13 @@
       "when": 1775893432047,
       "tag": "0020_add_tier_to_connection_analyses",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1775952975265,
+      "tag": "0021_add_waves_active_unique_index",
+      "breakpoints": true
     }
   ]
 }

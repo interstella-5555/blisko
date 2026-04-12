@@ -1,13 +1,8 @@
 import { blockUserSchema, respondToWaveSchema, sendWaveSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { subHours, subSeconds } from "date-fns";
+import { subHours } from "date-fns";
 import { and, desc, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
-import {
-  DAILY_PING_LIMIT_BASIC,
-  DECLINE_COOLDOWN_HOURS,
-  MUTUAL_PING_WINDOW_SECONDS,
-  PER_PERSON_COOLDOWN_HOURS,
-} from "@/config/pingLimits";
+import { DAILY_PING_LIMIT_BASIC, DECLINE_COOLDOWN_HOURS, PER_PERSON_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, schema } from "@/db";
 import { setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
@@ -16,6 +11,109 @@ import { featureGate } from "@/trpc/middleware/featureGate";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 import { publishEvent } from "@/ws/redis-bridge";
+
+type AcceptableWave = {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  senderStatusSnapshot: string | null;
+};
+
+type ResponderProfile = {
+  displayName: string;
+  avatarUrl: string | null;
+  currentStatus: string | null;
+  latitude: number | null;
+  longitude: number | null;
+} | null;
+
+type SenderLocation = {
+  latitude: number | null;
+  longitude: number | null;
+} | null;
+
+// Shared accept logic used by both `waves.respond` (explicit accept) and
+// `waves.send` (implicit accept when the second user pings the first user
+// who already has a pending wave to them — they clearly both want to
+// connect, so the second send is treated as accept of the existing pending).
+async function acceptWaveCore(
+  wave: AcceptableWave,
+  responderUserId: string,
+  responderProfile: ResponderProfile,
+  senderLocation: SenderLocation,
+): Promise<{ updatedWave: typeof schema.waves.$inferSelect; conversation: { id: string } }> {
+  let connectedDistance: number | null = null;
+  if (
+    responderProfile?.latitude &&
+    responderProfile?.longitude &&
+    senderLocation?.latitude &&
+    senderLocation?.longitude
+  ) {
+    const R = 6371000;
+    const dLat = ((senderLocation.latitude - responderProfile.latitude) * Math.PI) / 180;
+    const dLon = ((senderLocation.longitude - responderProfile.longitude) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((responderProfile.latitude * Math.PI) / 180) *
+        Math.cos((senderLocation.latitude * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+    connectedDistance = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  }
+
+  const result = await db.transaction(async (tx) => {
+    const [updatedWave] = await tx
+      .update(schema.waves)
+      .set({
+        status: "accepted",
+        recipientStatusSnapshot: responderProfile?.currentStatus ?? null,
+        respondedAt: new Date(),
+      })
+      .where(and(eq(schema.waves.id, wave.id), eq(schema.waves.status, "pending")))
+      .returning();
+
+    if (!updatedWave) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Wave already responded to" });
+    }
+
+    const [conversation] = await tx
+      .insert(schema.conversations)
+      .values({
+        metadata: {
+          senderStatus: wave.senderStatusSnapshot ?? null,
+          recipientStatus: responderProfile?.currentStatus ?? null,
+          connectedAt: new Date().toISOString(),
+          connectedDistance,
+        },
+      })
+      .returning();
+
+    await tx.insert(schema.conversationParticipants).values([
+      { conversationId: conversation.id, userId: wave.fromUserId },
+      { conversationId: conversation.id, userId: responderUserId },
+    ]);
+
+    return { updatedWave, conversation };
+  });
+
+  void sendPushToUser(wave.fromUserId, {
+    title: "Blisko",
+    body: `${responderProfile?.displayName ?? "Ktoś"} — ping przyjęty! Możecie teraz pisać.`,
+    data: { type: "chat", conversationId: result.conversation.id },
+  });
+
+  publishEvent("waveResponded", {
+    fromUserId: wave.fromUserId,
+    responderId: responderUserId,
+    waveId: wave.id,
+    accepted: true,
+    conversationId: result.conversation.id,
+    responderProfile: responderProfile
+      ? { displayName: responderProfile.displayName, avatarUrl: responderProfile.avatarUrl }
+      : { displayName: "Ktoś", avatarUrl: null },
+  });
+
+  return result;
+}
 
 export const wavesRouter = router({
   // Send a wave to someone
@@ -130,135 +228,104 @@ export const wavesRouter = router({
         });
       }
 
-      // Fetch sender profile for status snapshot + notification display
+      // Fetch sender profile for status snapshot, push display, and the
+      // implicit-accept location calculation if we end up taking that path.
       const senderProfile = await db.query.profiles.findFirst({
         where: eq(schema.profiles.userId, ctx.userId),
-        columns: { displayName: true, avatarUrl: true, currentStatus: true },
+        columns: {
+          displayName: true,
+          avatarUrl: true,
+          currentStatus: true,
+          latitude: true,
+          longitude: true,
+        },
       });
 
-      // Check + insert in serializable transaction to prevent duplicate waves
-      const [wave] = await db.transaction(
-        async (tx) => {
-          const [existingWave] = await tx
-            .select()
-            .from(schema.waves)
-            .where(
-              and(
-                eq(schema.waves.fromUserId, ctx.userId),
-                eq(schema.waves.toUserId, input.toUserId),
-                eq(schema.waves.status, "pending"),
-              ),
-            );
+      // INSERT with ON CONFLICT DO NOTHING against the `waves_active_unique`
+      // partial index. The index lives on the generated `pair_key` column
+      // (md5 of LEAST/GREATEST of the user IDs) so it is direction-agnostic
+      // and `onConflictDoNothing` can target it via the standard column API.
+      // The index enforces all the hard correctness rules at the database
+      // layer:
+      //   - no duplicate pending in the same direction
+      //   - no re-waving an already-connected user (any direction)
+      //   - no two pending waves between the same pair (any direction)
+      // See docs/architecture/rate-limiting.md → "Wave send race condition".
+      const [wave] = await db
+        .insert(schema.waves)
+        .values({
+          fromUserId: ctx.userId,
+          toUserId: input.toUserId,
+          senderStatusSnapshot: senderProfile?.currentStatus ?? null,
+        })
+        .onConflictDoNothing({
+          target: schema.waves.pairKey,
+          where: sql`${schema.waves.status} in ('pending', 'accepted')`,
+        })
+        .returning();
 
-          if (existingWave) {
-            throw new TRPCError({
-              code: "CONFLICT",
-              message: "You already waved at this user",
-            });
-          }
+      if (!wave) {
+        // Empty `returning` means the partial unique index blocked the insert.
+        // Find what was already in the active set for this pair (either
+        // direction) and choose one of three responses: implicit accept,
+        // already_connected, or already_waved.
+        const existing = await db.query.waves.findFirst({
+          where: and(
+            or(
+              and(eq(schema.waves.fromUserId, ctx.userId), eq(schema.waves.toUserId, input.toUserId)),
+              and(eq(schema.waves.fromUserId, input.toUserId), eq(schema.waves.toUserId, ctx.userId)),
+            ),
+            inArray(schema.waves.status, ["pending", "accepted"]),
+          ),
+          columns: {
+            id: true,
+            fromUserId: true,
+            toUserId: true,
+            status: true,
+            senderStatusSnapshot: true,
+          },
+        });
 
-          return await tx
-            .insert(schema.waves)
-            .values({
-              fromUserId: ctx.userId,
-              toUserId: input.toUserId,
-              senderStatusSnapshot: senderProfile?.currentStatus ?? null,
-            })
-            .returning();
-        },
-        { isolationLevel: "serializable" },
-      );
+        if (!existing) {
+          // Extremely unlikely race: the blocking row vanished between
+          // ON CONFLICT and our SELECT (e.g. someone declined it in between).
+          // Surface it as a transient error so the client can retry.
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "wave_state_inconsistent" });
+        }
+
+        if (existing.status === "accepted") {
+          throw new TRPCError({ code: "CONFLICT", message: "already_connected" });
+        }
+
+        if (existing.fromUserId === ctx.userId) {
+          throw new TRPCError({ code: "CONFLICT", message: "already_waved" });
+        }
+
+        // existing.fromUserId === input.toUserId — the other user has a
+        // pending wave to us. They want to connect; we just clicked ping
+        // (so we want to connect too). Implicitly accept their wave.
+        const otherProfile = await db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, input.toUserId),
+          columns: { latitude: true, longitude: true },
+        });
+
+        const { updatedWave, conversation } = await acceptWaveCore(
+          {
+            id: existing.id,
+            fromUserId: existing.fromUserId,
+            toUserId: existing.toUserId,
+            senderStatusSnapshot: existing.senderStatusSnapshot,
+          },
+          ctx.userId,
+          senderProfile ?? null,
+          otherProfile ?? null,
+        );
+
+        return { wave: updatedWave, conversationId: conversation.id, autoAccepted: true as const };
+      }
 
       await promotePairAnalysis(ctx.userId, input.toUserId);
 
-      // Mutual ping detection — check if B already pinged A within the window
-      const mutualCutoff = subSeconds(new Date(), MUTUAL_PING_WINDOW_SECONDS);
-      const reverseWave = await db.query.waves.findFirst({
-        where: and(
-          eq(schema.waves.fromUserId, input.toUserId),
-          eq(schema.waves.toUserId, ctx.userId),
-          eq(schema.waves.status, "pending"),
-          gte(schema.waves.createdAt, mutualCutoff),
-        ),
-      });
-
-      if (reverseWave) {
-        // Mutual ping! Auto-accept both waves and create conversation.
-        // Guard against race: two concurrent sends (A→B, B→A) can both detect
-        // the reverse wave. The UPDATE locks rows — the second tx waits, then
-        // finds 0 pending rows and skips conversation creation.
-        const now = new Date();
-        const conversation = await db.transaction(async (tx) => {
-          const accepted = await tx
-            .update(schema.waves)
-            .set({ status: "accepted", respondedAt: now })
-            .where(and(inArray(schema.waves.id, [wave.id, reverseWave.id]), eq(schema.waves.status, "pending")))
-            .returning({ id: schema.waves.id });
-
-          if (accepted.length < 2) {
-            // Other process already handled this mutual ping
-            return null;
-          }
-
-          const [conv] = await tx
-            .insert(schema.conversations)
-            .values({
-              metadata: {
-                isMutualPing: true,
-                senderStatus: senderProfile?.currentStatus ?? null,
-                recipientStatus: reverseWave.senderStatusSnapshot ?? null,
-                connectedAt: now.toISOString(),
-              },
-            })
-            .returning();
-
-          await tx.insert(schema.conversationParticipants).values([
-            { conversationId: conv.id, userId: ctx.userId },
-            { conversationId: conv.id, userId: input.toUserId },
-          ]);
-
-          return conv;
-        });
-
-        if (!conversation) {
-          // Race lost — other process already created the conversation
-          // and sent WS events. Return wave as-is; client updates via WS.
-          return wave;
-        }
-
-        // Notify both users
-        const mutualMsg = "Pingowaliście się wzajemnie — to rzadkie!";
-        void sendPushToUser(ctx.userId, {
-          title: "Blisko",
-          body: mutualMsg,
-          data: { type: "chat", conversationId: conversation.id },
-        });
-        void sendPushToUser(input.toUserId, {
-          title: "Blisko",
-          body: mutualMsg,
-          data: { type: "chat", conversationId: conversation.id },
-        });
-
-        publishEvent("waveResponded", {
-          fromUserId: ctx.userId,
-          waveId: reverseWave.id,
-          accepted: true,
-          conversationId: conversation.id,
-          responderProfile: senderProfile
-            ? { displayName: senderProfile.displayName, avatarUrl: senderProfile.avatarUrl }
-            : { displayName: "Ktoś", avatarUrl: null },
-        });
-        publishEvent("waveResponded", {
-          fromUserId: input.toUserId,
-          waveId: wave.id,
-          accepted: true,
-          conversationId: conversation.id,
-        });
-
-        return { ...wave, status: "accepted" as const, mutualPing: true, conversationId: conversation.id };
-      }
-
-      // Normal flow — not a mutual ping
       void sendPushToUser(input.toUserId, {
         title: "Blisko",
         body: `${senderProfile?.displayName ?? "Ktoś"} — nowy ping!`,
@@ -273,7 +340,7 @@ export const wavesRouter = router({
           : { displayName: "Ktoś", avatarUrl: null },
       });
 
-      return wave;
+      return { wave, conversationId: null, autoAccepted: false as const };
     }),
 
   // Get received waves
@@ -351,11 +418,16 @@ export const wavesRouter = router({
       }
 
       if (input.accept) {
-        // Fetch both profiles for status snapshots + notification display
-        const [responderProfile, senderProfile] = await Promise.all([
+        const [responderProfile, senderLocation] = await Promise.all([
           db.query.profiles.findFirst({
             where: eq(schema.profiles.userId, ctx.userId),
-            columns: { displayName: true, avatarUrl: true, currentStatus: true, latitude: true, longitude: true },
+            columns: {
+              displayName: true,
+              avatarUrl: true,
+              currentStatus: true,
+              latitude: true,
+              longitude: true,
+            },
           }),
           db.query.profiles.findFirst({
             where: eq(schema.profiles.userId, wave.fromUserId),
@@ -363,79 +435,17 @@ export const wavesRouter = router({
           }),
         ]);
 
-        // Compute distance between sender and recipient at accept time
-        let connectedDistance: number | null = null;
-        if (
-          responderProfile?.latitude &&
-          responderProfile?.longitude &&
-          senderProfile?.latitude &&
-          senderProfile?.longitude
-        ) {
-          const R = 6371000;
-          const dLat = ((senderProfile.latitude - responderProfile.latitude) * Math.PI) / 180;
-          const dLon = ((senderProfile.longitude - responderProfile.longitude) * Math.PI) / 180;
-          const a =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos((responderProfile.latitude * Math.PI) / 180) *
-              Math.cos((senderProfile.latitude * Math.PI) / 180) *
-              Math.sin(dLon / 2) ** 2;
-          connectedDistance = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-        }
-
-        const { updatedWave, conversation } = await db.transaction(async (tx) => {
-          const [updatedWave] = await tx
-            .update(schema.waves)
-            .set({
-              status: "accepted",
-              recipientStatusSnapshot: responderProfile?.currentStatus ?? null,
-              respondedAt: new Date(),
-            })
-            .where(and(eq(schema.waves.id, input.waveId), eq(schema.waves.status, "pending")))
-            .returning();
-
-          if (!updatedWave) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Wave already responded to",
-            });
-          }
-
-          const [conversation] = await tx
-            .insert(schema.conversations)
-            .values({
-              metadata: {
-                senderStatus: wave.senderStatusSnapshot ?? null,
-                recipientStatus: responderProfile?.currentStatus ?? null,
-                connectedAt: new Date().toISOString(),
-                connectedDistance,
-              },
-            })
-            .returning();
-
-          await tx.insert(schema.conversationParticipants).values([
-            { conversationId: conversation.id, userId: wave.fromUserId },
-            { conversationId: conversation.id, userId: ctx.userId },
-          ]);
-
-          return { updatedWave, conversation };
-        });
-
-        void sendPushToUser(wave.fromUserId, {
-          title: "Blisko",
-          body: `${responderProfile?.displayName ?? "Ktoś"} — ping przyjęty!`,
-          data: { type: "chat", conversationId: conversation.id },
-        });
-
-        publishEvent("waveResponded", {
-          fromUserId: wave.fromUserId,
-          responderId: wave.toUserId,
-          waveId: wave.id,
-          accepted: true,
-          conversationId: conversation.id,
-          responderProfile: responderProfile
-            ? { displayName: responderProfile.displayName, avatarUrl: responderProfile.avatarUrl }
-            : { displayName: "Ktoś", avatarUrl: null },
-        });
+        const { updatedWave, conversation } = await acceptWaveCore(
+          {
+            id: wave.id,
+            fromUserId: wave.fromUserId,
+            toUserId: wave.toUserId,
+            senderStatusSnapshot: wave.senderStatusSnapshot,
+          },
+          ctx.userId,
+          responderProfile ?? null,
+          senderLocation ?? null,
+        );
 
         return { wave: updatedWave, conversationId: conversation.id };
       }
@@ -490,13 +500,25 @@ export const wavesRouter = router({
         })
         .returning();
 
+      // Decline ALL pending waves between us — both incoming (from the
+      // blocked user to me) and outgoing (from me to the blocked user). The
+      // outgoing case matters because the user profile modal renders the
+      // block button regardless of prior interaction, so a user can ping
+      // someone and then immediately block them; without this bidirectional
+      // sweep that outgoing pending would stay live and the blocked user
+      // could still accept it, opening a chat with someone who has just
+      // blocked them. The `waves_active_unique` partial unique index would
+      // also keep the pair_key locked, preventing any later wave between
+      // the same pair after an unblock.
       await tx
         .update(schema.waves)
         .set({ status: "declined", respondedAt: new Date() })
         .where(
           and(
-            eq(schema.waves.fromUserId, input.userId),
-            eq(schema.waves.toUserId, ctx.userId),
+            or(
+              and(eq(schema.waves.fromUserId, input.userId), eq(schema.waves.toUserId, ctx.userId)),
+              and(eq(schema.waves.fromUserId, ctx.userId), eq(schema.waves.toUserId, input.userId)),
+            ),
             eq(schema.waves.status, "pending"),
           ),
         );

@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -148,10 +148,36 @@ export const waves = pgTable(
     recipientStatusSnapshot: text("recipient_status_snapshot"),
     respondedAt: timestamp("responded_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    // Stored generated column canonicalising the user pair (direction-agnostic).
+    // (A,B) and (B,A) produce the same `pair_key`, which lets a plain unique
+    // index treat them as one. md5 of `least || ':' || greatest` gives a
+    // fixed-width 32-char hex string regardless of source ID length and
+    // sidesteps any worry about separator collisions in user IDs. GENERATED
+    // ALWAYS AS ... STORED — applications never write to it; Postgres
+    // recomputes it on every UPDATE that touches from_user_id / to_user_id.
+    pairKey: text("pair_key")
+      .notNull()
+      .generatedAlwaysAs(
+        sql`md5(LEAST("from_user_id", "to_user_id") || ':' || GREATEST("from_user_id", "to_user_id"))`,
+      ),
   },
   (table) => ({
     fromUserStatusIdx: index("waves_from_user_status_idx").on(table.fromUserId, table.status),
     toUserStatusIdx: index("waves_to_user_status_idx").on(table.toUserId, table.status),
+    // At most one *active* wave per pair of users (direction-agnostic).
+    // Active = pending OR accepted. Built on the `pair_key` generated column
+    // above so the unique check is symmetric without needing an expression-
+    // based index. This single constraint enforces three rules:
+    //   1. No duplicate pending waves (same direction race)
+    //   2. No re-waving someone you are already connected with (any direction)
+    //   3. No two pending waves in opposite directions — the second send hits
+    //      this constraint and waves.send treats it as an "implicit accept"
+    //      of the existing pending wave from the other user.
+    // Declined waves do not occupy a slot, so re-waving after the decline
+    // cooldown remains possible.
+    activeUnique: uniqueIndex("waves_active_unique")
+      .on(table.pairKey)
+      .where(sql`${table.status} in ('pending', 'accepted')`),
   }),
 );
 

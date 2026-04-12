@@ -164,8 +164,8 @@ Przy tworzeniu każdego statusu użytkownik wybiera widoczność. Brak wartości
 - Pingi do znajomych nie wchodzą w dzienny limit
 - Oczekujące pingi posortowane FIFO (najwcześniejszy na górze)
 
-### Mutual ping
-Gdy oboje pingują się wzajemnie w odstępie < 30 sekund — chat otwiera się automatycznie bez akceptacji. Oboje automatycznie widzą wzajemne statusy. Specjalny efekt: *„Pingowaliście się wzajemnie w tym samym momencie. To rzadkie. To zostaje."*
+### Implicit accept
+Gdy A pinguje B, a B (jeszcze nie widząc pinga od A — np. nie ma jeszcze powiadomienia, lag sieci) pinguje A z powrotem, drugi ping nie jest tworzony jako osobny rekord. Zamiast tego serwer interpretuje go jako akceptację istniejącego pinga A i od razu otwiera chat. Z perspektywy B "kliknięcie ping" prowadzi prosto do rozmowy; z perspektywy A wygląda to jak normalna akceptacja pinga.
 
 ---
 
@@ -262,9 +262,6 @@ Trzy tryby niezależne od statusu. Zmiana jednym tapem na mapie.
 ### Karta pierwszego kontaktu (WOW moment)
 Zamiast pustego ekranu — chat otwiera się z kartą:
 > *📍 12 marca · Śródmieście · ~300m od siebie*
-
-Dla mutual pinga dodatkowa linia:
-> *✨ Pingowaliście się wzajemnie w tym samym momencie. To rzadkie. To zostaje.*
 
 ### Usuwanie chatu
 Usunięcie = obustronne. Prompt z opcjonalną oceną (⭐1-5) lub „Pomiń i usuń".

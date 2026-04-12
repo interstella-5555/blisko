@@ -516,11 +516,6 @@ export default function ChatScreen() {
             {storeConversation.metadata.connectedDistance != null &&
               ` · ~${storeConversation.metadata.connectedDistance}m od siebie`}
           </Text>
-          {storeConversation.metadata.isMutualPing === true && (
-            <Text style={styles.mutualPingText}>
-              Pingowaliście się wzajemnie w tym samym momencie. To rzadkie. To zostaje.
-            </Text>
-          )}
           {(typeof storeConversation.metadata.senderStatus === "string" ||
             typeof storeConversation.metadata.recipientStatus === "string") && (
             <View style={styles.snapshotStatuses}>
@@ -719,14 +714,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 12,
     color: colors.muted,
-  },
-  mutualPingText: {
-    fontFamily: fonts.serif,
-    fontStyle: "italic",
-    fontSize: 13,
-    color: "#D4851C",
-    marginTop: 4,
-    textAlign: "center",
   },
   snapshotStatuses: {
     marginTop: spacing.tight,

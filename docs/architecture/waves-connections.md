@@ -21,16 +21,26 @@
 **Why:** Friction prevents spamming. If you could undo, users would wave/unwave repeatedly, causing notification noise.
 
 **Config:**
-- Table: `waves` (uuid PK, `from_user_id`, `to_user_id`, `status`, `sender_status_snapshot`, `recipient_status_snapshot`, `responded_at`, `created_at`)
-- Indexes: `(from_user_id, status)`, `(to_user_id, status)`
+- Table: `waves` (uuid PK, `from_user_id`, `to_user_id`, `status`, `sender_status_snapshot`, `recipient_status_snapshot`, `responded_at`, `created_at`, `pair_key`)
+- `pair_key` is a STORED generated column: `md5(LEAST(from_user_id, to_user_id) || ':' || GREATEST(from_user_id, to_user_id))`. Direction-agnostic — `(A,B)` and `(B,A)` produce the same value. Postgres recomputes it on every UPDATE that touches the source columns; applications never write to it.
+- Indexes: `(from_user_id, status)`, `(to_user_id, status)`, plus a partial unique index `waves_active_unique` on `pair_key WHERE status IN ('pending', 'accepted')`
 - Statuses: `pending` (default), `accepted`, `declined`
+- `accepted` is currently **terminal** — no code path transitions a wave out of `accepted`. There is no "unfriend" / reconnect flow yet.
 
 ```
 A sends wave --> pending
-  --> B accepts --> accepted --> conversation created
-  --> B declines --> declined (24h cooldown starts)
-  --> B ignores --> stays pending indefinitely
+  --> B accepts --> accepted (terminal) --> conversation created
+  --> B declines --> declined (24h cooldown starts, eligible for re-wave after)
+  --> B ignores --> stays pending indefinitely (no expiry job)
 ```
+
+**Active-wave uniqueness:** At most one wave in an "active" status (`pending` or `accepted`) can exist per **pair** of users (direction does not matter — `(A,B)` and `(B,A)` produce the same `pair_key`). The single partial unique index `waves_active_unique` enforces three rules at once:
+
+1. No duplicate pending in the same direction (race protection on `waves.send`).
+2. No re-waving someone you are already connected with (any direction).
+3. No two pending waves in opposite directions — see "Implicit Accept on Conflict" below.
+
+Declined waves do not occupy a slot, so re-waving after decline is possible once the cooldown passes. See `rate-limiting.md` → "Wave send race condition" for the full rationale on hard vs soft invariants.
 
 ## Send Validations
 
@@ -47,7 +57,7 @@ A sends wave --> pending
 | 5 | Per-person cooldown not active | `TOO_MANY_REQUESTS` | `per_person:{hours}` | `PER_PERSON_COOLDOWN_HOURS = 24` |
 | 6 | Decline cooldown not active | `TOO_MANY_REQUESTS` | `cooldown:{hours}` | `DECLINE_COOLDOWN_HOURS = 24` |
 
-After validations pass, a serializable-isolation transaction checks for an existing pending wave A-->B and inserts the new wave. The serializable isolation level prevents two concurrent sends from both succeeding.
+After validations pass, the insert is a single `INSERT ... ON CONFLICT (pair_key) WHERE status IN ('pending', 'accepted') DO NOTHING RETURNING ...`. The `waves_active_unique` partial unique index handles the hard correctness rules at the database layer. If `returning` comes back with the new wave we proceed normally; if it comes back empty `waves.send` runs one disambiguation SELECT (see "Implicit Accept on Conflict"). One query on the happy path, no transaction.
 
 **Note on daily limit:** The count query uses `gte(createdAt, todayMidnight)` where `todayMidnight` is midnight UTC. This means the counter resets at midnight UTC, not local time. PRODUCT.md specifies 5/day (Basic) and 20/day (Premium) --- code currently only enforces the Basic limit (`DAILY_PING_LIMIT_BASIC = 5`). Premium tier not yet implemented.
 
@@ -61,23 +71,29 @@ After validations pass, a serializable-isolation transaction checks for an exist
 
 **Config:** Both fields are nullable `text` columns on the `waves` table. They flow into the `conversations.metadata` JSONB field as `senderStatus` and `recipientStatus` when the conversation is created.
 
-## Mutual Ping Detection
+## Implicit Accept on Conflict
 
-**What:** If A sends a wave to B while B already has a pending wave to A created within the last 30 seconds, both waves are auto-accepted and a conversation opens immediately.
+**What:** When `waves.send` does its insert and the `waves_active_unique` index swallows it via `ON CONFLICT (pair_key) DO NOTHING`, `returning` comes back empty. The procedure does not surface that as an error directly. Instead it issues one disambiguation `SELECT` against the active set for the pair and chooses one of three responses:
 
-**Why:** PRODUCT.md specifies this as a special moment: "Pingowaliscie sie wzajemnie w tym samym momencie. To rzadkie. To zostaje." It removes the friction of waiting for acceptance when both people clearly want to connect.
+| Existing row found | Response | Reason |
+|---|---|---|
+| `status = 'accepted'` (either direction) | `CONFLICT: already_connected` | Conversation already exists, this would be a ghost wave on top of it. |
+| `status = 'pending'`, `from = current user` | `CONFLICT: already_waved` | We already pinged this person, they have not responded yet. |
+| `status = 'pending'`, `from = the other user` | **Implicit accept** — call `acceptWaveCore` on the existing wave | They pinged us first; we just clicked ping (the WS update flipping the button to "accept" did not reach us yet — typical lag/race window). Both clearly want to connect, so we accept their pending wave on our behalf instead of failing. |
 
-**Config:** `MUTUAL_PING_WINDOW_SECONDS = 30`
+**Why this design:** The standard product flow is "one person pings, the other accepts/declines". The race window where both users could click ping is genuinely tiny (the receiving user's UI flips the wave button to an accept button via WebSocket within sub-100ms of the first ping landing on the server). When that race does fire, treating the second click as "they want to connect, accept my pending wave" is the intuitive product behaviour — it leads to an immediate connection rather than a confusing error.
 
-**Detection timing:** The mutual check happens AFTER the new wave is inserted. The code queries for a pending wave `FROM toUserId TO ctx.userId` created within the window. If found, it enters the mutual-accept flow.
+This replaces the old explicit "mutual ping detection" mechanism that ran a 30-second post-insert lookup for a reverse wave. That code was effectively unreachable in normal use (the WS-driven UI update beat the user every time) and required two separate wave rows + window timing. The new design uses the same partial unique index that already enforces the active-pair invariant — one less moving part, less code, no window to tune.
 
-**Race condition guard:** Two concurrent sends (A-->B and B-->A arriving simultaneously) can both detect the reverse wave. The code handles this with a transaction that does `UPDATE ... WHERE id IN (wave.id, reverseWave.id) AND status = 'pending'`. The `RETURNING` clause checks if both rows were updated (`.length < 2` means the other process already handled it). The loser returns the wave as-is and relies on WebSocket events from the winner to update the client.
+**Implementation:**
 
-**Mutual ping notifications:** Both users receive push notifications with the message "Pingowaliscie sie wzajemnie --- to rzadkie!" and data type `chat` pointing to the new conversation. Two `waveResponded` WebSocket events are published --- one for each user's wave --- both with `accepted: true` and the shared `conversationId`.
+- `pair_key` is a STORED generated column on `waves`: `md5(LEAST(from_user_id, to_user_id) || ':' || GREATEST(from_user_id, to_user_id))`. The `waves_active_unique` partial unique index is built on `pair_key`, so drizzle's `onConflictDoNothing({ target: schema.waves.pairKey, where: ... })` can reference it via the standard column API — no expression-based arbiter, no try/catch on error codes.
+- `acceptWaveCore(wave, responderUserId, responderProfile, senderLocation)` is the shared accept helper used by both `waves.respond` (explicit accept path) and `waves.send` (implicit accept path). It runs the UPDATE → INSERT conversation → INSERT participants transaction, computes the Haversine distance for `connectedDistance` if both profiles have coordinates, sends the accept push to the original wave sender, and publishes the `waveResponded` WebSocket event.
 
-**Conversation metadata for mutual pings** includes `isMutualPing: true`, both status snapshots (sender's current status as `senderStatus`, reverse wave's snapshot as `recipientStatus`), and `connectedAt`. No `connectedDistance` --- distance is only computed on manual accept path.
+**Return value:** `waves.send` always returns `{ wave, conversationId, autoAccepted }`:
 
-**Return value:** The send mutation returns the wave with `status: "accepted"`, `mutualPing: true`, and `conversationId`. The client can navigate directly to the chat.
+- Normal insert path: `{ wave: newWave, conversationId: null, autoAccepted: false }`.
+- Implicit accept path: `{ wave: existingWave, conversationId: createdConv.id, autoAccepted: true }` — the `wave` here is the OTHER user's now-accepted wave (not a new row), so the client checks `autoAccepted` to navigate straight to the chat instead of treating it as an outgoing pending.
 
 ## Responding to a Wave
 
@@ -88,11 +104,14 @@ After validations pass, a serializable-isolation transaction checks for an exist
 ### Accept Path
 
 1. Fetch both profiles in parallel (responder for status snapshot + notification, sender for location)
-2. Compute Haversine distance between sender and recipient at accept time (stored as `connectedDistance` in conversation metadata)
-3. Transaction: UPDATE wave to `accepted` with `WHERE status = 'pending'` guard + INSERT conversation + INSERT two participants
-4. The `WHERE status = 'pending'` guard is the atomic race-condition protection --- if two concurrent accepts arrive, only one succeeds (the other gets `Wave already responded to`)
-5. Push notification to sender: "{name} --- ping przyjety!"
-6. WebSocket `waveResponded` event with `accepted: true`, `conversationId`, and responder profile preview
+2. Call `acceptWaveCore` which:
+   - Computes Haversine distance between sender and recipient (stored as `connectedDistance` in conversation metadata)
+   - Runs a transaction: UPDATE wave to `accepted` with `WHERE status = 'pending'` guard + INSERT conversation + INSERT two participants. The `WHERE status = 'pending'` guard is the atomic race-condition protection — if two concurrent accepts arrive (e.g. user double-taps the accept button), only one succeeds (the other gets `Wave already responded to`)
+   - Sends push notification to original sender: `"{name} — ping przyjęty! Możecie teraz pisać."`
+   - Publishes WebSocket `waveResponded` event with `accepted: true`, `conversationId`, and responder profile preview
+3. Returns `{ wave: updatedWave, conversationId }` to the client
+
+The same `acceptWaveCore` is reused by `waves.send` on the implicit-accept path (see "Implicit Accept on Conflict" above).
 
 ### Decline Path
 
@@ -103,28 +122,27 @@ After validations pass, a serializable-isolation transaction checks for an exist
 
 ## Conversation Creation on Accept
 
-**What:** When a wave is accepted (manually or via mutual ping), a new `conversations` row of type `dm` is created with both users as participants.
+**What:** When a wave is accepted (explicitly via `waves.respond` or implicitly via `waves.send`'s conflict path), a new `conversations` row of type `dm` is created with both users as participants.
 
 **Why:** The conversation is the payoff of the wave flow. PRODUCT.md principle #4 (progressive disclosure): accepting a wave unlocks full profile, social links, and direct chat.
 
 **Conversation metadata (JSONB):**
-- `senderStatus` --- sender's status at wave send time (from `senderStatusSnapshot`)
-- `recipientStatus` --- recipient's status at accept time (from responder's `currentStatus`)
-- `connectedAt` --- ISO timestamp of when the conversation was created
-- `connectedDistance` --- Haversine distance in meters between both users at accept time (manual accept only, null for mutual ping)
-- `isMutualPing` --- `true` only for mutual ping conversations
+- `senderStatus` — sender's status at wave send time (from `senderStatusSnapshot`)
+- `recipientStatus` — recipient's status at accept time (from responder's `currentStatus`)
+- `connectedAt` — ISO timestamp of when the conversation was created
+- `connectedDistance` — Haversine distance in meters between both users at accept time (null when either profile lacks coordinates)
 
 **Participants:** Two rows in `conversationParticipants` with role `member` (default).
 
-**Note:** The current code always creates a new conversation. There is no check for an existing DM between the same two users. If both users ping each other in separate (non-mutual) flows, they could end up with multiple DM conversations.
+**Note:** The `waves_active_unique` partial unique index now guarantees there is at most one `accepted` wave per pair of users. Combined with the index, the conversation creation path is unique per pair too — there is no way to end up with two DM conversations between the same two users via `waves.send` / `waves.respond`. (Direct `conversations` insertion paths bypass this guarantee — currently none exist for DMs.)
 
 ## Blocking
 
-**What:** `waves.block` creates a block record and atomically declines all pending waves from the blocked user. `waves.unblock` removes the block. `waves.getBlocked` lists blocked users with profile data.
+**What:** `waves.block` creates a block record and atomically declines **all** pending waves between the blocker and the blocked user — both incoming and outgoing. `waves.unblock` removes the block. `waves.getBlocked` lists blocked users with profile data.
 
-**Why:** Blocking must immediately stop all pending interaction attempts. The atomic transaction ensures no race condition where a pending wave slips through during the block.
+**Why:** Blocking must immediately stop all pending interaction attempts in both directions. The block button is rendered on every user profile modal regardless of prior interaction (`apps/mobile/app/(modals)/user/[userId].tsx`), so a user can ping someone and then immediately block them; the bidirectional sweep ensures the outgoing pending wave does not silently stay alive and let the blocked user accept it later. Combined with the `waves_active_unique` partial unique index this also frees the `pair_key` slot, so an unblock + future re-wave between the same pair would not be permanently locked out by a zombie pending row.
 
-**Atomicity:** Block insert + pending wave decline happen in one transaction. Only waves FROM the blocked user TO the blocker are declined (not the reverse --- the blocker's own pending waves to the blocked user are not affected).
+**Atomicity:** Block insert + bidirectional pending wave decline happen in one transaction. The decline filter is `(from=blocked AND to=blocker) OR (from=blocker AND to=blocked) AND status='pending'` so both directions are covered in a single UPDATE.
 
 **Unblock:** Simple DELETE from `blocks` table. No restoration of previously declined waves.
 

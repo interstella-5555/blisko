@@ -1,0 +1,46 @@
+-- 0021_add_waves_active_unique_index — symmetric pair invariant for waves (BLI-212)
+--
+-- Production has had a narrow `waves_pending_unique` partial index on
+-- (from_user_id, to_user_id) WHERE status='pending' for a while — added
+-- manually outside the migration pipeline and detected via a routine
+-- pg_dump ↔ drizzle-kit export diff. We replace it with a stronger,
+-- direction-agnostic constraint:
+--
+--   1. Add a STORED generated column `pair_key` that canonicalises the user
+--      pair as md5(LEAST(from, to) || ':' || GREATEST(from, to)). md5 gives a
+--      fixed 32-char hex string that is identical for (A,B) and (B,A); the
+--      `:` separator is safe because Better Auth user IDs are nanoid-style
+--      alphanumeric. md5's "cryptographically broken" reputation does not
+--      matter here — we use it for collision-free deduplication, not security.
+--   2. Build a partial unique index on `pair_key` WHERE status IN
+--      ('pending', 'accepted'). Since pair_key is a plain text column,
+--      drizzle-orm's `onConflictDoNothing` can target it with its standard
+--      column API — no expression-based arbiter, no try/catch on 23505.
+--
+-- The new invariant: "at most one ACTIVE wave per pair of users", direction
+-- ignored, where active = pending OR accepted. This single constraint
+-- covers everything we previously tried to enforce in code: no duplicate
+-- pending from the same direction, no re-waving an already-connected user
+-- (any direction), and no two pending waves in opposite directions. The
+-- "implicit accept" behaviour for the last case is handled in waves.send:
+-- when the second user's INSERT comes back with no row (DO NOTHING fired),
+-- the procedure looks at the existing pending wave and accepts it instead
+-- of failing — which is the right semantic ("both clearly want to connect").
+--
+-- This change also lets us delete the entire mutual ping detection block
+-- in waves.ts (~90 lines) which was unreachable in practice anyway: the
+-- WS-driven UI updates flip the "ping" button to "accept" before either
+-- user could realistically send a second ping in a real scenario.
+--
+-- DROP statements use IF EXISTS so this migration is idempotent on prod
+-- (the old narrow index gets dropped, plus a defensive drop of the new
+-- name in case an earlier iteration of this branch was already applied)
+-- and on fresh local/dev DBs (both DROPs are no-ops, only the ALTER + CREATE
+-- run). Adding the generated column rewrites the table in-place under an
+-- AccessExclusiveLock — the current waves table is small enough for this
+-- to be sub-second; if it ever grows past tens of millions of rows the
+-- rewrite cost should be reconsidered.
+DROP INDEX IF EXISTS "waves_pending_unique";--> statement-breakpoint
+DROP INDEX IF EXISTS "waves_active_unique";--> statement-breakpoint
+ALTER TABLE "waves" ADD COLUMN "pair_key" text GENERATED ALWAYS AS (md5(LEAST("from_user_id", "to_user_id") || ':' || GREATEST("from_user_id", "to_user_id"))) STORED NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "waves_active_unique" ON "waves" USING btree ("pair_key") WHERE "waves"."status" in ('pending', 'accepted');

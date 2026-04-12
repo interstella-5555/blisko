@@ -217,9 +217,71 @@ Message idempotency also fails open — if Redis can't be read/written for the i
 
 The `waves.send` procedure checks `SELECT ... WHERE status='pending'` then `INSERT`. Between these two operations a duplicate request could slip through (time-of-check, time-of-use).
 
-**Fix:** Serializable transaction isolation (`{ isolationLevel: "serializable" }`). The entire check-then-insert runs as an atomic unit. If a concurrent transaction inserts first, the second transaction's `SELECT` sees the first's insert and throws `CONFLICT`. PostgreSQL serializable isolation detects the read-write dependency and aborts the second transaction.
+**Hard invariants (enforced at the database layer):**
 
-**Why not a unique partial index?** A `UNIQUE(fromUserId, toUserId) WHERE status='pending'` index was considered. The serializable transaction approach was chosen because the procedure also checks additional business rules (daily limit, per-person cooldown, decline cooldown) that must all be atomic with the insert. A unique index only solves the duplicate check — the serializable transaction solves all race conditions at once.
+The `waves` table has a stored generated column `pair_key text NOT NULL GENERATED ALWAYS AS (md5(LEAST(from_user_id, to_user_id) || ':' || GREATEST(from_user_id, to_user_id))) STORED`, plus a partial unique index `waves_active_unique ON waves (pair_key) WHERE status IN ('pending', 'accepted')`. The md5 of the canonicalised pair gives the same value for `(A, B)` and `(B, A)`, so the index is direction-agnostic — there can be at most one **active** wave per **pair** of users. Storage cost is fixed (md5 = 32 hex chars) regardless of source ID length. Postgres recomputes `pair_key` on every UPDATE that touches the source columns; applications never write to it.
+
+1. **No duplicate pending waves** — a concurrent double-send from A to B cannot result in two `pending` rows.
+2. **No re-waving an already-connected user** — once any wave between the pair is `accepted` (a conversation exists), a new wave from either direction is rejected. Status `accepted` is currently terminal, so this is the permanent guard against ghost waves on top of existing conversations.
+3. **No two pending waves in opposite directions** — if A pings B and B pings A before B's UI has flipped to the accept button, the second insert is silently swallowed by `ON CONFLICT DO NOTHING`. `waves.send` notices the empty `returning` and treats it as an "implicit accept" of the existing pending wave (see `waves-connections.md` → "Implicit Accept on Conflict").
+
+`declined` is the only non-terminal "slot-freeing" status: after a wave is declined, the pair is no longer in the active set and a new wave becomes possible (subject to the decline cooldown below).
+
+**Soft rules (enforced at the application layer, best-effort):**
+
+Before the insert, `waves.send` runs three independent `SELECT` checks:
+
+- Daily limit — `DAILY_PING_LIMIT_BASIC = 5` per UTC day, counted from `createdAt`.
+- Per-person cooldown — `PER_PERSON_COOLDOWN_HOURS = 24`, any-status, counted from `createdAt`.
+- Decline cooldown — `DECLINE_COOLDOWN_HOURS = 24`, counted from `respondedAt` of the previous `declined` wave.
+
+These checks are **not atomic** with the insert. Under concurrent sends they are subject to time-of-check / time-of-use races: two requests from A can both observe "daily count = 4" before either commits. We accept this consciously — the HTTP rate limiter catches the vast majority of double-clicks before they reach the procedure, and an occasional off-by-one on a soft limit (user sending 6 waves on a day where the cap is 5) is not a correctness problem. The DB-level unique index guards correctness; the application checks guard policy.
+
+**How the insert is executed:** `waves.send` uses a single statement —
+
+```ts
+db.insert(schema.waves)
+  .values({ fromUserId, toUserId, senderStatusSnapshot })
+  .onConflictDoNothing({
+    target: schema.waves.pairKey,
+    where: sql`${schema.waves.status} in ('pending', 'accepted')`,
+  })
+  .returning();
+```
+
+If `returning` comes back with the new row, that is the happy path and we proceed with the standard new-wave notifications. If it comes back empty (the unique constraint fired), we run one disambiguation `SELECT` against the active set for the pair (either direction) and decide:
+
+- `existing.status === 'accepted'` → `CONFLICT: already_connected`
+- `existing.fromUserId === ctx.userId` → `CONFLICT: already_waved`
+- otherwise (existing pending from the other user) → call `acceptWaveCore` to implicitly accept their wave, return `{ wave, conversationId, autoAccepted: true }`
+
+This follows the `drizzle/use-on-conflict` rule. The generated `pair_key` column was the trick that made it possible — with an expression-based index target (`LEAST/GREATEST(...)`) drizzle's `onConflictDoNothing` API would not accept the arbiter, but on a plain text column it works without ceremony.
+
+**Request flow summary:**
+
+```
+HTTP rate limiter (Redis sliding window)
+  │
+  ▼
+waves.send procedure
+  │
+  ├── Daily / per-person / decline cooldown checks  (soft, non-atomic)
+  │
+  └── INSERT INTO waves ... ON CONFLICT (pair_key)
+                              WHERE status IN ('pending', 'accepted')
+                              DO NOTHING
+                              RETURNING *
+        │
+        ├── happy path: returning[0] is the new wave
+        │     → return { wave, conversationId: null, autoAccepted: false }
+        │
+        └── conflict: returning is empty → SELECT existing pair (either direction)
+              │
+              ├── status='accepted'                → CONFLICT already_connected
+              ├── status='pending', from = me      → CONFLICT already_waved
+              └── status='pending', from = other   → acceptWaveCore(existing)
+                                                    → return { wave, conversationId, autoAccepted: true }
+```
 
 ### Message send idempotency
 
