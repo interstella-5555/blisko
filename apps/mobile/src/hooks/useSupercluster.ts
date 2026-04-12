@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { Region } from "react-native-maps";
 import Supercluster from "supercluster";
 
@@ -15,8 +15,8 @@ export interface MarkerPoint {
 type SC = Supercluster<MarkerPoint, { statusMatchCount: number }>;
 
 const SUPERCLUSTER_OPTIONS: Supercluster.Options<MarkerPoint, { statusMatchCount: number }> = {
-  radius: 60,
-  maxZoom: 16,
+  radius: 40,
+  maxZoom: 18,
   minPoints: 2,
   map: (props) => ({ statusMatchCount: props.statusMatch ? 1 : 0 }),
   reduce: (acc, props) => {
@@ -44,15 +44,21 @@ export function useSupercluster(points: GeoJSON.Feature<GeoJSON.Point, MarkerPoi
     return sc;
   }, [points]);
 
-  return {
-    index,
-    getClusters: (region: Region) => {
+  const getClusters = useCallback(
+    (region: Region) => {
       const bbox = regionToBBox(region);
       const zoom = getZoomLevel(region);
       return index.getClusters(bbox, zoom);
     },
-    getExpansionZoom: (clusterId: number) => {
+    [index],
+  );
+
+  const getExpansionZoom = useCallback(
+    (clusterId: number) => {
       return index.getClusterExpansionZoom(clusterId);
     },
-  };
+    [index],
+  );
+
+  return { index, getClusters, getExpansionZoom };
 }
