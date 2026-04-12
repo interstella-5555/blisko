@@ -99,8 +99,6 @@ export default function NearbyScreen() {
     return approxDistanceMeters(latitude, longitude, mapRegion.latitude, mapRegion.longitude) > nearbyRadiusMeters;
   }, [latitude, longitude, mapRegion.latitude, mapRegion.longitude, nearbyRadiusMeters, showAllNearby]);
 
-  const radiusLabel = nearbyRadiusMeters >= 1000 ? `${nearbyRadiusMeters / 1000} km` : `${nearbyRadiusMeters} m`;
-
   const handleReturnToMyLocation = useCallback(() => {
     if (!latitude || !longitude) return;
     mapRef.current?.animateToRegion(latitude, longitude, DEFAULT_ZOOM);
@@ -474,7 +472,9 @@ export default function NearbyScreen() {
         return (
           <View style={styles.emptyList}>
             <Text style={styles.emptyListText}>
-              {isOutsideRadius ? `Pokazujemy grupy w promieniu ${radiusLabel} od Ciebie` : "Brak grup w okolicy"}
+              {isOutsideRadius
+                ? "Jesteś poza zasięgiem — pokazujemy grupy tylko w pobliżu Twojej lokalizacji"
+                : "W tej okolicy nie ma jeszcze żadnych grup"}
             </Text>
             <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
               <IconPin size={14} color={colors.accent} />
@@ -590,7 +590,7 @@ export default function NearbyScreen() {
       </View>
 
       {/* List header with viewport info */}
-      {nearbyFilter === "people" && (
+      {nearbyFilter === "people" && listUsers.length > 0 && (
         <View style={styles.listHeader}>
           <Text style={styles.listHeaderTitle}>
             {showAllNearby || totalCount >= totalUserCount
@@ -622,7 +622,11 @@ export default function NearbyScreen() {
             nearbyFilter !== "groups" ? (
               <View style={styles.emptyList}>
                 <Text style={styles.emptyListText}>
-                  {isOutsideRadius ? `Pokazujemy osoby w promieniu ${radiusLabel} od Ciebie` : "Nikogo w tej okolicy"}
+                  {isOutsideRadius
+                    ? `Jesteś poza zasięgiem — pokazujemy ${nearbyFilter === "people" ? "osoby" : "osoby i grupy"} tylko w pobliżu Twojej lokalizacji`
+                    : nearbyFilter === "people"
+                      ? "W tej okolicy nie ma jeszcze żadnych użytkowników"
+                      : "W tej okolicy nie ma jeszcze żadnych użytkowników i grup"}
                 </Text>
                 <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
                   <IconPin size={14} color={colors.accent} />
