@@ -1,73 +1,32 @@
-import { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
-import { type ClusterUser, GridClusterMarker } from "./GridClusterMarker";
+import type Supercluster from "supercluster";
+import type { MarkerPoint } from "@/hooks/useSupercluster";
+import { GridClusterMarker } from "./GridClusterMarker";
 import { GroupMarker } from "./GroupMarker";
-
-export interface MapUser {
-  profile: {
-    id: string;
-    userId: string;
-    displayName: string;
-    bio: string;
-    lookingFor: string;
-    avatarUrl: string | null;
-  };
-  distance: number;
-  gridLat: number;
-  gridLng: number;
-  gridId: string;
-  rankScore: number;
-  matchScore: number;
-  commonInterests: string[];
-  shortSnippet: string | null;
-  analysisReady: boolean;
-  hasStatusMatch: boolean;
-}
-
-export interface GridCluster {
-  gridId: string;
-  gridLat: number;
-  gridLng: number;
-  users: MapUser[];
-}
 
 export interface NearbyMapRef {
   animateToRegion: (lat: number, lng: number) => void;
 }
 
-export interface MapGroup {
-  id: string;
-  name: string | null;
-  avatarUrl: string | null;
-  latitude: number;
-  longitude: number;
-  nearbyMemberCount: number;
-}
+type ClusterOrPoint =
+  | Supercluster.ClusterFeature<{ statusMatchCount: number }>
+  | Supercluster.PointFeature<MarkerPoint>;
 
 interface NearbyMapViewProps {
-  users: MapUser[];
+  clusters: ClusterOrPoint[];
   userLatitude: number;
   userLongitude: number;
-  onClusterPress?: (cluster: GridCluster) => void;
-  highlightedGridId?: string | null;
-  groups?: MapGroup[];
-  onGroupPress?: (group: MapGroup) => void;
+  onClusterPress?: (clusterId: number, latitude: number, longitude: number) => void;
+  onUserPress?: (userId: string) => void;
+  onGroupPress?: (groupId: string) => void;
   onRegionChangeComplete?: (region: Region) => void;
 }
 
 export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
   (
-    {
-      users,
-      userLatitude,
-      userLongitude,
-      onClusterPress,
-      highlightedGridId,
-      groups,
-      onGroupPress,
-      onRegionChangeComplete,
-    },
+    { clusters, userLatitude, userLongitude, onClusterPress, onUserPress, onGroupPress, onRegionChangeComplete },
     ref,
   ) => {
     const mapRef = useRef<MapView>(null);
@@ -86,36 +45,6 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
       },
     }));
 
-    // Group users by gridId
-    const clusters = useMemo(() => {
-      const map = new Map<string, GridCluster>();
-
-      for (const user of users) {
-        const existing = map.get(user.gridId);
-        if (existing) {
-          existing.users.push(user);
-        } else {
-          map.set(user.gridId, {
-            gridId: user.gridId,
-            gridLat: user.gridLat,
-            gridLng: user.gridLng,
-            users: [user],
-          });
-        }
-      }
-
-      return Array.from(map.values());
-    }, [users]);
-
-    const clusterUsers = (cluster: GridCluster): ClusterUser[] =>
-      cluster.users.map((u) => ({
-        id: u.profile.id,
-        userId: u.profile.userId,
-        displayName: u.profile.displayName,
-        avatarUrl: u.profile.avatarUrl,
-        hasStatusMatch: u.hasStatusMatch,
-      }));
-
     return (
       <View testID="nearby-map-container" style={styles.container}>
         <MapView
@@ -132,27 +61,52 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
           showsMyLocationButton
           onRegionChangeComplete={onRegionChangeComplete}
         >
-          {clusters.map((cluster) => (
-            <Marker
-              key={cluster.gridId}
-              coordinate={{
-                latitude: cluster.gridLat,
-                longitude: cluster.gridLng,
-              }}
-              onPress={() => onClusterPress?.(cluster)}
-            >
-              <GridClusterMarker users={clusterUsers(cluster)} highlighted={cluster.gridId === highlightedGridId} />
-            </Marker>
-          ))}
-          {groups?.map((group) => (
-            <Marker
-              key={`group-${group.id}`}
-              coordinate={{ latitude: group.latitude, longitude: group.longitude }}
-              onPress={() => onGroupPress?.(group)}
-            >
-              <GroupMarker name={group.name} avatarUrl={group.avatarUrl} nearbyCount={group.nearbyMemberCount} />
-            </Marker>
-          ))}
+          {clusters.map((item) => {
+            const [lng, lat] = item.geometry.coordinates;
+            const props = item.properties;
+
+            if ("cluster" in props && props.cluster) {
+              const cp = props as Supercluster.ClusterProperties & { statusMatchCount: number };
+              return (
+                <Marker
+                  key={`cluster-${cp.cluster_id}`}
+                  coordinate={{ latitude: lat, longitude: lng }}
+                  onPress={() => onClusterPress?.(cp.cluster_id, lat, lng)}
+                >
+                  <GridClusterMarker count={cp.point_count} highlighted={cp.statusMatchCount >= 1} />
+                </Marker>
+              );
+            }
+
+            const leafProps = props as MarkerPoint;
+
+            if (leafProps.type === "group") {
+              return (
+                <Marker
+                  key={`group-${leafProps.groupId}`}
+                  coordinate={{ latitude: lat, longitude: lng }}
+                  onPress={() => onGroupPress?.(leafProps.groupId!)}
+                >
+                  <GroupMarker
+                    name={leafProps.name ?? null}
+                    avatarUrl={leafProps.avatar}
+                    nearbyCount={leafProps.members ?? 0}
+                  />
+                </Marker>
+              );
+            }
+
+            // type === "user"
+            return (
+              <Marker
+                key={`user-${leafProps.userId}`}
+                coordinate={{ latitude: lat, longitude: lng }}
+                onPress={() => onUserPress?.(leafProps.userId!)}
+              >
+                <GridClusterMarker avatarUrl={leafProps.avatar} highlighted={leafProps.statusMatch} />
+              </Marker>
+            );
+          })}
         </MapView>
       </View>
     );
