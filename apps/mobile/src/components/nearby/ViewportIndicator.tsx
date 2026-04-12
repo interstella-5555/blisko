@@ -18,10 +18,10 @@ export function ViewportIndicator({ viewportCount, totalCount, showAll, onToggle
         <Text style={[styles.bold, showAll && styles.boldShowAll]}>
           {showAll ? `wszystkich ${totalCount}` : `${viewportCount} z ${totalCount}`}
         </Text>{" "}
-        osob w okolicy
+        osób w okolicy
       </Text>
       <Pressable onPress={onToggle} hitSlop={8}>
-        <Text style={styles.btn}>{showAll ? "Wroc do widoku mapy" : "Pokaz wszystkich"}</Text>
+        <Text style={styles.btn}>{showAll ? "Wróć do widoku mapy" : "Pokaż wszystkich"}</Text>
       </Pressable>
     </View>
   );
