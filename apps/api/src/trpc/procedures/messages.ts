@@ -608,7 +608,8 @@ export const messagesRouter = router({
               ? `${unreadCount} nowych wiadomości`
               : `${senderProfile?.displayName ?? "Ktoś"}: ${messagePreview}`,
             data: { type: "chat", conversationId: input.conversationId },
-            collapseId: hasUnread ? `group:${input.conversationId}` : undefined,
+            collapseId: `group:${input.conversationId}`,
+            sound: !hasUnread,
           });
         }
       } else {
