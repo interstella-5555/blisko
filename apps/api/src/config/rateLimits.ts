@@ -64,6 +64,9 @@ export const rateLimits = {
   // Nearby user queries — pull-to-refresh protection
   "profiles.getNearby": { limit: 600, window: 60 },
 
+  // Lightweight map markers — separate from rich list
+  "profiles.getNearbyMap": { limit: 30, window: 60 },
+
   // Data export — heavy operation, once per day
   dataExport: { limit: 1, window: 24 * 60 * 60 },
 
