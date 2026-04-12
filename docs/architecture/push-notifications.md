@@ -80,7 +80,7 @@ The central push function. Every push notification in the app goes through this 
 
 5. **Message assembly:** For each valid token, build an `ExpoPushMessage`:
    - `to`: the push token
-   - `sound`: `"default"` for audible pushes, `undefined` for silent (when `collapseId` is set)
+   - `sound`: `"default"` for audible pushes, `undefined` for silent. Default: audible when no `collapseId`, silent when `collapseId` is set. Callers can override via `sound: true`
    - `title`, `body`: from caller payload
    - `data`: arbitrary JSON passed through to the client app
    - `_id`: set to `collapseId` when provided (Expo's collapse mechanism)
@@ -98,7 +98,7 @@ The central push function. Every push notification in the app goes through this 
 | New wave | `"Blisko"` | `"{name} — nowy ping!"` | none | Yes | `waves.ts` |
 | Wave accepted | `"Blisko"` | `"{name} — ping przyjęty! Możecie teraz pisać."` | none | Yes | `waves.ts` |
 | DM message | `"{senderName}"` | `"{messagePreview}"` | none | Yes | `messages.ts` |
-| Group message (first unread) | `"{groupName}"` | `"{senderName}: {preview}"` | none | Yes | `messages.ts` |
+| Group message (first unread) | `"{groupName}"` | `"{senderName}: {preview}"` | `"group:{conversationId}"` | Yes | `messages.ts` |
 | Group message (has unreads) | `"{groupName}"` | `"{N} nowych wiadomosci"` | `"group:{conversationId}"` | No (silent) | `messages.ts` |
 | Ambient status match | `"Blisko"` | `"Ktos z pasujacym profilem jest w poblizu"` | `"ambient-match"` | No (silent) | `queue.ts` |
 | Group invite (create) | `"{groupName}"` | `"Nowe zaproszenie do grupy"` | `"group-invite:{conversationId}"` | No (silent) | `groups.ts` |
@@ -114,7 +114,7 @@ The central push function. Every push notification in the app goes through this 
 
 **DM:** Each participant (except sender) gets an individual push. Title is the sender's display name (personal feel, like iMessage). Body is the message content truncated for preview. Data: `{ type: "chat", conversationId }`.
 
-**Group (first unread):** Same structure as DM but title is the group name (or sender name as fallback). This is the "heads up" notification that draws attention.
+**Group (first unread):** Same structure as DM but title is the group name (or sender name as fallback). This is the "heads up" notification that draws attention. Uses `collapseId: "group:{conversationId}"` with explicit `sound: true` — audible but still replaceable, so concurrent first-messages don't stack.
 
 **Group (has unreads):** When a recipient already has unread messages (checked via `lastReadAt` comparison), the push becomes a silent update. The body changes from individual message preview to aggregate count (`"3 nowych wiadomosci"`). The `collapseId: "group:{conversationId}"` ensures the device replaces the previous notification rather than stacking.
 
@@ -138,7 +138,7 @@ The central push function. Every push notification in the app goes through this 
 
 1. When a message is sent to a group conversation, the server counts unread messages per recipient (messages created after their `lastReadAt`)
 2. `hasUnread` is `true` when `unreadCount > 1` (the "1" accounts for the message just inserted)
-3. If `hasUnread` is false (this is the first unread message): send audible push with sender name and preview, no collapseId
+3. If `hasUnread` is false (this is the first unread message): send audible push with sender name and preview, with `collapseId: "group:{conversationId}"` and explicit `sound: true` override
 4. If `hasUnread` is true (user already has unread messages): send silent push with `collapseId: "group:{conversationId}"`, body is `"{N} nowych wiadomosci"`. The collapseId causes the new push to replace the previous one on the device — user sees only the latest count
 5. After the user reads messages (advancing `lastReadAt`), the next message triggers a fresh audible push again
 
@@ -189,17 +189,17 @@ The central push function. Every push notification in the app goes through this 
 
 ## Sound vs Silent Logic
 
-The `sound` field in push messages is determined by a single rule: **if `collapseId` is set, the push is silent (`sound: undefined`); otherwise it's audible (`sound: "default"`).**
+The `sound` field in push messages defaults to: **if `collapseId` is set, silent (`sound: undefined`); otherwise audible (`sound: "default"`).** Callers can override this default via the `sound: boolean` payload field — used when a push needs both collapseId (replaceable) and audible sound.
 
 This means:
 - All wave pushes: audible (no collapseId)
 - All DM message pushes: audible (no collapseId)
-- First group message (no unreads): audible (no collapseId)
+- First group message (no unreads): audible (collapseId set + explicit `sound: true` override)
 - Subsequent group messages: silent (collapseId = `"group:{conversationId}"`)
 - Ambient match: silent (collapseId = `"ambient-match"`)
 - Group invites: silent (collapseId = `"group-invite:{conversationId}"`) — multiple invitations in quick succession (e.g. owner adds several members) replace each other on the device rather than stacking
 
-**Why tie sound to collapseId:** CollapseId is used for notifications that update/replace previous ones. If the device already buzzed for the first notification, subsequent updates should silently replace the content without re-alerting. This is a UX decision: one buzz per "batch" of related events.
+**Why tie sound to collapseId by default:** CollapseId is used for notifications that update/replace previous ones. If the device already buzzed for the first notification, subsequent updates should silently replace the content without re-alerting. The first-unread group message is the exception: it needs to buzz (it's the user's first alert) but also be replaceable (so concurrent first-messages from a burst of activity don't stack).
 
 ## Do Not Disturb (DND)
 
