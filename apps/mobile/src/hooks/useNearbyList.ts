@@ -52,7 +52,7 @@ export function useNearbyList() {
           west: region.longitude - region.longitudeDelta / 2,
           east: region.longitude + region.longitudeDelta / 2,
         });
-      }, 1000);
+      }, 500);
     },
     [showAllNearby],
   );

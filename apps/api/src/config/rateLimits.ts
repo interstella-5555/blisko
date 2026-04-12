@@ -61,11 +61,11 @@ export const rateLimits = {
   // File uploads — S3 write protection
   uploads: { limit: 10, window: 60 * 60 },
 
-  // Nearby user queries — list with viewport bbox
-  "profiles.getNearby": { limit: 60, window: 60 },
+  // Nearby user queries — list with viewport bbox (500ms debounce = max 2/s = 20/10s)
+  "profiles.getNearby": { limit: 20, window: 10 },
 
   // Lightweight map markers — separate from rich list
-  "profiles.getNearbyMap": { limit: 60, window: 60 },
+  "profiles.getNearbyMap": { limit: 20, window: 10 },
 
   // Data export — heavy operation, once per day
   dataExport: { limit: 1, window: 24 * 60 * 60 },
