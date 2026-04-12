@@ -5,6 +5,21 @@ import { useLocationStore } from "@/stores/locationStore";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import type { MarkerPoint } from "./useSupercluster";
 
+// Deterministic jitter within grid cell (~200m max) so users in the same
+// cell don't stack on the exact same coordinate. Based on userId hash so
+// position is stable across renders. Doesn't affect privacy — real coords
+// are still grid-snapped, this is visual-only for supercluster separation.
+const JITTER_RANGE = 0.002; // ~200m in degrees
+function jitter(id: string, axis: number): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  }
+  // Different seed for lat vs lng
+  hash = (hash * 17 + axis) | 0;
+  return ((hash % 1000) / 1000) * JITTER_RANGE - JITTER_RANGE / 2;
+}
+
 export function useNearbyMapMarkers() {
   const { latitude, longitude } = useLocationStore();
   const { nearbyRadiusMeters, photoOnly } = usePreferencesStore();
@@ -33,7 +48,10 @@ export function useNearbyMapMarkers() {
         type: "Feature",
         geometry: {
           type: "Point",
-          coordinates: [data.users.lngs[i], data.users.lats[i]],
+          coordinates: [
+            data.users.lngs[i] + jitter(data.users.ids[i], 0),
+            data.users.lats[i] + jitter(data.users.ids[i], 1),
+          ],
         },
         properties: {
           type: "user",
