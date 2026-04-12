@@ -7,7 +7,7 @@ import { GridClusterMarker } from "./GridClusterMarker";
 import { GroupMarker } from "./GroupMarker";
 
 export interface NearbyMapRef {
-  animateToRegion: (lat: number, lng: number) => void;
+  animateToRegion: (lat: number, lng: number, zoom?: number) => void;
 }
 
 type ClusterOrPoint =
@@ -32,13 +32,15 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
     const mapRef = useRef<MapView>(null);
 
     useImperativeHandle(ref, () => ({
-      animateToRegion: (lat: number, lng: number) => {
+      animateToRegion: (lat: number, lng: number, zoom?: number) => {
+        // Convert zoom level to lat/lng deltas (inverse of getZoomLevel)
+        const delta = zoom != null ? 360 / 2 ** zoom : 0.02;
         mapRef.current?.animateToRegion(
           {
             latitude: lat,
             longitude: lng,
-            latitudeDelta: 0.02,
-            longitudeDelta: 0.02,
+            latitudeDelta: delta,
+            longitudeDelta: delta,
           },
           300,
         );

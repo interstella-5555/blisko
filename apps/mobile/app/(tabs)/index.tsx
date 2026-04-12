@@ -74,7 +74,7 @@ export default function NearbyScreen() {
     resetToViewport,
     viewportUserCount,
   } = useNearbyList();
-  const { getClusters } = useSupercluster(points);
+  const { getClusters, getExpansionZoom } = useSupercluster(points);
 
   const [clusters, setClusters] = useState<ReturnType<typeof getClusters>>([]);
 
@@ -87,11 +87,12 @@ export default function NearbyScreen() {
   );
 
   const handleClusterPress = useCallback(
-    (_clusterId: number, latitude: number, longitude: number) => {
-      mapRef.current?.animateToRegion(latitude, longitude);
+    (clusterId: number, lat: number, lng: number) => {
+      const zoom = getExpansionZoom(clusterId);
+      mapRef.current?.animateToRegion(lat, lng, zoom);
       resetToViewport();
     },
-    [resetToViewport],
+    [getExpansionZoom, resetToViewport],
   );
 
   // Groups query — kept for list detail (member counts, descriptions)
