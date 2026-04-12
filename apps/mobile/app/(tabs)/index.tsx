@@ -615,17 +615,7 @@ export default function NearbyScreen() {
           keyExtractor={getItemKey}
           renderItem={renderItem}
           ListEmptyComponent={
-            nearbyFilter === "people" ? (
-              <View style={styles.emptyList}>
-                <Text style={styles.emptyListText}>
-                  {isOutsideRadius ? `Pokazujemy osoby w promieniu ${radiusLabel} od Ciebie` : "Nikogo w tej okolicy"}
-                </Text>
-                <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
-                  <IconPin size={14} color={colors.accent} />
-                  <Text style={styles.returnButtonText}>Wróć do mojej lokalizacji</Text>
-                </Pressable>
-              </View>
-            ) : nearbyFilter === "all" ? (
+            nearbyFilter !== "groups" ? (
               <View style={styles.emptyList}>
                 <Text style={styles.emptyListText}>
                   {isOutsideRadius ? `Pokazujemy osoby w promieniu ${radiusLabel} od Ciebie` : "Nikogo w tej okolicy"}
