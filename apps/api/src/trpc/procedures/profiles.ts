@@ -393,7 +393,7 @@ export const profilesRouter = router({
 
         const grid = toGridCenter(u.latitude!, u.longitude!);
         ids.push(u.userId);
-        avatars.push(u.avatarUrl ? u.avatarUrl.split("/").pop()! : null);
+        avatars.push(u.avatarUrl ? u.avatarUrl : null);
         lats.push(grid.gridLat);
         lngs.push(grid.gridLng);
 
@@ -412,7 +412,7 @@ export const profilesRouter = router({
       for (const g of nearbyGroups) {
         groupIds.push(g.id);
         groupNames.push(g.name);
-        groupAvatars.push(g.avatarUrl ? g.avatarUrl.split("/").pop()! : null);
+        groupAvatars.push(g.avatarUrl ? g.avatarUrl : null);
         groupLats.push(g.latitude!);
         groupLngs.push(g.longitude!);
         groupMembers.push(0);

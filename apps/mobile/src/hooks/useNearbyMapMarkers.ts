@@ -5,8 +5,6 @@ import { useLocationStore } from "@/stores/locationStore";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import type { MarkerPoint } from "./useSupercluster";
 
-const CDN_PREFIX = "https://cdn.blisko.app/";
-
 export function useNearbyMapMarkers() {
   const { latitude, longitude } = useLocationStore();
   const { nearbyRadiusMeters, photoOnly } = usePreferencesStore();
@@ -40,7 +38,7 @@ export function useNearbyMapMarkers() {
         properties: {
           type: "user",
           userId: data.users.ids[i],
-          avatar: data.users.avatars[i] ? CDN_PREFIX + data.users.avatars[i] : null,
+          avatar: data.users.avatars[i] ? data.users.avatars[i] : null,
           statusMatch: data.users.statusMatch[i] === 1,
         },
       });
@@ -56,7 +54,7 @@ export function useNearbyMapMarkers() {
         properties: {
           type: "group",
           groupId: data.groups.ids[i],
-          avatar: data.groups.avatars[i] ? CDN_PREFIX + data.groups.avatars[i] : null,
+          avatar: data.groups.avatars[i] ? data.groups.avatars[i] : null,
           name: data.groups.names[i],
           statusMatch: false,
           members: data.groups.members[i],
