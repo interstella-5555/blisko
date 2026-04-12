@@ -304,7 +304,7 @@ export default function NearbyScreen() {
           });
       }, 3000);
     }
-  }, [setLocation, setPermissionStatus, updateLocationAsync]);
+  }, [setLocation, updateLocationAsync]);
 
   const requestLocationPermission = useCallback(async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
