@@ -5,6 +5,8 @@ import { colors, fonts, spacing } from "../src/theme";
 export default function FiltersScreen() {
   const photoOnly = usePreferencesStore((s) => s.photoOnly);
   const setPhotoOnly = usePreferencesStore((s) => s.setPhotoOnly);
+  const showAllNearby = usePreferencesStore((s) => s.showAllNearby);
+  const setShowAllNearby = usePreferencesStore((s) => s.setShowAllNearby);
 
   return (
     <View style={styles.container}>
@@ -17,6 +19,18 @@ export default function FiltersScreen() {
         <Switch
           value={photoOnly}
           onValueChange={setPhotoOnly}
+          trackColor={{ false: "#C0BAA8", true: colors.ink }}
+          thumbColor="#FFFFFF"
+        />
+      </View>
+      <View style={styles.toggleRow}>
+        <View style={styles.toggleInfo}>
+          <Text style={styles.toggleLabel}>Pokaż wszystkich w promieniu</Text>
+          <Text style={styles.toggleDesc}>Wyłącz, aby lista pokazywała tylko osoby widoczne na mapie</Text>
+        </View>
+        <Switch
+          value={showAllNearby}
+          onValueChange={setShowAllNearby}
           trackColor={{ false: "#C0BAA8", true: colors.ink }}
           thumbColor="#FFFFFF"
         />

@@ -9,8 +9,7 @@ const PAGE_SIZE = 20;
 
 export function useNearbyList() {
   const { latitude, longitude } = useLocationStore();
-  const { nearbyRadiusMeters, photoOnly } = usePreferencesStore();
-  const [showAll, setShowAll] = useState(false);
+  const { nearbyRadiusMeters, photoOnly, showAllNearby } = usePreferencesStore();
   const [bbox, setBbox] = useState<{ south: number; north: number; west: number; east: number } | undefined>(undefined);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -22,7 +21,7 @@ export function useNearbyList() {
         radiusMeters: nearbyRadiusMeters,
         limit: PAGE_SIZE,
         photoOnly: photoOnly || undefined,
-        bbox: showAll ? undefined : bbox,
+        bbox: showAllNearby ? undefined : bbox,
       },
       {
         enabled: !!latitude && !!longitude,
@@ -43,7 +42,7 @@ export function useNearbyList() {
 
   const onRegionChange = useCallback(
     (region: Region) => {
-      if (showAll) return;
+      if (showAllNearby) return;
 
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
@@ -55,16 +54,8 @@ export function useNearbyList() {
         });
       }, 1000);
     },
-    [showAll],
+    [showAllNearby],
   );
-
-  const toggleShowAll = useCallback(() => {
-    setShowAll((prev) => !prev);
-  }, []);
-
-  const resetToViewport = useCallback(() => {
-    setShowAll(false);
-  }, []);
 
   return {
     users,
@@ -77,9 +68,6 @@ export function useNearbyList() {
     fetchNextPage,
     refetch,
     onRegionChange,
-    showAll,
-    toggleShowAll,
-    resetToViewport,
-    viewportUserCount: users.length,
+    showAllNearby,
   };
 }

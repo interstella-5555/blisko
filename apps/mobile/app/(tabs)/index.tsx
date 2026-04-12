@@ -47,7 +47,7 @@ const FILTER_CHIPS: { key: NearbyFilter; label: string }[] = [
 export default function NearbyScreen() {
   const [nearbyFilter, setNearbyFilter] = useState<NearbyFilter>("all");
   const { latitude, longitude, permissionStatus, setLocation, setPermissionStatus } = useLocationStore();
-  const { nearbyRadiusMeters, loadPreferences, photoOnly } = usePreferencesStore();
+  const { nearbyRadiusMeters, loadPreferences, photoOnly, showAllNearby } = usePreferencesStore();
 
   const [mapExpanded, setMapExpanded] = useState(true);
   const mapHeight = useRef(new Animated.Value(MAP_EXPANDED_HEIGHT)).current;
@@ -55,7 +55,7 @@ export default function NearbyScreen() {
   mapExpandedRef.current = mapExpanded;
   const mapRef = useRef<NearbyMapRef>(null);
 
-  const hasActiveFilters = photoOnly;
+  const hasActiveFilters = photoOnly || showAllNearby;
 
   const { mutateAsync: updateLocationAsync } = trpc.profiles.updateLocation.useMutation();
   const { mutate: ensureAnalysisMutate } = trpc.profiles.ensureAnalysis.useMutation();
@@ -72,10 +72,6 @@ export default function NearbyScreen() {
     fetchNextPage,
     refetch: refetchList,
     onRegionChange: onListRegionChange,
-    showAll,
-    toggleShowAll,
-    resetToViewport,
-    viewportUserCount,
   } = useNearbyList();
   const { getClusters, getExpansionZoom } = useSupercluster(points);
 
@@ -102,9 +98,8 @@ export default function NearbyScreen() {
     (clusterId: number, lat: number, lng: number) => {
       const zoom = getExpansionZoom(clusterId);
       mapRef.current?.animateToRegion(lat, lng, zoom);
-      resetToViewport();
     },
-    [getExpansionZoom, resetToViewport],
+    [getExpansionZoom],
   );
 
   // Groups query — kept for list detail (member counts, descriptions)
@@ -372,14 +367,7 @@ export default function NearbyScreen() {
         const count = item.count;
         return (
           <View style={styles.listHeader}>
-            <Text style={styles.listHeaderTitle}>
-              {showAll
-                ? `${count} ${count === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`
-                : `${totalCount} Z ${count} OSÓB W POBLIŻU`}
-            </Text>
-            <Pressable onPress={toggleShowAll} hitSlop={8}>
-              <Text style={styles.listHeaderAction}>{showAll ? "Widoczni na mapie" : "Pokaż wszystkich"}</Text>
-            </Pressable>
+            <Text style={styles.listHeaderTitle}>{`${count} ${count === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}</Text>
           </View>
         );
       }
@@ -562,13 +550,8 @@ export default function NearbyScreen() {
       {nearbyFilter === "people" && (
         <View style={styles.listHeader}>
           <Text style={styles.listHeaderTitle}>
-            {showAll
-              ? `${totalUserCount} ${totalUserCount === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`
-              : `${totalCount} Z ${totalUserCount} OSÓB W POBLIŻU`}
+            {`${totalUserCount} ${totalUserCount === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`}
           </Text>
-          <Pressable onPress={toggleShowAll} hitSlop={8}>
-            <Text style={styles.listHeaderAction}>{showAll ? "Widoczni na mapie" : "Pokaż wszystkich"}</Text>
-          </Pressable>
         </View>
       )}
       {nearbyFilter === "groups" && (nearbyGroups?.length ?? 0) > 0 && (

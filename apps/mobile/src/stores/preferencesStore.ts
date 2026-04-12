@@ -22,9 +22,11 @@ const DEFAULT_NOTIF_PREFS: NotificationPrefs = {
 interface PreferencesState {
   nearbyRadiusMeters: RadiusOption;
   photoOnly: boolean;
+  showAllNearby: boolean;
   notificationPrefs: NotificationPrefs;
   setNearbyRadius: (r: RadiusOption) => void;
   setPhotoOnly: (v: boolean) => void;
+  setShowAllNearby: (v: boolean) => void;
   setNotificationPref: (key: keyof NotificationPrefs, value: boolean) => void;
   loadPreferences: () => Promise<void>;
 }
@@ -32,12 +34,14 @@ interface PreferencesState {
 export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   nearbyRadiusMeters: 2000,
   photoOnly: false,
+  showAllNearby: false,
   notificationPrefs: { ...DEFAULT_NOTIF_PREFS },
   setNearbyRadius: (r) => {
     set({ nearbyRadiusMeters: r });
     SecureStore.setItemAsync(RADIUS_KEY, String(r));
   },
   setPhotoOnly: (v) => set({ photoOnly: v }),
+  setShowAllNearby: (v) => set({ showAllNearby: v }),
   setNotificationPref: (key, value) => {
     const updated = { ...get().notificationPrefs, [key]: value };
     set({ notificationPrefs: updated });
