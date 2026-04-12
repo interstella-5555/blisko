@@ -106,6 +106,7 @@ export interface ProfilingFailedEvent {
 
 export interface StatusMatchesReadyEvent {
   userId: string;
+  matchedUserIds: string[];
 }
 
 export interface StatusMatchingFailedEvent {

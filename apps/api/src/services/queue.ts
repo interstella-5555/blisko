@@ -710,7 +710,7 @@ async function processStatusMatching(userId: string) {
   }
 
   // Emit WS event
-  publishEvent("statusMatchesReady", { userId });
+  publishEvent("statusMatchesReady", { userId, matchedUserIds: matches.map((m) => m.matchedUserId) });
 
   if (matches.length > 0) {
     await sendAmbientPushWithCooldown(userId);
@@ -898,7 +898,7 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
   notifiedUserIds.add(userId);
 
   for (const uid of notifiedUserIds) {
-    publishEvent("statusMatchesReady", { userId: uid });
+    publishEvent("statusMatchesReady", { userId: uid, matchedUserIds: [] });
   }
 
   for (const uid of notifiedUserIds) {
