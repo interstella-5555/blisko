@@ -743,7 +743,7 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
 
   // Generate status embedding if moving user has status but no embedding yet
   let movingUserStatusEmb = movingUser.statusEmbedding;
-  if (movingUser.currentStatus && (!movingUserStatusEmb || !movingUserStatusEmb.length)) {
+  if (movingUser.currentStatus && !movingUserStatusEmb?.length) {
     movingUserStatusEmb = await generateEmbedding(movingUser.currentStatus, {
       jobName: "proximity-status-matching",
       userId,
@@ -960,7 +960,7 @@ export function startAiWorker() {
 
   // Self-healing failure handlers — publish WS events so mobile clients can retry
   _worker.on("failed", (job) => {
-    if (!job || !job.opts.attempts || job.attemptsMade < job.opts.attempts) return;
+    if (!job?.opts.attempts || job.attemptsMade < job.opts.attempts) return;
 
     const data = job.data as AIJob;
     if (data.type === "analyze-pair" || data.type === "quick-score") {

@@ -14,7 +14,7 @@
     "postgres": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.9",
+    "@types/bun": "catalog:",
     "typescript": "catalog:"
   }
 }

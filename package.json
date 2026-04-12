@@ -38,7 +38,7 @@
     "check:fix": "biome check --fix ."
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.6",
+    "@biomejs/biome": "^2.4.11",
     "@tailwindcss/cli": "^4.2.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.3.1",
@@ -68,7 +68,25 @@
     "postgres": "^3.4.0",
     "ai": "^6.0.86",
     "@ai-sdk/openai": "^3.0.29",
-    "better-auth": "^1.5.4"
+    "better-auth": "^1.5.4",
+    "@better-auth/expo": "^1.5.4",
+    "@tanstack/react-query": "^5.50.0",
+    "@tanstack/react-router-devtools": "^1.132.0",
+    "@tanstack/react-router-ssr-query": "^1.131.7",
+    "@trpc/server": "^11.0.0-rc.0",
+    "@trpc/client": "^11.0.0-rc.0",
+    "@trpc/react-query": "^11.0.0-rc.0",
+    "bullmq": "^5.49.2",
+    "date-fns": "^4.1.0",
+    "resend": "^6.8.0",
+    "nitro": "^3.0.0",
+    "ms": "^2.1.3",
+    "@types/bun": "^1.3.9",
+    "@types/node": "^22.10.2",
+    "@types/ms": "^2.1.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.0.2"
   },
   "engines": {
     "node": ">=20"

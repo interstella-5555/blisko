@@ -277,7 +277,7 @@ export function startOpsWorker() {
 
   // Extra failure handling for GDPR export (email notification on final failure)
   _worker.on("failed", (job, err) => {
-    if (!job || !job.opts.attempts || job.attemptsMade < job.opts.attempts) return;
+    if (!job?.opts.attempts || job.attemptsMade < job.opts.attempts) return;
 
     const data = job.data as OpsJob;
     if (data.type === "export-user-data") {
