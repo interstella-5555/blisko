@@ -44,8 +44,6 @@ function approxDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: nu
   return Math.sqrt(dLat * dLat + dLng * dLng);
 }
 
-const DEFAULT_ZOOM = Math.round(Math.log2(360 / DEFAULT_MAP_DELTA));
-
 type NearbyFilter = "all" | "people" | "groups";
 
 const FILTER_CHIPS: { key: NearbyFilter; label: string }[] = [
@@ -101,7 +99,7 @@ export default function NearbyScreen() {
 
   const handleReturnToMyLocation = useCallback(() => {
     if (!latitude || !longitude) return;
-    mapRef.current?.animateToRegion(latitude, longitude, DEFAULT_ZOOM);
+    mapRef.current?.animateToRegion(latitude, longitude);
   }, [latitude, longitude]);
 
   // Clusters recompute automatically when points or region change
@@ -118,7 +116,8 @@ export default function NearbyScreen() {
   const handleClusterPress = useCallback(
     (clusterId: number, lat: number, lng: number) => {
       const zoom = getExpansionZoom(clusterId);
-      mapRef.current?.animateToRegion(lat, lng, zoom);
+      const delta = 360 / 2 ** zoom;
+      mapRef.current?.animateToRegion(lat, lng, delta);
     },
     [getExpansionZoom],
   );
