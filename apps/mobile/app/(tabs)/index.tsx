@@ -604,6 +604,9 @@ export default function NearbyScreen() {
           <Text style={styles.listHeaderTitle}>
             {nearbyGroups?.length ?? 0} {(nearbyGroups?.length ?? 0) === 1 ? "GRUPA" : "GRUP"} W POBLIŻU
           </Text>
+          <Pressable onPress={() => router.push("/create-group")}>
+            <Text style={styles.listHeaderAction}>+ Utwórz</Text>
+          </Pressable>
         </View>
       )}
 
