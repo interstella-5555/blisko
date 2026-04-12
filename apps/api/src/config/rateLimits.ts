@@ -61,10 +61,12 @@ export const rateLimits = {
   // File uploads — S3 write protection
   uploads: { limit: 10, window: 60 * 60 },
 
-  // Nearby user queries — list with viewport bbox (500ms debounce = max 2/s = 20/10s)
+  // Nearby user queries — list with viewport bbox.
+  // Coupled with VIEWPORT_DEBOUNCE_MS (500ms) in apps/mobile/src/hooks/useNearbyList.ts.
+  // At 500ms debounce = max 2 req/s = 20 in 10s. If you change debounce, update limit to match.
   "profiles.getNearby": { limit: 20, window: 10 },
 
-  // Lightweight map markers — separate from rich list
+  // Lightweight map markers — separate from rich list (same coupling as above)
   "profiles.getNearbyMap": { limit: 20, window: 10 },
 
   // Data export — heavy operation, once per day
