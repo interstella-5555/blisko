@@ -8,6 +8,7 @@
 > Updated 2026-04-11 — Single sign-out path `signOutAndReset()` exported from `app/_layout.tsx` — the 4 logout sites (settings, account deletion, onboarding abort, ACCOUNT_DELETED error handler) now call it instead of reimplementing store resets. Clears auth/profiles/conversations/messages/waves/onboarding stores + `queryClient` + SecureStore tokens; `locationStore` and `preferencesStore` intentionally untouched (BLI-204).
 > Updated 2026-04-11 — Fixed pings-list crash in `(tabs)/chats.tsx`: two sibling `FlatList`-es (pings vs conversations) in a ternary were sharing one React instance; switching filter mutated `onViewableItemsChanged` from function → undefined, triggering `Invariant Violation: Changing onViewableItemsChanged nullability on the fly is not supported` (SIGABRT). Fix: distinct `key` props so React treats them as separate instances. See "Gotchas" below.
 > Updated 2026-04-11 — Chats tab `tabBarBadge` now sums unread messages **and** unviewed pending pings (was: unread messages only). Mirrors the `unviewedPingCount` already shown on the sonar pill inside the chats screen — both numbers come from the same `wavesStore.viewedWaveIds` cursor, so the user sees a consistent "things demanding attention" count from the tab bar and from inside the screen (BLI-207). See "Tab badges" under Key Conventions.
+> Updated 2026-04-12 — Migrated toast system from custom ToastProvider/ToastBanner/ToastOverlay to sonner-native. Added react-native-reanimated + react-native-gesture-handler as new dependencies. Thin `showToast()` wrapper in `lib/toast.ts` preserves per-type haptic feedback (BLI-216).
 
 React Native 0.81.5, Expo SDK 54, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
 
@@ -32,7 +33,7 @@ React Native 0.81.5, Expo SDK 54, Expo Router v6 (file-based routing), TypeScrip
 Full route tree from `apps/mobile/app/`:
 
 ```
-_layout.tsx                         Root Stack (tRPC + QueryClient + WS + Notifications + Toast)
+_layout.tsx                         Root Stack (GestureHandlerRootView + tRPC + QueryClient + WS + Notifications + Toaster)
 |
 +-- (auth)/                         Auth group (redirects to tabs if session exists)
 |   +-- _layout.tsx                 Stack, headerShown: false
@@ -212,16 +213,23 @@ Handled events: `newWave` ("Pinguje Cie!"), `waveResponded` accepted ("Przyjal(a
 
 ---
 
-## Providers (Overlay Ownership)
+## Providers & Overlays
 
-Two provider components wrap the root layout in `app/_layout.tsx`, each owning a screen-level overlay:
+### Toast System (sonner-native)
 
-| Provider | Owns | Used by | Overlay component |
-|---|---|---|---|
-| `ToastProvider` (`providers/ToastProvider.tsx`) | Imperative toast queue | `useToast()` hook + `showToastGlobal` escape hatch (used by tRPC error interceptor for rate-limit toasts) | `ToastOverlay` (renders active toast at top of screen) |
-| `NotificationProvider` (`providers/NotificationProvider.tsx`) | In-app notification queue for WS-driven banners | `useInAppNotifications` hook (via WS listeners) | `NotificationOverlay` (renders active banner below status bar) |
+`<Toaster>` from `sonner-native` renders at the end of the root layout JSX, inside `GestureHandlerRootView`. Config: `position="top-center"`, `duration={4000}`, `visibleToasts={3}`, `swipeToDismissDirection="up"`, `richColors`, `theme="light"`.
 
-Both providers sit below the Zustand stores (stores are globals, not context) but above the router. Neither persists state across sessions — they are ephemeral in-memory queues. The Push Notifications section's "in-app notification overlay handles those instead" refers to `NotificationOverlay` driven by `NotificationProvider`.
+**Triggering toasts:** Import `showToast` from `@/lib/toast` (thin wrapper that adds haptic feedback per type via `expo-haptics`, then delegates to `toast.success/error/info` from sonner-native). Works both inside and outside the React tree — `sonner-native`'s `toast()` is a module-level function. The tRPC global error interceptor (`handleRateLimitError`, `handleContentModeration` in `_layout.tsx`) calls `showToast` directly.
+
+For advanced usage (promise toasts, custom JSX, programmatic dismiss), import `toast` from `@/lib/toast` (re-exported from sonner-native).
+
+**Dependencies:** `react-native-reanimated` (60fps animations, requires babel plugin in `babel.config.js`), `react-native-gesture-handler` (swipe-to-dismiss, requires `GestureHandlerRootView` wrapper at app root).
+
+### Notification Provider
+
+`NotificationProvider` (`providers/NotificationProvider.tsx`) owns the in-app notification queue for WS-driven banners. Used by `useInAppNotifications` hook. Renders `NotificationOverlay` (active banner below status bar).
+
+Both the toast system and notification provider sit below Zustand stores (stores are globals, not context) but above the router. Neither persists state across sessions — they are ephemeral in-memory queues. The Push Notifications section's "in-app notification overlay handles those instead" refers to `NotificationOverlay` driven by `NotificationProvider`.
 
 ---
 
