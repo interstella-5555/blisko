@@ -604,8 +604,8 @@ export default function NearbyScreen() {
           <Text style={styles.listHeaderTitle}>
             {nearbyGroups?.length ?? 0} {(nearbyGroups?.length ?? 0) === 1 ? "GRUPA" : "GRUP"} W POBLIŻU
           </Text>
-          <Pressable onPress={() => router.push("/create-group")}>
-            <Text style={styles.listHeaderAction}>+ Utwórz</Text>
+          <Pressable onPress={() => router.push("/create-group")} hitSlop={8}>
+            <Text style={styles.createGroupAction}>+ UTWÓRZ</Text>
           </Pressable>
         </View>
       )}
@@ -780,6 +780,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
     fontSize: 11,
     color: "#efa844",
+  },
+  createGroupAction: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: colors.accent,
   },
   listContent: {
     paddingBottom: 40,
