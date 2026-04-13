@@ -1,12 +1,12 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
-import { Button } from "../../src/components/ui/Button";
-import { Input } from "../../src/components/ui/Input";
-import { IconX } from "../../src/components/ui/icons";
-import { useAuthStore } from "../../src/stores/authStore";
-import { useOnboardingStore } from "../../src/stores/onboardingStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { IconX } from "@/components/ui/icons";
+import { useAuthStore } from "@/stores/authStore";
+import { useOnboardingStore } from "@/stores/onboardingStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 import { signOutAndReset } from "../_layout";
 
 export default function OnboardingNameScreen() {

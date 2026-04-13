@@ -1,11 +1,11 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Button } from "../../src/components/ui/Button";
-import { trpc } from "../../src/lib/trpc";
-import { useAuthStore } from "../../src/stores/authStore";
-import { useOnboardingStore } from "../../src/stores/onboardingStore";
-import { colors, spacing, type as typ } from "../../src/theme";
+import { Button } from "@/components/ui/Button";
+import { trpc } from "@/lib/trpc";
+import { useAuthStore } from "@/stores/authStore";
+import { useOnboardingStore } from "@/stores/onboardingStore";
+import { colors, spacing, type as typ } from "@/theme";
 
 export default function VisibilityScreen() {
   const { displayName, complete } = useOnboardingStore();

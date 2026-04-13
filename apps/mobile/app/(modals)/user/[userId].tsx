@@ -1,18 +1,18 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { ProfileGateSheet } from "../../../src/components/ProfileGateSheet";
-import { Avatar } from "../../../src/components/ui/Avatar";
-import { IconChat, IconCheck, IconWave } from "../../../src/components/ui/icons";
-import { useProfileGate } from "../../../src/hooks/useProfileGate";
-import { formatDistance } from "../../../src/lib/format";
-import { trpc } from "../../../src/lib/trpc";
-import { sendWsMessage, useWebSocket, type WSMessage } from "../../../src/lib/ws";
-import { useAuthStore } from "../../../src/stores/authStore";
-import { useConversationsStore } from "../../../src/stores/conversationsStore";
-import { useProfilesStore } from "../../../src/stores/profilesStore";
-import { useWavesStore } from "../../../src/stores/wavesStore";
-import { colors, fonts, spacing, type as typ } from "../../../src/theme";
+import { ProfileGateSheet } from "@/components/ProfileGateSheet";
+import { Avatar } from "@/components/ui/Avatar";
+import { IconChat, IconCheck, IconWave } from "@/components/ui/icons";
+import { useProfileGate } from "@/hooks/useProfileGate";
+import { formatDistance } from "@/lib/format";
+import { trpc } from "@/lib/trpc";
+import { sendWsMessage, useWebSocket, type WSMessage } from "@/lib/ws";
+import { useAuthStore } from "@/stores/authStore";
+import { useConversationsStore } from "@/stores/conversationsStore";
+import { useProfilesStore } from "@/stores/profilesStore";
+import { useWavesStore } from "@/stores/wavesStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 function BlockAction({ userId, displayName }: { userId: string; displayName: string }) {
   const blockMutation = trpc.waves.block.useMutation();

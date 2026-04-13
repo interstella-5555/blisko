@@ -1,10 +1,10 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
-import { IconChevronRight } from "../../src/components/ui/icons";
-import { trpc } from "../../src/lib/trpc";
-import { useAuthStore } from "../../src/stores/authStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { IconChevronRight } from "@/components/ui/icons";
+import { trpc } from "@/lib/trpc";
+import { useAuthStore } from "@/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 type VisibilityMode = "ninja" | "semi_open" | "full_nomad";
 

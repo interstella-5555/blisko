@@ -2,17 +2,17 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { ProfileGateSheet } from "../../../src/components/ProfileGateSheet";
-import { Avatar } from "../../../src/components/ui/Avatar";
-import { Button } from "../../../src/components/ui/Button";
-import { useProfileGate } from "../../../src/hooks/useProfileGate";
-import { formatDistance } from "../../../src/lib/format";
-import { trpc } from "../../../src/lib/trpc";
-import { sendWsMessage } from "../../../src/lib/ws";
-import { useAuthStore } from "../../../src/stores/authStore";
-import { useConversationsStore } from "../../../src/stores/conversationsStore";
-import { useLocationStore } from "../../../src/stores/locationStore";
-import { colors, fonts, spacing } from "../../../src/theme";
+import { ProfileGateSheet } from "@/components/ProfileGateSheet";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import { useProfileGate } from "@/hooks/useProfileGate";
+import { formatDistance } from "@/lib/format";
+import { trpc } from "@/lib/trpc";
+import { sendWsMessage } from "@/lib/ws";
+import { useAuthStore } from "@/stores/authStore";
+import { useConversationsStore } from "@/stores/conversationsStore";
+import { useLocationStore } from "@/stores/locationStore";
+import { colors, fonts, spacing } from "@/theme";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Wlasciciel",

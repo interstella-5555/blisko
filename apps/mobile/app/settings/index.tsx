@@ -1,16 +1,9 @@
 import { Redirect, router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Avatar } from "../../src/components/ui/Avatar";
-import {
-  IconAccount,
-  IconBell,
-  IconChevronRight,
-  IconHelp,
-  IconPerson,
-  IconPrivacy,
-} from "../../src/components/ui/icons";
-import { useAuthStore } from "../../src/stores/authStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { Avatar } from "@/components/ui/Avatar";
+import { IconAccount, IconBell, IconChevronRight, IconHelp, IconPerson, IconPrivacy } from "@/components/ui/icons";
+import { useAuthStore } from "@/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 import { signOutAndReset } from "../_layout";
 
 // -- Group row data --

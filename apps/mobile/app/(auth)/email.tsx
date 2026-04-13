@@ -2,11 +2,11 @@ import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { Button } from "../../src/components/ui/Button";
-import { Input } from "../../src/components/ui/Input";
-import { authClient } from "../../src/lib/auth";
-import { useAuthStore } from "../../src/stores/authStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { authClient } from "@/lib/auth";
+import { useAuthStore } from "@/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 

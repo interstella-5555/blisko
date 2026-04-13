@@ -1,14 +1,14 @@
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
-import { Button } from "../../src/components/ui/Button";
-import { ThinkingIndicator } from "../../src/components/ui/ThinkingIndicator";
-import { useRetryProfileOnFailure } from "../../src/hooks/useRetryProfileOnFailure";
-import { trpc } from "../../src/lib/trpc";
-import { useWebSocket, type WSMessage } from "../../src/lib/ws";
-import { useAuthStore } from "../../src/stores/authStore";
-import { useOnboardingStore } from "../../src/stores/onboardingStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { Button } from "@/components/ui/Button";
+import { ThinkingIndicator } from "@/components/ui/ThinkingIndicator";
+import { useRetryProfileOnFailure } from "@/hooks/useRetryProfileOnFailure";
+import { trpc } from "@/lib/trpc";
+import { useWebSocket, type WSMessage } from "@/lib/ws";
+import { useAuthStore } from "@/stores/authStore";
+import { useOnboardingStore } from "@/stores/onboardingStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function ProfilingResultScreen() {
   const { profilingSessionId, displayName, complete } = useOnboardingStore();

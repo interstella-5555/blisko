@@ -1,6 +1,6 @@
 import { StyleSheet, Switch, Text, View } from "react-native";
-import { usePreferencesStore } from "../src/stores/preferencesStore";
-import { colors, fonts, spacing } from "../src/theme";
+import { usePreferencesStore } from "@/stores/preferencesStore";
+import { colors, fonts, spacing } from "@/theme";
 
 export default function FiltersScreen() {
   const photoOnly = usePreferencesStore((s) => s.photoOnly);

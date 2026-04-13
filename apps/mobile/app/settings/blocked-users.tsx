@@ -1,7 +1,7 @@
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/ui/Avatar";
 import { trpc } from "@/lib/trpc";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function BlockedUsersScreen() {
   const utils = trpc.useUtils();

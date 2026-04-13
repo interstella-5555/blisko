@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { usePreferencesStore } from "@/stores/preferencesStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 interface ToggleRowProps {
   label: string;

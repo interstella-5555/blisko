@@ -1,11 +1,11 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { ThinkingIndicator } from "../../../src/components/ui/ThinkingIndicator";
-import { trpc } from "../../../src/lib/trpc";
-import { sendWsMessage } from "../../../src/lib/ws";
-import { useConversationsStore } from "../../../src/stores/conversationsStore";
-import { colors, fonts, spacing } from "../../../src/theme";
+import { ThinkingIndicator } from "@/components/ui/ThinkingIndicator";
+import { trpc } from "@/lib/trpc";
+import { sendWsMessage } from "@/lib/ws";
+import { useConversationsStore } from "@/stores/conversationsStore";
+import { colors, fonts, spacing } from "@/theme";
 
 const LOADING_MESSAGES = ["Dołączam do grupy…"];
 

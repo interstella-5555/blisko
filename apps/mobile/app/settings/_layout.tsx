@@ -2,7 +2,7 @@ import { router, Stack } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconChevronLeft } from "@/components/ui/icons";
-import { colors, fonts, spacing } from "../../src/theme";
+import { colors, fonts, spacing } from "@/theme";
 
 export default function SettingsLayout() {
   return (

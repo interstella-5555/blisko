@@ -1,15 +1,15 @@
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View, type ViewToken } from "react-native";
-import { ConversationRow } from "../../src/components/chat/ConversationRow";
-import { Avatar } from "../../src/components/ui/Avatar";
-import { IconChat, IconGroup } from "../../src/components/ui/icons";
-import { SonarDot } from "../../src/components/ui/SonarDot";
-import { usePrefetchMessages } from "../../src/hooks/usePrefetchMessages";
-import { trpc } from "../../src/lib/trpc";
-import { useConversationsStore } from "../../src/stores/conversationsStore";
-import { useWavesStore } from "../../src/stores/wavesStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { ConversationRow } from "@/components/chat/ConversationRow";
+import { Avatar } from "@/components/ui/Avatar";
+import { IconChat, IconGroup } from "@/components/ui/icons";
+import { SonarDot } from "@/components/ui/SonarDot";
+import { usePrefetchMessages } from "@/hooks/usePrefetchMessages";
+import { trpc } from "@/lib/trpc";
+import { useConversationsStore } from "@/stores/conversationsStore";
+import { useWavesStore } from "@/stores/wavesStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 type FilterType = "all" | "unread" | "group" | "pings";
 

@@ -1,9 +1,9 @@
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Avatar } from "../../src/components/ui/Avatar";
-import { IconSparkles } from "../../src/components/ui/icons";
-import { useAuthStore } from "../../src/stores/authStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { Avatar } from "@/components/ui/Avatar";
+import { IconSparkles } from "@/components/ui/icons";
+import { useAuthStore } from "@/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function ProfileScreen() {
   const user = useAuthStore((state) => state.user);

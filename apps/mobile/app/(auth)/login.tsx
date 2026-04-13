@@ -3,14 +3,14 @@ import * as SecureStore from "expo-secure-store";
 import { useMemo, useState } from "react";
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { authClient } from "../../src/lib/auth";
-import { useAuthStore } from "../../src/stores/authStore";
+import { authClient } from "@/lib/auth";
+import { useAuthStore } from "@/stores/authStore";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
-import { Button } from "../../src/components/ui/Button";
-import { showToast } from "../../src/lib/toast";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { Button } from "@/components/ui/Button";
+import { showToast } from "@/lib/toast";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 const authErrorMessages: Record<string, string> = {
   "Too many requests. Please try again later.": "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
