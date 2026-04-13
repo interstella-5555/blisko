@@ -9,7 +9,7 @@ import { GroupMarker } from "./GroupMarker";
 export const DEFAULT_MAP_DELTA = 0.05;
 
 export interface NearbyMapRef {
-  animateToRegion: (lat: number, lng: number, delta?: number) => void;
+  animateToRegion: (lat: number, lng: number, delta: number) => void;
 }
 
 type ClusterOrPoint =
@@ -34,7 +34,7 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
     const mapRef = useRef<MapView>(null);
 
     useImperativeHandle(ref, () => ({
-      animateToRegion: (lat: number, lng: number, delta: number = DEFAULT_MAP_DELTA) => {
+      animateToRegion: (lat: number, lng: number, delta: number) => {
         mapRef.current?.animateToRegion(
           { latitude: lat, longitude: lng, latitudeDelta: delta, longitudeDelta: delta },
           300,
