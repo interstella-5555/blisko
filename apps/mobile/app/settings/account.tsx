@@ -1,3 +1,4 @@
+import { OTP_LENGTH } from "@repo/shared";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -207,7 +208,7 @@ export default function AccountScreen() {
   };
 
   const handleConfirmDeletion = async () => {
-    if (otp.length !== 6) return;
+    if (otp.length !== OTP_LENGTH) return;
     setOtpLoading(true);
     try {
       await requestDeletion.mutateAsync({ otp });
@@ -294,14 +295,14 @@ export default function AccountScreen() {
             value={otp}
             onChangeText={setOtp}
             keyboardType="number-pad"
-            maxLength={6}
+            maxLength={OTP_LENGTH}
             placeholder="000000"
             autoFocus
           />
           <Pressable
-            style={[styles.confirmDeleteButton, otp.length !== 6 && { opacity: 0.5 }]}
+            style={[styles.confirmDeleteButton, otp.length !== OTP_LENGTH && { opacity: 0.5 }]}
             onPress={handleConfirmDeletion}
-            disabled={otp.length !== 6 || otpLoading}
+            disabled={otp.length !== OTP_LENGTH || otpLoading}
           >
             {otpLoading ? (
               <ActivityIndicator color="#fff" size="small" />

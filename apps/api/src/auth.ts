@@ -1,4 +1,5 @@
 import { expo } from "@better-auth/expo";
+import { OTP_LENGTH } from "@repo/shared";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins";
@@ -130,7 +131,7 @@ export const auth = betterAuth({
       changeEmail: {
         enabled: true,
       },
-      otpLength: 6,
+      otpLength: OTP_LENGTH,
       expiresIn: 300, // 5 minutes
     }),
   ],

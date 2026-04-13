@@ -1,3 +1,4 @@
+import { OTP_LENGTH, RESEND_COOLDOWN_SECONDS } from "@repo/shared";
 import { router, useLocalSearchParams } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -24,12 +25,9 @@ function translateAuthError(message?: string): string {
   return message;
 }
 
-const CODE_LENGTH = 6;
-const RESEND_COOLDOWN = 10; // seconds between resends (10s for testing)
-
 export default function VerifyScreen() {
   const { email, otp: initialOtp } = useLocalSearchParams<{ email: string; otp?: string }>();
-  const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
+  const [code, setCode] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -40,7 +38,7 @@ export default function VerifyScreen() {
     async (verifyCode?: string) => {
       const codeToVerify = verifyCode || code.join("");
 
-      if (codeToVerify.length !== CODE_LENGTH) {
+      if (codeToVerify.length !== OTP_LENGTH) {
         setError("Wpisz 6-cyfrowy kod");
         return;
       }
@@ -98,7 +96,7 @@ export default function VerifyScreen() {
 
   // Auto-verify if OTP came from deep link
   useEffect(() => {
-    if (initialOtp && initialOtp.length === CODE_LENGTH) {
+    if (initialOtp && initialOtp.length === OTP_LENGTH) {
       const digits = initialOtp.split("");
       setCode(digits);
       handleVerify(initialOtp);
@@ -116,17 +114,17 @@ export default function VerifyScreen() {
   const handleCodeChange = (value: string, index: number) => {
     // Handle paste of full code
     if (value.length > 1) {
-      const digits = value.replace(/\D/g, "").slice(0, CODE_LENGTH).split("");
+      const digits = value.replace(/\D/g, "").slice(0, OTP_LENGTH).split("");
       const newCode = [...code];
       digits.forEach((digit, i) => {
-        if (index + i < CODE_LENGTH) {
+        if (index + i < OTP_LENGTH) {
           newCode[index + i] = digit;
         }
       });
       setCode(newCode);
 
       // Focus last filled or next empty
-      const nextIndex = Math.min(index + digits.length, CODE_LENGTH - 1);
+      const nextIndex = Math.min(index + digits.length, OTP_LENGTH - 1);
       inputRefs.current[nextIndex]?.focus();
 
       // Auto-submit if complete
@@ -143,7 +141,7 @@ export default function VerifyScreen() {
     setCode(newCode);
 
     // Move to next input
-    if (digit && index < CODE_LENGTH - 1) {
+    if (digit && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
 
@@ -174,9 +172,9 @@ export default function VerifyScreen() {
       if (result.error) {
         setError(translateAuthError(result.error.message) || "Nie udało się wysłać kodu");
       } else {
-        setResendCooldown(RESEND_COOLDOWN);
+        setResendCooldown(RESEND_COOLDOWN_SECONDS);
         // Clear the code inputs
-        setCode(Array(CODE_LENGTH).fill(""));
+        setCode(Array(OTP_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
       }
     } catch (_err) {
@@ -209,7 +207,7 @@ export default function VerifyScreen() {
               onChangeText={(value) => handleCodeChange(value, index)}
               onKeyPress={(e) => handleKeyPress(e, index)}
               keyboardType="number-pad"
-              maxLength={index === 0 ? CODE_LENGTH : 1}
+              maxLength={index === 0 ? OTP_LENGTH : 1}
               selectTextOnFocus
               editable={!isLoading}
               testID={`code-input-${index}`}

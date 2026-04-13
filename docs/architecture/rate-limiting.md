@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-12 — Reverted BLI-189 temporary inflation (waves.send 300→30, waves.respond 600→60, profiles.getNearby 600→30, global 2000→200). Added `profiles.getNearbyMap` bucket for new lightweight map markers endpoint.
 > Updated 2026-04-12 — BLI-189 hotfix: tightened `profiles.getNearby` and `profiles.getNearbyMap` to 20/10s (was 30/60s). Coupled with 500ms viewport debounce on client (max 2 req/s = 20 in 10s window).
+> Updated 2026-04-14 — BLI-219: nearby rate limit values (`NEARBY_RATE_LIMIT`) and viewport debounce (`VIEWPORT_DEBOUNCE_MS`) moved to `@repo/shared/config/nearby.ts`. Ping business limits (`DECLINE_COOLDOWN_HOURS`, `DAILY_PING_LIMIT_BASIC`, `PER_PERSON_COOLDOWN_HOURS`) moved to `@repo/shared/config/waves.ts` — `pingLimits.ts` re-exports from shared.
 
 ## Terminology & Product Alignment
 
@@ -57,8 +58,10 @@ The entire script runs as a single `EVAL` — atomic execution, no race conditio
 
 | File | Role |
 |------|------|
-| `apps/api/src/config/rateLimits.ts` | Central config — all limit values, window sizes, and per-context Polish error messages in one file. Exports `rateLimits` (config object), `rateLimitMessages` (Polish strings), `DEFAULT_RATE_LIMIT_MESSAGE` (catch-all). |
-| `apps/api/src/config/pingLimits.ts` | Business-rule ping limits — daily cap, per-person cooldown, decline cooldown, mutual ping window. Separate from rate limits because these are product rules, not abuse protection. |
+| `packages/shared/src/config/nearby.ts` | Cross-app constants: `VIEWPORT_DEBOUNCE_MS`, `NEARBY_RATE_LIMIT`, `GRID_SIZE`, `NEARBY_PAGE_SIZE`. Single source of truth for debounce↔rate limit coupling. |
+| `packages/shared/src/config/waves.ts` | Cross-app constants: `DECLINE_COOLDOWN_HOURS`, `DAILY_PING_LIMIT_BASIC`, `PER_PERSON_COOLDOWN_HOURS`. |
+| `apps/api/src/config/rateLimits.ts` | Central config — all limit values, window sizes, and per-context Polish error messages. Nearby limits use `NEARBY_RATE_LIMIT` from `@repo/shared`. Exports `rateLimits` (config object), `rateLimitMessages` (Polish strings), `DEFAULT_RATE_LIMIT_MESSAGE` (catch-all). |
+| `apps/api/src/config/pingLimits.ts` | Re-exports ping business limits from `@repo/shared/config/waves.ts`. Kept as API import alias for existing consumers. |
 | `apps/api/src/services/rate-limiter.ts` | Engine — Redis Lua sliding window counter. Single export: `checkRateLimit(key, limit, window)` returning `{ limited, retryAfter }`. |
 | `apps/api/src/middleware/rateLimit.ts` | Hono middleware factory — `honoRateLimit(name)` for pre-auth routes. Extracts client IP from `X-Forwarded-For` (first entry) or `X-Real-IP`, falls back to `"unknown"`. Returns HTTP 429 with JSON body + `Retry-After` header. |
 | `apps/api/src/trpc/middleware/rateLimit.ts` | tRPC middleware factory — `rateLimit(name, keySuffix?)` for post-auth procedures. Keyed by `ctx.userId`. Optional `keySuffix` function derives per-resource keys from input (e.g. `conversationId` for per-chat message limits). Throws `TRPCError` with code `TOO_MANY_REQUESTS`. |
@@ -361,8 +364,10 @@ When adding a new API endpoint or procedure that needs rate limiting:
 
 If you change this system, also check:
 
-- **`apps/api/src/config/rateLimits.ts`** — Single source of truth for all limit values, windows, and Polish error messages. Type-safe: `RateLimitName` union type used by both middleware factories.
-- **`apps/api/src/config/pingLimits.ts`** — Business-rule ping limits (daily cap, cooldowns, mutual window). Must stay aligned with PRODUCT.md pricing tiers (Basic: 5/day, Premium: 20/day).
+- **`packages/shared/src/config/nearby.ts`** — `VIEWPORT_DEBOUNCE_MS` and `NEARBY_RATE_LIMIT` — the coupled pair. Change one, update the other.
+- **`packages/shared/src/config/waves.ts`** — Ping business limits (daily cap, cooldowns). Must stay aligned with PRODUCT.md pricing tiers (Basic: 5/day, Premium: 20/day).
+- **`apps/api/src/config/rateLimits.ts`** — Rate limit config object. Nearby entries use `NEARBY_RATE_LIMIT` from shared. Type-safe: `RateLimitName` union type used by both middleware factories.
+- **`apps/api/src/config/pingLimits.ts`** — Re-exports from `@repo/shared`. Existing API consumers import from here.
 - **`apps/api/src/services/rate-limiter.ts`** — The Lua script. If Redis key format changes, all existing counters become orphaned (harmless, they'll expire).
 - **`apps/api/src/services/push.ts`** — `collapseId` logic for group push suppression. The `sound` field is conditionally set based on presence of `collapseId`. Adding new `collapseId` patterns here affects notification behavior on all devices.
 - **`apps/api/src/trpc/procedures/messages.ts`** — Determines `hasUnread` per recipient and sets `collapseId` accordingly. Also contains message idempotency logic (Redis keys, TTL).

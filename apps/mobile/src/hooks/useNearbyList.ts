@@ -1,15 +1,10 @@
+import { NEARBY_PAGE_SIZE, VIEWPORT_DEBOUNCE_MS } from "@repo/shared";
 import { keepPreviousData } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { Region } from "react-native-maps";
 import { trpc } from "@/lib/trpc";
 import { useLocationStore } from "@/stores/locationStore";
 import { usePreferencesStore } from "@/stores/preferencesStore";
-
-const PAGE_SIZE = 20;
-// Viewport change debounce — coupled with rate limit in apps/api/src/config/rateLimits.ts
-// ("profiles.getNearby": 20/10s). At 500ms debounce = max 2 req/s = 20 in 10s window.
-// If you change this, update the rate limit to match.
-const VIEWPORT_DEBOUNCE_MS = 500;
 
 export function useNearbyList() {
   const { latitude, longitude } = useLocationStore();
@@ -23,7 +18,7 @@ export function useNearbyList() {
         latitude: latitude!,
         longitude: longitude!,
         radiusMeters: nearbyRadiusMeters,
-        limit: PAGE_SIZE,
+        limit: NEARBY_PAGE_SIZE,
         photoOnly: photoOnly || undefined,
         bbox: showAllNearby ? undefined : bbox,
       },

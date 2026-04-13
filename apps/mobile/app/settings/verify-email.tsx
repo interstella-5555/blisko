@@ -1,3 +1,4 @@
+import { OTP_LENGTH, RESEND_COOLDOWN_SECONDS } from "@repo/shared";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
@@ -7,12 +8,9 @@ import { authClient } from "@/lib/auth";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
-const CODE_LENGTH = 6;
-const RESEND_COOLDOWN = 30;
-
 export default function VerifyEmailScreen() {
   const { newEmail } = useLocalSearchParams<{ newEmail: string }>();
-  const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(""));
+  const [code, setCode] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -29,15 +27,15 @@ export default function VerifyEmailScreen() {
 
   const handleCodeChange = (value: string, index: number) => {
     if (value.length > 1) {
-      const digits = value.replace(/\D/g, "").slice(0, CODE_LENGTH).split("");
+      const digits = value.replace(/\D/g, "").slice(0, OTP_LENGTH).split("");
       const newCode = [...code];
       digits.forEach((digit, i) => {
-        if (index + i < CODE_LENGTH) {
+        if (index + i < OTP_LENGTH) {
           newCode[index + i] = digit;
         }
       });
       setCode(newCode);
-      const nextIndex = Math.min(index + digits.length, CODE_LENGTH - 1);
+      const nextIndex = Math.min(index + digits.length, OTP_LENGTH - 1);
       inputRefs.current[nextIndex]?.focus();
       if (newCode.every((d) => d !== "")) {
         handleVerify(newCode.join(""));
@@ -50,7 +48,7 @@ export default function VerifyEmailScreen() {
     newCode[index] = digit;
     setCode(newCode);
 
-    if (digit && index < CODE_LENGTH - 1) {
+    if (digit && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
     }
 
@@ -67,7 +65,7 @@ export default function VerifyEmailScreen() {
 
   const handleVerify = async (verifyCode?: string) => {
     const codeToVerify = verifyCode || code.join("");
-    if (codeToVerify.length !== CODE_LENGTH) {
+    if (codeToVerify.length !== OTP_LENGTH) {
       setError("Wpisz 6-cyfrowy kod");
       return;
     }
@@ -113,8 +111,8 @@ export default function VerifyEmailScreen() {
       if (result.error) {
         setError(result.error.message || "Nie udało się wysłać kodu");
       } else {
-        setResendCooldown(RESEND_COOLDOWN);
-        setCode(Array(CODE_LENGTH).fill(""));
+        setResendCooldown(RESEND_COOLDOWN_SECONDS);
+        setCode(Array(OTP_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
       }
     } catch (_err) {
@@ -147,7 +145,7 @@ export default function VerifyEmailScreen() {
               onChangeText={(value) => handleCodeChange(value, index)}
               onKeyPress={(e) => handleKeyPress(e, index)}
               keyboardType="number-pad"
-              maxLength={index === 0 ? CODE_LENGTH : 1}
+              maxLength={index === 0 ? OTP_LENGTH : 1}
               selectTextOnFocus
               editable={!isLoading}
             />

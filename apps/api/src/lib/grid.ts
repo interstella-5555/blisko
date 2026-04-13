@@ -1,10 +1,9 @@
+import { GRID_SIZE } from "@repo/shared";
+
 /**
  * Grid-based privacy system for location data.
  * Instead of exposing exact coordinates, we snap locations to ~500m x 500m grid cells.
  */
-
-// ~500m = 0.0045 degrees latitude (roughly, varies by location)
-export const GRID_SIZE = 0.0045;
 
 export interface GridPosition {
   gridLat: number;

@@ -17,9 +17,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "ms": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/ms": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

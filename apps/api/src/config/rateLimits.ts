@@ -1,3 +1,5 @@
+import { NEARBY_RATE_LIMIT } from "@repo/shared";
+
 /**
  * Rate limit configuration — single source of truth.
  *
@@ -61,13 +63,11 @@ export const rateLimits = {
   // File uploads — S3 write protection
   uploads: { limit: 10, window: 60 * 60 },
 
-  // Nearby user queries — list with viewport bbox.
-  // Coupled with VIEWPORT_DEBOUNCE_MS (500ms) in apps/mobile/src/hooks/useNearbyList.ts.
-  // At 500ms debounce = max 2 req/s = 20 in 10s. If you change debounce, update limit to match.
-  "profiles.getNearby": { limit: 20, window: 10 },
+  // Nearby user queries — budget from @repo/shared (coupled with VIEWPORT_DEBOUNCE_MS)
+  "profiles.getNearby": NEARBY_RATE_LIMIT,
 
-  // Lightweight map markers — separate from rich list (same coupling as above)
-  "profiles.getNearbyMap": { limit: 20, window: 10 },
+  // Lightweight map markers — separate bucket, same budget
+  "profiles.getNearbyMap": NEARBY_RATE_LIMIT,
 
   // Data export — heavy operation, once per day
   dataExport: { limit: 1, window: 24 * 60 * 60 },

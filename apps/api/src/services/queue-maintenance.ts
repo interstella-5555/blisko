@@ -1,4 +1,5 @@
 import { type Job, Queue, Worker } from "bullmq";
+import ms from "ms";
 import { aiCallBuffer, pruneAiCalls } from "./ai-log";
 import { prunePushLog, pushLogBuffer } from "./push-log";
 import { attachWorkerLogger, getConnectionConfig, QUEUE_NAMES } from "./queue-shared";
@@ -58,8 +59,7 @@ async function processMaintenanceJob(job: Job<MaintenanceJob>) {
       break;
     }
     case "prune-push-log": {
-      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-      await prunePushLog(SEVEN_DAYS_MS);
+      await prunePushLog(ms("7 days"));
       console.log("[queue:maintenance] pruned old push log entries");
       break;
     }
@@ -73,8 +73,7 @@ async function processMaintenanceJob(job: Job<MaintenanceJob>) {
       break;
     }
     case "prune-ai-calls": {
-      const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-      await pruneAiCalls(SEVEN_DAYS_MS);
+      await pruneAiCalls(ms("7 days"));
       console.log("[queue:maintenance] pruned old ai call entries");
       break;
     }
@@ -101,12 +100,12 @@ export function startMaintenanceWorker() {
   const queue = getMaintenanceQueue();
   void queue.upsertJobScheduler(
     "flush-push-log",
-    { every: 15_000 },
+    { every: ms("15 seconds") },
     { name: "flush-push-log", data: { type: "flush-push-log" } },
   );
   void queue.upsertJobScheduler(
     "prune-push-log",
-    { every: 3_600_000 },
+    { every: ms("1 hour") },
     { name: "prune-push-log", data: { type: "prune-push-log" } },
   );
   void queue.upsertJobScheduler(
@@ -116,12 +115,12 @@ export function startMaintenanceWorker() {
   );
   void queue.upsertJobScheduler(
     "flush-ai-calls",
-    { every: 15_000 },
+    { every: ms("15 seconds") },
     { name: "flush-ai-calls", data: { type: "flush-ai-calls" } },
   );
   void queue.upsertJobScheduler(
     "prune-ai-calls",
-    { every: 3_600_000 },
+    { every: ms("1 hour") },
     { name: "prune-ai-calls", data: { type: "prune-ai-calls" } },
   );
 
