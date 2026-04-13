@@ -225,11 +225,13 @@ For advanced usage (promise toasts, custom JSX, programmatic dismiss), import `t
 
 **Dependencies:** `react-native-reanimated` (60fps animations, requires babel plugin in `babel.config.js`), `react-native-gesture-handler` (swipe-to-dismiss, requires `GestureHandlerRootView` wrapper at app root).
 
-### Notification Provider
+### In-App Notifications (via sonner-native)
 
-`NotificationProvider` (`providers/NotificationProvider.tsx`) owns the in-app notification queue for WS-driven banners. Used by `useInAppNotifications` hook. Renders `NotificationOverlay` (active banner below status bar).
+WS-driven banners (new ping, wave response, new message, group invite) use the same sonner-native toast system via `showNotification(category, id, jsx)` from `@/lib/toast`. This function gates on `preferencesStore.notificationPrefs[category]` before showing — if the user disabled a category in settings, the notification is silently dropped. Uses `toast.custom()` to render `NotificationToast` (`components/ui/NotificationToast.tsx`) — a banner with avatar, title, subtitle, accent border, and tap-to-navigate (calls `onPress` + `toast.dismiss(id)`).
 
-Both the toast system and notification provider sit below Zustand stores (stores are globals, not context) but above the router. Neither persists state across sessions — they are ephemeral in-memory queues. The Push Notifications section's "in-app notification overlay handles those instead" refers to `NotificationOverlay` driven by `NotificationProvider`.
+The `useInAppNotifications` hook in `(tabs)/_layout.tsx` maps WS events to `showNotification()` calls with the appropriate category and navigation action. No provider or context needed — everything is imperative via sonner-native's module-level API.
+
+Both toasts and notifications are ephemeral in-memory — neither persists across sessions. The Push Notifications section's "in-app notification overlay handles those instead" refers to the `NotificationToast` banners rendered by sonner-native.
 
 ---
 
