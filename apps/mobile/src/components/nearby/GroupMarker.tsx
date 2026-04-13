@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { Avatar } from "../ui/Avatar";
 
 interface GroupMarkerProps {
@@ -8,10 +9,12 @@ interface GroupMarkerProps {
 }
 
 export function GroupMarker({ name, avatarUrl, nearbyCount }: GroupMarkerProps) {
+  const isGhost = useIsGhost();
+
   return (
     <View style={styles.container}>
       <View style={styles.avatarWrap}>
-        <Avatar uri={avatarUrl} name={name ?? "G"} size={40} />
+        <Avatar uri={avatarUrl} name={name ?? "G"} size={40} blurred={isGhost} />
       </View>
       {nearbyCount > 0 && (
         <View style={styles.badge}>

@@ -1,5 +1,6 @@
 import type React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { colors, fonts, spacing } from "../../theme";
 import { Avatar } from "../ui/Avatar";
 import { IconBellOff } from "../ui/icons";
@@ -45,6 +46,7 @@ export function ConversationRow({
   onPress,
   onLongPress,
 }: ConversationRowProps) {
+  const isGhost = useIsGhost();
   const isGroup = type === "group";
 
   // For groups, build preview with sender name prefix
@@ -64,7 +66,7 @@ export function ConversationRow({
 
   return (
     <Pressable style={styles.row} onPress={onPress} onLongPress={onLongPress} testID="conversation-row">
-      <Avatar uri={avatarUrl} name={displayName} size={48} />
+      <Avatar uri={avatarUrl} name={displayName} size={48} blurred={isGhost} />
       <View style={styles.content}>
         <View style={styles.topLine}>
           <Text style={styles.name} numberOfLines={1}>

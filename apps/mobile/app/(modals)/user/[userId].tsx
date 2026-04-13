@@ -4,6 +4,7 @@ import { Alert, Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View
 import { ProfileGateSheet } from "@/components/ProfileGateSheet";
 import { Avatar } from "@/components/ui/Avatar";
 import { IconChat, IconCheck, IconWave } from "@/components/ui/icons";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { useProfileGate } from "@/hooks/useProfileGate";
 import { formatDistance } from "@/lib/format";
 import { trpc } from "@/lib/trpc";
@@ -100,6 +101,7 @@ export default function UserProfileScreen() {
 
   const userId = params.userId;
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const isGhost = useIsGhost();
   const distance = Number(params.distance) || 0;
   const _rankScore = Number(params.rankScore) || 0;
   const matchScore = Number(params.matchScore) || 0;
@@ -391,7 +393,7 @@ export default function UserProfileScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         {/* Header — always visible from cached/list params */}
         <View style={styles.header}>
-          <Avatar uri={profile?.avatarUrl ?? resolvedAvatarUrl} name={displayName} size={100} />
+          <Avatar uri={profile?.avatarUrl ?? resolvedAvatarUrl} name={displayName} size={100} blurred={isGhost} />
           <Text style={styles.displayName}>{displayName}</Text>
           <View style={styles.meta}>
             {matchPercent > 0 && <Text style={styles.matchBadge}>{matchPercent}% dopasowania</Text>}

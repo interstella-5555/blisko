@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/ui/Avatar";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing } from "@/theme";
@@ -24,6 +25,7 @@ type Member = {
 export default function GroupMembersScreen() {
   const { id: conversationId } = useLocalSearchParams<{ id: string }>();
   const userId = useAuthStore((s) => s.user?.id);
+  const isGhost = useIsGhost();
   const [cursor, setCursor] = useState(0);
   const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [hasMore, setHasMore] = useState(true);
@@ -71,7 +73,7 @@ export default function GroupMembersScreen() {
           }
         }}
       >
-        <Avatar uri={item.avatarUrl} name={item.displayName} size={40} />
+        <Avatar uri={item.avatarUrl} name={item.displayName} size={40} blurred={isGhost && item.userId !== userId} />
         <View style={styles.memberInfo}>
           <Text style={styles.memberName} numberOfLines={1}>
             {item.displayName}
@@ -85,7 +87,7 @@ export default function GroupMembersScreen() {
         ) : null}
       </Pressable>
     ),
-    [userId],
+    [userId, isGhost],
   );
 
   if (isLoading && allMembers.length === 0) {

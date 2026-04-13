@@ -5,9 +5,10 @@ interface AvatarProps {
   uri?: string | null;
   name: string;
   size?: number;
+  blurred?: boolean;
 }
 
-export function Avatar({ uri, name, size = 40 }: AvatarProps) {
+export function Avatar({ uri, name, size = 40, blurred }: AvatarProps) {
   const borderRadius = size / 2;
   const fontSize = size * 0.4;
 
@@ -24,7 +25,11 @@ export function Avatar({ uri, name, size = 40 }: AvatarProps) {
     >
       {uri ? (
         <>
-          <Image source={{ uri }} style={[styles.image, { width: size, height: size, borderRadius }]} />
+          <Image
+            source={{ uri }}
+            style={[styles.image, { width: size, height: size, borderRadius }]}
+            blurRadius={blurred ? 10 : 0}
+          />
           <View style={[styles.grayscaleOverlay, { width: size, height: size, borderRadius }]} />
         </>
       ) : (

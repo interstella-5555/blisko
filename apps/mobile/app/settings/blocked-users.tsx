@@ -1,9 +1,11 @@
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/ui/Avatar";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { trpc } from "@/lib/trpc";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function BlockedUsersScreen() {
+  const isGhost = useIsGhost();
   const utils = trpc.useUtils();
   const { data: blockedUsers, isLoading } = trpc.waves.getBlocked.useQuery();
   const unblockMutation = trpc.waves.unblock.useMutation({
@@ -42,7 +44,7 @@ export default function BlockedUsersScreen() {
     <ScrollView style={styles.container}>
       {blockedUsers.map((user) => (
         <View key={user.userId} style={styles.row}>
-          <Avatar uri={user.avatarUrl} name={user.displayName} size={40} />
+          <Avatar uri={user.avatarUrl} name={user.displayName} size={40} blurred={isGhost} />
           <Text style={styles.name} numberOfLines={1}>
             {user.displayName}
           </Text>
