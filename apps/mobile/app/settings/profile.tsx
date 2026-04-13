@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { IconChevronRight, IconEdit, IconSparkles } from "../../src/components/ui/icons";
-import { colors, fonts, spacing } from "../../src/theme";
+import { IconChevronRight, IconEdit, IconSparkles } from "@/components/ui/icons";
+import { colors, fonts, spacing } from "@/theme";
 
 interface RowProps {
   icon: React.ReactNode;

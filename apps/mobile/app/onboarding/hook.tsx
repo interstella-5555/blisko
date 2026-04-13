@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
-import { fonts, spacing } from "../../src/theme";
+import { fonts, spacing } from "@/theme";
 
 const BUBBLES = [
   { x: 60, y: 180, size: 36, delay: 0 },

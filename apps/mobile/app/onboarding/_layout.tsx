@@ -1,8 +1,8 @@
 import { router, Stack } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { trpc } from "../../src/lib/trpc";
-import { useAuthStore } from "../../src/stores/authStore";
+import { trpc } from "@/lib/trpc";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function OnboardingLayout() {
   const user = useAuthStore((state) => state.user);

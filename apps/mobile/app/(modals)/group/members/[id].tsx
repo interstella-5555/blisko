@@ -1,10 +1,10 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-import { Avatar } from "../../../../src/components/ui/Avatar";
-import { trpc } from "../../../../src/lib/trpc";
-import { useAuthStore } from "../../../../src/stores/authStore";
-import { colors, fonts, spacing } from "../../../../src/theme";
+import { Avatar } from "@/components/ui/Avatar";
+import { trpc } from "@/lib/trpc";
+import { useAuthStore } from "@/stores/authStore";
+import { colors, fonts, spacing } from "@/theme";
 
 const PAGE_SIZE = 50;
 

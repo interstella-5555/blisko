@@ -12,13 +12,13 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Button } from "@/components/ui/Button";
 import { IconChevronLeft } from "@/components/ui/icons";
+import { ThinkingIndicator } from "@/components/ui/ThinkingIndicator";
 import { useRetryQuestionOnFailure } from "@/hooks/useRetryQuestionOnFailure";
-import { Button } from "../../src/components/ui/Button";
-import { ThinkingIndicator } from "../../src/components/ui/ThinkingIndicator";
-import { trpc } from "../../src/lib/trpc";
-import { useOnboardingStore } from "../../src/stores/onboardingStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { trpc } from "@/lib/trpc";
+import { useOnboardingStore } from "@/stores/onboardingStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 

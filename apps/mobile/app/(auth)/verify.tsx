@@ -2,11 +2,11 @@ import { router, useLocalSearchParams } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
-import { Button } from "../../src/components/ui/Button";
-import { IconSend } from "../../src/components/ui/icons";
-import { authClient } from "../../src/lib/auth";
-import { useAuthStore } from "../../src/stores/authStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { Button } from "@/components/ui/Button";
+import { IconSend } from "@/components/ui/icons";
+import { authClient } from "@/lib/auth";
+import { useAuthStore } from "@/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 const authErrorMessages: Record<string, string> = {
   "Too many requests. Please try again later.": "Za dużo prób logowania. Spróbuj ponownie za kilka minut.",

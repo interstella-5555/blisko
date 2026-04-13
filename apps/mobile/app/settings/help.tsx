@@ -1,6 +1,6 @@
 import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
-import { IconChevronRight } from "../../src/components/ui/icons";
-import { colors, fonts, spacing } from "../../src/theme";
+import { IconChevronRight } from "@/components/ui/icons";
+import { colors, fonts, spacing } from "@/theme";
 
 interface RowProps {
   label: string;

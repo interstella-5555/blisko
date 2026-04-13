@@ -12,11 +12,11 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Avatar } from "../../src/components/ui/Avatar";
-import { Button } from "../../src/components/ui/Button";
-import { trpc } from "../../src/lib/trpc";
-import { useAuthStore } from "../../src/stores/authStore";
-import { colors, fonts, spacing, type as typ } from "../../src/theme";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import { trpc } from "@/lib/trpc";
+import { useAuthStore } from "@/stores/authStore";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function EditProfileScreen() {
   const profile = useAuthStore((state) => state.profile);
