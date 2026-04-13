@@ -9,7 +9,7 @@ import { useAuthStore } from "../../src/stores/authStore";
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
 import { Button } from "../../src/components/ui/Button";
-import { useToast } from "../../src/providers/ToastProvider";
+import { showToast } from "../../src/lib/toast";
 import { colors, fonts, spacing, type as typ } from "../../src/theme";
 
 const authErrorMessages: Record<string, string> = {
@@ -24,7 +24,6 @@ function translateAuthError(message?: string): string {
 export default function LoginScreen() {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const { setUser, setSession, setProfile, setHasCheckedProfile } = useAuthStore();
-  const { showToast } = useToast();
 
   const isLoading = loadingAction !== null;
   const seedUserNumber = useMemo(() => Math.floor(Math.random() * 250), []);
@@ -39,7 +38,7 @@ export default function LoginScreen() {
         body: JSON.stringify({ email }),
       });
       if (!response.ok) {
-        showToast({ type: "error", title: "Błąd", message: "Auto-login failed" });
+        showToast("error", "Błąd", "Auto-login failed");
         setLoadingAction(null);
         return;
       }
@@ -52,7 +51,7 @@ export default function LoginScreen() {
       setSession({ ...data.session, expiresAt: new Date(data.session.expiresAt) });
       router.replace("/(tabs)");
     } catch {
-      showToast({ type: "error", title: "Błąd", message: "Auto-login failed" });
+      showToast("error", "Błąd", "Auto-login failed");
     }
     setLoadingAction(null);
   };
@@ -67,7 +66,7 @@ export default function LoginScreen() {
       });
 
       if (result?.error) {
-        showToast({ type: "error", title: "Błąd logowania", message: translateAuthError(result.error.message) });
+        showToast("error", "Błąd logowania", translateAuthError(result.error.message));
         setLoadingAction(null);
         return;
       }
@@ -81,10 +80,10 @@ export default function LoginScreen() {
         setSession(data.session);
         router.replace("/(tabs)");
       } else {
-        showToast({ type: "error", title: "Błąd logowania", message: "Nie udało się zalogować. Spróbuj ponownie." });
+        showToast("error", "Błąd logowania", "Nie udało się zalogować. Spróbuj ponownie.");
       }
     } catch (_err) {
-      showToast({ type: "error", title: "Błąd logowania", message: "Spróbuj ponownie" });
+      showToast("error", "Błąd logowania", "Spróbuj ponownie");
     }
     setLoadingAction(null);
   };

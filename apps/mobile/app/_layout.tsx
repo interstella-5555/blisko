@@ -8,16 +8,15 @@ import * as SecureStore from "expo-secure-store";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, Alert, AppState, Platform, Pressable, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Toaster } from "sonner-native";
 import { IconChevronLeft } from "@/components/ui/icons";
-import { NotificationOverlay } from "@/components/ui/NotificationOverlay";
-import { ToastOverlay } from "@/components/ui/ToastOverlay";
 import { authClient } from "@/lib/auth";
 import { getRateLimitMessage } from "@/lib/rateLimitMessages";
+import { showToast } from "@/lib/toast";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useWebSocket } from "@/lib/ws";
-import { NotificationProvider } from "@/providers/NotificationProvider";
-import { showToastGlobal, ToastProvider } from "@/providers/ToastProvider";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationsStore } from "@/stores/conversationsStore";
 import { useMessagesStore } from "@/stores/messagesStore";
@@ -51,16 +50,10 @@ function handleRateLimitError(error: unknown) {
   try {
     const parsed = JSON.parse(err.message ?? "");
     if (parsed.error === "RATE_LIMITED") {
-      showToastGlobal({
-        type: "error",
-        title: getRateLimitMessage(parsed.context),
-      });
+      showToast("error", getRateLimitMessage(parsed.context));
     }
   } catch {
-    showToastGlobal({
-      type: "error",
-      title: getRateLimitMessage(),
-    });
+    showToast("error", getRateLimitMessage());
   }
 }
 
@@ -71,10 +64,7 @@ function handleContentModeration(error: unknown) {
   try {
     const parsed = JSON.parse(err.message ?? "");
     if (parsed.error === "CONTENT_MODERATED") {
-      showToastGlobal({
-        type: "error",
-        title: "Treść narusza regulamin",
-      });
+      showToast("error", "Treść narusza regulamin");
     }
   } catch {
     // Not a moderation error — ignore
@@ -188,74 +178,79 @@ export default function RootLayout() {
   }
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <NotificationProvider>
-          <ToastProvider>
-            <StatusBar style="dark" />
-            <LinkPreviewContextProvider>
-              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="settings" options={{ headerShown: false }} />
-                <Stack.Screen name="onboarding" />
-                <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
-                <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
-                <Stack.Screen
-                  name="create-group"
-                  options={{
-                    headerShown: true,
-                    header: () => (
-                      <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            paddingHorizontal: spacing.section,
-                            height: 58,
-                          }}
-                        >
-                          <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
-                            <IconChevronLeft size={24} color={colors.ink} />
-                          </Pressable>
-                          <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
-                          <View style={{ width: 24 }} />
-                        </View>
-                      </SafeAreaView>
-                    ),
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-                <Stack.Screen
-                  name="set-status"
-                  options={{
-                    presentation: "formSheet",
-                    headerShown: false,
-                    sheetAllowedDetents: "fitToContents",
-                    sheetGrabberVisible: true,
-                    sheetCornerRadius: 20,
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-                <Stack.Screen
-                  name="filters"
-                  options={{
-                    presentation: "formSheet",
-                    headerShown: false,
-                    sheetAllowedDetents: "fitToContents",
-                    sheetGrabberVisible: true,
-                    sheetCornerRadius: 20,
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-              </Stack>
-            </LinkPreviewContextProvider>
-            <NotificationOverlay />
-            <ToastOverlay />
-          </ToastProvider>
-        </NotificationProvider>
-      </QueryClientProvider>
-    </trpc.Provider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <StatusBar style="dark" />
+          <LinkPreviewContextProvider>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="settings" options={{ headerShown: false }} />
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
+              <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
+              <Stack.Screen
+                name="create-group"
+                options={{
+                  headerShown: true,
+                  header: () => (
+                    <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingHorizontal: spacing.section,
+                          height: 58,
+                        }}
+                      >
+                        <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
+                          <IconChevronLeft size={24} color={colors.ink} />
+                        </Pressable>
+                        <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
+                        <View style={{ width: 24 }} />
+                      </View>
+                    </SafeAreaView>
+                  ),
+                  contentStyle: { backgroundColor: colors.bg },
+                }}
+              />
+              <Stack.Screen
+                name="set-status"
+                options={{
+                  presentation: "formSheet",
+                  headerShown: false,
+                  sheetAllowedDetents: "fitToContents",
+                  sheetGrabberVisible: true,
+                  sheetCornerRadius: 20,
+                  contentStyle: { backgroundColor: colors.bg },
+                }}
+              />
+              <Stack.Screen
+                name="filters"
+                options={{
+                  presentation: "formSheet",
+                  headerShown: false,
+                  sheetAllowedDetents: "fitToContents",
+                  sheetGrabberVisible: true,
+                  sheetCornerRadius: 20,
+                  contentStyle: { backgroundColor: colors.bg },
+                }}
+              />
+            </Stack>
+          </LinkPreviewContextProvider>
+          <Toaster
+            position="top-center"
+            duration={4000}
+            visibleToasts={3}
+            swipeToDismissDirection="up"
+            richColors
+            theme="light"
+            offset={0}
+          />
+        </QueryClientProvider>
+      </trpc.Provider>
+    </GestureHandlerRootView>
   );
 }

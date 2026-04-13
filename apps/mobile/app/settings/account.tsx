@@ -13,8 +13,8 @@ import {
 } from "react-native";
 import Svg, { Path, Polyline } from "react-native-svg";
 import { authClient } from "@/lib/auth";
+import { showToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
-import { useToast } from "@/providers/ToastProvider";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 import { signOutAndReset } from "../_layout";
@@ -170,17 +170,12 @@ export default function AccountScreen() {
   });
   const requestDeletion = trpc.accounts.requestDeletion.useMutation();
 
-  const { showToast } = useToast();
   const requestExport = trpc.accounts.requestDataExport.useMutation({
     onSuccess: () => {
-      showToast({
-        type: "success",
-        title: "Eksport danych",
-        message: "Eksport został zlecony. Sprawdź swój e-mail.",
-      });
+      showToast("success", "Eksport danych", "Eksport został zlecony. Sprawdź swój e-mail.");
     },
     onError: () => {
-      showToast({ type: "error", title: "Błąd", message: "Nie udało się zlecić eksportu. Spróbuj ponownie." });
+      showToast("error", "Błąd", "Nie udało się zlecić eksportu. Spróbuj ponownie.");
     },
   });
 
