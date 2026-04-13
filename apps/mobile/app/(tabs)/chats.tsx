@@ -5,6 +5,7 @@ import { ConversationRow } from "@/components/chat/ConversationRow";
 import { Avatar } from "@/components/ui/Avatar";
 import { IconChat, IconGroup } from "@/components/ui/icons";
 import { SonarDot } from "@/components/ui/SonarDot";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { usePrefetchMessages } from "@/hooks/usePrefetchMessages";
 import { trpc } from "@/lib/trpc";
 import { useConversationsStore } from "@/stores/conversationsStore";
@@ -34,6 +35,7 @@ function formatTimeAgo(dateString: string): string {
 
 export default function ChatsScreen() {
   const router = useRouter();
+  const isGhost = useIsGhost();
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
   const { isLoading, refetch } = trpc.messages.getConversations.useQuery();
@@ -154,7 +156,12 @@ export default function ChatsScreen() {
               const isUnviewed = !viewedWaveIds.has(item.wave.id);
               return (
                 <Pressable style={styles.pingRow} onPress={() => handlePingPress(item)}>
-                  <Avatar uri={item.fromProfile.avatarUrl} name={item.fromProfile.displayName} size={48} />
+                  <Avatar
+                    uri={item.fromProfile.avatarUrl}
+                    name={item.fromProfile.displayName}
+                    size={48}
+                    blurred={isGhost}
+                  />
                   <View style={styles.pingBody}>
                     <View style={styles.pingTopLine}>
                       <Text style={styles.pingName}>{item.fromProfile.displayName}</Text>

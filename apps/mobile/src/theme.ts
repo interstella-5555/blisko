@@ -14,6 +14,8 @@ export const colors = {
   },
 };
 
+export const ghostBlurRadius = 10;
+
 export const spacing = {
   hairline: 4,
   tick: 6,

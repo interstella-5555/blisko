@@ -18,6 +18,7 @@ import MapView, { Marker } from "react-native-maps";
 import { ProfileGateSheet } from "@/components/ProfileGateSheet";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { useProfileGate } from "@/hooks/useProfileGate";
 import { trpc } from "@/lib/trpc";
 import { sendWsMessage } from "@/lib/ws";
@@ -29,6 +30,7 @@ const MAP_HEIGHT = 180;
 
 export default function CreateGroupScreen() {
   const gate = useProfileGate();
+  const isGhost = useIsGhost();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isDiscoverable, setIsDiscoverable] = useState(false);
@@ -220,7 +222,7 @@ export default function CreateGroupScreen() {
               <Text style={styles.label}>Dodaj czlonkow</Text>
               {dmContacts.map((contact) => (
                 <Pressable key={contact.userId} style={styles.contactRow} onPress={() => toggleMember(contact.userId)}>
-                  <Avatar uri={contact.avatarUrl} name={contact.displayName} size={36} />
+                  <Avatar uri={contact.avatarUrl} name={contact.displayName} size={36} blurred={isGhost} />
                   <Text style={styles.contactName} numberOfLines={1}>
                     {contact.displayName}
                   </Text>

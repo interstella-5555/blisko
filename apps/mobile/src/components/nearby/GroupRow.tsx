@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { formatDistance } from "../../lib/format";
 import { colors, fonts, spacing } from "../../theme";
 import { Avatar } from "../ui/Avatar";
@@ -23,9 +24,11 @@ export function GroupRow({
   memberCount,
   nearbyMemberCount,
 }: GroupRowProps) {
+  const isGhost = useIsGhost();
+
   return (
     <Pressable style={styles.row} onPress={() => router.push(`/(modals)/group/${conversationId}`)}>
-      <Avatar uri={avatarUrl} name={name ?? "G"} size={44} />
+      <Avatar uri={avatarUrl} name={name ?? "G"} size={44} blurred={isGhost} />
       <View style={styles.info}>
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>

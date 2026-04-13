@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { toast } from "sonner-native";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { colors, fonts, spacing } from "../../theme";
 import { Avatar } from "./Avatar";
 
@@ -20,6 +21,8 @@ export function NotificationToast({
   avatarName,
   onPress,
 }: NotificationToastProps) {
+  const isGhost = useIsGhost();
+
   return (
     <Pressable
       onPress={() => {
@@ -28,7 +31,7 @@ export function NotificationToast({
       }}
       style={styles.container}
     >
-      <Avatar uri={avatarUrl} name={avatarName} size={36} />
+      <Avatar uri={avatarUrl} name={avatarName} size={36} blurred={isGhost} />
       <View style={styles.textContainer}>
         <Text style={styles.title} numberOfLines={1}>
           {title}

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { formatDistance } from "../../lib/format";
 import { colors, fonts, spacing, type as typ } from "../../theme";
 import { Avatar } from "../ui/Avatar";
@@ -115,6 +116,7 @@ export function UserRow({
   onPress,
   timestamp,
 }: UserRowProps) {
+  const isGhost = useIsGhost();
   const hasNearbyData = distance !== undefined;
   const {
     text: snippet,
@@ -128,7 +130,7 @@ export function UserRow({
 
   return (
     <Pressable onPress={onPress} style={styles.row}>
-      <Avatar uri={avatarUrl} name={displayName} size={44} />
+      <Avatar uri={avatarUrl} name={displayName} size={44} blurred={isGhost} />
       <View style={styles.info}>
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>

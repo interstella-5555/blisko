@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { Image, Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { colors, fonts, spacing } from "../../theme";
 import { Avatar } from "../ui/Avatar";
 
@@ -100,6 +101,8 @@ export const MessageBubble = forwardRef<View, MessageBubbleProps>(function Messa
   },
   ref,
 ) {
+  const isGhost = useIsGhost();
+
   if (deletedAt) {
     return (
       <View style={[styles.bubble, styles.bubbleDeleted]} testID="message-deleted">
@@ -170,7 +173,7 @@ export const MessageBubble = forwardRef<View, MessageBubbleProps>(function Messa
       {!isMine && showAvatarColumn ? (
         <View style={styles.messageRow}>
           {showAvatar ? (
-            <Avatar uri={avatarUrl} name={senderName || "?"} size={28} />
+            <Avatar uri={avatarUrl} name={senderName || "?"} size={28} blurred={isGhost} />
           ) : (
             <View style={styles.avatarSpacer} />
           )}

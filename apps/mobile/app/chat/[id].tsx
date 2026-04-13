@@ -22,6 +22,7 @@ import { type BubblePosition, MessageBubble } from "@/components/chat/MessageBub
 import { type ContextMenuData, MessageContextMenu } from "@/components/chat/MessageContextMenu";
 import { Avatar } from "@/components/ui/Avatar";
 import { IconBell, IconBellOff, IconChevronLeft } from "@/components/ui/icons";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { trpc } from "@/lib/trpc";
 import { uuidv4 } from "@/lib/uuid";
 import { useTypingIndicator } from "@/lib/ws";
@@ -47,6 +48,7 @@ export default function ChatScreen() {
     topicId?: string;
   }>();
   const userId = useAuthStore((state) => state.user?.id);
+  const isGhost = useIsGhost();
   const flatListRef = useRef<FlatList>(null);
 
   const [replyingTo, setReplyingTo] = useState<{
@@ -483,7 +485,7 @@ export default function ChatScreen() {
                         : undefined
                   }
                 >
-                  <Avatar uri={headerAvatarUrl} name={participantName} size={32} />
+                  <Avatar uri={headerAvatarUrl} name={participantName} size={32} blurred={isGhost} />
                   <View>
                     <Text style={styles.headerName} numberOfLines={1}>
                       {participantName}

@@ -5,6 +5,7 @@ import Svg, { Path } from "react-native-svg";
 import { ProfileGateSheet } from "@/components/ProfileGateSheet";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { useIsGhost } from "@/hooks/useIsGhost";
 import { useProfileGate } from "@/hooks/useProfileGate";
 import { formatDistance } from "@/lib/format";
 import { trpc } from "@/lib/trpc";
@@ -30,6 +31,7 @@ const MAX_INLINE_MEMBERS = 5;
 
 export default function GroupInfoScreen() {
   const gate = useProfileGate();
+  const isGhost = useIsGhost();
   const { id: conversationId } = useLocalSearchParams<{ id: string }>();
   const userId = useAuthStore((s) => s.user?.id);
   const [showTopicForm, setShowTopicForm] = useState(false);
@@ -210,7 +212,7 @@ export default function GroupInfoScreen() {
         <Stack.Screen options={{ title: "" }} />
         <View style={styles.container}>
           <View style={styles.previewContent}>
-            <Avatar uri={groupInfo.avatarUrl} name={groupInfo.name ?? "G"} size={80} />
+            <Avatar uri={groupInfo.avatarUrl} name={groupInfo.name ?? "G"} size={80} blurred={isGhost} />
             <Text style={styles.groupName}>{groupInfo.name}</Text>
             {groupInfo.description ? <Text style={styles.groupDescription}>{groupInfo.description}</Text> : null}
             <Text style={styles.memberCountLabel}>{groupInfo.memberCount} czlonkow</Text>
@@ -220,7 +222,7 @@ export default function GroupInfoScreen() {
                 <View style={styles.nearbyCard}>
                   {nearbyData.members.slice(0, 5).map((member) => (
                     <View key={member.userId} style={styles.nearbyRow}>
-                      <Avatar uri={member.avatarUrl} name={member.displayName} size={32} />
+                      <Avatar uri={member.avatarUrl} name={member.displayName} size={32} blurred={isGhost} />
                       <Text style={styles.nearbyName} numberOfLines={1}>
                         {member.displayName}
                       </Text>
@@ -246,7 +248,7 @@ export default function GroupInfoScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Avatar uri={groupInfo.avatarUrl} name={groupInfo.name ?? "G"} size={80} />
+          <Avatar uri={groupInfo.avatarUrl} name={groupInfo.name ?? "G"} size={80} blurred={isGhost} />
           <Text style={styles.groupName}>{groupInfo.name}</Text>
           {groupInfo.description ? <Text style={styles.groupDescription}>{groupInfo.description}</Text> : null}
           <Text style={styles.memberCountLabel}>{groupInfo.memberCount} czlonkow</Text>
@@ -322,7 +324,7 @@ export default function GroupInfoScreen() {
                   style={styles.nearbyRow}
                   onPress={() => router.push(`/(modals)/user/${member.userId}`)}
                 >
-                  <Avatar uri={member.avatarUrl} name={member.displayName} size={32} />
+                  <Avatar uri={member.avatarUrl} name={member.displayName} size={32} blurred={isGhost} />
                   <Text style={styles.nearbyName} numberOfLines={1}>
                     {member.displayName}
                   </Text>
@@ -359,7 +361,12 @@ export default function GroupInfoScreen() {
                 }
               }}
             >
-              <Avatar uri={member.avatarUrl} name={member.displayName} size={36} />
+              <Avatar
+                uri={member.avatarUrl}
+                name={member.displayName}
+                size={36}
+                blurred={isGhost && member.userId !== userId}
+              />
               <View style={styles.memberInfo}>
                 <Text style={styles.memberName} numberOfLines={1}>
                   {member.displayName}

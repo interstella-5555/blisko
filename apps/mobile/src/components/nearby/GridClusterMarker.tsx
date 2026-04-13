@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
+import { useIsGhost } from "@/hooks/useIsGhost";
+import { ghostBlurRadius } from "@/theme";
 
 interface GridClusterMarkerProps {
   count?: number;
@@ -40,6 +42,8 @@ function PulsingWrapper({ active, children }: { active: boolean; children: React
 }
 
 export function GridClusterMarker({ count, avatarUrl, displayName, highlighted }: GridClusterMarkerProps) {
+  const isGhost = useIsGhost();
+
   // Cluster with multiple points — show count badge
   if (count && count > 1) {
     return (
@@ -56,7 +60,7 @@ export function GridClusterMarker({ count, avatarUrl, displayName, highlighted }
     return (
       <PulsingWrapper active={!!highlighted}>
         <View style={styles.singleContainer}>
-          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          <Image source={{ uri: avatarUrl }} style={styles.avatar} blurRadius={isGhost ? ghostBlurRadius : 0} />
         </View>
       </PulsingWrapper>
     );
