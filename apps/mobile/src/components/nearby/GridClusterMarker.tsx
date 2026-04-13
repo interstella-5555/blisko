@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
-import { GHOST_BLUR_RADIUS } from "@/components/ui/Avatar";
 import { useIsGhost } from "@/hooks/useIsGhost";
+import { ghostBlurRadius } from "@/theme";
 
 interface GridClusterMarkerProps {
   count?: number;
@@ -60,7 +60,7 @@ export function GridClusterMarker({ count, avatarUrl, displayName, highlighted }
     return (
       <PulsingWrapper active={!!highlighted}>
         <View style={styles.singleContainer}>
-          <Image source={{ uri: avatarUrl }} style={styles.avatar} blurRadius={isGhost ? GHOST_BLUR_RADIUS : 0} />
+          <Image source={{ uri: avatarUrl }} style={styles.avatar} blurRadius={isGhost ? ghostBlurRadius : 0} />
         </View>
       </PulsingWrapper>
     );

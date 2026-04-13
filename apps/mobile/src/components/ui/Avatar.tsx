@@ -1,7 +1,5 @@
 import { Image, StyleSheet, Text, View } from "react-native";
-import { colors, fonts } from "../../theme";
-
-export const GHOST_BLUR_RADIUS = 10;
+import { colors, fonts, ghostBlurRadius } from "../../theme";
 
 interface AvatarProps {
   uri?: string | null;
@@ -30,7 +28,7 @@ export function Avatar({ uri, name, size = 40, blurred }: AvatarProps) {
           <Image
             source={{ uri }}
             style={[styles.image, { width: size, height: size, borderRadius }]}
-            blurRadius={blurred ? GHOST_BLUR_RADIUS : 0}
+            blurRadius={blurred ? ghostBlurRadius : 0}
           />
           <View style={[styles.grayscaleOverlay, { width: size, height: size, borderRadius }]} />
         </>
