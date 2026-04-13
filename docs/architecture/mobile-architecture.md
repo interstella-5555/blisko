@@ -4,6 +4,7 @@
 > Updated 2026-04-10 — `messagesStore.updateMessage()` added for in-place message patches (fixes delete dropping message from list).
 > Updated 2026-04-12 — Nearby screen rewrite: supercluster clustering, viewport-synced list, split endpoints (`useNearbyMapMarkers` + `useNearbyList` + `useSupercluster` hooks), removed `nearbyOnly` toggle (BLI-189).
 > Updated 2026-04-12 — BLI-189 hotfix: supercluster config `radius: 30`, `maxZoom: 20`; viewport debounce 500ms (coupled with 20/10s rate limit — max 2 req/s fits in the window).
+> Updated 2026-04-13 — BLI-220: nearby empty states with contextual messages + "Wróć do mojej lokalizacji" button. `NearbyMapRef.animateToRegion` now takes delta (required), not zoom. `DEFAULT_MAP_DELTA` constant. Cluster tap zoom fix (+2 levels guard). "+ UTWÓRZ" action in groups header.
 > Updated 2026-04-11 — Single sign-out path `signOutAndReset()` exported from `app/_layout.tsx` — the 4 logout sites (settings, account deletion, onboarding abort, ACCOUNT_DELETED error handler) now call it instead of reimplementing store resets. Clears auth/profiles/conversations/messages/waves/onboarding stores + `queryClient` + SecureStore tokens; `locationStore` and `preferencesStore` intentionally untouched (BLI-204).
 > Updated 2026-04-11 — Fixed pings-list crash in `(tabs)/chats.tsx`: two sibling `FlatList`-es (pings vs conversations) in a ternary were sharing one React instance; switching filter mutated `onViewableItemsChanged` from function → undefined, triggering `Invariant Violation: Changing onViewableItemsChanged nullability on the fly is not supported` (SIGABRT). Fix: distinct `key` props so React treats them as separate instances. See "Gotchas" below.
 > Updated 2026-04-11 — Chats tab `tabBarBadge` now sums unread messages **and** unviewed pending pings (was: unread messages only). Mirrors the `unviewedPingCount` already shown on the sonar pill inside the chats screen — both numbers come from the same `wavesStore.viewedWaveIds` cursor, so the user sees a consistent "things demanding attention" count from the tab bar and from inside the screen (BLI-207). See "Tab badges" under Key Conventions.
@@ -253,6 +254,16 @@ The "W okolicy" tab (`(tabs)/index.tsx`) uses three dedicated hooks:
 | `useSupercluster` | `src/hooks/useSupercluster.ts` | Client-side clustering of map markers using the `supercluster` library. Config: `radius: 30`, `maxZoom: 20`. Zoom/pan triggers re-cluster in JS — **no HTTP request** |
 
 **Rate limit coupling:** `useNearbyList` debounces at 500ms, which caps the client at 2 req/s. The server limit for `profiles.getNearby` is 20/10s. At sustained max rate (2 req/s × 10s = 20 req), the client reaches but never exceeds the limit. See `src/hooks/useNearbyList.ts` comment for the formula.
+
+### Map view API
+
+`NearbyMapView` exposes a `NearbyMapRef` with one method:
+
+- `animateToRegion(lat, lng, delta)` — all three params required. `delta` is in degrees (Apple Maps operates on lat/lng deltas, not zoom levels). `DEFAULT_MAP_DELTA` (0.05° ≈ 5.5 km) is the single source of truth for the initial map view, exported from `NearbyMapView.tsx`.
+
+**Cluster tap zoom:** `supercluster.getClusterExpansionZoom()` can return the same zoom level as the current view (rounding mismatch between `getClusters` and `getExpansionZoom`). The handler guards against this by always zooming at least 2 levels past `max(expansionZoom, currentZoom)`, guaranteeing a visible change on tap.
+
+**Empty states:** When the viewport drifts outside `nearbyRadiusMeters` from the user's GPS (detected via equirectangular distance approximation in `approxDistanceMeters()`), empty states show an explanatory message instead of generic "no results" text. A "Wróć do mojej lokalizacji" button animates the map back to the user's GPS at `DEFAULT_MAP_DELTA`.
 
 ---
 

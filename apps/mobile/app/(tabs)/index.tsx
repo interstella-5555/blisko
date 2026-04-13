@@ -15,12 +15,12 @@ import {
   View,
 } from "react-native";
 import type { Region } from "react-native-maps";
-import { ListShimmer, type NearbyMapRef, NearbyMapView } from "@/components/nearby";
+import { DEFAULT_MAP_DELTA, ListShimmer, type NearbyMapRef, NearbyMapView } from "@/components/nearby";
 import { GroupRow } from "@/components/nearby/GroupRow";
 import type { UserRowStatus } from "@/components/nearby/UserRow";
 import { UserRow } from "@/components/nearby/UserRow";
 import { Button } from "@/components/ui/Button";
-import { IconFilter, IconPin } from "@/components/ui/icons";
+import { IconFilter, IconPin, IconPlus } from "@/components/ui/icons";
 import { useNearbyList } from "@/hooks/useNearbyList";
 import { useNearbyMapMarkers } from "@/hooks/useNearbyMapMarkers";
 import { useRetryStatusMatchingOnFailure } from "@/hooks/useRetryStatusMatchingOnFailure";
@@ -36,6 +36,22 @@ import { colors, fonts, spacing, type as typ } from "@/theme";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.4;
+
+/**
+ * Equirectangular distance approximation — treats Earth as flat over short distances.
+ * Good enough for UI-level "has the user panned outside their radius?" checks (error < 0.5% under 10 km).
+ *
+ * METERS_PER_DEGREE: Earth's circumference (~40 075 km) / 360°.
+ * Longitude degrees shrink toward the poles — multiplied by cos(latitude) to compensate.
+ * Math.PI / 180 converts degrees to radians for Math.cos().
+ */
+const METERS_PER_DEGREE = 40_075_000 / 360;
+
+function approxDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dLat = (lat2 - lat1) * METERS_PER_DEGREE;
+  const dLng = (lng2 - lng1) * METERS_PER_DEGREE * Math.cos(lat1 * (Math.PI / 180));
+  return Math.sqrt(dLat * dLat + dLng * dLng);
+}
 
 type NearbyFilter = "all" | "people" | "groups";
 
@@ -80,9 +96,20 @@ export default function NearbyScreen() {
   const [mapRegion, setMapRegion] = useState<Region>({
     latitude: latitude!,
     longitude: longitude!,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
+    latitudeDelta: DEFAULT_MAP_DELTA,
+    longitudeDelta: DEFAULT_MAP_DELTA,
   });
+
+  // Detect when the viewport center has drifted outside the nearby radius
+  const isOutsideRadius = useMemo(() => {
+    if (!latitude || !longitude || showAllNearby) return false;
+    return approxDistanceMeters(latitude, longitude, mapRegion.latitude, mapRegion.longitude) > nearbyRadiusMeters;
+  }, [latitude, longitude, mapRegion.latitude, mapRegion.longitude, nearbyRadiusMeters, showAllNearby]);
+
+  const handleReturnToMyLocation = useCallback(() => {
+    if (!latitude || !longitude) return;
+    mapRef.current?.animateToRegion(latitude, longitude, DEFAULT_MAP_DELTA);
+  }, [latitude, longitude]);
 
   // Clusters recompute automatically when points or region change
   const clusters = useMemo(() => getClusters(mapRegion), [getClusters, mapRegion]);
@@ -97,10 +124,14 @@ export default function NearbyScreen() {
 
   const handleClusterPress = useCallback(
     (clusterId: number, lat: number, lng: number) => {
-      const zoom = getExpansionZoom(clusterId);
-      mapRef.current?.animateToRegion(lat, lng, zoom);
+      const expansionZoom = getExpansionZoom(clusterId);
+      const currentZoom = Math.log2(360 / mapRegion.latitudeDelta);
+      // Always zoom in at least 2 levels past expansion zoom AND current zoom
+      const targetZoom = Math.max(expansionZoom, currentZoom) + 2;
+      const delta = 360 / 2 ** targetZoom;
+      mapRef.current?.animateToRegion(lat, lng, delta);
     },
-    [getExpansionZoom],
+    [getExpansionZoom, mapRegion.latitudeDelta],
   );
 
   // Groups query — kept for list detail (member counts, descriptions)
@@ -248,7 +279,7 @@ export default function NearbyScreen() {
       }
     }
     return items;
-  }, [nearbyFilter, listUsers, nearbyGroups, totalUserCount, totalCount, showAllNearby, mapRegion]);
+  }, [nearbyFilter, listUsers, nearbyGroups, totalUserCount, totalCount]);
 
   const updateLocation = useCallback(async () => {
     try {
@@ -451,10 +482,19 @@ export default function NearbyScreen() {
       case "groupsEmpty":
         return (
           <View style={styles.emptyList}>
-            <Text style={styles.emptyListText}>Brak grup w okolicy</Text>
-            <View style={{ marginTop: spacing.gutter }}>
-              <Button title="Utwórz grupę" variant="accent" onPress={() => router.push("/create-group")} />
-            </View>
+            <Text style={styles.emptyListText}>
+              {isOutsideRadius
+                ? "Jesteś poza zasięgiem — pokazujemy grupy tylko w pobliżu Twojej lokalizacji"
+                : "W tej okolicy nie ma jeszcze żadnych grup"}
+            </Text>
+            <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
+              <IconPin size={14} color={colors.accent} />
+              <Text style={styles.returnButtonText}>Wróć do mojej lokalizacji</Text>
+            </Pressable>
+            <Pressable style={styles.returnButton} onPress={() => router.push("/create-group")}>
+              <IconPlus size={14} color={colors.accent} />
+              <Text style={styles.returnButtonText}>Utwórz grupę</Text>
+            </Pressable>
           </View>
         );
       default:
@@ -561,7 +601,7 @@ export default function NearbyScreen() {
       </View>
 
       {/* List header with viewport info */}
-      {nearbyFilter === "people" && (
+      {nearbyFilter === "people" && listUsers.length > 0 && (
         <View style={styles.listHeader}>
           <Text style={styles.listHeaderTitle}>
             {showAllNearby || totalCount >= totalUserCount
@@ -575,6 +615,9 @@ export default function NearbyScreen() {
           <Text style={styles.listHeaderTitle}>
             {nearbyGroups?.length ?? 0} {(nearbyGroups?.length ?? 0) === 1 ? "GRUPA" : "GRUP"} W POBLIŻU
           </Text>
+          <Pressable onPress={() => router.push("/create-group")} hitSlop={8}>
+            <Text style={styles.createGroupAction}>+ UTWÓRZ</Text>
+          </Pressable>
         </View>
       )}
 
@@ -587,9 +630,19 @@ export default function NearbyScreen() {
           keyExtractor={getItemKey}
           renderItem={renderItem}
           ListEmptyComponent={
-            nearbyFilter === "people" ? (
+            nearbyFilter !== "groups" ? (
               <View style={styles.emptyList}>
-                <Text style={styles.emptyListText}>Nikogo w pobliżu</Text>
+                <Text style={styles.emptyListText}>
+                  {isOutsideRadius
+                    ? `Jesteś poza zasięgiem — pokazujemy ${nearbyFilter === "people" ? "osoby" : "osoby i grupy"} tylko w pobliżu Twojej lokalizacji`
+                    : nearbyFilter === "people"
+                      ? "W tej okolicy nie ma jeszcze żadnych użytkowników"
+                      : "W tej okolicy nie ma jeszcze żadnych użytkowników i grup"}
+                </Text>
+                <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
+                  <IconPin size={14} color={colors.accent} />
+                  <Text style={styles.returnButtonText}>Wróć do mojej lokalizacji</Text>
+                </Pressable>
               </View>
             ) : null
           }
@@ -743,6 +796,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#efa844",
   },
+  createGroupAction: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: colors.accent,
+  },
   listContent: {
     paddingBottom: 40,
   },
@@ -753,6 +812,21 @@ const styles = StyleSheet.create({
   emptyListText: {
     ...typ.body,
     color: colors.muted,
+    textAlign: "center",
+    paddingHorizontal: spacing.section,
+  },
+  returnButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: spacing.column,
+    paddingVertical: spacing.tight,
+    paddingHorizontal: spacing.column,
+  },
+  returnButtonText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    color: colors.accent,
   },
   filterFunnel: {
     width: 36,
