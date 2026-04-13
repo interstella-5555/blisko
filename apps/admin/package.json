@@ -13,6 +13,7 @@
     "@base-ui/react": "^1.3.0",
     "@fontsource-variable/geist": "^5.2.8",
     "@repo/db": "workspace:*",
+    "@repo/shared": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",
@@ -27,6 +28,7 @@
     "date-fns": "catalog:",
     "drizzle-orm": "catalog:",
     "lucide-react": "^1.7.0",
+    "ms": "catalog:",
     "nitro": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
@@ -40,6 +42,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/ms": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

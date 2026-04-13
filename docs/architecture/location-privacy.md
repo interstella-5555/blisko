@@ -3,6 +3,7 @@
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-12 — Split nearby into three endpoints: `getNearbyMapMarkers` (lightweight columnar), `getNearbyUsersForMap` (rich list with bbox viewport filter), `getNearbyUsers` (simple list). Status-match-first sort. Separate rate limit buckets (BLI-189).
 > Updated 2026-04-12 — BLI-189 hotfix: `getNearbyMapMarkers` now returns **real coordinates** (not grid-snapped) for user positions; `displayName` added to columnar response. Rate limits tightened to 20/10s. Viewport debounce is 500ms. Supercluster config: `radius: 30`, `maxZoom: 20`.
+> Updated 2026-04-14 — BLI-219: `GRID_SIZE` moved to `@repo/shared/config/nearby.ts`. `grid.ts` imports from shared. Grid utils (`toGridCenter`, `roundDistance`) remain in `apps/api/src/lib/grid.ts`.
 
 ## Terminology & Product Alignment
 
@@ -276,7 +277,8 @@ Note: `semi_open` and `full_nomad` are functionally identical in the API. The di
 
 If you change this system, also check:
 
-- **`apps/api/src/lib/grid.ts`** --- `GRID_SIZE`, `toGridCenter()`, `roundDistance()`
+- **`packages/shared/src/config/nearby.ts`** --- `GRID_SIZE` constant (single source of truth)
+- **`apps/api/src/lib/grid.ts`** --- `toGridCenter()`, `roundDistance()` (imports `GRID_SIZE` from `@repo/shared`)
 - **`apps/api/src/trpc/procedures/profiles.ts`** --- `updateLocation`, `getNearbyUsers`, `getNearbyUsersForMap`, `getNearbyMapMarkers`
 - **`packages/shared/src/validators.ts`** --- `updateLocationSchema`, `getNearbyUsersSchema`, `getNearbyUsersForMapSchema`, `getNearbyMapMarkersSchema`
 - **`packages/shared/src/math.ts`** --- `cosineSimilarity()` (used in ranking)

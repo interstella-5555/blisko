@@ -1,9 +1,11 @@
 import { timingSafeEqual } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { OTP_LENGTH } from "@repo/shared";
+import ms from "ms";
 
-const OTP_TTL_MS = 5 * 60 * 1000;
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+const OTP_TTL_MS = ms("5 minutes");
+const SESSION_TTL_MS = ms("24 hours");
 const MAX_OTP_ATTEMPTS = 5;
 
 // OTP store stays in-memory (short-lived, doesn't need persistence)
@@ -51,8 +53,7 @@ export function isAllowedEmail(email: string): boolean {
   return getAllowedEmails().includes(email.toLowerCase().trim());
 }
 
-const OTP_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // 30 chars, no 0/O/1/I/l
-const OTP_LENGTH = 6; // 30^6 ≈ 729M combinations
+const OTP_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // 30 chars, no 0/O/1/I/l — 30^6 ≈ 729M combinations
 
 export function generateOtp(email: string): string {
   const array = new Uint8Array(OTP_LENGTH);

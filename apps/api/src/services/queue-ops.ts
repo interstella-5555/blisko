@@ -1,6 +1,7 @@
 import { type Job, Queue, Worker } from "bullmq";
 import { subDays } from "date-fns";
 import { eq, inArray } from "drizzle-orm";
+import ms from "ms";
 import { db, schema } from "@/db";
 import { publishEvent } from "@/ws/redis-bridge";
 import { attachWorkerLogger, getConnectionConfig, QUEUE_NAMES } from "./queue-shared";
@@ -330,13 +331,12 @@ export async function enqueueHardDeleteUser(userId: string) {
   if (!process.env.REDIS_URL) return;
 
   const queue = getOpsQueue();
-  const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
   await queue.add(
     "hard-delete-user",
     { type: "hard-delete-user", userId },
     {
       jobId: `hard-delete-${userId}`,
-      delay: FOURTEEN_DAYS_MS,
+      delay: ms("14 days"),
     },
   );
 }

@@ -164,4 +164,4 @@ If you change this system, also check:
 - **`apps/mobile/src/components/nearby/GroupRow.tsx`** — List row with green "X osób w pobliżu" text.
 - **`apps/api/src/services/data-export.ts`** — GDPR export. If `locationVisible` preference is considered personal data, it should be included.
 - **Soft-delete filter** — All nearby queries INNER JOIN to `user` table with `isNull(user.deletedAt)`. New queries touching group members must maintain this pattern.
-- **`apps/api/src/config/rateLimits.ts`** — `profiles.getNearby` rate limit (currently 600/min, temporarily inflated as a mitigation for BLI-189; will be lowered once map polling has proper debounce/dedup) applies to map refresh which triggers `getDiscoverable`. `getNearbyMembers` is currently unrate-limited; consider whether large groups + high-frequency map polls warrant adding one once BLI-189 lands.
+- **`apps/api/src/config/rateLimits.ts`** — `profiles.getNearby` rate limit (20/10s, coupled with 500ms viewport debounce — see `@repo/shared/config/nearby.ts`). `getNearbyMembers` is currently unrate-limited.

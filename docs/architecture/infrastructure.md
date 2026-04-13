@@ -47,7 +47,7 @@ blisko/
     admin/        @repo/admin     Admin panel (TanStack Start)
     tasks/        (no package)    Dev-only Bun.serve task viewer — serves index.html + tasks.json on port 3456. Not in the workspace, not deployed, invoked via `bun apps/tasks/serve.ts`.
   packages/
-    shared/       @repo/shared    Types, Zod validators, AI model constants, haversine
+    shared/       @repo/shared    Cross-app config constants, types, Zod validators, AI model constants, haversine
     dev-cli/      @repo/dev-cli   CLI for development (user management, monitoring)
 ```
 
@@ -101,6 +101,9 @@ Key root scripts:
 
 Source-only package (`"main": "./src/index.ts"`), no build step. Exports:
 
+- **`config/nearby.ts`** -- Cross-app constants: `VIEWPORT_DEBOUNCE_MS` (500), `NEARBY_RATE_LIMIT` ({limit:20, window:10}), `GRID_SIZE` (0.0045), `NEARBY_PAGE_SIZE` (20). The debounce↔rate limit coupling is the primary motivation (BLI-189/BLI-219).
+- **`config/waves.ts`** -- Ping business rules: `DECLINE_COOLDOWN_HOURS` (24), `DAILY_PING_LIMIT_BASIC` (5), `PER_PERSON_COOLDOWN_HOURS` (24).
+- **`config/auth.ts`** -- Auth constants: `OTP_LENGTH` (6), `RESEND_COOLDOWN_SECONDS` (30).
 - **`validators.ts`** -- Zod schemas for all API inputs (profile, wave, message, group, topic, status, profiling, nearby queries). Defines limits: `displayName` 2-50 chars, `bio` 10-500 chars, `message.content` 1-2000 chars, `status.text` 1-150 chars, `status.categories` 1-2 items, `nearbyUsers.radiusMeters` 100-50000 (default 5000), `nearbyUsersForMap.limit` 1-100 (default 50), `group.memberUserIds` max 199.
 - **`models.ts`** -- AI model constants: `GPT_MODEL = "gpt-4.1-mini"`, `EMBEDDING_MODEL = "text-embedding-3-small"`.
 - **`math.ts`** -- `cosineSimilarity(a, b)` function for embedding comparison.
