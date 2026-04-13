@@ -37,10 +37,19 @@ import { colors, fonts, spacing, type as typ } from "@/theme";
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.4;
 
-/** Equirectangular approximation — accurate enough for UI-level "are we near?" checks. */
+/**
+ * Equirectangular distance approximation — treats Earth as flat over short distances.
+ * Good enough for UI-level "has the user panned outside their radius?" checks (error < 0.5% under 10 km).
+ *
+ * METERS_PER_DEGREE: Earth's circumference (~40 075 km) / 360° ≈ 111 km per degree of latitude.
+ * Longitude degrees shrink toward the poles — multiplied by cos(latitude) to compensate.
+ * Math.PI / 180 converts degrees to radians for Math.cos().
+ */
+const METERS_PER_DEGREE = 111_000;
+
 function approxDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const dLat = (lat2 - lat1) * 111_000;
-  const dLng = (lng2 - lng1) * 111_000 * Math.cos(lat1 * (Math.PI / 180));
+  const dLat = (lat2 - lat1) * METERS_PER_DEGREE;
+  const dLng = (lng2 - lng1) * METERS_PER_DEGREE * Math.cos(lat1 * (Math.PI / 180));
   return Math.sqrt(dLat * dLat + dLng * dLng);
 }
 
