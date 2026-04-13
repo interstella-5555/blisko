@@ -115,11 +115,14 @@ export default function NearbyScreen() {
 
   const handleClusterPress = useCallback(
     (clusterId: number, lat: number, lng: number) => {
-      const zoom = getExpansionZoom(clusterId);
-      const delta = 360 / 2 ** zoom;
+      const expansionZoom = getExpansionZoom(clusterId);
+      const currentZoom = Math.log2(360 / mapRegion.latitudeDelta);
+      // Always zoom in at least 2 levels past expansion zoom AND current zoom
+      const targetZoom = Math.max(expansionZoom, currentZoom) + 2;
+      const delta = 360 / 2 ** targetZoom;
       mapRef.current?.animateToRegion(lat, lng, delta);
     },
-    [getExpansionZoom],
+    [getExpansionZoom, mapRegion.latitudeDelta],
   );
 
   // Groups query — kept for list detail (member counts, descriptions)
