@@ -27,6 +27,7 @@
     "website:preview": "bun run --filter '@repo/website' preview",
     "website:test": "bun run --filter '@repo/website' test",
     "mobile:testflight": "bun run --filter '@repo/mobile' testflight",
+    "mobile:reset-ios": "bun run --filter '@repo/mobile' reset-ios",
     "admin:dev": "bun run --filter '@repo/admin' dev",
     "admin:build": "bun run --filter '@repo/admin' build",
     "admin:start": "bun run --filter '@repo/admin' start",
