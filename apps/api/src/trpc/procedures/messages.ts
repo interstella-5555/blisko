@@ -1,7 +1,7 @@
 import { deleteMessageSchema, reactToMessageSchema, searchMessagesSchema, sendMessageSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
 import { RedisClient } from "bun";
-import { and, desc, eq, ilike, inArray, isNull, lt, max, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, inArray, isNull, lt, max, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
@@ -497,6 +497,7 @@ export const messagesRouter = router({
             metadata: input.metadata ?? null,
             replyToId: input.replyToId ?? null,
             topicId: input.topicId ?? null,
+            seq: sql`COALESCE((SELECT MAX(${schema.messages.seq}) FROM ${schema.messages} WHERE ${schema.messages.conversationId} = ${input.conversationId}), 0) + 1`,
           })
           .returning();
 

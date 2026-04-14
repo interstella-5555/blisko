@@ -18,6 +18,7 @@ export interface NewMessageEvent {
     createdAt: Date;
     readAt: Date | null;
     deletedAt: Date | null;
+    seq: number;
   };
   senderName?: string | null;
   senderAvatarUrl?: string | null;
