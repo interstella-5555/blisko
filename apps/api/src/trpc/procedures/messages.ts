@@ -250,7 +250,8 @@ export const messagesRouter = router({
         conversationId: z.string().uuid(),
         topicId: z.string().uuid().optional(),
         limit: z.number().min(1).max(100).default(50),
-        cursor: z.string().uuid().optional(),
+        cursor: z.number().optional(),
+        afterSeq: z.number().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -286,34 +287,37 @@ export const messagesRouter = router({
         whereConditions.push(eq(schema.messages.topicId, input.topicId));
       }
 
-      let query = db
-        .select()
-        .from(schema.messages)
-        .where(and(...whereConditions))
-        .orderBy(desc(schema.messages.createdAt))
-        .limit(input.limit + 1);
-
-      if (input.cursor) {
-        const cursorMessage = await db.query.messages.findFirst({
-          where: eq(schema.messages.id, input.cursor),
-        });
-
-        if (cursorMessage) {
-          query = db
-            .select()
-            .from(schema.messages)
-            .where(and(...whereConditions, lt(schema.messages.createdAt, cursorMessage.createdAt)))
-            .orderBy(desc(schema.messages.createdAt))
-            .limit(input.limit + 1);
-        }
-      }
+      const query =
+        input.afterSeq != null
+          ? // Gap fill: fetch messages newer than afterSeq (ascending for merge)
+            db
+              .select()
+              .from(schema.messages)
+              .where(and(...whereConditions, gt(schema.messages.seq, input.afterSeq)))
+              .orderBy(asc(schema.messages.seq))
+              .limit(input.limit)
+          : input.cursor != null
+            ? // Pagination: fetch messages older than cursor seq
+              db
+                .select()
+                .from(schema.messages)
+                .where(and(...whereConditions, lt(schema.messages.seq, input.cursor)))
+                .orderBy(desc(schema.messages.seq))
+                .limit(input.limit + 1)
+            : // Initial fetch: newest messages
+              db
+                .select()
+                .from(schema.messages)
+                .where(and(...whereConditions))
+                .orderBy(desc(schema.messages.seq))
+                .limit(input.limit + 1);
 
       const result = await query;
 
-      let nextCursor: string | undefined;
-      if (result.length > input.limit) {
-        const nextItem = result.pop();
-        nextCursor = nextItem?.id;
+      let nextCursor: number | undefined;
+      if (!input.afterSeq && result.length > input.limit) {
+        result.pop();
+        nextCursor = result[result.length - 1]?.seq ?? undefined;
       }
 
       // For groups, batch-fetch sender profiles
