@@ -6,8 +6,8 @@ vi.mock("@/lib/toast", () => ({
 }));
 
 let uuidCounter = 0;
-vi.mock("@/lib/uuid", () => ({
-  uuidv4: () => `uuid-${++uuidCounter}`,
+vi.mock("expo-crypto", () => ({
+  randomUUID: () => `uuid-${++uuidCounter}`,
 }));
 
 const sendMutate = vi.fn();

@@ -1,7 +1,7 @@
+import { randomUUID } from "expo-crypto";
 import { create } from "zustand";
 import { showToast } from "@/lib/toast";
 import { vanillaClient } from "@/lib/trpc";
-import { uuidv4 } from "@/lib/uuid";
 import { useConversationsStore } from "./conversationsStore";
 
 // Shared mapper: raw tRPC/WS message → EnrichedMessage
@@ -265,7 +265,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
     // UUID (not Date.now) so two sends in the same millisecond get distinct IDs —
     // otherwise prepend()'s dedup-by-id collapses the second, but the server still
     // inserts both (different idempotencyKeys), leaving a ghost message on refetch.
-    const tempId = `temp-${uuidv4()}`;
+    const tempId = `temp-${randomUUID()}`;
     const optimistic: EnrichedMessage = {
       id: tempId,
       seq: null,
@@ -300,7 +300,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
         topicId: opts.topicId,
         type: opts.type as "text" | "image" | "location" | undefined,
         metadata: opts.metadata,
-        idempotencyKey: uuidv4(),
+        idempotencyKey: randomUUID(),
       })
       .then((data) => {
         if (!data) return;
