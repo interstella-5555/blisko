@@ -32,6 +32,11 @@ import { useProfilesStore } from "@/stores/profilesStore";
 import { colors, fonts, spacing } from "@/theme";
 
 // Deterministic color from userId hash for group sender labels
+// Module-level empty array — stable reference for the fallback when a
+// conversation's cache is missing. Inline `?? []` creates a new array on every
+// selector call, breaking Zustand's getSnapshot identity check.
+const EMPTY_MESSAGES: never[] = [];
+
 const SENDER_COLORS = ["#C0392B", "#2980B9", "#27AE60", "#8E44AD", "#D35400", "#16A085", "#2C3E50", "#E67E22"];
 function getSenderColor(userId: string): string {
   let hash = 0;
@@ -106,10 +111,15 @@ export default function ChatScreen() {
     }
   };
 
-  // Messages from store — single source of truth
-  const allMessages = useMessagesStore((s) => s.chats.get(conversationId!)?.items ?? []);
-  const hasOlder = useMessagesStore((s) => s.chats.get(conversationId!)?.hasOlder ?? true);
-  const cacheStatus = useMessagesStore((s) => s.chats.get(conversationId!)?.status);
+  // Messages from store — single source of truth.
+  // Subscribe once to the whole cache object (stable reference until the cache
+  // mutates). Deriving `?? []` inside the selector returns a new empty array
+  // each call when cache is missing, which trips React's getSnapshot cache
+  // check (infinite loop) — so derive primitives after the selector.
+  const cache = useMessagesStore((s) => s.chats.get(conversationId!));
+  const allMessages = cache?.items ?? EMPTY_MESSAGES;
+  const hasOlder = cache?.hasOlder ?? true;
+  const cacheStatus = cache?.status;
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);

@@ -18,6 +18,8 @@ Brief pointers — details are in the code. Look there first.
 <!-- arch-ref: infrastructure.md -->
 **Running locally:** `bun run api:dev`, `bun run design:dev`, `bun run chatbot:dev`, `bun run website:dev`. Mobile: `cd apps/mobile && npx expo run:ios` (simulator) or `--device` (physical). Simulator location: `xcrun simctl location booted set 52.2010865,20.9618980` (ul. Altowa, Warszawa).
 
+**Full iOS reset:** `bun run mobile:reset-ios` — nukes Metro/Xcode caches, runs `expo prebuild --clean`, rebuilds and launches. Use when adding/removing native deps, after SDK upgrade, or when the simulator "just stops working".
+
 **Physical iPhone:** UDID `00008130-00065CE826A0001C` (iPhone 15). API URL via `EXPO_PUBLIC_API_URL` in `apps/mobile/.env.local`:
 ```bash
 # Production (Railway API)
