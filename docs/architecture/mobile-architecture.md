@@ -9,6 +9,7 @@
 > Updated 2026-04-11 — Fixed pings-list crash in `(tabs)/chats.tsx`: two sibling `FlatList`-es (pings vs conversations) in a ternary were sharing one React instance; switching filter mutated `onViewableItemsChanged` from function → undefined, triggering `Invariant Violation: Changing onViewableItemsChanged nullability on the fly is not supported` (SIGABRT). Fix: distinct `key` props so React treats them as separate instances. See "Gotchas" below.
 > Updated 2026-04-11 — Chats tab `tabBarBadge` now sums unread messages **and** unviewed pending pings (was: unread messages only). Mirrors the `unviewedPingCount` already shown on the sonar pill inside the chats screen — both numbers come from the same `wavesStore.viewedWaveIds` cursor, so the user sees a consistent "things demanding attention" count from the tab bar and from inside the screen (BLI-207). See "Tab badges" under Key Conventions.
 > Updated 2026-04-12 — Migrated toast system from custom ToastProvider/ToastBanner/ToastOverlay to sonner-native. Added react-native-reanimated + react-native-gesture-handler as new dependencies. Thin `showToast()` wrapper in `lib/toast.ts` preserves per-type haptic feedback (BLI-216).
+> Updated 2026-04-14 — messaging single source of truth, vanilla tRPC client, lifecycle-safe mutations (BLI-224).
 
 React Native 0.81.5, Expo SDK 54, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
 
@@ -121,9 +122,19 @@ Source of truth for the chat list. Conversations sorted by `updatedAt` desc. Eac
 
 ### messagesStore
 
-Per-conversation message cache using `Map<string, ChatCache>`. Each cache stores items (newest first for inverted FlatList), `hasMore` flag, and `oldestCursor` for pagination.
+**Single source of truth** for all message data. React Query cache is no longer used for messages — the store owns the data, and components read directly from it via Zustand selectors.
 
-**Key methods:** `set()`, `prepend()` (new messages, dedup), `appendOlder()` (pagination, dedup), `updateReaction()` (add/remove with count tracking). **Optimistic updates:** `addOptimistic()`, `replaceOptimistic()` (handles WS race — if real message arrived first, removes temp, otherwise swaps temp→real), `removeOptimistic()`, `updateMessage()` (in-place patch by messageId — used for optimistic delete to set `deletedAt` without removing the row).
+Per-conversation message cache using `Map<string, ChatCache>`. Each `ChatCache` stores items (newest first for inverted FlatList), `hasMore` flag, `oldestCursor` for pagination, `seq` (latest known sequence number), and `status` (`'partial'` | `'hydrated'`).
+
+**Lifecycle-safe mutations:** `send()`, `react()`, `deleteMessage()`, `markAsRead()` live in the store (not in components), using a vanilla tRPC client (`vanillaClient` from `lib/trpc.ts`) for imperative calls outside the React tree. This eliminates the problem of mutations being cancelled when the user navigates away from the chat screen.
+
+**Key methods:** `set()`, `prepend()` (new messages, dedup, gap detection via seq), `appendOlder()` (pagination, dedup), `updateReaction()` (add/remove with count tracking). **Optimistic updates:** `addOptimistic()`, `replaceOptimistic()` (handles WS race — if real message arrived first, removes temp, otherwise swaps temp→real), `removeOptimistic()`, `updateMessage()` (in-place patch by messageId — used for optimistic delete to set `deletedAt` without removing the row).
+
+**Own WS echo skip:** When a `newMessage` WS event arrives, the store skips it if the sender is the current user — the HTTP response from `send()` is the authoritative confirmation, preventing duplicates.
+
+**Gap detection:** On `prepend()`, if `msg.seq > newestSeq + 1`, a gap is detected. On WS reconnect, the store calls `syncGaps` with a `{convId: newestSeq}` map across all cached conversations to batch-fill missed messages.
+
+**Eager preload:** Top 15 conversations are preloaded on tab mount (replaces the previous on-scroll `usePrefetchMessages` hook).
 
 **Why `updateMessage` is separate from `replaceOptimistic`:** `replaceOptimistic` was designed for the send-race: if the real message is already in the list (delivered by WS), it **removes** the temp entry. Reusing it for delete would drop the message from the list instead of showing the "Wiadomość usunięta" placeholder. `updateMessage` patches an existing item in place.
 
@@ -157,6 +168,8 @@ Persisted to SecureStore. `nearbyRadiusMeters`: 500 / 1000 / 2000 (default 2000)
 
 `apps/mobile/src/lib/trpc.ts`. Created via `createTRPCReact<AppRouter>()` with `httpBatchLink`. Server URL from `EXPO_PUBLIC_API_URL` env var (fallback: `http://localhost:3000`).
 
+**Vanilla client:** `vanillaClient` is also exported — a non-React tRPC client for imperative calls from Zustand stores and other non-component code. Used by `messagesStore` for lifecycle-safe mutations (`send()`, `react()`, `deleteMessage()`, `markAsRead()`, `syncGaps`).
+
 **Auth:** Headers include `Authorization: Bearer <token>` --- tries Better Auth session first, falls back to SecureStore (for dev auto-login). Also sends `x-app-version` header.
 
 **Error handling:** Global error interceptor on `QueryCache` and `MutationCache` handles: `ACCOUNT_DELETED` (alert + sign out), `TOO_MANY_REQUESTS` (toast with friendly rate-limit message). Retries: up to 3 for normal errors, 0 for account-deleted and rate-limited.
@@ -171,7 +184,7 @@ Persisted to SecureStore. `nearbyRadiusMeters`: 500 / 1000 / 2000 (default 2000)
 
 **Authentication:** After WebSocket opens, sends `{ type: "auth", token }`. Token sourced from: (1) Zustand authStore, (2) Better Auth HTTP call, (3) SecureStore fallback.
 
-**Reconnection handling:** On re-auth after reconnect, dispatches synthetic `"reconnected"` event to all handlers, which triggers full reconciliation (refetch waves, conversations).
+**Reconnection handling:** On re-auth after reconnect, dispatches synthetic `"reconnected"` event to all handlers, which triggers full reconciliation (refetch waves, conversations) and batch `syncGaps` call to fill missed messages across all cached conversations.
 
 **Handler pattern:** Global `Set<MessageHandler>` --- multiple components register via `useWebSocket(handler)`. The `(tabs)/_layout.tsx` registers the main handler processing all event types.
 
@@ -245,7 +258,7 @@ Hooks live in `apps/mobile/src/hooks/`. All are React hooks, mounted high in the
 | `useInAppNotifications` | WS → in-app banner routing (see In-App Notifications section) |
 | `useBackgroundSync` | App-resume + periodic refetch (see Background Sync section) |
 | `useProfileGate` | Imperative "require complete profile" check used by action buttons (waves, groups, status). Reads `profilesStore.isComplete` and surfaces a non-dismissable `ProfileGateSheet` when blocked; returns a predicate/action wrapper rather than rendering anything itself. The third gate layer below routing guards. |
-| `usePrefetchMessages` | Warms React Query caches for conversations the user is likely to open next (last-active DM + ambient matches). Fires on tab focus. |
+| `usePrefetchMessages` | **Deprecated** — replaced by eager preload of top 15 conversations in `messagesStore` on tab mount. Previously warmed React Query caches on tab focus. |
 | `useRetryProfileOnFailure` | Listens for `profilingFailed` WS event, calls `profiling.retryProfileGeneration` — self-healing for `generate-profile-from-qa` failures (BLI-162) |
 | `useRetryProfileAIOnFailure` | Listens for `profileFailed` WS event, calls `profiles.retryProfileAI` — self-healing for `generate-profile-ai` failures (BLI-163), the final onboarding step |
 | `useRetryQuestionOnFailure` | Listens for `questionFailed` WS event, calls `profiling.retryQuestion` — self-healing for next-question generation failures during profiling Q&A (BLI-161) |
@@ -349,6 +362,10 @@ In release builds this is **uncatchable** — it fires during render inside the 
 The same reasoning applies to any component with mount-time-only side effects (observers, refs installed in `componentDidMount`, etc.) — if you're about to write `cond ? <X … /> : <X … />` and the two `<X>` instances differ meaningfully, reach for `key`.
 
 Captured as lint-adjacent rule: `.claude/rules/mobile.md#mobile/conditional-flatlist-needs-key`.
+
+### Double-tap send guard in ChatInput
+
+`ChatInput.tsx` disables the send button immediately on press and re-enables after the store's `send()` completes. Without this, a fast double-tap submits two messages because the optimistic insert doesn't block the UI thread — the button remains pressable during the async `send()` call.
 
 ---
 

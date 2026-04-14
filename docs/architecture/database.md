@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-11 — Added `metrics.ai_calls` table (BLI-174).
 > Updated 2026-04-11 — `connection_analyses.tier` column (`t1`/`t2`/`t3`) records which scoring tier produced each row, surfaced in admin matching list (BLI-184).
+> Updated 2026-04-14 — added `seq` column to messages table for per-conversation sequence numbers (BLI-224).
 
 PostgreSQL on Railway. ORM: Drizzle `^0.45.1` with `postgres` (postgres.js) `^3.4.0` driver. Schema source: `packages/db/src/schema.ts` (the `@repo/db` workspace package). `apps/api/src/db/schema.ts` is now a 3-line re-export wrapper (`export * from "@repo/db/schema"`) preserved so existing `@/db` / `@/db/schema` imports keep working — the real schema definitions live in `@repo/db`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`.
 
@@ -275,11 +276,13 @@ All chat messages (DM and group).
 | `metadata` | jsonb | yes | -- | Extensible (e.g. `{ source: 'chatbot' }`) |
 | `reply_to_id` | uuid (self-ref) | yes | -- | Threaded replies |
 | `created_at` | timestamp | no | `now()` | |
+| `seq` | bigint | no | -- | Per-conversation monotonic sequence number |
 | `read_at` | timestamp | yes | -- | Read receipt |
 | `deleted_at` | timestamp | yes | -- | Soft-delete |
 
 **Indexes:**
 - `messages_conv_created_idx` on `(conversation_id, created_at)` -- message timeline queries
+- `messages_conv_seq_uniq` UNIQUE on `(conversation_id, seq)` -- deterministic pagination, gap detection
 - `messages_sender_idx` on `sender_id` -- user message history
 - `messages_topic_idx` on `topic_id` -- topic message listing
 
