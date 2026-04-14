@@ -5,8 +5,9 @@ vi.mock("@/lib/toast", () => ({
   showToast: vi.fn(),
 }));
 
+let uuidCounter = 0;
 vi.mock("@/lib/uuid", () => ({
-  uuidv4: () => "uuid-fixed",
+  uuidv4: () => `uuid-${++uuidCounter}`,
 }));
 
 const sendMutate = vi.fn();
@@ -67,6 +68,7 @@ const makeMsg = (overrides: Partial<EnrichedMessage> = {}): EnrichedMessage => (
 beforeEach(() => {
   useMessagesStore.getState().reset();
   vi.clearAllMocks();
+  uuidCounter = 0;
 });
 
 afterEach(() => {
@@ -585,7 +587,7 @@ describe("send", () => {
       expect.objectContaining({
         conversationId: CONV,
         content: "hi",
-        idempotencyKey: "uuid-fixed",
+        idempotencyKey: expect.stringMatching(/^uuid-/),
       }),
     );
   });
@@ -961,14 +963,12 @@ describe("edge cases", () => {
     expect(showToast).toHaveBeenCalledWith("error", expect.stringContaining("usunąć"));
   });
 
-  test("sequential sends produce distinct tempIds", async () => {
+  test("sequential sends produce distinct tempIds", () => {
     sendMutate.mockReturnValue(new Promise(() => {}));
     const store = useMessagesStore.getState();
 
     store.send(CONV, "first", { userId: USER });
-    // Advance Date.now to guarantee distinct temp IDs
     const firstTempId = store.get(CONV)!.items[0].id;
-    await new Promise((r) => setTimeout(r, 2));
     store.send(CONV, "second", { userId: USER });
 
     const items = store.get(CONV)!.items;
@@ -1015,5 +1015,67 @@ describe("edge cases", () => {
     // Real message gets seq=100 (higher than existing)
     store.replaceOptimistic(CONV, "temp-1", makeMsg({ id: "real-1", seq: 100 }));
     expect(store.get(CONV)?.newestSeq).toBe(100);
+  });
+});
+
+// =============================================================================
+// Concurrency & ordering invariants
+// =============================================================================
+
+describe("store invariant: items sorted DESC by seq (optimistic at top)", () => {
+  test("prependBatch sorts merged items DESC (API returns ASC for gap fills)", () => {
+    const store = useMessagesStore.getState();
+    store.set(CONV, [makeMsg({ id: "m5", seq: 5 })], false, 5);
+    // syncGaps/fillGap API returns ASC order
+    store.prependBatch(CONV, [
+      makeMsg({ id: "m6", seq: 6 }),
+      makeMsg({ id: "m7", seq: 7 }),
+      makeMsg({ id: "m8", seq: 8 }),
+    ]);
+    // items must be DESC: newest first so inverted FlatList renders correctly
+    expect(store.get(CONV)!.items.map((m) => m.id)).toEqual(["m8", "m7", "m6", "m5"]);
+  });
+
+  test("prependBatch keeps optimistic (seq=null) at front after merge", () => {
+    const store = useMessagesStore.getState();
+    store.set(CONV, [makeMsg({ id: "m5", seq: 5 })], false, 5);
+    store.prepend(CONV, makeMsg({ id: "temp-1", seq: null, content: "pending" }));
+
+    store.prependBatch(CONV, [makeMsg({ id: "m6", seq: 6 }), makeMsg({ id: "m7", seq: 7 })]);
+
+    // temp stays at front (optimistic is "newest" from user's perspective)
+    expect(store.get(CONV)!.items.map((m) => m.id)).toEqual(["temp-1", "m7", "m6", "m5"]);
+  });
+
+  test("prependBatch preserves DESC when input is already DESC (idempotent)", () => {
+    const store = useMessagesStore.getState();
+    store.set(CONV, [makeMsg({ id: "m5", seq: 5 })], false, 5);
+    store.prependBatch(CONV, [
+      makeMsg({ id: "m8", seq: 8 }),
+      makeMsg({ id: "m7", seq: 7 }),
+      makeMsg({ id: "m6", seq: 6 }),
+    ]);
+    expect(store.get(CONV)!.items.map((m) => m.id)).toEqual(["m8", "m7", "m6", "m5"]);
+  });
+});
+
+describe("tempId collision — send() in same millisecond", () => {
+  test("two sends in same ms produce distinct optimistic entries (tempId uses uuid)", () => {
+    sendMutate.mockReturnValue(new Promise(() => {}));
+    const store = useMessagesStore.getState();
+
+    // Pin Date.now() to a constant — simulates two sends in the same ms.
+    // tempId must not rely on Date.now() alone, or prepend's dedup-by-id would
+    // collapse the second optimistic while the server still inserts both.
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+
+    store.send(CONV, "first", { userId: USER });
+    store.send(CONV, "second", { userId: USER });
+
+    const items = store.get(CONV)!.items;
+    expect(items).toHaveLength(2);
+    expect(new Set(items.map((m) => m.id)).size).toBe(2);
+
+    nowSpy.mockRestore();
   });
 });

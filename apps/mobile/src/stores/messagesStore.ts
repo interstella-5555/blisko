@@ -207,12 +207,22 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
     set((state) => {
       const chats = new Map(state.chats);
       const existing = chats.get(convId);
+
+      // Sort DESC with null seq (optimistic) at top — maintains store invariant
+      // regardless of API order (syncGaps/fillGap return ASC, prepend ordering varies).
+      const sortDescWithNullTop = (a: EnrichedMessage, b: EnrichedMessage): number => {
+        const aSeq = a.seq ?? Number.POSITIVE_INFINITY;
+        const bSeq = b.seq ?? Number.POSITIVE_INFINITY;
+        return bSeq - aSeq;
+      };
+
       if (!existing) {
+        const sorted = [...messages].sort(sortDescWithNullTop);
         chats.set(convId, {
-          items: messages,
+          items: sorted,
           hasOlder: true,
-          oldestSeq: messages[messages.length - 1]?.seq ?? null,
-          newestSeq: messages[0]?.seq ?? null,
+          oldestSeq: sorted[sorted.length - 1]?.seq ?? null,
+          newestSeq: sorted[0]?.seq ?? null,
           status: "partial",
         });
       } else {
@@ -222,7 +232,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
         const maxSeq = Math.max(...newMsgs.filter((m) => m.seq != null).map((m) => m.seq!), existing.newestSeq ?? 0);
         chats.set(convId, {
           ...existing,
-          items: [...newMsgs, ...existing.items],
+          items: [...newMsgs, ...existing.items].sort(sortDescWithNullTop),
           newestSeq: maxSeq,
         });
       }
@@ -252,7 +262,10 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   },
 
   send(convId, content, opts) {
-    const tempId = `temp-${Date.now()}`;
+    // UUID (not Date.now) so two sends in the same millisecond get distinct IDs —
+    // otherwise prepend()'s dedup-by-id collapses the second, but the server still
+    // inserts both (different idempotencyKeys), leaving a ghost message on refetch.
+    const tempId = `temp-${uuidv4()}`;
     const optimistic: EnrichedMessage = {
       id: tempId,
       seq: null,
