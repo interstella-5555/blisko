@@ -119,7 +119,7 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!conversationId) return;
     const store = useMessagesStore.getState();
-    const cache = store.get(conversationId);
+    const cache = store.getChat(conversationId);
     if (!cache || cache.status === "partial") {
       setIsLoading(true);
       setFetchError(false);
@@ -175,7 +175,7 @@ export default function ChatScreen() {
 
   const handleLoadMore = () => {
     if (!hasOlder || isLoadingMore || !conversationId) return;
-    const cache = useMessagesStore.getState().get(conversationId);
+    const cache = useMessagesStore.getState().getChat(conversationId);
     if (!cache?.oldestSeq) return;
     setIsLoadingMore(true);
     useMessagesStore

@@ -61,7 +61,7 @@ interface MessagesStore {
   chats: Map<string, ChatCache>;
 
   // Data loading
-  set(convId: string, messages: EnrichedMessage[], hasOlder: boolean, oldestSeq?: number | null): void;
+  hydrate(convId: string, messages: EnrichedMessage[], hasOlder: boolean, oldestSeq?: number | null): void;
   appendOlder(convId: string, messages: EnrichedMessage[], hasOlder: boolean, oldestSeq?: number | null): void;
   prepend(convId: string, message: EnrichedMessage): void;
   prependBatch(convId: string, messages: EnrichedMessage[]): void;
@@ -102,16 +102,16 @@ interface MessagesStore {
   ): void;
 
   // Queries
-  has(convId: string): boolean;
-  get(convId: string): ChatCache | undefined;
+  hasChat(convId: string): boolean;
+  getChat(convId: string): ChatCache | undefined;
   reset(): void;
 }
 
-export const useMessagesStore = create<MessagesStore>((set, get) => ({
+export const useMessagesStore = create<MessagesStore>((setState, getState) => ({
   chats: new Map(),
 
-  set(convId, messages, hasOlder, oldestSeq) {
-    set((state) => {
+  hydrate(convId, messages, hasOlder, oldestSeq) {
+    setState((state) => {
       const chats = new Map(state.chats);
       const existing = chats.get(convId);
 
@@ -145,7 +145,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   },
 
   appendOlder(convId, messages, hasOlder, oldestSeq) {
-    set((state) => {
+    setState((state) => {
       const chats = new Map(state.chats);
       const existing = chats.get(convId);
       if (!existing) {
@@ -171,7 +171,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   },
 
   prepend(convId, message) {
-    set((state) => {
+    setState((state) => {
       const chats = new Map(state.chats);
       const existing = chats.get(convId);
 
@@ -189,7 +189,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
 
         // Eager gap detection
         if (message.seq && existing.newestSeq && message.seq > existing.newestSeq + 1) {
-          setTimeout(() => get().fillGap(convId, existing.newestSeq!, message.seq!), 0);
+          setTimeout(() => getState().fillGap(convId, existing.newestSeq!, message.seq!), 0);
         }
 
         chats.set(convId, {
@@ -204,7 +204,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
 
   prependBatch(convId, messages) {
     if (messages.length === 0) return;
-    set((state) => {
+    setState((state) => {
       const chats = new Map(state.chats);
       const existing = chats.get(convId);
 
@@ -252,9 +252,9 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
 
       const hasOlder = !!res.nextCursor;
       if (opts.cursor) {
-        get().appendOlder(convId, messages, hasOlder, res.nextCursor);
+        getState().appendOlder(convId, messages, hasOlder, res.nextCursor);
       } else {
-        get().set(convId, messages, hasOlder, res.nextCursor);
+        getState().hydrate(convId, messages, hasOlder, res.nextCursor);
       }
     } catch {
       throw new Error("Failed to fetch messages");
@@ -283,7 +283,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
       reactions: [],
     };
 
-    get().prepend(convId, optimistic);
+    getState().prepend(convId, optimistic);
     useConversationsStore.getState().updateLastMessage(convId, {
       id: tempId,
       content,
@@ -322,10 +322,10 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
           replyTo: opts.replyTo ?? null,
           reactions: [],
         };
-        get().replaceOptimistic(convId, tempId, enriched);
+        getState().replaceOptimistic(convId, tempId, enriched);
       })
       .catch(() => {
-        get().removeOptimistic(convId, tempId);
+        getState().removeOptimistic(convId, tempId);
         showToast("error", "Nie udało się wysłać wiadomości");
       });
   },
@@ -338,7 +338,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
 
   deleteMessage(convId, messageId) {
     // Optimistic: mark as deleted
-    const store = get();
+    const store = getState();
     const chat = store.chats.get(convId);
     const original = chat?.items.find((m) => m.id === messageId);
     store.updateMessage(convId, messageId, {
@@ -349,7 +349,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
     vanillaClient.messages.deleteMessage.mutate({ messageId }).catch(() => {
       // Restore on failure
       if (original) {
-        get().updateMessage(convId, messageId, {
+        getState().updateMessage(convId, messageId, {
           deletedAt: null,
           content: original.content,
         });
@@ -377,7 +377,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
       })
       .then((res) => {
         if (res.messages.length > 0) {
-          get().prependBatch(
+          getState().prependBatch(
             convId,
             res.messages.map((msg) => rawToEnriched(msg as Record<string, unknown>, convId)),
           );
@@ -396,7 +396,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
       const result = await vanillaClient.messages.syncGaps.query(cursors);
       for (const [convId, messages] of Object.entries(result)) {
         if (Array.isArray(messages) && messages.length > 0) {
-          get().prependBatch(
+          getState().prependBatch(
             convId,
             messages.map((msg) => rawToEnriched(msg as Record<string, unknown>, convId)),
           );
@@ -408,7 +408,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   },
 
   replaceOptimistic(convId, tempId, real) {
-    set((state) => {
+    setState((state) => {
       const chats = new Map(state.chats);
       const existing = chats.get(convId);
       if (!existing) return state;
@@ -426,7 +426,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   },
 
   removeOptimistic(convId, tempId) {
-    set((state) => {
+    setState((state) => {
       const chats = new Map(state.chats);
       const existing = chats.get(convId);
       if (!existing) return state;
@@ -438,7 +438,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   },
 
   updateMessage(convId, messageId, patch) {
-    set((state) => {
+    setState((state) => {
       const chats = new Map(state.chats);
       const existing = chats.get(convId);
       if (!existing) return state;
@@ -450,7 +450,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   },
 
   updateReaction(convId, messageId, emoji, userId, action, currentUserId) {
-    set((state) => {
+    setState((state) => {
       const chats = new Map(state.chats);
       const existing = chats.get(convId);
       if (!existing) return state;
@@ -495,15 +495,15 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
     });
   },
 
-  has(convId) {
-    return get().chats.has(convId);
+  hasChat(convId) {
+    return getState().chats.has(convId);
   },
 
-  get(convId) {
-    return get().chats.get(convId);
+  getChat(convId) {
+    return getState().chats.get(convId);
   },
 
   reset() {
-    set({ chats: new Map() });
+    setState({ chats: new Map() });
   },
 }));

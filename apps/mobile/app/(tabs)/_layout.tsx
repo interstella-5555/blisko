@@ -53,7 +53,7 @@ export default function TabsLayout() {
       // Resolve replyTo from cached parent message
       let replyTo = null;
       if (msg.message.replyToId) {
-        const chat = msgStore.get(msg.conversationId);
+        const chat = msgStore.getChat(msg.conversationId);
         const parent = chat?.items.find((m) => m.id === msg.message.replyToId);
         if (parent) {
           replyTo = { id: parent.id, content: parent.content, senderName: parent.senderName ?? "Użytkownik" };

@@ -93,14 +93,14 @@ export default function ChatsScreen() {
 
     conversations
       .slice(0, 15)
-      .filter((c) => !store.has(c.id))
+      .filter((c) => !store.hasChat(c.id))
       .forEach((conv) => {
         vanillaClient.messages.getMessages
           .query({ conversationId: conv.id, limit: 1 })
           .then((res) => {
-            if (!store.has(conv.id) && res.messages.length > 0) {
+            if (!store.hasChat(conv.id) && res.messages.length > 0) {
               const msg = res.messages[0];
-              store.set(conv.id, [rawToEnriched(msg as Record<string, unknown>, conv.id)], true, msg.seq);
+              store.hydrate(conv.id, [rawToEnriched(msg as Record<string, unknown>, conv.id)], true, msg.seq);
             }
           })
           .catch(() => {});
