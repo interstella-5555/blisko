@@ -46,7 +46,11 @@ export function useInAppNotifications() {
             subtitle: "Przyjął(a) Twój ping!",
             avatarUrl: responderProfile?.avatarUrl ?? null,
             avatarName: responderProfile?.displayName ?? "?",
-            onPress: () => router.push(`/chat/${msg.conversationId}`),
+            onPress: () => {
+              if (useConversationsStore.getState().activeConversationId !== msg.conversationId) {
+                router.push(`/chat/${msg.conversationId}`);
+              }
+            },
           }),
         );
         return;
@@ -78,7 +82,11 @@ export function useInAppNotifications() {
             subtitle: "Nowe zaproszenie do grupy",
             avatarUrl: null,
             avatarName: msg.groupName ?? "G",
-            onPress: () => router.push(`/chat/${msg.conversationId}`),
+            onPress: () => {
+              if (useConversationsStore.getState().activeConversationId !== msg.conversationId) {
+                router.push(`/chat/${msg.conversationId}`);
+              }
+            },
           }),
         );
         return;
@@ -104,7 +112,11 @@ export function useInAppNotifications() {
             subtitle: preview,
             avatarUrl: senderAvatar,
             avatarName: senderName,
-            onPress: () => router.push(`/chat/${msg.conversationId}`),
+            onPress: () => {
+              if (useConversationsStore.getState().activeConversationId !== msg.conversationId) {
+                router.push(`/chat/${msg.conversationId}`);
+              }
+            },
           }),
         );
       }

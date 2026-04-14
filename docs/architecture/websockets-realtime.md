@@ -7,6 +7,7 @@
 > Updated 2026-04-10 — Added `profilingFailed` WS event for self-healing profile generation from Q&A (BLI-162).
 > Updated 2026-04-10 — Added `profileFailed` WS event for self-healing profile AI generation (BLI-163).
 > Updated 2026-04-10 — Added `statusMatchingFailed` WS event for self-healing status matching (BLI-164).
+> Updated 2026-04-14 — newMessage event now includes seq field (BLI-224).
 
 Bun native WebSocket server delivering real-time events to mobile clients. Source: `apps/api/src/ws/handler.ts`, `apps/api/src/ws/events.ts`, `apps/api/src/ws/redis-bridge.ts`.
 
@@ -34,7 +35,7 @@ Bun native WebSocket server delivering real-time events to mobile clients. Sourc
 | `subscribe` | client->server | New conversation joined | `{ type: "subscribe", conversationId: string }` |
 | `typing` | client->server | User types in chat | `{ type: "typing", conversationId: string, isTyping: boolean }` |
 | `typing` | server->client | Other user types | `{ type: "typing", conversationId, userId, isTyping }` |
-| `newMessage` | server->client | Message sent | `{ type: "newMessage", conversationId, message: { id, senderId, content, type, metadata, replyToId, topicId, createdAt, ... }, senderName?, senderAvatarUrl? }` |
+| `newMessage` | server->client | Message sent | `{ type: "newMessage", conversationId, message: { id, senderId, content, type, metadata, replyToId, topicId, seq, createdAt, ... }, senderName?, senderAvatarUrl? }` |
 | `reaction` | server->client | Reaction added/removed | `{ type: "reaction", conversationId, messageId, emoji, userId, action: "added"\|"removed" }` |
 | `newWave` | server->client | Wave received | `{ type: "newWave", wave: { id, fromUserId, toUserId, message, status, createdAt }, fromProfile: { displayName, avatarUrl } }` |
 | `waveResponded` | server->client | Wave accepted/declined | `{ type: "waveResponded", responderId, waveId, accepted, conversationId?, responderProfile: { displayName, avatarUrl } }` |

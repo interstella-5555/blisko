@@ -44,20 +44,26 @@ export default function TabsLayout() {
       useWavesStore.getState().updateStatus(msg.waveId, msg.accepted);
     }
     if (msg.type === "newMessage") {
+      // Skip own messages — HTTP response is the confirmation path
+      if (msg.message.senderId === userIdRef.current) return;
+
       const convStore = useConversationsStore.getState();
       const msgStore = useMessagesStore.getState();
 
-      // Resolve replyTo from existing store data (optimistic message may have it)
+      // Resolve replyTo from cached parent message
       let replyTo = null;
       if (msg.message.replyToId) {
-        const chat = msgStore.get(msg.conversationId);
-        const match = chat?.items.find((m) => m.replyToId === msg.message.replyToId && m.replyTo);
-        replyTo = match?.replyTo ?? null;
+        const chat = msgStore.getChat(msg.conversationId);
+        const parent = chat?.items.find((m) => m.id === msg.message.replyToId);
+        if (parent) {
+          replyTo = { id: parent.id, content: parent.content, senderName: parent.senderName ?? "Użytkownik" };
+        }
       }
 
       // Update messages store
       msgStore.prepend(msg.conversationId, {
         ...msg.message,
+        seq: msg.message.seq ?? null,
         conversationId: msg.conversationId,
         type: msg.message.type ?? "text",
         metadata: msg.message.metadata ?? null,
@@ -70,7 +76,7 @@ export default function TabsLayout() {
         senderAvatarUrl: msg.senderAvatarUrl ?? null,
       });
 
-      // Update conversation's last message (include senderName for groups)
+      // Update conversation's last message
       convStore.updateLastMessage(msg.conversationId, {
         id: msg.message.id,
         content: msg.message.content,
@@ -81,7 +87,7 @@ export default function TabsLayout() {
       });
 
       // Increment unread if not viewing this conversation
-      if (msg.message.senderId !== userIdRef.current && convStore.activeConversationId !== msg.conversationId) {
+      if (convStore.activeConversationId !== msg.conversationId) {
         convStore.incrementUnread(msg.conversationId);
       }
     }
@@ -122,8 +128,6 @@ export default function TabsLayout() {
         createdAt: now,
         updatedAt: now,
       });
-      // Refetch to get full conversation data (metadata with connectedAt, connectedDistance)
-      utilsRef.current.messages.getConversations.invalidate();
     }
     if (msg.type === "reconnected") {
       // Reconcile after WS reconnection — may have missed events
@@ -131,6 +135,18 @@ export default function TabsLayout() {
       utilsRef.current.waves.getSent.refetch();
       utilsRef.current.messages.getConversations.refetch();
       utilsRef.current.profiles.me.refetch();
+
+      // Batch gap fill for cached chats
+      const reconnectMsgStore = useMessagesStore.getState();
+      const cursors: Record<string, number> = {};
+      for (const [convId, cache] of reconnectMsgStore.chats) {
+        if (cache.newestSeq != null) {
+          cursors[convId] = cache.newestSeq;
+        }
+      }
+      if (Object.keys(cursors).length > 0) {
+        reconnectMsgStore.syncGaps(cursors);
+      }
     }
     if (msg.type === "profileReady") {
       // AI pipeline completed — refresh profile with embedding/interests
@@ -155,7 +171,12 @@ export default function TabsLayout() {
       utilsRef.current.groups.getGroupInfo.invalidate({ conversationId: msg.conversationId });
     }
     if (msg.type === "conversationDeleted") {
-      useConversationsStore.getState().remove(msg.conversationId);
+      const convStore = useConversationsStore.getState();
+      const wasActive = convStore.activeConversationId === msg.conversationId;
+      convStore.remove(msg.conversationId);
+      if (wasActive) {
+        router.back();
+      }
     }
     if (msg.type === "groupInvited") {
       // Subscribe to the new group conversation and refetch

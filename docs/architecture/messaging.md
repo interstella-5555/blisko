@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — added Message Delete (Client Optimistic Flow) section documenting the `updateMessage` store method and the context-menu positioning constant that keeps "Usuń" visible above the chat input bar.
+> Updated 2026-04-14 — seq-based pagination, syncGaps endpoint, lifecycle-safe mutations, single source of truth architecture (BLI-224).
 
 Source: `apps/api/src/trpc/procedures/messages.ts`, `apps/api/src/ws/handler.ts`, `apps/api/src/ws/events.ts`, `apps/api/src/db/schema.ts`, `packages/shared/src/validators.ts`, `apps/mobile/app/chat/[id].tsx`, `apps/mobile/src/stores/messagesStore.ts`, `apps/mobile/src/components/chat/MessageContextMenu.tsx`.
 
@@ -36,11 +37,27 @@ PRODUCT.md describes a "Karta pierwszego kontaktu" with date, district, distance
 | `type` | varchar(20) | `'text'` | `text`, `image`, or `location` |
 | `metadata` | jsonb | null | Arbitrary key-value (image URLs, coordinates, etc.) |
 | `replyToId` | uuid self-ref | null | Reply threading |
+| `seq` | bigint | auto | Per-conversation monotonic sequence number |
 | `createdAt` | timestamp | now | Send time |
 | `readAt` | timestamp | null | DM-only per-message read marker |
 | `deletedAt` | timestamp | null | Soft-delete marker |
 
-Indexes: `messages_conv_created_idx` (conversationId, createdAt), `messages_sender_idx`, `messages_topic_idx`.
+Indexes: `messages_conv_created_idx` (conversationId, createdAt), `messages_conv_seq_uniq` (conversationId, seq) UNIQUE, `messages_sender_idx`, `messages_topic_idx`.
+
+---
+
+## Sequence Numbers
+
+**What:** Monotonic integer per conversation, assigned atomically on INSERT.
+
+**Why:** Deterministic pagination (integers vs timestamp comparison), gap detection after WS disconnect, dedup.
+
+**Assignment:** `COALESCE((SELECT MAX(seq) FROM messages WHERE conversation_id = $1), 0) + 1` inside the INSERT statement. No separate SELECT. Unique index prevents duplicates on concurrent inserts.
+
+**Usage:**
+- Pagination cursor: `WHERE seq < cursor ORDER BY seq DESC` (older) / `WHERE seq > afterSeq ORDER BY seq ASC` (newer)
+- Gap detection: client tracks `newestSeq` per conversation, detects gaps on `prepend` if `msg.seq > newestSeq + 1`
+- Batch gap fill: `syncGaps` endpoint accepts `{convId: newestSeq}` map, returns missed messages
 
 ---
 
@@ -72,7 +89,7 @@ Indexes: `messages_conv_created_idx` (conversationId, createdAt), `messages_send
 **Flow:**
 1. Verify sender is participant
 2. Check idempotency key (if provided)
-3. Transaction: insert message, update `conversations.updatedAt`, update topic `lastMessageAt` + `messageCount` if topicId set
+3. Transaction: insert message with seq assignment via `COALESCE(MAX(seq)+1, 1)`, update `conversations.updatedAt`, update topic `lastMessageAt` + `messageCount` if topicId set
 4. Cache result in Redis for idempotency (if key provided)
 5. Fetch sender profile, participants, and conversation type in parallel
 6. Send push notifications (differs by DM vs group)
@@ -141,6 +158,22 @@ Index: `reactions_user_emoji_idx` on (messageId, userId, emoji) — used for uni
 - Max results: 50 (validator default 20)
 - Sorted by `createdAt DESC`
 - Only non-deleted messages (`deletedAt IS NULL`)
+
+---
+
+## syncGaps (Batch Gap Fill)
+
+**What:** Single round-trip endpoint for fetching missed messages across all cached conversations after WS reconnect.
+
+**Input:** `Record<conversationId, newestSeq>` — map of conversation IDs to the client's latest known seq.
+
+**Output:** `Record<conversationId, Message[]>` — messages newer than the provided seq, per conversation.
+
+**Config:**
+- Max 50 conversations per request
+- 100 messages per conversation limit
+- Verifies participant access per conversation
+- Returns raw message rows (no reaction/reply enrichment)
 
 ---
 
@@ -267,7 +300,7 @@ Typing events flow two ways:
 
 | Event | Payload | Broadcast |
 |-------|---------|-----------|
-| `newMessage` | Full message object + senderName + senderAvatarUrl | All conversation subscribers |
+| `newMessage` | Full message object (includes `seq`) + senderName + senderAvatarUrl | All conversation subscribers |
 | `typing` | conversationId, userId, isTyping | All conversation subscribers |
 | `reaction` | messageId, emoji, userId, action (added/removed) | All conversation subscribers |
 | `conversationDeleted` | conversationId | Specific user (other participant) |
@@ -288,6 +321,9 @@ If you change this system, also check:
 - **`packages/shared/src/validators.ts`** — sendMessageSchema, deleteMessageSchema, reactToMessageSchema, searchMessagesSchema
 - **`apps/api/src/services/data-export.ts`** — GDPR export includes messages
 - **`apps/api/src/services/moderation.ts`** — `moderateContent` called on text messages before insert (images/locations skipped)
-- **`apps/mobile/src/stores/messagesStore.ts`** — client message cache; `updateMessage()` for in-place patches (delete), `replaceOptimistic()` for send-race, `prepend()` for WS new messages
+- **`apps/mobile/src/stores/messagesStore.ts`** — single source of truth for messages (React Query cache removed); lifecycle-safe mutations (`send()`, `react()`, `deleteMessage()`, `markAsRead()`) live in store, not components; `ChatCache` tracks `seq` and `status` ('partial'|'hydrated'); gap detection on `prepend()` + batch `syncGaps` on WS reconnect; skips own WS echo for `newMessage`
+- **`apps/mobile/src/lib/trpc.ts`** — exports `vanillaClient` for imperative tRPC calls from stores (outside React tree)
 - **`apps/mobile/src/components/chat/MessageContextMenu.tsx`** — long-press context menu; reserves `CHAT_INPUT_RESERVED` space at bottom so "Usuń" doesn't clip
-- **`apps/mobile/app/chat/[id].tsx`** — chat screen; `deleteMessage.onMutate` uses `updateMessage`, not `replaceOptimistic`
+- **`apps/mobile/src/components/chat/ChatInput.tsx`** — double-tap send guard prevents duplicate messages
+- **`apps/mobile/app/chat/[id].tsx`** — chat screen; reads from messagesStore (not React Query); eager preload of top 15 conversations on tab mount
+- **`apps/mobile/app/(tabs)/_layout.tsx`** — eager preload of top 15 conversations replaces on-scroll `usePrefetchMessages`

@@ -153,6 +153,7 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
       const { db } = await import("./db");
       const { messages } = await import("./db/schema");
 
+      const { sql } = await import("drizzle-orm");
       const [msg] = await db
         .insert(messages)
         .values({
@@ -162,6 +163,7 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
           content,
           type: "text",
           createdAt: new Date(),
+          seq: sql`COALESCE((SELECT MAX(${messages.seq}) FROM ${messages} WHERE ${messages.conversationId} = ${conversationId}), 0) + 1`,
         })
         .returning({ id: messages.id });
 

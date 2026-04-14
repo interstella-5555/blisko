@@ -1,14 +1,14 @@
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View, type ViewToken } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { ConversationRow } from "@/components/chat/ConversationRow";
 import { Avatar } from "@/components/ui/Avatar";
 import { IconChat, IconGroup } from "@/components/ui/icons";
 import { SonarDot } from "@/components/ui/SonarDot";
 import { useIsGhost } from "@/hooks/useIsGhost";
-import { usePrefetchMessages } from "@/hooks/usePrefetchMessages";
-import { trpc } from "@/lib/trpc";
+import { trpc, vanillaClient } from "@/lib/trpc";
 import { useConversationsStore } from "@/stores/conversationsStore";
+import { rawToEnriched, useMessagesStore } from "@/stores/messagesStore";
 import { useWavesStore } from "@/stores/wavesStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
@@ -84,15 +84,28 @@ export default function ChatsScreen() {
     return conversations;
   }, [conversations, filter]);
 
-  const prefetch = usePrefetchMessages();
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    for (const token of viewableItems) {
-      if (token.isViewable && token.item?.id) {
-        prefetch(token.item.id);
-      }
-    }
-  }).current;
+  // Eager preload top 15 conversations with 1 message each (runs once after hydration)
+  const hasPreloaded = useRef(false);
+  useEffect(() => {
+    if (!hydrated || hasPreloaded.current) return;
+    hasPreloaded.current = true;
+    const store = useMessagesStore.getState();
+
+    conversations
+      .slice(0, 15)
+      .filter((c) => !store.hasChat(c.id))
+      .forEach((conv) => {
+        vanillaClient.messages.getMessages
+          .query({ conversationId: conv.id, limit: 1 })
+          .then((res) => {
+            if (!store.hasChat(conv.id) && res.messages.length > 0) {
+              const msg = res.messages[0];
+              store.hydrate(conv.id, [rawToEnriched(msg, conv.id)], true, msg.seq);
+            }
+          })
+          .catch(() => {});
+      });
+  }, [hydrated]);
 
   const handleRefresh = useCallback(async () => {
     setIsManualRefreshing(true);
@@ -243,8 +256,6 @@ export default function ChatsScreen() {
               </View>
             )
           }
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
           refreshControl={
             <RefreshControl refreshing={isManualRefreshing} onRefresh={handleRefresh} tintColor={colors.ink} />
           }

@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   index,
   integer,
@@ -293,16 +294,18 @@ export const messages = pgTable(
     }),
     content: text("content").notNull(),
     type: varchar("type", { length: 20 }).notNull().default("text"),
-    metadata: jsonb("metadata"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     replyToId: uuid("reply_to_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     readAt: timestamp("read_at"),
     deletedAt: timestamp("deleted_at"),
+    seq: bigint("seq", { mode: "number" }).notNull(),
   },
   (table) => ({
     convCreatedIdx: index("messages_conv_created_idx").on(table.conversationId, table.createdAt),
     senderIdx: index("messages_sender_idx").on(table.senderId),
     topicIdx: index("messages_topic_idx").on(table.topicId),
+    convSeqUniq: uniqueIndex("messages_conv_seq_uniq").on(table.conversationId, table.seq),
   }),
 );
 

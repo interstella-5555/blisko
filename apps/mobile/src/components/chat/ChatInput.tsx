@@ -47,12 +47,18 @@ export function ChatInput({
     };
   }, []);
 
+  const sendingRef = useRef(false);
+
   const handleSend = () => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || sendingRef.current) return;
+    sendingRef.current = true;
     onSend(trimmed, replyingTo?.id);
     setText("");
     onCancelReply?.();
+    requestAnimationFrame(() => {
+      sendingRef.current = false;
+    });
   };
 
   const handleChangeText = (value: string) => {
@@ -109,7 +115,7 @@ export function ChatInput({
           disabled={!text.trim()}
           testID="chat-send-btn"
         >
-          <Text style={[styles.sendText, !text.trim() && styles.sendTextDisabled]}>Wyślij</Text>
+          <Text style={styles.sendText}>Wyślij</Text>
         </Pressable>
       </View>
     </View>
@@ -194,9 +200,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 1.5,
     textTransform: "uppercase",
-    color: "#FFFFFF",
-  },
-  sendTextDisabled: {
     color: "#FFFFFF",
   },
 });

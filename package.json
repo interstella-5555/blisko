@@ -97,5 +97,8 @@
     "apps/mobile/**/*.{ts,tsx}": "bash -c 'bun run --filter @repo/mobile typecheck'",
     "packages/shared/src/**/*.ts": "bash -c 'bun run --filter @repo/shared typecheck'",
     "apps/admin/**/*.{ts,tsx}": "bash -c 'bun run --filter @repo/admin typecheck'"
+  },
+  "dependencies": {
+    "expo-crypto": "^55.0.14"
   }
 }
