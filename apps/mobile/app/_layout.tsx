@@ -1,6 +1,3 @@
-// Polyfill crypto.getRandomValues for the whole app — must come before any
-// code that reads `crypto` (uuid, future session tokens, etc.).
-import "react-native-get-random-values";
 import { focusManager, MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";

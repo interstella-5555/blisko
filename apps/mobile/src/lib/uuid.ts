@@ -1,4 +1,3 @@
-// Re-exports the standard `uuid` package's v4. Relies on `crypto.getRandomValues`
-// being polyfilled globally — see `react-native-get-random-values` import at the
-// top of app/_layout.tsx.
-export { v4 as uuidv4 } from "uuid";
+// Re-exports expo-crypto's native randomUUID. Crypto-grade v4 from the OS
+// RNG, no polyfill dance, maintained with the rest of the Expo SDK.
+export { randomUUID as uuidv4 } from "expo-crypto";
