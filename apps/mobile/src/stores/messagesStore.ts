@@ -4,26 +4,47 @@ import { showToast } from "@/lib/toast";
 import { vanillaClient } from "@/lib/trpc";
 import { useConversationsStore } from "./conversationsStore";
 
-// Shared mapper: raw tRPC/WS message → EnrichedMessage
-// biome-ignore lint/suspicious/noExplicitAny: raw API response shape varies by endpoint
-export function rawToEnriched(msg: Record<string, any>, convId: string): EnrichedMessage {
+// Structural shape of messages as they arrive from the API or WebSocket.
+// Required fields match the messages schema; optional fields reflect per-endpoint
+// differences (getMessages enriches with replyTo/reactions/senderName, syncGaps
+// returns raw rows, dates can be Date on WS events but strings after JSON).
+export interface RawMessage {
+  id: string;
+  senderId: string;
+  content: string;
+  createdAt: string | Date;
+  seq?: number | null;
+  conversationId?: string;
+  type?: string;
+  metadata?: Record<string, unknown> | null;
+  replyToId?: string | null;
+  topicId?: string | null;
+  readAt?: string | Date | null;
+  deletedAt?: string | Date | null;
+  replyTo?: EnrichedMessage["replyTo"];
+  reactions?: EnrichedMessage["reactions"];
+  senderName?: string | null;
+  senderAvatarUrl?: string | null;
+}
+
+export function rawToEnriched(msg: RawMessage, convId: string): EnrichedMessage {
   return {
-    id: msg.id as string,
-    seq: (msg.seq as number) ?? null,
-    conversationId: (msg.conversationId as string) ?? convId,
-    senderId: msg.senderId as string,
-    content: msg.content as string,
-    type: (msg.type as string) ?? "text",
-    metadata: (msg.metadata as Record<string, unknown> | null) ?? null,
-    replyToId: (msg.replyToId as string | null) ?? null,
-    topicId: (msg.topicId as string | null) ?? null,
-    createdAt: String(msg.createdAt),
-    readAt: msg.readAt ? String(msg.readAt) : null,
-    deletedAt: msg.deletedAt ? String(msg.deletedAt) : null,
-    replyTo: (msg.replyTo as EnrichedMessage["replyTo"]) ?? null,
-    reactions: (msg.reactions as EnrichedMessage["reactions"]) ?? [],
-    senderName: (msg.senderName as string | null) ?? null,
-    senderAvatarUrl: (msg.senderAvatarUrl as string | null) ?? null,
+    id: msg.id,
+    seq: msg.seq ?? null,
+    conversationId: msg.conversationId ?? convId,
+    senderId: msg.senderId,
+    content: msg.content,
+    type: msg.type ?? "text",
+    metadata: msg.metadata ?? null,
+    replyToId: msg.replyToId ?? null,
+    topicId: msg.topicId ?? null,
+    createdAt: typeof msg.createdAt === "string" ? msg.createdAt : msg.createdAt.toISOString(),
+    readAt: msg.readAt ? (typeof msg.readAt === "string" ? msg.readAt : msg.readAt.toISOString()) : null,
+    deletedAt: msg.deletedAt ? (typeof msg.deletedAt === "string" ? msg.deletedAt : msg.deletedAt.toISOString()) : null,
+    replyTo: msg.replyTo ?? null,
+    reactions: msg.reactions ?? [],
+    senderName: msg.senderName ?? null,
+    senderAvatarUrl: msg.senderAvatarUrl ?? null,
   };
 }
 
@@ -248,7 +269,7 @@ export const useMessagesStore = create<MessagesStore>((setState, getState) => ({
         cursor: opts.cursor ?? undefined,
       });
 
-      const messages = res.messages.map((msg) => rawToEnriched(msg as Record<string, unknown>, convId));
+      const messages = res.messages.map((msg) => rawToEnriched(msg, convId));
 
       const hasOlder = !!res.nextCursor;
       if (opts.cursor) {
@@ -379,7 +400,7 @@ export const useMessagesStore = create<MessagesStore>((setState, getState) => ({
         if (res.messages.length > 0) {
           getState().prependBatch(
             convId,
-            res.messages.map((msg) => rawToEnriched(msg as Record<string, unknown>, convId)),
+            res.messages.map((msg) => rawToEnriched(msg, convId)),
           );
         }
       })
@@ -398,7 +419,7 @@ export const useMessagesStore = create<MessagesStore>((setState, getState) => ({
         if (Array.isArray(messages) && messages.length > 0) {
           getState().prependBatch(
             convId,
-            messages.map((msg) => rawToEnriched(msg as Record<string, unknown>, convId)),
+            messages.map((msg) => rawToEnriched(msg, convId)),
           );
         }
       }

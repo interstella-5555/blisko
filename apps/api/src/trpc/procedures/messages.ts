@@ -470,34 +470,35 @@ export const messagesRouter = router({
       );
     const allowedSet = new Set(allowed.map((r) => r.conversationId));
 
-    const msgColumns = {
-      id: schema.messages.id,
-      seq: schema.messages.seq,
-      conversationId: schema.messages.conversationId,
-      senderId: schema.messages.senderId,
-      content: schema.messages.content,
-      type: schema.messages.type,
-      metadata: schema.messages.metadata,
-      replyToId: schema.messages.replyToId,
-      topicId: schema.messages.topicId,
-      createdAt: schema.messages.createdAt,
-      readAt: schema.messages.readAt,
-      deletedAt: schema.messages.deletedAt,
-    };
+    const fetchGap = (convId: string, afterSeq: number) =>
+      db
+        .select({
+          id: schema.messages.id,
+          seq: schema.messages.seq,
+          conversationId: schema.messages.conversationId,
+          senderId: schema.messages.senderId,
+          content: schema.messages.content,
+          type: schema.messages.type,
+          metadata: schema.messages.metadata,
+          replyToId: schema.messages.replyToId,
+          topicId: schema.messages.topicId,
+          createdAt: schema.messages.createdAt,
+          readAt: schema.messages.readAt,
+          deletedAt: schema.messages.deletedAt,
+        })
+        .from(schema.messages)
+        .where(and(eq(schema.messages.conversationId, convId), gt(schema.messages.seq, afterSeq)))
+        .orderBy(asc(schema.messages.seq))
+        .limit(100);
 
-    const result: Record<string, typeof msgColumns extends infer C ? { [K in keyof C]: unknown }[] : never> = {};
+    type GapRow = Awaited<ReturnType<typeof fetchGap>>[number];
+    const result: Record<string, GapRow[]> = {};
 
     await Promise.all(
       entries
         .filter(([convId]) => allowedSet.has(convId))
         .map(async ([convId, afterSeq]) => {
-          const messages = await db
-            .select(msgColumns)
-            .from(schema.messages)
-            .where(and(eq(schema.messages.conversationId, convId), gt(schema.messages.seq, afterSeq)))
-            .orderBy(asc(schema.messages.seq))
-            .limit(100);
-
+          const messages = await fetchGap(convId, afterSeq);
           if (messages.length > 0) {
             result[convId] = messages;
           }

@@ -100,7 +100,7 @@ export default function ChatsScreen() {
           .then((res) => {
             if (!store.hasChat(conv.id) && res.messages.length > 0) {
               const msg = res.messages[0];
-              store.hydrate(conv.id, [rawToEnriched(msg as Record<string, unknown>, conv.id)], true, msg.seq);
+              store.hydrate(conv.id, [rawToEnriched(msg, conv.id)], true, msg.seq);
             }
           })
           .catch(() => {});

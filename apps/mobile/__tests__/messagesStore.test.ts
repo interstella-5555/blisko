@@ -139,11 +139,20 @@ describe("rawToEnriched", () => {
     expect(result.senderAvatarUrl).toBeNull();
   });
 
-  test("converts Date objects to strings", () => {
+  test("converts Date objects to ISO strings", () => {
     const date = new Date("2026-04-14T10:00:00.000Z");
     const result = rawToEnriched({ id: "x", senderId: "u", content: "c", createdAt: date }, "f");
-    expect(typeof result.createdAt).toBe("string");
-    expect(result.createdAt).toBe(date.toString());
+    expect(result.createdAt).toBe("2026-04-14T10:00:00.000Z");
+  });
+
+  test("converts Date readAt/deletedAt to ISO strings", () => {
+    const ts = new Date("2026-04-14T11:00:00.000Z");
+    const result = rawToEnriched(
+      { id: "x", senderId: "u", content: "c", createdAt: "now", readAt: ts, deletedAt: ts },
+      "f",
+    );
+    expect(result.readAt).toBe("2026-04-14T11:00:00.000Z");
+    expect(result.deletedAt).toBe("2026-04-14T11:00:00.000Z");
   });
 
   test("seq=0 is preserved (not coalesced to null)", () => {

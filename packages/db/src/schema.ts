@@ -294,7 +294,7 @@ export const messages = pgTable(
     }),
     content: text("content").notNull(),
     type: varchar("type", { length: 20 }).notNull().default("text"),
-    metadata: jsonb("metadata"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     replyToId: uuid("reply_to_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     readAt: timestamp("read_at"),
