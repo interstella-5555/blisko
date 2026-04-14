@@ -447,6 +447,43 @@ export const messagesRouter = router({
       };
     }),
 
+  // Batch gap fill — one round trip for all cached conversations after WS reconnect
+  syncGaps: protectedProcedure.input(z.record(z.string().uuid(), z.number())).query(async ({ ctx, input }) => {
+    const result: Record<string, (typeof schema.messages.$inferSelect)[]> = {};
+
+    const entries = Object.entries(input);
+    if (entries.length === 0) return result;
+    if (entries.length > 50) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Max 50 conversations per syncGaps" });
+    }
+
+    await Promise.all(
+      entries.map(async ([convId, afterSeq]) => {
+        const participant = await db.query.conversationParticipants.findFirst({
+          where: and(
+            eq(schema.conversationParticipants.conversationId, convId),
+            eq(schema.conversationParticipants.userId, ctx.userId),
+          ),
+          columns: { userId: true },
+        });
+        if (!participant) return;
+
+        const messages = await db
+          .select()
+          .from(schema.messages)
+          .where(and(eq(schema.messages.conversationId, convId), gt(schema.messages.seq, afterSeq)))
+          .orderBy(asc(schema.messages.seq))
+          .limit(100);
+
+        if (messages.length > 0) {
+          result[convId] = messages;
+        }
+      }),
+    );
+
+    return result;
+  }),
+
   // Send a message
   send: protectedProcedure
     // .input() must come before any rateLimit that reads fields from input —
