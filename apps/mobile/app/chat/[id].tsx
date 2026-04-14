@@ -2,7 +2,7 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,11 +24,10 @@ import { Avatar } from "@/components/ui/Avatar";
 import { IconBell, IconBellOff, IconChevronLeft } from "@/components/ui/icons";
 import { useIsGhost } from "@/hooks/useIsGhost";
 import { trpc } from "@/lib/trpc";
-import { uuidv4 } from "@/lib/uuid";
 import { useTypingIndicator } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationsStore } from "@/stores/conversationsStore";
-import { type EnrichedMessage, useMessagesStore } from "@/stores/messagesStore";
+import { useMessagesStore } from "@/stores/messagesStore";
 import { useProfilesStore } from "@/stores/profilesStore";
 import { colors, fonts, spacing } from "@/theme";
 
@@ -58,18 +57,13 @@ export default function ChatScreen() {
   } | null>(null);
 
   const [contextMenu, setContextMenu] = useState<ContextMenuData | null>(null);
-  // Measured ChatInput height — fed to MessageContextMenu so it can reserve
-  // the correct bottom space (the input grows with multi-line drafts).
-  // Guard the setter so it only updates when height actually changes —
-  // otherwise onLayout → setState → re-render → onLayout loops.
   const [chatInputHeight, setChatInputHeight] = useState(72);
-  const handleChatInputLayout = useCallback((e: LayoutChangeEvent) => {
-    const h = e.nativeEvent.layout.height;
-    setChatInputHeight((prev) => (Math.abs(prev - h) > 0.5 ? h : prev));
-  }, []);
+  const handleChatInputLayout = (e: LayoutChangeEvent) => {
+    setChatInputHeight(e.nativeEvent.layout.height);
+  };
   const messageRefs = useRef(new Map<string, View>());
 
-  // Get conversation from store — detect group mode
+  // Store selectors
   const storeConversation = useConversationsStore((s) => s.conversations.find((c) => c.id === conversationId));
   const isGroup = storeConversation?.type === "group";
   const participantName = isGroup
@@ -78,6 +72,7 @@ export default function ChatScreen() {
 
   const isMuted = storeConversation?.mutedUntil != null && new Date(storeConversation.mutedUntil) > new Date();
 
+  // Mute stays as tRPC hook — it's a conversation concern, not messages
   const muteConversation = trpc.messages.muteConversation.useMutation({
     onSuccess: (data) => {
       useConversationsStore.getState().setMutedUntil(conversationId!, data.mutedUntil.toString());
@@ -111,267 +106,109 @@ export default function ChatScreen() {
     }
   };
 
-  // Read messages from store (instant if cached from prefetch or previous visit)
-  const cached = useMessagesStore((s) => s.chats.get(conversationId!));
-  const storeMessages = cached?.items ?? [];
+  // Messages from store — single source of truth
+  const allMessages = useMessagesStore((s) => s.chats.get(conversationId!)?.items ?? []);
+  const hasOlder = useMessagesStore((s) => s.chats.get(conversationId!)?.hasOlder ?? true);
+  const cacheStatus = useMessagesStore((s) => s.chats.get(conversationId!)?.status);
 
-  // tRPC for initial hydration + pagination (no polling — WS keeps store current)
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    trpc.messages.getMessages.useInfiniteQuery(
-      { conversationId: conversationId!, topicId, limit: 50 },
-      {
-        enabled: !!conversationId,
-        getNextPageParam: (lastPage) => lastPage.nextCursor,
-      },
-    );
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
 
-  // Pipe tRPC data into messagesStore (initial hydration + loadMore pages)
-  const pagesLoadedRef = useRef(0);
+  // Fetch on mount if no data or partial
   useEffect(() => {
-    if (!data || !conversationId) return;
-    const pages = data.pages;
-    if (pages.length === pagesLoadedRef.current) return;
-
-    const lastPage = pages[pages.length - 1];
-    const hasMore = !!lastPage?.nextCursor;
+    if (!conversationId) return;
     const store = useMessagesStore.getState();
-
-    type RawMessage = (typeof pages)[number]["messages"][number];
-    const toEnriched = (msg: RawMessage): EnrichedMessage => ({
-      id: msg.id,
-      conversationId: msg.conversationId ?? conversationId,
-      senderId: msg.senderId,
-      content: msg.content,
-      type: msg.type ?? "text",
-      metadata: (msg.metadata as Record<string, unknown> | null) ?? null,
-      replyToId: msg.replyToId ?? null,
-      topicId: (msg as Record<string, unknown>).topicId as string | null | undefined,
-      createdAt: String(msg.createdAt),
-      readAt: msg.readAt ? String(msg.readAt) : null,
-      deletedAt: msg.deletedAt ? String(msg.deletedAt) : null,
-      replyTo: ((msg as Record<string, unknown>).replyTo as EnrichedMessage["replyTo"]) ?? null,
-      reactions: ((msg as Record<string, unknown>).reactions as EnrichedMessage["reactions"]) ?? [],
-      senderName: ((msg as Record<string, unknown>).senderName as string | null) ?? null,
-      senderAvatarUrl: ((msg as Record<string, unknown>).senderAvatarUrl as string | null) ?? null,
-    });
-
-    if (pagesLoadedRef.current === 0) {
-      // Initial hydration — set all pages
-      const allMsgs = pages.flatMap((p) => p.messages).map(toEnriched);
-      store.set(conversationId, allMsgs, hasMore, lastPage?.nextCursor);
-    } else {
-      // LoadMore — append only the new page
-      const newMsgs = lastPage.messages.map(toEnriched);
-      store.appendOlder(conversationId, newMsgs, hasMore, lastPage?.nextCursor);
+    const cache = store.get(conversationId);
+    if (!cache || cache.status === "partial") {
+      setIsLoading(true);
+      setFetchError(false);
+      store
+        .fetchMessages(conversationId, { limit: 50 })
+        .catch(() => setFetchError(true))
+        .finally(() => setIsLoading(false));
     }
-
-    pagesLoadedRef.current = pages.length;
-  }, [data, conversationId]);
-
-  // Render from store; fall back to tRPC data during first hydration frame
-  const trpcMessages = data?.pages.flatMap((page) => page.messages) ?? [];
-  const allMessages = storeMessages.length > 0 ? storeMessages : trpcMessages;
-
-  // Compute bubble position for message grouping
-  // Note: FlatList is inverted, so index 0 = newest message
-  // "prev" visually (above) = index + 1, "next" visually (below) = index - 1
-  const getGroupInfo = useCallback(
-    (index: number) => {
-      const msg = allMessages[index];
-      if (!msg) return { position: "solo" as BubblePosition, isLastInGroup: true, showGroupTime: true };
-
-      const above = allMessages[index + 1]; // visually above (older)
-      const below = allMessages[index - 1]; // visually below (newer)
-
-      const sameSenderAbove = above && above.senderId === msg.senderId && !above.deletedAt;
-      const sameSenderBelow = below && below.senderId === msg.senderId && !below.deletedAt;
-
-      let position: BubblePosition;
-      if (sameSenderAbove && sameSenderBelow) position = "mid";
-      else if (sameSenderAbove && !sameSenderBelow) position = "last";
-      else if (!sameSenderAbove && sameSenderBelow) position = "first";
-      else position = "solo";
-
-      // Show time only on the last (newest) message in a group
-      const isLastInGroup = position === "solo" || position === "last";
-
-      return { position, isLastInGroup };
-    },
-    [allMessages],
-  );
-
-  // Typing indicators
-  // (WS message & reaction updates are handled globally by _layout.tsx → messagesStore)
-  const { isTyping: someoneTyping, typingUserIds, sendTyping } = useTypingIndicator(conversationId);
-
-  // Mark as read on open + cleanup to sync server state before leaving
-  const markAsRead = trpc.messages.markAsRead.useMutation();
-
-  const markAsReadRef = useRef(markAsRead);
-  markAsReadRef.current = markAsRead;
-
-  useEffect(() => {
-    if (conversationId) {
-      markAsReadRef.current.mutate({ conversationId });
-      useConversationsStore.getState().setActiveConversation(conversationId);
-    }
+    store.markAsRead(conversationId);
+    useConversationsStore.getState().setActiveConversation(conversationId);
     return () => {
       if (conversationId) {
-        markAsReadRef.current.mutate({ conversationId });
+        useMessagesStore.getState().markAsRead(conversationId);
       }
       useConversationsStore.getState().setActiveConversation(null);
     };
   }, [conversationId]);
 
-  // Send message with optimistic update via messagesStore
-  const replyingToRef = useRef(replyingTo);
-  replyingToRef.current = replyingTo;
+  // Bubble position for message grouping
+  const getGroupInfo = (index: number) => {
+    const msg = allMessages[index];
+    if (!msg) return { position: "solo" as BubblePosition, isLastInGroup: true };
 
-  const sendMessage = trpc.messages.send.useMutation({
-    onMutate: async (newMsg) => {
-      const tempId = `temp-${Date.now()}`;
-      const optimistic: EnrichedMessage = {
-        id: tempId,
-        conversationId: conversationId!,
-        senderId: userId!,
-        content: newMsg.content,
-        type: ((newMsg as Record<string, unknown>).type as string) ?? "text",
-        metadata: ((newMsg as Record<string, unknown>).metadata as Record<string, unknown> | null) ?? null,
-        replyToId: newMsg.replyToId ?? null,
-        createdAt: new Date().toISOString(),
-        readAt: null,
-        deletedAt: null,
-        replyTo: replyingToRef.current,
-        reactions: [],
-      };
-      useMessagesStore.getState().addOptimistic(conversationId!, optimistic);
-      useConversationsStore.getState().updateLastMessage(conversationId!, {
-        id: tempId,
-        content: newMsg.content,
-        senderId: userId!,
-        createdAt: optimistic.createdAt,
-        type: optimistic.type,
+    const above = allMessages[index + 1];
+    const below = allMessages[index - 1];
+
+    const sameSenderAbove = above && above.senderId === msg.senderId && !above.deletedAt;
+    const sameSenderBelow = below && below.senderId === msg.senderId && !below.deletedAt;
+
+    let position: BubblePosition;
+    if (sameSenderAbove && sameSenderBelow) position = "mid";
+    else if (sameSenderAbove && !sameSenderBelow) position = "last";
+    else if (!sameSenderAbove && sameSenderBelow) position = "first";
+    else position = "solo";
+
+    const isLastInGroup = position === "solo" || position === "last";
+    return { position, isLastInGroup };
+  };
+
+  // Typing indicators
+  const { isTyping: someoneTyping, typingUserIds, sendTyping } = useTypingIndicator(conversationId);
+
+  // Simple handlers — lifecycle-safe via store
+  const handleSend = (text: string, replyToId?: string) => {
+    if (!conversationId || !userId) return;
+    useMessagesStore.getState().send(conversationId, text, {
+      userId,
+      replyToId,
+      replyTo: replyingTo,
+      topicId,
+    });
+  };
+
+  const handleLoadMore = () => {
+    if (!hasOlder || isLoadingMore || !conversationId) return;
+    const cache = useMessagesStore.getState().get(conversationId);
+    if (!cache?.oldestSeq) return;
+    setIsLoadingMore(true);
+    useMessagesStore
+      .getState()
+      .fetchMessages(conversationId, { limit: 50, cursor: cache.oldestSeq })
+      .finally(() => setIsLoadingMore(false));
+  };
+
+  const handleLongPress = (messageId: string, isMine: boolean, bubbleProps: ContextMenuData["bubbleProps"]) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const viewRef = messageRefs.current.get(messageId);
+    if (!viewRef) return;
+
+    const keyboardVisible = Keyboard.isVisible?.() ?? false;
+    if (keyboardVisible) Keyboard.dismiss();
+
+    const delay = keyboardVisible ? (Platform.OS === "ios" ? 350 : 100) : 0;
+
+    setTimeout(() => {
+      viewRef.measureInWindow((x, y, width, height) => {
+        if (width === 0 && height === 0) return;
+        setContextMenu({ messageId, isMine, layout: { x, y, width, height }, bubbleProps });
       });
-      return { tempId };
-    },
-    onSuccess: (data, _vars, context) => {
-      // Swap temp with real mutation response. `replaceOptimistic` handles
-      // the WS race: if the real message already arrived via websocket, it
-      // drops the temp; otherwise it patches the temp into the real row.
-      // Relying on WS alone caused the bubble to flash and disappear
-      // whenever the WS event was delayed or missing.
-      if (!context?.tempId || !data) return;
-      // Server returns the raw message row — reshape into EnrichedMessage
-      // with defaults for fields the listing queries would add later.
-      const raw = data as Record<string, unknown>;
-      const enriched: EnrichedMessage = {
-        id: raw.id as string,
-        conversationId: raw.conversationId as string,
-        senderId: raw.senderId as string,
-        content: raw.content as string,
-        type: (raw.type as string) ?? "text",
-        metadata: (raw.metadata as Record<string, unknown> | null) ?? null,
-        replyToId: (raw.replyToId as string | null) ?? null,
-        topicId: (raw.topicId as string | null) ?? null,
-        createdAt: typeof raw.createdAt === "string" ? raw.createdAt : new Date(raw.createdAt as string).toISOString(),
-        readAt: (raw.readAt as string | null) ?? null,
-        deletedAt: (raw.deletedAt as string | null) ?? null,
-        replyTo: replyingToRef.current,
-        reactions: [],
-      };
-      useMessagesStore.getState().replaceOptimistic(conversationId!, context.tempId, enriched);
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.tempId) {
-        useMessagesStore.getState().removeOptimistic(conversationId!, context.tempId);
-      }
-    },
-  });
+    }, delay);
+  };
 
-  // Delete message (optimistic via store — no WS event for deletes)
-  const deleteMessage = trpc.messages.deleteMessage.useMutation({
-    onMutate: async ({ messageId }) => {
-      const store = useMessagesStore.getState();
-      const chat = store.chats.get(conversationId!);
-      const original = chat?.items.find((m) => m.id === messageId);
-      // Optimistic: mark as deleted in place (don't remove — show "Wiadomość usunięta")
-      store.updateMessage(conversationId!, messageId, {
-        deletedAt: new Date().toISOString(),
-        content: "",
-      });
-      return { original };
-    },
-    onError: (_err, { messageId }, context) => {
-      // Restore original message on failure
-      if (context?.original) {
-        // Restore original message (undo optimistic delete)
-        useMessagesStore.getState().updateMessage(conversationId!, messageId, {
-          deletedAt: null,
-          content: context.original.content,
-        });
-      }
-    },
-  });
+  const handleReactionPress = (messageId: string, emoji: string) => {
+    useMessagesStore.getState().react(messageId, emoji);
+  };
 
-  // React to message (WS event updates store via _layout.tsx handler)
-  const reactToMessage = trpc.messages.react.useMutation();
-
-  const handleSend = useCallback(
-    (text: string, replyToId?: string) => {
-      if (!conversationId) return;
-      sendMessage.mutate({
-        conversationId,
-        content: text,
-        replyToId,
-        topicId,
-        idempotencyKey: uuidv4(),
-      });
-    },
-    [conversationId, topicId, sendMessage],
-  );
-
-  const handleLoadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const handleLongPress = useCallback(
-    (messageId: string, isMine: boolean, bubbleProps: ContextMenuData["bubbleProps"]) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-      const viewRef = messageRefs.current.get(messageId);
-      if (!viewRef) return;
-
-      const keyboardVisible = Keyboard.isVisible?.() ?? false;
-      if (keyboardVisible) Keyboard.dismiss();
-
-      const delay = keyboardVisible ? (Platform.OS === "ios" ? 350 : 100) : 0;
-
-      setTimeout(() => {
-        viewRef.measureInWindow((x, y, width, height) => {
-          if (width === 0 && height === 0) return;
-          setContextMenu({
-            messageId,
-            isMine,
-            layout: { x, y, width, height },
-            bubbleProps,
-          });
-        });
-      }, delay);
-    },
-    [],
-  );
-
-  const handleReactionPress = useCallback(
-    (messageId: string, emoji: string) => {
-      reactToMessage.mutate({ messageId, emoji });
-    },
-    [reactToMessage],
-  );
-
-  const handleSendImage = useCallback(async () => {
-    if (!conversationId) return;
+  const handleSendImage = async () => {
+    if (!conversationId || !userId) return;
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
@@ -401,24 +238,18 @@ export default function ChatScreen() {
       if (!response.ok) throw new Error("Upload failed");
       const { url } = await response.json();
 
-      sendMessage.mutate({
-        conversationId,
-        content: "[Zdjęcie]",
+      useMessagesStore.getState().send(conversationId, "[Zdjęcie]", {
+        userId,
         type: "image",
-        metadata: {
-          imageUrl: url,
-          width: asset.width,
-          height: asset.height,
-        },
-        idempotencyKey: uuidv4(),
+        metadata: { imageUrl: url, width: asset.width, height: asset.height },
       });
-    } catch (_error) {
+    } catch {
       Alert.alert("Błąd", "Nie udało się wysłać zdjęcia");
     }
-  }, [conversationId, sendMessage]);
+  };
 
-  const handleSendLocation = useCallback(async () => {
-    if (!conversationId) return;
+  const handleSendLocation = async () => {
+    if (!conversationId || !userId) return;
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
@@ -427,20 +258,15 @@ export default function ChatScreen() {
       }
 
       const location = await Location.getCurrentPositionAsync({});
-      sendMessage.mutate({
-        conversationId,
-        content: "Moja lokalizacja",
+      useMessagesStore.getState().send(conversationId, "Moja lokalizacja", {
+        userId,
         type: "location",
-        metadata: {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        },
-        idempotencyKey: uuidv4(),
+        metadata: { latitude: location.coords.latitude, longitude: location.coords.longitude },
       });
-    } catch (_error) {
+    } catch {
       Alert.alert("Błąd", "Nie udało się pobrać lokalizacji");
     }
-  }, [conversationId, sendMessage]);
+  };
 
   // Resolve typing user names for groups
   const typingDisplayNames = useMemo(() => {
@@ -554,17 +380,12 @@ export default function ChatScreen() {
           const isMine = item.senderId === userId;
           const { position, isLastInGroup } = getGroupInfo(index);
 
-          // For groups: use sender-specific avatar; for DMs: use other participant's avatar
           const avatarUrl = isGroup
             ? (item.senderAvatarUrl ?? undefined)
             : (storeConversation?.participant?.avatarUrl ?? undefined);
 
           const senderName = isGroup ? (item.senderName ?? "Użytkownik") : participantName;
-
-          // In groups, show sender name label above first message in a group from this sender
           const showSenderLabel = isGroup && !isMine && (position === "first" || position === "solo");
-
-          // Add spacing between groups from different senders
           const above = allMessages[index + 1];
           const senderSwitch = above && above.senderId !== item.senderId;
 
@@ -637,9 +458,28 @@ export default function ChatScreen() {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
-          isFetchingNextPage ? <ActivityIndicator size="small" color={colors.muted} style={styles.loader} /> : null
+          isLoadingMore ? <ActivityIndicator size="small" color={colors.muted} style={styles.loader} /> : null
         }
-        ListEmptyComponent={!cached && isLoading ? <ActivityIndicator size="large" color={colors.ink} /> : null}
+        ListEmptyComponent={
+          fetchError ? (
+            <Pressable
+              onPress={() => {
+                setFetchError(false);
+                setIsLoading(true);
+                useMessagesStore
+                  .getState()
+                  .fetchMessages(conversationId!, { limit: 50 })
+                  .catch(() => setFetchError(true))
+                  .finally(() => setIsLoading(false));
+              }}
+              style={styles.errorContainer}
+            >
+              <Text style={styles.errorText}>Nie udało się załadować. Dotknij, aby spróbować ponownie.</Text>
+            </Pressable>
+          ) : isLoading || (!cacheStatus && allMessages.length === 0) ? (
+            <ActivityIndicator size="large" color={colors.ink} />
+          ) : null
+        }
       />
 
       {someoneTyping && (
@@ -666,7 +506,7 @@ export default function ChatScreen() {
           data={contextMenu}
           chatInputHeight={chatInputHeight}
           onReact={(emoji) => {
-            reactToMessage.mutate({ messageId: contextMenu.messageId, emoji });
+            useMessagesStore.getState().react(contextMenu.messageId, emoji);
           }}
           onReply={() => {
             const msg = allMessages.find((m) => m.id === contextMenu.messageId);
@@ -688,7 +528,7 @@ export default function ChatScreen() {
               {
                 text: "Usuń",
                 style: "destructive",
-                onPress: () => deleteMessage.mutate({ messageId: contextMenu.messageId }),
+                onPress: () => useMessagesStore.getState().deleteMessage(conversationId!, contextMenu.messageId),
               },
             ]);
           }}
@@ -827,5 +667,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: "italic",
     color: colors.muted,
+  },
+  errorContainer: {
+    padding: spacing.section,
+    alignItems: "center",
+  },
+  errorText: {
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    color: colors.muted,
+    textAlign: "center",
   },
 });

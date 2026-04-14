@@ -16,6 +16,7 @@ export interface WSNewMessage {
   readAt?: string | null;
   deletedAt?: string | null;
   replyTo?: { id: string; content: string; senderName: string } | null;
+  seq?: number;
 }
 
 export interface WSWave {
@@ -236,7 +237,7 @@ export function useWebSocket(onMessage?: MessageHandler) {
     return () => {
       sub.remove();
     };
-  }, [user?.id, user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!onMessage) return;
@@ -312,7 +313,7 @@ export function useTypingIndicator(conversationId: string | undefined) {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       for (const timeout of typingUsers.values()) clearTimeout(timeout);
     };
-  }, [typingUsers.values]);
+  }, []);
 
   return {
     isTyping: typingUsers.size > 0,

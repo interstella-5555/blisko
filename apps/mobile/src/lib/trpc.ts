@@ -1,4 +1,4 @@
-import { httpBatchLink } from "@trpc/client";
+import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import type { AppRouter } from "api/src/trpc/router";
 import Constants from "expo-constants";
@@ -26,40 +26,46 @@ export function getLastFailedRequestId(): string | null {
   return lastFailedRequestId;
 }
 
+const batchLinkConfig = {
+  url: `${getApiUrl()}/trpc`,
+  async headers() {
+    const h: Record<string, string> = {
+      "x-app-version": appVersion,
+    };
+
+    // Try Better Auth session first
+    const { data } = await authClient.getSession();
+    if (data?.session?.token) {
+      h.authorization = `Bearer ${data.session.token}`;
+      return h;
+    }
+
+    // Fallback to SecureStore (for dev auto-login)
+    const token = await SecureStore.getItemAsync("blisko_session_token");
+    if (token) {
+      h.authorization = `Bearer ${token}`;
+    }
+    return h;
+  },
+  fetch(url: URL | RequestInfo, options: RequestInit | undefined) {
+    return globalThis.fetch(url, options).then((response) => {
+      if (!response.ok) {
+        const requestId = response.headers.get("x-request-id");
+        if (requestId) {
+          lastFailedRequestId = requestId;
+        }
+      }
+      return response;
+    });
+  },
+};
+
+// React hooks client (for useQuery/useMutation in components)
 export const trpcClient = trpc.createClient({
-  links: [
-    httpBatchLink({
-      url: `${getApiUrl()}/trpc`,
-      async headers() {
-        const h: Record<string, string> = {
-          "x-app-version": appVersion,
-        };
+  links: [httpBatchLink(batchLinkConfig)],
+});
 
-        // Try Better Auth session first
-        const { data } = await authClient.getSession();
-        if (data?.session?.token) {
-          h.authorization = `Bearer ${data.session.token}`;
-          return h;
-        }
-
-        // Fallback to SecureStore (for dev auto-login)
-        const token = await SecureStore.getItemAsync("blisko_session_token");
-        if (token) {
-          h.authorization = `Bearer ${token}`;
-        }
-        return h;
-      },
-      fetch(url, options) {
-        return globalThis.fetch(url, options).then((response) => {
-          if (!response.ok) {
-            const requestId = response.headers.get("x-request-id");
-            if (requestId) {
-              lastFailedRequestId = requestId;
-            }
-          }
-          return response;
-        });
-      },
-    }),
-  ],
+// Vanilla client for imperative calls from stores (no React hooks)
+export const vanillaClient = createTRPCProxyClient<AppRouter>({
+  links: [httpBatchLink(batchLinkConfig)],
 });
