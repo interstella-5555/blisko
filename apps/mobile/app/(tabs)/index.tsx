@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import type { Region } from "react-native-maps";
+import { useDebouncedCallback } from "use-debounce";
 import { DEFAULT_MAP_DELTA, ListShimmer, type NearbyMapRef, NearbyMapView } from "@/components/nearby";
 import { GroupRow } from "@/components/nearby/GroupRow";
 import type { UserRowStatus } from "@/components/nearby/UserRow";
@@ -205,32 +206,27 @@ export default function NearbyScreen() {
     return () => clearTimeout(timer);
   }, [listUsers, ensureAnalysisMutate]);
 
-  // WS handler — smart cache patching
-  const wsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Coalesce WS-triggered refetches — backend fires bursts (e.g. dozens of analysisReady
+  // after login) that without debounce fanned out into 40-60 refetches in 10s and hit the
+  // profiles.getNearby rate limit.
+  const debouncedRefetchList = useDebouncedCallback(refetchList, 2000);
+  const debouncedRefetchMarkers = useDebouncedCallback(refetchMarkers, 2000);
 
   const wsHandler = useCallback(
     (msg: WSMessage) => {
-      if (msg.type === "nearbyChanged") {
-        // Debounce 3s — only refetch list
-        if (wsDebounceRef.current) clearTimeout(wsDebounceRef.current);
-        wsDebounceRef.current = setTimeout(() => {
-          refetchList();
-        }, 3000);
-      }
-      if (msg.type === "analysisReady") {
-        // Analysis completed for a nearby user — refetch list to show new snippet/score
-        refetchList();
+      if (msg.type === "nearbyChanged" || msg.type === "analysisReady") {
+        debouncedRefetchList();
       }
       if (msg.type === "statusMatchesReady") {
-        refetchMarkers();
-        refetchList();
+        debouncedRefetchList();
+        debouncedRefetchMarkers();
       }
       if (msg.type === "analysisFailed") {
         const inList = listUsersRef.current.some((u) => u.profile.userId === msg.aboutUserId);
         if (inList) ensureAnalysisMutate({ userId: msg.aboutUserId });
       }
     },
-    [refetchList, refetchMarkers, ensureAnalysisMutate],
+    [debouncedRefetchList, debouncedRefetchMarkers, ensureAnalysisMutate],
   );
   useWebSocket(wsHandler);
   useRetryStatusMatchingOnFailure();
