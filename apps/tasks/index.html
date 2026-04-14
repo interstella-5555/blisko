@@ -7,207 +7,207 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap');
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: #FAF7F2;
-    color: #1A1A1A;
-    padding: 32px;
-  }
+      body {
+        font-family: 'DM Sans', sans-serif;
+        background: #FAF7F2;
+        color: #1A1A1A;
+        padding: 32px;
+      }
 
-  h1 {
-    font-family: 'Instrument Serif', serif;
-    font-size: 28px;
-    font-weight: 400;
-    letter-spacing: 2px;
-    margin-bottom: 8px;
-  }
+      h1 {
+        font-family: 'Instrument Serif', serif;
+        font-size: 28px;
+        font-weight: 400;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+      }
 
-  .subtitle {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: #8B8680;
-    margin-bottom: 32px;
-  }
+      .subtitle {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: #8B8680;
+        margin-bottom: 32px;
+      }
 
-  .board {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 24px;
-    min-height: 60vh;
-  }
+      .board {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 24px;
+        min-height: 60vh;
+      }
 
-  .column {
-    border: 1px solid #D5D0C4;
-    background: #FAF7F2;
-  }
+      .column {
+        border: 1px solid #D5D0C4;
+        background: #FAF7F2;
+      }
 
-  .column-header {
-    padding: 12px 16px;
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: #8B8680;
-    border-bottom: 2px solid #1A1A1A;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+      .column-header {
+        padding: 12px 16px;
+        font-size: 9px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: #8B8680;
+        border-bottom: 2px solid #1A1A1A;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-  .column-header .count {
-    background: #1A1A1A;
-    color: #FAF7F2;
-    padding: 2px 8px;
-    border-radius: 2px;
-    font-size: 9px;
-  }
+      .column-header .count {
+        background: #1A1A1A;
+        color: #FAF7F2;
+        padding: 2px 8px;
+        border-radius: 2px;
+        font-size: 9px;
+      }
 
-  .column-body {
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
+      .column-body {
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
 
-  .card {
-    border: 1px solid #D5D0C4;
-    padding: 12px;
-    background: #FAF7F2;
-    transition: box-shadow 0.2s;
-  }
+      .card {
+        border: 1px solid #D5D0C4;
+        padding: 12px;
+        background: #FAF7F2;
+        transition: box-shadow 0.2s;
+      }
 
-  .card:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  }
+      .card:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      }
 
-  .card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-  }
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
 
-  .card-id {
-    font-size: 9px;
-    font-weight: 600;
-    color: #8B8680;
-  }
+      .card-id {
+        font-size: 9px;
+        font-weight: 600;
+        color: #8B8680;
+      }
 
-  .card-phase {
-    font-size: 8px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 2px 8px;
-    border-radius: 2px;
-  }
+      .card-phase {
+        font-size: 8px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 2px 8px;
+        border-radius: 2px;
+      }
 
-  .phase-1 { background: #E8EEF5; color: #3B6AA0; }
-  .phase-2 { background: #EEF2EE; color: #5B7A5E; }
-  .phase-3 { background: #F5F0E6; color: #B8863E; }
-  .phase-4 { background: #EDE8F2; color: #7B5EA0; }
-  .phase-5 { background: #EEECEC; color: #8B8680; }
+      .phase-1 { background: #E8EEF5; color: #3B6AA0; }
+      .phase-2 { background: #EEF2EE; color: #5B7A5E; }
+      .phase-3 { background: #F5F0E6; color: #B8863E; }
+      .phase-4 { background: #EDE8F2; color: #7B5EA0; }
+      .phase-5 { background: #EEECEC; color: #8B8680; }
 
-  .card-title {
-    font-family: 'Instrument Serif', serif;
-    font-size: 14px;
-    font-weight: 400;
-    color: #1A1A1A;
-    margin-bottom: 4px;
-  }
+      .card-title {
+        font-family: 'Instrument Serif', serif;
+        font-size: 14px;
+        font-weight: 400;
+        color: #1A1A1A;
+        margin-bottom: 4px;
+      }
 
-  .card-desc {
-    font-size: 11px;
-    color: #8B8680;
-    line-height: 1.5;
-  }
+      .card-desc {
+        font-size: 11px;
+        color: #8B8680;
+        line-height: 1.5;
+      }
 
-  .card-checks {
-    margin-top: 8px;
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+      .card-checks {
+        margin-top: 8px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
 
-  .check-item {
-    font-size: 9px;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    color: #8B8680;
-  }
+      .check-item {
+        font-size: 9px;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        color: #8B8680;
+      }
 
-  .check-item .emoji {
-    font-size: 11px;
-  }
+      .check-item .emoji {
+        font-size: 11px;
+      }
 
-  .card-progress {
-    margin-top: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+      .card-progress {
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-  .card-progress-track {
-    flex: 1;
-    height: 3px;
-    background: #D5D0C4;
-    border-radius: 1px;
-    overflow: hidden;
-  }
+      .card-progress-track {
+        flex: 1;
+        height: 3px;
+        background: #D5D0C4;
+        border-radius: 1px;
+        overflow: hidden;
+      }
 
-  .card-progress-fill {
-    height: 100%;
-    background: #C0392B;
-    border-radius: 1px;
-    transition: width 0.3s ease;
-  }
+      .card-progress-fill {
+        height: 100%;
+        background: #C0392B;
+        border-radius: 1px;
+        transition: width 0.3s ease;
+      }
 
-  .card-progress-text {
-    font-size: 9px;
-    font-weight: 600;
-    color: #8B8680;
-    white-space: nowrap;
-  }
+      .card-progress-text {
+        font-size: 9px;
+        font-weight: 600;
+        color: #8B8680;
+        white-space: nowrap;
+      }
 
-  .done .card {
-    opacity: 0.55;
-  }
+      .done .card {
+        opacity: 0.55;
+      }
 
-  .done .card-title {
-    text-decoration: line-through;
-  }
+      .done .card-title {
+        text-decoration: line-through;
+      }
 
-  .progress-bar {
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+      .progress-bar {
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
 
-  .progress-track {
-    flex: 1;
-    height: 4px;
-    background: #D5D0C4;
-    border-radius: 2px;
-    overflow: hidden;
-  }
+      .progress-track {
+        flex: 1;
+        height: 4px;
+        background: #D5D0C4;
+        border-radius: 2px;
+        overflow: hidden;
+      }
 
-  .progress-fill {
-    height: 100%;
-    background: #C0392B;
-    border-radius: 2px;
-    transition: width 0.5s ease;
-  }
+      .progress-fill {
+        height: 100%;
+        background: #C0392B;
+        border-radius: 2px;
+        transition: width 0.5s ease;
+      }
 
-  .progress-text {
-    font-size: 11px;
-    color: #8B8680;
-    white-space: nowrap;
-  }
+      .progress-text {
+        font-size: 11px;
+        color: #8B8680;
+        white-space: nowrap;
+      }
 </style>
 </head>
 <body>

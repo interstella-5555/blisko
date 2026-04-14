@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { ConversationRow } from "@/components/chat/ConversationRow";
 import { Avatar } from "@/components/ui/Avatar";
@@ -8,7 +8,7 @@ import { SonarDot } from "@/components/ui/SonarDot";
 import { useIsGhost } from "@/hooks/useIsGhost";
 import { trpc, vanillaClient } from "@/lib/trpc";
 import { useConversationsStore } from "@/stores/conversationsStore";
-import { useMessagesStore } from "@/stores/messagesStore";
+import { rawToEnriched, useMessagesStore } from "@/stores/messagesStore";
 import { useWavesStore } from "@/stores/wavesStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
@@ -84,9 +84,11 @@ export default function ChatsScreen() {
     return conversations;
   }, [conversations, filter]);
 
-  // Eager preload top 15 conversations with 1 message each
+  // Eager preload top 15 conversations with 1 message each (runs once after hydration)
+  const hasPreloaded = useRef(false);
   useEffect(() => {
-    if (!hydrated || conversations.length === 0) return;
+    if (!hydrated || hasPreloaded.current) return;
+    hasPreloaded.current = true;
     const store = useMessagesStore.getState();
 
     conversations
@@ -98,33 +100,12 @@ export default function ChatsScreen() {
           .then((res) => {
             if (!store.has(conv.id) && res.messages.length > 0) {
               const msg = res.messages[0];
-              store.set(
-                conv.id,
-                [
-                  {
-                    id: msg.id,
-                    seq: msg.seq ?? null,
-                    conversationId: msg.conversationId ?? conv.id,
-                    senderId: msg.senderId,
-                    content: msg.content,
-                    type: msg.type ?? "text",
-                    metadata: (msg.metadata as Record<string, unknown> | null) ?? null,
-                    replyToId: msg.replyToId ?? null,
-                    createdAt: String(msg.createdAt),
-                    readAt: msg.readAt ? String(msg.readAt) : null,
-                    deletedAt: msg.deletedAt ? String(msg.deletedAt) : null,
-                    replyTo: null,
-                    reactions: [],
-                  },
-                ],
-                true,
-                msg.seq,
-              );
+              store.set(conv.id, [rawToEnriched(msg as Record<string, unknown>, conv.id)], true, msg.seq);
             }
           })
           .catch(() => {});
       });
-  }, [hydrated, conversations.length]);
+  }, [hydrated]);
 
   const handleRefresh = useCallback(async () => {
     setIsManualRefreshing(true);

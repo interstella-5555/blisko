@@ -50,12 +50,14 @@ export default function TabsLayout() {
       const convStore = useConversationsStore.getState();
       const msgStore = useMessagesStore.getState();
 
-      // Resolve replyTo from existing store data
+      // Resolve replyTo from cached parent message
       let replyTo = null;
       if (msg.message.replyToId) {
         const chat = msgStore.get(msg.conversationId);
-        const match = chat?.items.find((m) => m.replyToId === msg.message.replyToId && m.replyTo);
-        replyTo = match?.replyTo ?? null;
+        const parent = chat?.items.find((m) => m.id === msg.message.replyToId);
+        if (parent) {
+          replyTo = { id: parent.id, content: parent.content, senderName: parent.senderName ?? "Użytkownik" };
+        }
       }
 
       // Update messages store

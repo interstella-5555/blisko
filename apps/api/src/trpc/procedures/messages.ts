@@ -449,36 +449,59 @@ export const messagesRouter = router({
 
   // Batch gap fill — one round trip for all cached conversations after WS reconnect
   syncGaps: protectedProcedure.input(z.record(z.string().uuid(), z.number())).query(async ({ ctx, input }) => {
-    const result: Record<string, (typeof schema.messages.$inferSelect)[]> = {};
-
     const entries = Object.entries(input);
-    if (entries.length === 0) return result;
+    if (entries.length === 0) return {};
     if (entries.length > 50) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Max 50 conversations per syncGaps" });
     }
 
-    await Promise.all(
-      entries.map(async ([convId, afterSeq]) => {
-        const participant = await db.query.conversationParticipants.findFirst({
-          where: and(
-            eq(schema.conversationParticipants.conversationId, convId),
-            eq(schema.conversationParticipants.userId, ctx.userId),
+    // Batch auth: one query for all conversations
+    const allowed = await db
+      .select({ conversationId: schema.conversationParticipants.conversationId })
+      .from(schema.conversationParticipants)
+      .where(
+        and(
+          inArray(
+            schema.conversationParticipants.conversationId,
+            entries.map(([id]) => id),
           ),
-          columns: { userId: true },
-        });
-        if (!participant) return;
+          eq(schema.conversationParticipants.userId, ctx.userId),
+        ),
+      );
+    const allowedSet = new Set(allowed.map((r) => r.conversationId));
 
-        const messages = await db
-          .select()
-          .from(schema.messages)
-          .where(and(eq(schema.messages.conversationId, convId), gt(schema.messages.seq, afterSeq)))
-          .orderBy(asc(schema.messages.seq))
-          .limit(100);
+    const msgColumns = {
+      id: schema.messages.id,
+      seq: schema.messages.seq,
+      conversationId: schema.messages.conversationId,
+      senderId: schema.messages.senderId,
+      content: schema.messages.content,
+      type: schema.messages.type,
+      metadata: schema.messages.metadata,
+      replyToId: schema.messages.replyToId,
+      topicId: schema.messages.topicId,
+      createdAt: schema.messages.createdAt,
+      readAt: schema.messages.readAt,
+      deletedAt: schema.messages.deletedAt,
+    };
 
-        if (messages.length > 0) {
-          result[convId] = messages;
-        }
-      }),
+    const result: Record<string, typeof msgColumns extends infer C ? { [K in keyof C]: unknown }[] : never> = {};
+
+    await Promise.all(
+      entries
+        .filter(([convId]) => allowedSet.has(convId))
+        .map(async ([convId, afterSeq]) => {
+          const messages = await db
+            .select(msgColumns)
+            .from(schema.messages)
+            .where(and(eq(schema.messages.conversationId, convId), gt(schema.messages.seq, afterSeq)))
+            .orderBy(asc(schema.messages.seq))
+            .limit(100);
+
+          if (messages.length > 0) {
+            result[convId] = messages;
+          }
+        }),
     );
 
     return result;
@@ -527,40 +550,54 @@ export const messagesRouter = router({
         await moderateContent(input.content);
       }
 
-      const message = await db.transaction(async (tx) => {
-        const [msg] = await tx
-          .insert(schema.messages)
-          .values({
-            conversationId: input.conversationId,
-            senderId: ctx.userId,
-            content: input.content,
-            type: input.type ?? "text",
-            metadata: input.metadata ?? null,
-            replyToId: input.replyToId ?? null,
-            topicId: input.topicId ?? null,
-            seq: sql`COALESCE((SELECT MAX(${schema.messages.seq}) FROM ${schema.messages} WHERE ${schema.messages.conversationId} = ${input.conversationId}), 0) + 1`,
-          })
-          .returning();
-
-        // Update conversation updatedAt
-        await tx
-          .update(schema.conversations)
-          .set({ updatedAt: new Date() })
-          .where(eq(schema.conversations.id, input.conversationId));
-
-        // If message belongs to a topic, update topic stats
-        if (input.topicId) {
-          await tx
-            .update(schema.topics)
-            .set({
-              lastMessageAt: new Date(),
-              messageCount: sql`${schema.topics.messageCount} + 1`,
+      // Retry once on seq conflict (concurrent inserts to same conversation)
+      const runTransaction = () =>
+        db.transaction(async (tx) => {
+          const [msg] = await tx
+            .insert(schema.messages)
+            .values({
+              conversationId: input.conversationId,
+              senderId: ctx.userId,
+              content: input.content,
+              type: input.type ?? "text",
+              metadata: input.metadata ?? null,
+              replyToId: input.replyToId ?? null,
+              topicId: input.topicId ?? null,
+              seq: sql`COALESCE((SELECT MAX(${schema.messages.seq}) FROM ${schema.messages} WHERE ${schema.messages.conversationId} = ${input.conversationId}), 0) + 1`,
             })
-            .where(eq(schema.topics.id, input.topicId));
-        }
+            .returning();
 
-        return msg;
-      });
+          // Update conversation updatedAt
+          await tx
+            .update(schema.conversations)
+            .set({ updatedAt: new Date() })
+            .where(eq(schema.conversations.id, input.conversationId));
+
+          // If message belongs to a topic, update topic stats
+          if (input.topicId) {
+            await tx
+              .update(schema.topics)
+              .set({
+                lastMessageAt: new Date(),
+                messageCount: sql`${schema.topics.messageCount} + 1`,
+              })
+              .where(eq(schema.topics.id, input.topicId));
+          }
+
+          return msg;
+        });
+
+      let message: Awaited<ReturnType<typeof runTransaction>>;
+      try {
+        message = await runTransaction();
+      } catch (err) {
+        // Retry once on unique_violation (seq conflict from concurrent insert)
+        if (err instanceof Error && err.message.includes("unique")) {
+          message = await runTransaction();
+        } else {
+          throw err;
+        }
+      }
 
       // Cache for idempotency (5 min TTL)
       if (input.idempotencyKey) {

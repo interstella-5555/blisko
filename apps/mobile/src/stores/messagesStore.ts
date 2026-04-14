@@ -4,6 +4,32 @@ import { vanillaClient } from "@/lib/trpc";
 import { uuidv4 } from "@/lib/uuid";
 import { useConversationsStore } from "./conversationsStore";
 
+// Shared mapper: raw tRPC/WS message → EnrichedMessage
+// biome-ignore lint/suspicious/noExplicitAny: raw API response shape varies by endpoint
+export function rawToEnriched(msg: Record<string, any>, convId: string): EnrichedMessage {
+  return {
+    id: msg.id as string,
+    seq: (msg.seq as number) ?? null,
+    conversationId: (msg.conversationId as string) ?? convId,
+    senderId: msg.senderId as string,
+    content: msg.content as string,
+    type: (msg.type as string) ?? "text",
+    metadata: (msg.metadata as Record<string, unknown> | null) ?? null,
+    replyToId: (msg.replyToId as string | null) ?? null,
+    topicId: (msg.topicId as string | null) ?? null,
+    createdAt: String(msg.createdAt),
+    readAt: msg.readAt ? String(msg.readAt) : null,
+    deletedAt: msg.deletedAt ? String(msg.deletedAt) : null,
+    replyTo: (msg.replyTo as EnrichedMessage["replyTo"]) ?? null,
+    reactions: (msg.reactions as EnrichedMessage["reactions"]) ?? [],
+    senderName: (msg.senderName as string | null) ?? null,
+    senderAvatarUrl: (msg.senderAvatarUrl as string | null) ?? null,
+  };
+}
+
+// Dedup set for in-flight gap fills
+const pendingGapFills = new Set<string>();
+
 export interface EnrichedMessage {
   id: string;
   seq: number | null;
@@ -211,24 +237,7 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
         cursor: opts.cursor ?? undefined,
       });
 
-      const messages: EnrichedMessage[] = res.messages.map((msg) => ({
-        id: msg.id,
-        seq: msg.seq ?? null,
-        conversationId: msg.conversationId ?? convId,
-        senderId: msg.senderId,
-        content: msg.content,
-        type: msg.type ?? "text",
-        metadata: (msg.metadata as Record<string, unknown> | null) ?? null,
-        replyToId: msg.replyToId ?? null,
-        topicId: (msg as Record<string, unknown>).topicId as string | null | undefined,
-        createdAt: String(msg.createdAt),
-        readAt: msg.readAt ? String(msg.readAt) : null,
-        deletedAt: msg.deletedAt ? String(msg.deletedAt) : null,
-        replyTo: ((msg as Record<string, unknown>).replyTo as EnrichedMessage["replyTo"]) ?? null,
-        reactions: ((msg as Record<string, unknown>).reactions as EnrichedMessage["reactions"]) ?? [],
-        senderName: ((msg as Record<string, unknown>).senderName as string | null) ?? null,
-        senderAvatarUrl: ((msg as Record<string, unknown>).senderAvatarUrl as string | null) ?? null,
-      }));
+      const messages = res.messages.map((msg) => rawToEnriched(msg as Record<string, unknown>, convId));
 
       const hasOlder = !!res.nextCursor;
       if (opts.cursor) {
@@ -342,6 +351,10 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
   },
 
   fillGap(convId, fromSeq, toSeq) {
+    const key = `${convId}:${fromSeq}:${toSeq}`;
+    if (pendingGapFills.has(key)) return;
+    pendingGapFills.add(key);
+
     vanillaClient.messages.getMessages
       .query({
         conversationId: convId,
@@ -350,26 +363,17 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
       })
       .then((res) => {
         if (res.messages.length > 0) {
-          const enriched: EnrichedMessage[] = res.messages.map((msg) => ({
-            id: msg.id,
-            seq: msg.seq ?? null,
-            conversationId: msg.conversationId ?? convId,
-            senderId: msg.senderId,
-            content: msg.content,
-            type: msg.type ?? "text",
-            metadata: (msg.metadata as Record<string, unknown> | null) ?? null,
-            replyToId: msg.replyToId ?? null,
-            createdAt: String(msg.createdAt),
-            readAt: msg.readAt ? String(msg.readAt) : null,
-            deletedAt: msg.deletedAt ? String(msg.deletedAt) : null,
-            replyTo: null,
-            reactions: [],
-          }));
-          get().prependBatch(convId, enriched);
+          get().prependBatch(
+            convId,
+            res.messages.map((msg) => rawToEnriched(msg as Record<string, unknown>, convId)),
+          );
         }
       })
       .catch(() => {
         // Silent — gap will be resolved on next sync
+      })
+      .finally(() => {
+        pendingGapFills.delete(key);
       });
   },
 
@@ -378,22 +382,10 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
       const result = await vanillaClient.messages.syncGaps.query(cursors);
       for (const [convId, messages] of Object.entries(result)) {
         if (Array.isArray(messages) && messages.length > 0) {
-          const enriched: EnrichedMessage[] = messages.map((msg: Record<string, unknown>) => ({
-            id: msg.id as string,
-            seq: (msg.seq as number) ?? null,
-            conversationId: (msg.conversationId as string) ?? convId,
-            senderId: msg.senderId as string,
-            content: msg.content as string,
-            type: (msg.type as string) ?? "text",
-            metadata: (msg.metadata as Record<string, unknown> | null) ?? null,
-            replyToId: (msg.replyToId as string | null) ?? null,
-            createdAt: String(msg.createdAt),
-            readAt: msg.readAt ? String(msg.readAt) : null,
-            deletedAt: msg.deletedAt ? String(msg.deletedAt) : null,
-            replyTo: null,
-            reactions: [],
-          }));
-          get().prependBatch(convId, enriched);
+          get().prependBatch(
+            convId,
+            messages.map((msg) => rawToEnriched(msg as Record<string, unknown>, convId)),
+          );
         }
       }
     } catch {
