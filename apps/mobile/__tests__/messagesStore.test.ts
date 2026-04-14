@@ -167,16 +167,48 @@ describe("set", () => {
     expect(cache?.status).toBe("hydrated");
   });
 
-  test("upgrades partial cache to hydrated, replacing items", () => {
+  test("partial→hydrated: drops partial items older than server response window", () => {
     const store = useMessagesStore.getState();
-    store.prepend(CONV, makeMsg({ id: "m1", seq: 1 })); // creates partial
+    // Preload delivered an old message (seq=1)
+    store.prepend(CONV, makeMsg({ id: "m1", seq: 1 }));
     expect(store.get(CONV)?.status).toBe("partial");
 
+    // Server returns newer window [5, 4] — m1 is older than window
     store.set(CONV, [makeMsg({ id: "m2", seq: 5 }), makeMsg({ id: "m3", seq: 4 })], true, 4);
     const cache = store.get(CONV);
     expect(cache?.status).toBe("hydrated");
-    expect(cache?.items).toHaveLength(2);
     expect(cache?.items.map((m) => m.id)).toEqual(["m2", "m3"]);
+  });
+
+  test("partial→hydrated: preserves WS message with seq newer than server response (race fix)", () => {
+    const store = useMessagesStore.getState();
+    // Preload: seq=99
+    store.prepend(CONV, makeMsg({ id: "m99", seq: 99 }));
+    // WS delivers seq=100 while fetchMessages in flight
+    store.prepend(CONV, makeMsg({ id: "m100", seq: 100 }));
+    expect(store.get(CONV)?.status).toBe("partial");
+
+    // fetchMessages returns seqs 99..50 (m100 not in response — was inserted after query started)
+    const serverMsgs = Array.from({ length: 50 }, (_, i) => makeMsg({ id: `m${99 - i}`, seq: 99 - i }));
+    store.set(CONV, serverMsgs, true, 50);
+
+    const items = store.get(CONV)!.items;
+    // m100 must be preserved (bug: REPLACE path lost m100)
+    expect(items.find((m) => m.id === "m100")).toBeDefined();
+    expect(items[0].id).toBe("m100");
+    expect(store.get(CONV)?.newestSeq).toBe(100);
+  });
+
+  test("partial→hydrated: preserves optimistic message during fetch race", () => {
+    const store = useMessagesStore.getState();
+    // User sends before fetchMessages completes (chat screen doesn't block input on isLoading)
+    store.prepend(CONV, makeMsg({ id: "temp-abc", seq: null, content: "hi" }));
+
+    // Then fetchMessages resolves with server history (without the temp)
+    store.set(CONV, [makeMsg({ id: "m1", seq: 1 })], false, 1);
+
+    const items = store.get(CONV)!.items;
+    expect(items.find((m) => m.id === "temp-abc")).toBeDefined();
   });
 
   test("merges WS-only messages on re-entry (preserves items not in server response)", () => {
@@ -887,5 +919,101 @@ describe("has / get / reset", () => {
     store.prepend("conv-2", makeMsg({ id: "m2" }));
     store.reset();
     expect(store.chats.size).toBe(0);
+  });
+});
+
+// =============================================================================
+// State machine completeness: ∅ no-op paths
+// =============================================================================
+
+describe("no-op paths on missing conversation", () => {
+  test("updateReaction on missing conversation is a no-op", () => {
+    useMessagesStore.getState().updateReaction("missing", "m1", "👍", USER, "added", USER);
+    expect(useMessagesStore.getState().get("missing")).toBeUndefined();
+  });
+});
+
+// =============================================================================
+// Additional edge cases
+// =============================================================================
+
+describe("edge cases", () => {
+  test("fillGap with different ranges runs both requests (no false dedup)", async () => {
+    getMessagesQuery.mockResolvedValue({ messages: [], nextCursor: undefined });
+    const store = useMessagesStore.getState();
+    store.fillGap(CONV, 5, 10);
+    store.fillGap(CONV, 15, 20);
+    expect(getMessagesQuery).toHaveBeenCalledTimes(2);
+  });
+
+  test("deleteMessage on non-existent message: mutation fires, no restore (original undefined)", async () => {
+    deleteMutate.mockRejectedValue(new Error("not found"));
+    const store = useMessagesStore.getState();
+    store.prepend(CONV, makeMsg({ id: "m1", seq: 1 }));
+
+    store.deleteMessage(CONV, "missing");
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // m1 unchanged
+    expect(store.get(CONV)!.items[0].content).toBe("hello");
+    expect(showToast).toHaveBeenCalledWith("error", expect.stringContaining("usunąć"));
+  });
+
+  test("sequential sends produce distinct tempIds", async () => {
+    sendMutate.mockReturnValue(new Promise(() => {}));
+    const store = useMessagesStore.getState();
+
+    store.send(CONV, "first", { userId: USER });
+    // Advance Date.now to guarantee distinct temp IDs
+    const firstTempId = store.get(CONV)!.items[0].id;
+    await new Promise((r) => setTimeout(r, 2));
+    store.send(CONV, "second", { userId: USER });
+
+    const items = store.get(CONV)!.items;
+    expect(items).toHaveLength(2);
+    expect(items[0].id).not.toBe(firstTempId);
+    expect(items[0].content).toBe("second");
+    expect(items[1].id).toBe(firstTempId);
+    expect(items[1].content).toBe("first");
+  });
+
+  test("reset during in-flight mutation: replaceOptimistic on cleared store is no-op", async () => {
+    let resolveSend: (value: unknown) => void;
+    sendMutate.mockReturnValue(new Promise((r) => (resolveSend = r)));
+
+    const store = useMessagesStore.getState();
+    store.send(CONV, "hi", { userId: USER });
+    expect(store.get(CONV)!.items).toHaveLength(1);
+
+    store.reset();
+    expect(store.chats.size).toBe(0);
+
+    // Response arrives after reset
+    resolveSend!({
+      id: "real-1",
+      seq: 5,
+      conversationId: CONV,
+      senderId: USER,
+      content: "hi",
+      type: "text",
+      createdAt: "now",
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Should remain empty — replaceOptimistic is a no-op on missing conv
+    expect(store.chats.size).toBe(0);
+  });
+
+  test("replaceOptimistic keeps message position when real seq < newestSeq", () => {
+    const store = useMessagesStore.getState();
+    store.set(CONV, [makeMsg({ id: "m99", seq: 99 })], false, 99);
+    store.prepend(CONV, makeMsg({ id: "temp-1", seq: null }));
+
+    // Real message gets seq=100 (higher than existing)
+    store.replaceOptimistic(CONV, "temp-1", makeMsg({ id: "real-1", seq: 100 }));
+    expect(store.get(CONV)?.newestSeq).toBe(100);
   });
 });

@@ -115,8 +115,8 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
       const chats = new Map(state.chats);
       const existing = chats.get(convId);
 
-      if (!existing || existing.status === "partial") {
-        // First full load
+      if (!existing) {
+        // First load — no existing items to merge with
         chats.set(convId, {
           items: messages,
           hasOlder,
@@ -125,7 +125,8 @@ export const useMessagesStore = create<MessagesStore>((set, get) => ({
           status: "hydrated",
         });
       } else {
-        // Re-entry: merge — keep WS messages not in server response
+        // Merge: preserve WS-only items (newer seq or optimistic) not in server response.
+        // Applies to partial→hydrated upgrade (preload/WS race) AND re-entry on hydrated.
         const serverIds = new Set(messages.map((m) => m.id));
         const newestServerSeq = messages[0]?.seq ?? 0;
         const wsOnly = existing.items.filter(
