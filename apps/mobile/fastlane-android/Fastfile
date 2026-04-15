@@ -1,0 +1,25 @@
+default_platform(:android)
+
+platform :android do
+  desc "Build AAB and upload to Play Console internal track as draft"
+  lane :deploy_internal do
+    build_number = ENV["GITHUB_RUN_NUMBER"] || Time.now.to_i.to_s
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: ".",
+      properties: {
+        "android.injected.version.code" => build_number.to_i,
+      },
+    )
+    upload_to_play_store(
+      track: "internal",
+      aab: "app/build/outputs/bundle/release/app-release.aab",
+      release_status: "draft",
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+  end
+end

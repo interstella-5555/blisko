@@ -1,0 +1,84 @@
+name: Android Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/android-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: android-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      PLAY_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".node-version"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+          working-directory: apps/mobile/fastlane-android
+
+      - run: bun install
+
+      - name: Prebuild Android project
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Install Fastlane config into generated android/
+        working-directory: apps/mobile
+        run: |
+          cp -R fastlane-android android/fastlane
+          cp fastlane-android/Gemfile android/Gemfile
+
+      - name: Decode upload keystore
+        working-directory: apps/mobile/android/app
+        run: printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > upload.keystore
+
+      - name: Write keystore properties
+        working-directory: apps/mobile/android
+        run: |
+          {
+            echo "storeFile=app/upload.keystore"
+            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+            echo "keyAlias=$ANDROID_KEY_ALIAS"
+            echo "keyPassword=$ANDROID_KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Write Play Store service account
+        working-directory: apps/mobile/android/fastlane
+        run: printf '%s' "$PLAY_STORE_SERVICE_ACCOUNT_JSON" > play-service-account.json
+
+      - name: Fastlane deploy
+        working-directory: apps/mobile/android
+        run: bundle exec fastlane deploy_internal
+
+      - name: Cleanup secrets
+        if: always()
+        working-directory: apps/mobile/android
+        run: |
+          rm -f app/upload.keystore keystore.properties fastlane/play-service-account.json
