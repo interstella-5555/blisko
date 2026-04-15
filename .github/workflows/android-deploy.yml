@@ -40,9 +40,10 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.2"
-          bundler-cache: true
-          working-directory: apps/mobile/fastlane-android
+          ruby-version: "3.3"
+
+      - name: Install Fastlane
+        run: gem install fastlane --no-document
 
       - run: bun install
 
@@ -52,9 +53,7 @@ jobs:
 
       - name: Install Fastlane config into generated android/
         working-directory: apps/mobile
-        run: |
-          cp -R fastlane-android android/fastlane
-          cp fastlane-android/Gemfile android/Gemfile
+        run: cp -R fastlane-android android/fastlane
 
       - name: Decode upload keystore
         working-directory: apps/mobile/android/app
@@ -66,7 +65,7 @@ jobs:
 
       - name: Fastlane deploy
         working-directory: apps/mobile/android
-        run: bundle exec fastlane deploy_internal
+        run: fastlane deploy_internal
 
       - name: Cleanup secrets
         if: always()
