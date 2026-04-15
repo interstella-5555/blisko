@@ -9,11 +9,14 @@ The GitHub Actions workflow `.github/workflows/android-deploy.yml` runs `expo pr
 | Secret | Purpose |
 |---|---|
 | `EXPO_PUBLIC_API_URL` | API URL baked into the build |
+| `GOOGLE_MAPS_ANDROID_API_KEY` | Google Maps SDK Android key, injected into `react-native-maps` via `app.config.ts` |
 | `ANDROID_KEYSTORE_BASE64` | Upload keystore, base64-encoded |
 | `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
 | `ANDROID_KEY_ALIAS` | Key alias inside the keystore |
 | `ANDROID_KEY_PASSWORD` | Key password |
 | `PLAY_STORE_SERVICE_ACCOUNT_JSON` | Google Play API service account JSON |
+
+Signing is done via `android.injected.signing.*` Gradle properties passed from Fastfile — no `keystore.properties` file is written. This is necessary because Expo's prebuild-generated `build.gradle` only defines a `debug` signingConfig.
 
 ## Manual trigger
 

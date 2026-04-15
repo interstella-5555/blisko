@@ -18,6 +18,7 @@ jobs:
     timeout-minutes: 45
     env:
       EXPO_PUBLIC_API_URL: ${{ secrets.EXPO_PUBLIC_API_URL }}
+      GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -59,16 +60,6 @@ jobs:
         working-directory: apps/mobile/android/app
         run: printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > upload.keystore
 
-      - name: Write keystore properties
-        working-directory: apps/mobile/android
-        run: |
-          {
-            echo "storeFile=app/upload.keystore"
-            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
-            echo "keyAlias=$ANDROID_KEY_ALIAS"
-            echo "keyPassword=$ANDROID_KEY_PASSWORD"
-          } > keystore.properties
-
       - name: Write Play Store service account
         working-directory: apps/mobile/android/fastlane
         run: printf '%s' "$PLAY_STORE_SERVICE_ACCOUNT_JSON" > play-service-account.json
@@ -81,4 +72,4 @@ jobs:
         if: always()
         working-directory: apps/mobile/android
         run: |
-          rm -f app/upload.keystore keystore.properties fastlane/play-service-account.json
+          rm -f app/upload.keystore fastlane/play-service-account.json
