@@ -11,12 +11,19 @@ platform :android do
   lane :deploy_internal do
     build_number = ENV["GITHUB_RUN_NUMBER"] || Time.now.to_i.to_s
     keystore_path = File.expand_path("../app/upload.keystore", __dir__)
+
+    # Expo prebuild hardcodes versionCode 1 in build.gradle and
+    # android.injected.version.code doesn't override it. Patch directly.
+    build_gradle = File.join(__dir__, "..", "app", "build.gradle")
+    content = File.read(build_gradle)
+    content.gsub!(/versionCode \d+/, "versionCode #{build_number}")
+    File.write(build_gradle, content)
+
     gradle(
       task: "bundle",
       build_type: "Release",
       project_dir: ".",
       properties: {
-        "android.injected.version.code" => build_number.to_i,
         "android.injected.signing.store.file" => keystore_path,
         "android.injected.signing.store.password" => ENV.fetch("ANDROID_KEYSTORE_PASSWORD"),
         "android.injected.signing.key.alias" => ENV.fetch("ANDROID_KEY_ALIAS"),
