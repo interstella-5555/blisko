@@ -64,3 +64,4 @@ scripts/ralph-queue/
 # Plans (temporary working docs)
 docs/plans/
 
+.claude/scheduled_tasks.lock
