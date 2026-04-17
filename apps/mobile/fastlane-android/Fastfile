@@ -9,16 +9,7 @@ default_platform(:android)
 platform :android do
   desc "Build AAB and upload to Play Console internal track as draft"
   lane :deploy_internal do
-    build_number = ENV["GITHUB_RUN_NUMBER"] || Time.now.to_i.to_s
     keystore_path = File.expand_path("../app/upload.keystore", __dir__)
-
-    # Expo prebuild hardcodes versionCode 1 in build.gradle and
-    # android.injected.version.code doesn't override it. Patch directly.
-    build_gradle = File.join(__dir__, "..", "app", "build.gradle")
-    content = File.read(build_gradle)
-    content.gsub!(/versionCode \d+/, "versionCode #{build_number}")
-    File.write(build_gradle, content)
-
     gradle(
       task: "bundle",
       build_type: "Release",
