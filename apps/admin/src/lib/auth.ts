@@ -11,9 +11,9 @@ const MAX_OTP_ATTEMPTS = 5;
 // OTP store stays in-memory (short-lived, doesn't need persistence)
 const otpStore = new Map<string, { otp: string; expiresAt: number; attempts: number }>();
 
-// Session store persisted to file so it survives HMR/restarts.
 // DATA_DIR points to Railway's mounted volume (/data) in production.
-const SESSION_FILE = join(process.env.DATA_DIR || process.cwd(), ".admin-sessions.json");
+const DATA_DIR = process.env.DATA_DIR || process.cwd();
+const SESSION_FILE = join(DATA_DIR, ".admin-sessions.json");
 
 type SessionEntry = { email: string; expiresAt: number };
 type SessionMap = Record<string, SessionEntry>;
