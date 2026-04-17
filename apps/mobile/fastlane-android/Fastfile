@@ -1,3 +1,5 @@
+require "json"
+
 default_platform(:android)
 
 # Expo's prebuild-generated android/app/build.gradle only has a `debug` signingConfig
@@ -9,6 +11,19 @@ default_platform(:android)
 platform :android do
   desc "Build AAB and upload to Play Console internal track as draft"
   lane :deploy_internal do
+    # Generate release notes for Play Console before uploading. Supply reads the
+    # file at metadata/android/<locale>/changelogs/<versionCode>.txt — we write
+    # it dynamically so the notes always reflect the actual build number
+    # (GITHUB_RUN_NUMBER) and versionName (from apps/mobile/app.json).
+    version_code = ENV.fetch("GITHUB_RUN_NUMBER", "1")
+    version_name = JSON.parse(File.read(File.expand_path("../app.json", __dir__))).dig("expo", "version")
+    changelog_dir = File.expand_path("metadata/android/pl-PL/changelogs", __dir__)
+    FileUtils.mkdir_p(changelog_dir)
+    File.write(
+      File.join(changelog_dir, "#{version_code}.txt"),
+      "Blisko #{version_name} (#{version_code}) — usprawnienia, poprawki błędów i drobne ulepszenia UI.",
+    )
+
     keystore_path = File.expand_path("../app/upload.keystore", __dir__)
     gradle(
       task: "bundle",
@@ -33,8 +48,9 @@ platform :android do
       track: "internal",
       aab: "app/build/outputs/bundle/release/app-release.aab",
       release_status: "draft",
+      metadata_path: File.expand_path("metadata", __dir__),
       skip_upload_metadata: true,
-      skip_upload_changelogs: true,
+      skip_upload_changelogs: false,
       skip_upload_images: true,
       skip_upload_screenshots: true,
     )
