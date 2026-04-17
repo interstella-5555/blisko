@@ -13,6 +13,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ProductRouteImport } from './routes/product'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PitchRouteImport } from './routes/pitch'
+import { Route as ChildSafetyRouteImport } from './routes/child-safety'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as JoinCodeRouteImport } from './routes/join.$code'
 
@@ -36,6 +37,11 @@ const PitchRoute = PitchRouteImport.update({
   path: '/pitch',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChildSafetyRoute = ChildSafetyRouteImport.update({
+  id: '/child-safety',
+  path: '/child-safety',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,6 +55,7 @@ const JoinCodeRoute = JoinCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/child-safety': typeof ChildSafetyRoute
   '/pitch': typeof PitchRoute
   '/privacy': typeof PrivacyRoute
   '/product': typeof ProductRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/child-safety': typeof ChildSafetyRoute
   '/pitch': typeof PitchRoute
   '/privacy': typeof PrivacyRoute
   '/product': typeof ProductRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/child-safety': typeof ChildSafetyRoute
   '/pitch': typeof PitchRoute
   '/privacy': typeof PrivacyRoute
   '/product': typeof ProductRoute
@@ -74,12 +83,27 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/pitch' | '/privacy' | '/product' | '/terms' | '/join/$code'
+  fullPaths:
+    | '/'
+    | '/child-safety'
+    | '/pitch'
+    | '/privacy'
+    | '/product'
+    | '/terms'
+    | '/join/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/pitch' | '/privacy' | '/product' | '/terms' | '/join/$code'
+  to:
+    | '/'
+    | '/child-safety'
+    | '/pitch'
+    | '/privacy'
+    | '/product'
+    | '/terms'
+    | '/join/$code'
   id:
     | '__root__'
     | '/'
+    | '/child-safety'
     | '/pitch'
     | '/privacy'
     | '/product'
@@ -89,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChildSafetyRoute: typeof ChildSafetyRoute
   PitchRoute: typeof PitchRoute
   PrivacyRoute: typeof PrivacyRoute
   ProductRoute: typeof ProductRoute
@@ -126,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PitchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/child-safety': {
+      id: '/child-safety'
+      path: '/child-safety'
+      fullPath: '/child-safety'
+      preLoaderRoute: typeof ChildSafetyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -145,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChildSafetyRoute: ChildSafetyRoute,
   PitchRoute: PitchRoute,
   PrivacyRoute: PrivacyRoute,
   ProductRoute: ProductRoute,
