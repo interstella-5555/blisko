@@ -21,10 +21,18 @@ platform :android do
         "android.injected.signing.key.password" => ENV.fetch("ANDROID_KEY_PASSWORD"),
       },
     )
+    # release_status: "draft" until Google Play exits the "draft app" state for
+    # this app. The API rejects "completed" on a draft app (error: "Only releases
+    # with status draft may be created on draft app") — even for the internal
+    # track. Exiting draft app requires completing the full Store Listing
+    # (icon, feature graphic, screenshots, descriptions) plus a review submit.
+    # Until that's done, CI uploads a draft AAB and the release is promoted to
+    # testers with a manual "Promuj wersję" click in Play Console. Flip back to
+    # "completed" once Google review clears the draft state.
     upload_to_play_store(
       track: "internal",
       aab: "app/build/outputs/bundle/release/app-release.aab",
-      release_status: "completed",
+      release_status: "draft",
       skip_upload_metadata: true,
       skip_upload_changelogs: true,
       skip_upload_images: true,
