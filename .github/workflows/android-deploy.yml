@@ -9,7 +9,6 @@ on:
       - "apps/website/**"
       - "apps/design/**"
       - "apps/chatbot/**"
-      - "apps/tasks/**"
       - "packages/dev-cli/**"
       - "docs/**"
       - "*.md"
