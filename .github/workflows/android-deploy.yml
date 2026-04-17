@@ -3,9 +3,16 @@ name: Android Deploy
 on:
   push:
     branches: [main]
-    paths:
-      - "apps/mobile/**"
-      - ".github/workflows/android-deploy.yml"
+    paths-ignore:
+      - "apps/api/**"
+      - "apps/admin/**"
+      - "apps/website/**"
+      - "apps/design/**"
+      - "apps/chatbot/**"
+      - "apps/tasks/**"
+      - "packages/dev-cli/**"
+      - "docs/**"
+      - "*.md"
   workflow_dispatch:
 
 concurrency:
