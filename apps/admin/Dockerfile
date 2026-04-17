@@ -21,6 +21,7 @@ FROM deps AS build
 
 COPY apps/admin/ apps/admin/
 COPY packages/db/ packages/db/
+COPY packages/shared/ packages/shared/
 
 RUN bun run --filter '@repo/admin' build
 
