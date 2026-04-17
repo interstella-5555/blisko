@@ -12,6 +12,9 @@ const config = defineConfig({
       "~": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  ssr: {
+    noExternal: ["@repo/shared"],
+  },
   build: {
     rollupOptions: {
       external: ["node:crypto", "node:stream", "node:stream/web", "node:async_hooks"],

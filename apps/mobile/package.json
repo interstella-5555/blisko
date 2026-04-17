@@ -68,7 +68,7 @@
     "@types/uuid": "^11.0.0",
     "eas-cli": "^16.28.0",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "^4.1.4"
   },
   "private": true
 }
