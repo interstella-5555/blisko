@@ -1,4 +1,5 @@
-import { StyleSheet, Switch, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { Toggle } from "@/components/ui/Toggle";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import { colors, fonts, spacing } from "@/theme";
 
@@ -11,29 +12,19 @@ export default function FiltersScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Filtry</Text>
-      <View style={styles.toggleRow}>
-        <View style={styles.toggleInfo}>
+      <View style={styles.toggleBlock}>
+        <View style={styles.toggleLabelRow}>
           <Text style={styles.toggleLabel}>Tylko ze zdjęciem</Text>
-          <Text style={styles.toggleDesc}>Pokazuj osoby, które mają zdjęcie profilowe</Text>
+          <Toggle value={photoOnly} onValueChange={setPhotoOnly} />
         </View>
-        <Switch
-          value={photoOnly}
-          onValueChange={setPhotoOnly}
-          trackColor={{ false: "#C0BAA8", true: colors.ink }}
-          thumbColor="#FFFFFF"
-        />
+        <Text style={styles.toggleDesc}>Pokazuj osoby, które mają zdjęcie profilowe</Text>
       </View>
-      <View style={styles.toggleRow}>
-        <View style={styles.toggleInfo}>
+      <View style={styles.toggleBlock}>
+        <View style={styles.toggleLabelRow}>
           <Text style={styles.toggleLabel}>Pokaż wszystkich w promieniu</Text>
-          <Text style={styles.toggleDesc}>Wyłącz, aby lista pokazywała tylko osoby widoczne na mapie</Text>
+          <Toggle value={showAllNearby} onValueChange={setShowAllNearby} />
         </View>
-        <Switch
-          value={showAllNearby}
-          onValueChange={setShowAllNearby}
-          trackColor={{ false: "#C0BAA8", true: colors.ink }}
-          thumbColor="#FFFFFF"
-        />
+        <Text style={styles.toggleDesc}>Wyłącz, aby lista pokazywała tylko osoby widoczne na mapie</Text>
       </View>
     </View>
   );
@@ -51,20 +42,20 @@ const styles = StyleSheet.create({
     color: colors.ink,
     marginBottom: spacing.section,
   },
-  toggleRow: {
+  toggleBlock: {
+    paddingVertical: spacing.gutter,
+  },
+  toggleLabelRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: spacing.gutter,
-  },
-  toggleInfo: {
-    flex: 1,
-    marginRight: spacing.column,
   },
   toggleLabel: {
     fontFamily: fonts.sansMedium,
     fontSize: 15,
     color: colors.ink,
+    flex: 1,
+    marginRight: spacing.column,
   },
   toggleDesc: {
     fontFamily: fonts.sans,
