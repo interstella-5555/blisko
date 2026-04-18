@@ -10,6 +10,7 @@
 > Updated 2026-04-11 — Chats tab `tabBarBadge` now sums unread messages **and** unviewed pending pings (was: unread messages only). Mirrors the `unviewedPingCount` already shown on the sonar pill inside the chats screen — both numbers come from the same `wavesStore.viewedWaveIds` cursor, so the user sees a consistent "things demanding attention" count from the tab bar and from inside the screen (BLI-207). See "Tab badges" under Key Conventions.
 > Updated 2026-04-12 — Migrated toast system from custom ToastProvider/ToastBanner/ToastOverlay to sonner-native. Added react-native-reanimated + react-native-gesture-handler as new dependencies. Thin `showToast()` wrapper in `lib/toast.ts` preserves per-type haptic feedback (BLI-216).
 > Updated 2026-04-14 — messaging single source of truth, vanilla tRPC client, lifecycle-safe mutations (BLI-224).
+> Updated 2026-04-19 — BLI-196 onboarding primitives: `OnboardingStepHeader` (Stack.Screen header slot, not in-content), `OnboardingScreen` wrapper (ScrollView + SafeAreaView bottom + footer slot with `flexGrow: 1` + `flex: 1` hang-at-bottom pattern), `Toggle` primitive (Reanimated pill with icons/labels variants, replaces native Switch). New theme consts: `layout.headerHeight = 44` (iOS standard, normalized across 5 custom-header call sites) and `symbols.bullet = "·"`. `OnboardingQuestion.examples` renamed from `hints`/back; persona-driven example voice documented in shared/models.ts.
 
 React Native 0.81.5, Expo SDK 54, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
 
@@ -314,7 +315,13 @@ The "W okolicy" tab (`(tabs)/index.tsx`) uses three dedicated hooks:
 
 **No EAS Build:** Local Xcode builds + manual upload via Xcode Organizer to TestFlight. EAS CLI used only for credentials management (`npx -y eas-cli@latest`).
 
-**Custom headers (no native headers):** iOS wraps `headerLeft`/`headerRight` in `UIBarButtonItem` with an ugly capsule background that cannot be removed. All headers use `header: () => (...)` with `SafeAreaView` + centered title + back chevron pattern.
+**Custom headers (no native headers):** iOS wraps `headerLeft`/`headerRight` in `UIBarButtonItem` with an ugly capsule background that cannot be removed. All headers use `header: () => (...)` with `SafeAreaView` + centered title + back chevron pattern. Height normalized via `layout.headerHeight = 44` (iOS nav bar standard) from `theme.ts`, used in: modals layout, settings layout, chat screen, create-group inline header, and `OnboardingStepHeader`.
+
+**Onboarding primitives:** Onboarding screens share two components in `src/components/onboarding/`:
+- `OnboardingStepHeader` — rendered via Stack.Screen `header: () => (...)` slot (not in-content). Props: `label` (e.g. "Krok 1", "Ostatni krok"), optional `onBack`, optional `onLogout`, optional `rightLabel` (e.g. "Pytanie 3 / 7"). Wraps itself in `SafeAreaView edges={["top"]}` + bg color.
+- `OnboardingScreen` — wrapper with `SafeAreaView edges={["bottom"]}` + `ScrollView contentContainerStyle={{ flexGrow: 1 }}` + inner `<View style={{ flex: 1 }}>` for children + `<View style={styles.footer}>` for footer prop. Result: footer sits at viewport bottom when content is short, below content when content is tall (natural flow, no absolute positioning). Footer has built-in `marginTop: section` + `gap: column`.
+
+**Toggle primitive:** `src/components/ui/Toggle.tsx` — Reanimated pill (30px height matching filter chips) replacing native Switch. Props: `value`, `onValueChange`, optional `disabled`, optional `icons?: { off?, on? }` (check/x/minus/plus built-in SVGs), optional `labels?: { off, on }` (text variant with hanging-indent layout). Default: empty off + accent check on. Haptics on tap via `expo-haptics`. Animates via `withTiming` (240ms, `Easing.out(Easing.cubic)`) — track color interpolation, thumb slide, content scale+opacity.
 
 **Back button:** Always `IconChevronLeft` from `@/components/ui/icons`, size 24, `colors.ink`, `hitSlop={8}`. No text.
 
