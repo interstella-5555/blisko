@@ -1,6 +1,7 @@
 # Privacy Policy & Terms of Service
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-18 — Corrected portrait storage (text in DB, not S3 file). Added explicit privacy disclosure that AI generates an internal personality description visible only via data-export (BLI-199).
 
 Polish-language privacy policy and terms of service, served as web pages from the website app, linked from the mobile app. Required for RODO/GDPR compliance before public release.
 
@@ -68,7 +69,8 @@ Data controller: Karol Wypchlo (individual developer). Contact: kontakt@blisko.a
 Seven data categories disclosed:
 - **Dane konta:** email, name, bio, interests, social links, status, visibility mode
 - **Lokalizacja:** last known position (foreground only, not background tracking)
-- **Pliki:** avatar photo, AI-generated portrait (cloud-stored on Tigris/S3)
+- **Pliki:** avatar photo (cloud-stored on Tigris/S3)
+- **Dane generowane przez AI:** wewnętrzny opis osobowości (tekst w DB, nie obraz) — nie jest widoczny dla innych użytkowników ani dla Ciebie w aplikacji; dostępny przez data-export
 - **Wiadomosci:** chat message content, waves (contact invitations)
 - **Analiza AI:** profile embeddings, compatibility scores between users
 - **Sesje profilowania:** question-and-answer history from AI questionnaire
@@ -85,7 +87,7 @@ Four data processors disclosed:
 - **OpenAI** (USA) -- AI profile analysis, compatibility scoring
 - **Railway** (EU hosting) -- PostgreSQL, Redis
 - **Resend** (USA) -- transactional email (OTP codes)
-- **Tigris/S3** -- file storage (avatars, portraits)
+- **Tigris/S3** -- file storage (avatars)
 
 #### Section 5 — Transfer danych poza EOG
 OpenAI and Resend are US-based. Transfer on the basis of Standard Contractual Clauses (SCC) per Art. 46(2)(c) RODO.
@@ -161,7 +163,8 @@ Questions: kontakt@blisko.app.
 | Account identity | `user` | Contract (b) | Until deletion | 2 |
 | Profile content | `profiles` | Contract (b) | Until deletion | 2 |
 | Location | `profiles` (lat/lng) | Consent (a) | Overwritten on update | 2 |
-| Files | `profiles` (avatarUrl, portrait) + S3 | Contract (b) | Until deletion (S3 deleted) | 2 |
+| Files | `profiles.avatarUrl` + S3 | Contract (b) | Until deletion (S3 deleted) | 2 |
+| AI-generated portrait | `profiles.portrait` (text, DB only) | Contract (b) | Until deletion (nullified on anonymization) | 2 |
 | Messages | `messages` | Contract (b) | Preserved (anonymized user) | 2 |
 | Waves | `waves` | Contract (b) | Preserved (anonymized user) | 2 |
 | AI embeddings | `profiles` (embedding, statusEmbedding) | Consent (a) | Cleared on deletion | 2 |

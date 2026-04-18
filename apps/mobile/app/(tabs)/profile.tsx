@@ -67,8 +67,8 @@ export default function ProfileScreen() {
           <Text style={styles.reprofileTitle}>Wyprobuj automatyczne profilowanie</Text>
         </View>
         <Text style={styles.reprofileDescription}>
-          Odpowiedz na kilka pytan — na ich podstawie wygenerujemy nowy opis, sekcje "kogo szukam" i portret osobowosci.
-          Przed zapisaniem mozesz wszystko przejrzec i edytowac.
+          Odpowiedz na kilka pytan — na ich podstawie wygenerujemy nowy opis i sekcje "kogo szukam". Przed zapisaniem
+          mozesz wszystko przejrzec i edytowac.
         </Text>
       </Pressable>
     </ScrollView>

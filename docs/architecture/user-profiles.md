@@ -2,6 +2,7 @@
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-11 — `getDetailedAnalysis` zyskał block + isComplete + soft-delete gate; `ensureAnalysis` dostał ten sam zestaw bramek z silent no-op fallbackiem; `getConnectionAnalysis` usunięty jako dead code (wszystkie jego funkcje pokrywa teraz `getDetailedAnalysis` z promocją T3) (BLI-188).
+> Updated 2026-04-18 — Portrait section removed from mobile UI (onboarding + settings review screens); portrait is now purely internal. `portraitSharedForMatching` dropped from the `applyProfilingSchema` validator and no longer touched by `applyProfile` — DB default (`true`) handles inserts, existing rows backfilled to `true`, re-profiling keeps the existing value. Column retained as audit-only (BLI-199).
 
 Source: `apps/api/src/db/schema.ts`, `apps/api/src/trpc/procedures/profiles.ts`, `packages/shared/src/validators.ts`, `apps/api/src/services/ai.ts`, `apps/api/src/trpc/middleware/featureGate.ts`.
 
@@ -216,8 +217,13 @@ One profile per user. `profiles.userId` is a unique FK to `user.id` with `ON DEL
 - 3rd person, natural Polish, flowing prose (no headers, no lists)
 - **Privacy rule:** NEVER mention current status or "na teraz" intentions --- these are private
 
+**User-facing behavior:**
+- Portrait is **never shown to the user inside the app**. The onboarding and settings profile-review screens display only `bio` and `lookingFor`; the generated portrait is applied silently in the background.
+- The user can still retrieve their portrait via GDPR data-export (`data-export.ts` maps `profile.portrait` to the `portraitUrl` field in the export payload). Privacy policy (`apps/website/src/routes/privacy.tsx`) discloses that an internal AI-generated personality description exists.
+- Rationale: the portrait is intentionally "honest, not flattering" (see `ai-profiling.md`). Surfacing it in-app would invite churn without improving matching quality.
+
 **Privacy controls:**
-- `portraitSharedForMatching` boolean: User consent flag set during onboarding. When `false`, the portrait exists but the matching pipeline may respect this preference (currently `analyzeConnection` and `quickScore` always receive portrait if it exists --- the flag is stored but enforcement is at the consent/UI layer)
+- `portraitSharedForMatching` boolean: historical consent flag, default `true` since BLI-199. No functional effect — `analyzeConnection` and `quickScore` always receive the portrait if it exists. Column is no longer referenced by `applyProfile` or any validator; retained as audit-only, slated for removal in a future ticket.
 - Portrait is regenerated when `bio` or `lookingFor` changes (via `enqueueProfileAI`)
 
 **Downstream consumers of portrait:**

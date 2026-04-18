@@ -87,9 +87,9 @@ function ChildSafetyPage() {
       <Section title="5. Moderacja i wykrywanie">
         <P>
           Moderacja opiera się na kombinacji automatycznej analizy treści (w tym moderacji treści generowanych przez AI)
-          oraz ręcznego przeglądu zgłoszeń przez zespół Blisko. Treści wizualne przesyłane do aplikacji (zdjęcia
-          profilowe, portrety) przechodzą przez automatyczne mechanizmy moderacji, które wykrywają potencjalnie
-          niebezpieczne treści i blokują ich publikację.
+          oraz ręcznego przeglądu zgłoszeń przez zespół Blisko. Zdjęcia profilowe przesyłane do aplikacji przechodzą
+          przez automatyczne mechanizmy moderacji, które wykrywają potencjalnie niebezpieczne treści i blokują ich
+          publikację.
         </P>
         <P>
           W przypadku wykrycia treści CSAM natychmiast usuwamy treść, blokujemy konto sprawcy oraz zabezpieczamy dane
