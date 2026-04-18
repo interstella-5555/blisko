@@ -53,6 +53,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="hook" options={{ animation: "fade", headerShown: false }} />
       <Stack.Screen name="index" />
       <Stack.Screen name="visibility" />
+      <Stack.Screen name="questions-intro" />
       <Stack.Screen name="questions" />
       <Stack.Screen name="profiling-result" />
     </Stack>

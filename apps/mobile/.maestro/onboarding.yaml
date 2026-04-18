@@ -68,7 +68,16 @@ appId: com.blisko.app
 - tapOn:
     id: "fill-profile-button"
 
-# --- STEP 3: Answer 7 questions (ASCII only — Maestro limitation) ---
+# --- STEP 3a: Intro screen ---
+
+- extendedWaitUntil:
+    visible:
+      id: "questions-intro-start"
+    timeout: 10000
+- tapOn:
+    id: "questions-intro-start"
+
+# --- STEP 3b: Answer 7 questions (ASCII only — Maestro limitation) ---
 
 # Q1 (required) — intro
 - extendedWaitUntil:
