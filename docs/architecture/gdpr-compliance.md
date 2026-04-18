@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-11 — Added `metrics.ai_calls` to anonymization pattern; excluded from data export per observability parallel (BLI-174).
+> Updated 2026-04-18 — Clarified that `portrait` is a DB text column, not an S3 file. Privacy policy and child-safety page updated accordingly (BLI-199).
 
 Blisko processes personal data under RODO (Polish implementation of GDPR). Polish-market focus, single data controller (individual developer). This is the umbrella doc linking the three subsystems that implement GDPR rights: account deletion, data export, and privacy/terms disclosure.
 
@@ -21,7 +22,7 @@ Blisko processes personal data under RODO (Polish implementation of GDPR). Polis
 **What:** Account deletion uses a soft-delete-then-anonymize approach, not hard delete.
 
 1. **Phase 1 — Soft-delete (immediate):** `user.deletedAt` set. `isAuthed` middleware blocks all API calls. Sessions, push tokens deleted. WebSocket force-disconnected. User invisible in discovery.
-2. **Phase 2 — Anonymization (14 days later):** BullMQ delayed job fires. PII overwritten with generic values in `user` and `profiles` tables. Profiling Q&A answers nullified. S3 files (avatar, portrait) deleted. Metrics anonymized. `user.anonymizedAt` set.
+2. **Phase 2 — Anonymization (14 days later):** BullMQ delayed job fires. PII overwritten with generic values in `user` and `profiles` tables (including nullifying `profiles.portrait`, the AI-generated personality text). Profiling Q&A answers nullified. S3 avatar file deleted. Metrics anonymized. `user.anonymizedAt` set.
 
 **Why not hard delete:** Deleting user rows would cascade-delete or orphan relational data (messages, waves, conversations). Other users would lose conversation history. Anonymization preserves relational integrity while removing all PII. The deleted user appears as "Usunięty użytkownik" via FK references to `user.name`.
 
@@ -44,7 +45,7 @@ Blisko processes personal data under RODO (Polish implementation of GDPR). Polis
 | OpenAI | USA | SCC (Art. 46(2)(c)) | Profile AI analysis, compatibility scoring, embeddings |
 | Railway | EU | N/A (within EEA) | PostgreSQL + Redis hosting |
 | Resend | USA | SCC (Art. 46(2)(c)) | Transactional email (OTP codes, export notifications) |
-| Tigris/S3 | -- | -- | File storage (avatars, portraits, data exports) |
+| Tigris/S3 | -- | -- | File storage (avatars, data exports) |
 
 ## Data Categories
 

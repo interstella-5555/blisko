@@ -112,7 +112,7 @@ export const profiles = pgTable(
     interests: text("interests").array(),
     embedding: real("embedding").array(),
     portrait: text("portrait"),
-    portraitSharedForMatching: boolean("portrait_shared_for_matching").default(false).notNull(),
+    portraitSharedForMatching: boolean("portrait_shared_for_matching").default(true).notNull(),
     isComplete: boolean("is_complete").default(false).notNull(),
     currentStatus: text("current_status"),
     statusExpiresAt: timestamp("status_expires_at"),

@@ -162,6 +162,13 @@
       "when": 1776161838196,
       "tag": "0022_add_message_seq",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1776510806462,
+      "tag": "0023_portrait_shared_default_true",
+      "breakpoints": true
     }
   ]
 }

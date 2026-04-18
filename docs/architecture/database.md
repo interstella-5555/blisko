@@ -4,6 +4,7 @@
 > Updated 2026-04-11 — Added `metrics.ai_calls` table (BLI-174).
 > Updated 2026-04-11 — `connection_analyses.tier` column (`t1`/`t2`/`t3`) records which scoring tier produced each row, surfaced in admin matching list (BLI-184).
 > Updated 2026-04-14 — added `seq` column to messages table for per-conversation sequence numbers (BLI-224).
+> Updated 2026-04-18 — `profiles.portrait_shared_for_matching` default flipped to `true`; flag retained as audit-only (BLI-199).
 
 PostgreSQL on Railway. ORM: Drizzle `^0.45.1` with `postgres` (postgres.js) `^3.4.0` driver. Schema source: `packages/db/src/schema.ts` (the `@repo/db` workspace package). `apps/api/src/db/schema.ts` is now a 3-line re-export wrapper (`export * from "@repo/db/schema"`) preserved so existing `@/db` / `@/db/schema` imports keep working — the real schema definitions live in `@repo/db`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`.
 
@@ -130,7 +131,7 @@ Extends `user` with app-specific data. 1:1 relationship via unique `user_id`.
 | `interests` | text[] | yes | -- | AI-extracted from portrait |
 | `embedding` | real[] | yes | -- | text-embedding-3-small vector for profile matching |
 | `portrait` | text | yes | -- | AI-generated rich social profile text (NOT an image) |
-| `portrait_shared_for_matching` | boolean | no | `false` | Consent for AI matching with portrait |
+| `portrait_shared_for_matching` | boolean | no | `true` | Historical consent flag. No functional effect — matching pipeline always reads `portrait` if present. Retained as audit-only column; may be dropped later. |
 | `is_complete` | boolean | no | `false` | True after onboarding finishes |
 | `current_status` | text | yes | -- | "Na teraz" status text (max 150 chars via validator) |
 | `status_expires_at` | timestamp | yes | -- | When status auto-clears |

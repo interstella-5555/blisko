@@ -2,6 +2,7 @@
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 --- Onboarding audit fixes: ghost-to-full visibility transition, inline AI fallback, answer persistence (BLI-173).
+> Updated 2026-04-18 — Review screen no longer renders the "PORTRET OSOBOWOŚCI" section or the share-portrait toggle; portrait is applied silently and stays internal (BLI-199).
 
 Onboarding turns a freshly authenticated user into a discoverable profile. Two paths: full AI-driven profiling (visible on map) or ghost profile (invisible, group-invite only). The flow generates a bio, "looking for" text, personality portrait, embedding vector, and extracted interests --- all via async BullMQ jobs with WS notification on completion.
 
@@ -105,14 +106,15 @@ Waits for profile generation to complete. Two mechanisms:
 1. **WebSocket:** Listens for `profilingComplete` event with matching `sessionId`, then refetches session state
 2. **Fallback polling:** Refetches `profiling.getSessionState` every 5s while `isGenerating` is true
 
-Once generated data arrives (`generatedBio`, `generatedLookingFor`, optionally `generatedPortrait`), shows editable form:
+Once generated data arrives (`generatedBio`, `generatedLookingFor`), shows editable form:
 - **"O MNIE"** --- generated bio, editable TextInput, 500 char max
 - **"KOGO SZUKAM"** --- generated lookingFor, editable, 500 char max
-- **"PORTRET OSOBOWOSCI"** --- collapsible section (if portrait was generated), with toggle "Udostepnij portret do lepszego dopasowywania" (`portraitSharedForMatching`)
 - **"Tak, to ja"** button --- requires bio >= 10 chars and lookingFor >= 10 chars
 
+The generated portrait is applied silently in the background — no UI element for it in the review screen (BLI-199). Portrait is internal-only ("never shown to user" per `ai-profiling.md`); users can still retrieve it via GDPR data-export.
+
 Calls `profiling.applyProfile` which:
-1. Upserts profile (insert or update on conflict) with displayName, bio, lookingFor, portrait, portraitSharedForMatching, `isComplete: true`, `visibilityMode: "semi_open"`. The visibility mode change ensures ghost users who later complete profiling become visible in discovery.
+1. Upserts profile (insert or update on conflict) with displayName, bio, lookingFor, portrait, `portraitSharedForMatching: true`, `isComplete: true`, `visibilityMode: "semi_open"`. The visibility mode change ensures ghost users who later complete profiling become visible in discovery. The `portraitSharedForMatching` field is an optional input (validator: `z.boolean().optional()`) defaulted to `true` on the server side — the field is retained for audit purposes but has no functional effect on matching.
 2. Copies OAuth avatar URL to profile if available
 3. Enqueues `profileAI` job (embedding + interests extraction)
 4. Sets authStore profile and hasCheckedProfile, marks onboarding complete

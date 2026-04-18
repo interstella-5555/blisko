@@ -140,7 +140,7 @@ export const completeProfilingSchema = z.object({
 export const applyProfilingSchema = z.object({
   sessionId: z.string().uuid(),
   displayName: z.string().min(2).max(50),
-  portraitSharedForMatching: z.boolean(),
+  portraitSharedForMatching: z.boolean().optional(),
   bio: z.string().min(10).max(500).optional(),
   lookingFor: z.string().min(10).max(500).optional(),
 });

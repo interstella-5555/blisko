@@ -326,7 +326,7 @@ export const profilingRouter = router({
         bio,
         lookingFor,
         portrait: session.generatedPortrait,
-        portraitSharedForMatching: input.portraitSharedForMatching,
+        portraitSharedForMatching: input.portraitSharedForMatching ?? true,
         isComplete: true,
         ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
       })
@@ -337,7 +337,7 @@ export const profilingRouter = router({
           bio,
           lookingFor,
           portrait: session.generatedPortrait,
-          portraitSharedForMatching: input.portraitSharedForMatching,
+          portraitSharedForMatching: input.portraitSharedForMatching ?? true,
           isComplete: true,
           visibilityMode: "semi_open",
           updatedAt: new Date(),

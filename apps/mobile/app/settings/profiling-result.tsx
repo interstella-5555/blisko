@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { ThinkingIndicator } from "@/components/ui/ThinkingIndicator";
 import { useRetryProfileOnFailure } from "@/hooks/useRetryProfileOnFailure";
@@ -17,9 +17,6 @@ export default function ProfilingResultModal() {
 
   const [bio, setBio] = useState("");
   const [lookingFor, setLookingFor] = useState("");
-  const [portrait, setPortrait] = useState("");
-  const [portraitShared, setPortraitShared] = useState(false);
-  const [portraitExpanded, setPortraitExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isGenerating, setIsGenerating] = useState(true);
@@ -39,7 +36,6 @@ export default function ProfilingResultModal() {
       if (s.generatedBio && s.generatedLookingFor) {
         setBio(s.generatedBio);
         setLookingFor(s.generatedLookingFor);
-        if (s.generatedPortrait) setPortrait(s.generatedPortrait);
         setIsGenerating(false);
       }
     }
@@ -77,7 +73,6 @@ export default function ProfilingResultModal() {
       const updated = await applyProfile.mutateAsync({
         sessionId: profilingSessionId,
         displayName: profile.displayName,
-        portraitSharedForMatching: portraitShared,
         bio: bio.trim() || undefined,
         lookingFor: lookingFor.trim() || undefined,
       });
@@ -138,26 +133,6 @@ export default function ProfilingResultModal() {
       />
       <Text style={styles.charCount}>{lookingFor.length} / 500</Text>
 
-      {portrait ? (
-        <>
-          <Pressable onPress={() => setPortraitExpanded(!portraitExpanded)} style={styles.portraitHeader}>
-            <Text style={styles.label}>PORTRET OSOBOWOSCI</Text>
-            <Text style={typ.caption}>{portraitExpanded ? "Schowaj" : "Pokaz"}</Text>
-          </Pressable>
-          {portraitExpanded && <Text style={styles.portraitText}>{portrait}</Text>}
-
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Udostepnij portret do lepszego dopasowywania</Text>
-            <Switch
-              value={portraitShared}
-              onValueChange={setPortraitShared}
-              trackColor={{ false: colors.rule, true: colors.accent }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-        </>
-      ) : null}
-
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <View style={styles.buttonContainer}>
@@ -213,33 +188,6 @@ const styles = StyleSheet.create({
     ...typ.caption,
     textAlign: "right",
     marginTop: spacing.hairline,
-  },
-  portraitHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: spacing.column,
-    marginBottom: spacing.tight,
-  },
-  portraitText: {
-    ...typ.body,
-    color: colors.muted,
-    lineHeight: 22,
-    marginBottom: spacing.column,
-  },
-  toggleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: spacing.column,
-    paddingVertical: spacing.gutter,
-    borderTopWidth: 1,
-    borderTopColor: colors.rule,
-  },
-  toggleLabel: {
-    ...typ.body,
-    flex: 1,
-    marginRight: spacing.column,
   },
   error: {
     fontFamily: fonts.sans,

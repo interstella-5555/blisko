@@ -28,7 +28,12 @@ function PrivacyPage() {
             <Strong>Lokalizacja:</Strong> ostatnia znana pozycja (tylko podczas aktywnego korzystania z aplikacji)
           </Li>
           <Li>
-            <Strong>Pliki:</Strong> zdjęcie profilowe (avatar), portret (przechowywane w chmurze)
+            <Strong>Pliki:</Strong> zdjęcie profilowe (avatar) — przechowywane w chmurze
+          </Li>
+          <Li>
+            <Strong>Dane generowane przez AI:</Strong> wewnętrzny opis osobowości (tekst generowany na podstawie Twoich
+            odpowiedzi z kwestionariusza, używany wyłącznie do dopasowywania). Nie jest widoczny dla innych użytkowników
+            ani dla Ciebie w aplikacji — możesz go zobaczyć pobierając eksport swoich danych.
           </Li>
           <Li>
             <Strong>Wiadomości:</Strong> treść wiadomości czatu, wave'y (zaproszenia do kontaktu)
@@ -88,7 +93,7 @@ function PrivacyPage() {
             <Strong>Resend</Strong> (USA) — wysyłka emaili transakcyjnych (kody OTP)
           </Li>
           <Li>
-            <Strong>Tigris/S3</Strong> — przechowywanie plików (avatary, portrety)
+            <Strong>Tigris/S3</Strong> — przechowywanie plików (avatary)
           </Li>
         </List>
       </Section>
