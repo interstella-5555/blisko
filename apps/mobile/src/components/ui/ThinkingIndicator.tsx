@@ -131,32 +131,9 @@ function TypewriterText({ messages }: { messages: string[] }) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [charCount, setCharCount] = useState(0);
   const [phase, setPhase] = useState<"typing" | "holding" | "clearing">("typing");
-  const cursorOpacity = useRef(new Animated.Value(1)).current;
 
   const currentMessage = messages[msgIndex];
   const displayText = currentMessage.slice(0, charCount);
-
-  // Blinking cursor
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(cursorOpacity, {
-          toValue: 0,
-          duration: 500,
-          easing: Easing.step0,
-          useNativeDriver: true,
-        }),
-        Animated.timing(cursorOpacity, {
-          toValue: 1,
-          duration: 500,
-          easing: Easing.step0,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [cursorOpacity]);
 
   // Typing engine
   useEffect(() => {
@@ -193,7 +170,6 @@ function TypewriterText({ messages }: { messages: string[] }) {
   return (
     <View style={typeStyles.container}>
       <Text style={typeStyles.text}>{displayText}</Text>
-      <Animated.View style={[typeStyles.cursor, { opacity: cursorOpacity }]} />
     </View>
   );
 }
@@ -209,12 +185,6 @@ const typeStyles = StyleSheet.create({
     fontFamily: fonts.serifItalic,
     fontSize: 15,
     color: colors.muted,
-  },
-  cursor: {
-    width: 1.5,
-    height: 16,
-    backgroundColor: colors.accent,
-    marginLeft: 2,
   },
 });
 

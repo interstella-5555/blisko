@@ -54,7 +54,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="visibility" />
       <Stack.Screen name="questions" />
-      <Stack.Screen name="profiling-result" options={{ headerShown: false }} />
+      <Stack.Screen name="profiling-result" />
     </Stack>
   );
 }

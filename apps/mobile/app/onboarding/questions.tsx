@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
 import { OnboardingStepHeader } from "@/components/onboarding/OnboardingStepHeader";
 import { Button } from "@/components/ui/Button";
 import { ThinkingIndicator } from "@/components/ui/ThinkingIndicator";
@@ -317,44 +318,50 @@ export default function QuestionsScreen() {
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <Stack.Screen
           options={{
+            headerShown: true,
             header: () => (
               <OnboardingStepHeader
                 label="Krok 3"
-                rightLabel={`Jeszcze ${remainingCount} ${remainingCount === 1 ? "pytanie" : "pytania"}`}
+                rightLabel={
+                  remainingCount === 1 ? "Zostało ostatnie pytanie" : `Zostały tylko ${remainingCount} pytania`
+                }
               />
             ),
           }}
         />
-        <Animated.View style={[styles.content, { transform: [{ translateX: slideAnim }] }]}>
-          <Text style={styles.questionText}>{currentFU.question}</Text>
+        <OnboardingScreen
+          footer={
+            <>
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+              <Button
+                title="Dalej"
+                variant="accent"
+                onPress={handleFollowUpNext}
+                disabled={!followUpText.trim() || answerFollowUp.isPending}
+                loading={answerFollowUp.isPending}
+              />
+            </>
+          }
+        >
+          <Animated.View style={{ transform: [{ translateX: slideAnim }] }}>
+            <Text style={styles.questionText}>{currentFU.question}</Text>
 
-          <TextInput
-            testID="question-input"
-            ref={inputRef}
-            style={styles.input}
-            value={followUpText}
-            onChangeText={setFollowUpText}
-            placeholder="Twoja odpowiedź"
-            placeholderTextColor={colors.muted}
-            spellCheck={false}
-            autoCorrect={false}
-            multiline
-            maxLength={500}
-            autoFocus
-          />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <View style={styles.actions}>
-            <Button
-              title="Dalej"
-              variant="accent"
-              onPress={handleFollowUpNext}
-              disabled={!followUpText.trim() || answerFollowUp.isPending}
-              loading={answerFollowUp.isPending}
+            <TextInput
+              testID="question-input"
+              ref={inputRef}
+              style={styles.input}
+              value={followUpText}
+              onChangeText={setFollowUpText}
+              placeholder="Twoja odpowiedź"
+              placeholderTextColor={colors.muted}
+              spellCheck={false}
+              autoCorrect={false}
+              multiline
+              maxLength={500}
+              autoFocus
             />
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </OnboardingScreen>
       </KeyboardAvoidingView>
     );
   }
@@ -366,6 +373,7 @@ export default function QuestionsScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <Stack.Screen
         options={{
+          headerShown: true,
           header: () => (
             <OnboardingStepHeader
               label="Krok 3"
@@ -375,50 +383,53 @@ export default function QuestionsScreen() {
           ),
         }}
       />
-      <Animated.View style={[styles.content, { transform: [{ translateX: slideAnim }] }]}>
-        <Text style={styles.questionText}>{currentQuestion.question}</Text>
+      <OnboardingScreen
+        footer={
+          <>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {!currentQuestion.required && (
+              <Pressable testID="skip-question-button" onPress={handleSkip} hitSlop={8} style={styles.skipWrap}>
+                <Text style={styles.skipText}>Pomiń pytanie</Text>
+              </Pressable>
+            )}
+            <Button
+              title="Dalej"
+              variant="accent"
+              onPress={handleNext}
+              disabled={!currentText.trim() && currentQuestion.required}
+            />
+          </>
+        }
+      >
+        <Animated.View style={{ transform: [{ translateX: slideAnim }] }}>
+          <Text style={styles.questionText}>{currentQuestion.question}</Text>
 
-        <TextInput
-          testID="question-input"
-          ref={inputRef}
-          style={styles.input}
-          value={currentText}
-          onChangeText={setCurrentText}
-          placeholder="Twoja odpowiedź"
-          placeholderTextColor={colors.muted}
-          spellCheck={false}
-          autoCorrect={false}
-          multiline
-          maxLength={500}
-          autoFocus
-        />
-
-        {currentQuestion.examples && (
-          <View style={styles.examples}>
-            {currentQuestion.examples.map((ex) => (
-              <Text key={ex} style={styles.exampleText}>
-                np. &ldquo;{ex}&rdquo;
-              </Text>
-            ))}
-          </View>
-        )}
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <View style={styles.actions}>
-          <Button
-            title="Dalej"
-            variant="accent"
-            onPress={handleNext}
-            disabled={!currentText.trim() && currentQuestion.required}
+          <TextInput
+            testID="question-input"
+            ref={inputRef}
+            style={styles.input}
+            value={currentText}
+            onChangeText={setCurrentText}
+            placeholder="Twoja odpowiedź"
+            placeholderTextColor={colors.muted}
+            spellCheck={false}
+            autoCorrect={false}
+            multiline
+            maxLength={500}
+            autoFocus
           />
-          {!currentQuestion.required && (
-            <Pressable testID="skip-question-button" onPress={handleSkip} hitSlop={8}>
-              <Text style={styles.skipText}>Pomiń</Text>
-            </Pressable>
+
+          {currentQuestion.examples && (
+            <View style={styles.examples}>
+              {currentQuestion.examples.map((ex) => (
+                <Text key={ex} style={styles.exampleText}>
+                  np. &ldquo;{ex}&rdquo;
+                </Text>
+              ))}
+            </View>
           )}
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </OnboardingScreen>
     </KeyboardAvoidingView>
   );
 }
@@ -431,11 +442,6 @@ const styles = StyleSheet.create({
   centered: {
     justifyContent: "center",
     alignItems: "center",
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.section,
-    paddingTop: spacing.tight,
   },
   questionText: {
     ...typ.heading,
@@ -462,10 +468,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     minHeight: 48,
   },
-  actions: {
-    marginTop: spacing.section,
-    gap: spacing.column,
-    alignItems: "center",
+  skipWrap: {
+    alignSelf: "center",
   },
   skipText: {
     ...typ.caption,

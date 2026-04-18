@@ -11,6 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Line } from "react-native-svg";
 import { GridClusterMarker } from "@/components/nearby/GridClusterMarker";
+import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
 import { OnboardingStepHeader } from "@/components/onboarding/OnboardingStepHeader";
 import { Button } from "@/components/ui/Button";
 import { SonarDot } from "@/components/ui/SonarDot";
@@ -82,38 +83,9 @@ export default function VisibilityScreen() {
     expanded === "ghost" ? "ghost-profile-button" : expanded === "fill" ? "fill-profile-button" : "visibility-next";
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          header: () => <OnboardingStepHeader label="Krok 2" onBack={() => router.back()} onLogout={signOutAndReset} />,
-        }}
-      />
-      <View style={styles.content}>
-        <Text style={styles.title}>Chcesz być widoczny?</Text>
-
-        <ScatteredAvatars height={graphicHeight} shuffleKey={expanded ?? "none"} isGhost={expanded === "ghost"} />
-
-        <View style={styles.options}>
-          <OptionCard
-            testID="ghost-option"
-            title="Na razie przeglądam"
-            badge="NIEWIDOCZNY"
-            description="Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, kto jest w twojej okolicy."
-            expanded={expanded === "ghost"}
-            onPress={() => toggle("ghost")}
-          />
-
-          <OptionCard
-            testID="fill-option"
-            title="Opowiem o sobie"
-            badge="WIDOCZNY"
-            description="Najpierw opowiesz o sobie — kilka pytań, nic więcej. Będziesz mieć pełny dostęp do ludzi i grup w Twojej okolicy. Dostaniesz powiadomienie, gdy obok pojawi się ktoś, kogo szukasz albo kto do Ciebie pasuje. Inni też zobaczą Cię na mapie i będą mogli Cię zaczepić."
-            expanded={expanded === "fill"}
-            onPress={() => toggle("fill")}
-          />
-        </View>
-
-        <View style={styles.actions}>
+    <OnboardingScreen
+      footer={
+        <>
           <Text style={styles.footnote}>Profil możesz uzupełnić lub zmienić później w ustawieniach.</Text>
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button
@@ -124,9 +96,38 @@ export default function VisibilityScreen() {
             disabled={expanded === null}
             loading={isCreating}
           />
-        </View>
+        </>
+      }
+    >
+      <Stack.Screen
+        options={{
+          header: () => <OnboardingStepHeader label="Krok 2" onBack={() => router.back()} onLogout={signOutAndReset} />,
+        }}
+      />
+      <Text style={styles.title}>Chcesz być widoczny?</Text>
+
+      <ScatteredAvatars height={graphicHeight} shuffleKey={expanded ?? "none"} isGhost={expanded === "ghost"} />
+
+      <View style={styles.options}>
+        <OptionCard
+          testID="ghost-option"
+          title="Na razie przeglądam"
+          badge="NIEWIDOCZNY"
+          description="Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, kto jest w twojej okolicy."
+          expanded={expanded === "ghost"}
+          onPress={() => toggle("ghost")}
+        />
+
+        <OptionCard
+          testID="fill-option"
+          title="Opowiem o sobie"
+          badge="WIDOCZNY"
+          description="Najpierw opowiesz o sobie — kilka pytań, nic więcej. Będziesz mieć pełny dostęp do ludzi i grup w Twojej okolicy. Dostaniesz powiadomienie, gdy obok pojawi się ktoś, kogo szukasz albo kto do Ciebie pasuje. Inni też zobaczą Cię na mapie i będą mogli Cię zaczepić."
+          expanded={expanded === "fill"}
+          onPress={() => toggle("fill")}
+        />
       </View>
-    </View>
+    </OnboardingScreen>
   );
 }
 
@@ -454,15 +455,17 @@ function OptionCard({ testID, title, badge, description, expanded, onPress }: Op
   );
 
   return (
-    <View style={[styles.card, expanded ? styles.cardExpanded : styles.cardCollapsed]}>
-      <Pressable testID={testID} onPress={onPress}>
-        <View style={styles.cardHeader}>
-          <View style={styles.titleBlock}>
-            <Text style={[styles.cardTitle, !expanded && styles.dim]}>{title}</Text>
-          </View>
-          <Text style={[styles.badge, !expanded && styles.badgeDim]}>{badge}</Text>
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      style={[styles.card, expanded ? styles.cardExpanded : styles.cardCollapsed]}
+    >
+      <View style={styles.cardHeader}>
+        <View style={styles.titleBlock}>
+          <Text style={[styles.cardTitle, !expanded && styles.dim]}>{title}</Text>
         </View>
-      </Pressable>
+        <Text style={[styles.badge, !expanded && styles.badgeDim]}>{badge}</Text>
+      </View>
 
       {/* Invisible measurer — reports true content height without affecting layout */}
       <View style={styles.measurer} pointerEvents="none" onLayout={onMeasure}>
@@ -470,20 +473,11 @@ function OptionCard({ testID, title, badge, description, expanded, onPress }: Op
       </View>
 
       <Animated.View style={[styles.collapsible, collapsibleStyle]}>{body}</Animated.View>
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.section,
-    paddingTop: spacing.tight,
-  },
   graphic: {
     marginBottom: spacing.section,
     overflow: "hidden",
@@ -562,10 +556,6 @@ const styles = StyleSheet.create({
   description: {
     ...typ.body,
     lineHeight: 22,
-  },
-  actions: {
-    marginTop: spacing.section,
-    gap: spacing.column,
   },
   footnote: {
     ...typ.caption,

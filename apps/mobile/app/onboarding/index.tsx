@@ -1,6 +1,7 @@
 import { router, Stack } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
 import { OnboardingStepHeader } from "@/components/onboarding/OnboardingStepHeader";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -25,17 +26,17 @@ export default function OnboardingNameScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <KeyboardAvoidingView style={styles.keyboardWrap} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <Stack.Screen options={{ header: () => <OnboardingStepHeader label="Krok 1" onLogout={signOutAndReset} /> }} />
-      <View style={styles.content}>
-        <Text style={styles.title}>Jak masz na imie?</Text>
-        <Text style={styles.subtitle}>To imie bedzie widoczne dla innych uzytkownikow</Text>
+      <OnboardingScreen footer={<Button title="Dalej" variant="accent" onPress={handleNext} disabled={!canProceed} />}>
+        <Text style={styles.title}>Jak masz na imię?</Text>
+        <Text style={styles.subtitle}>Twoje imię będzie widoczne publicznie</Text>
 
         <Input
           testID="name-input"
           value={name}
           onChangeText={setName}
-          placeholder="Twoje imie"
+          placeholder="Twoje imię"
           autoCapitalize="words"
           autoFocus
           maxLength={30}
@@ -45,24 +46,15 @@ export default function OnboardingNameScreen() {
           <Toggle testID="age-confirm-toggle" value={ageConfirmed} onValueChange={setAgeConfirmed} />
           <Text style={styles.ageLabel}>Potwierdzam, że mam ukończone 18 lat</Text>
         </View>
-
-        <View style={{ marginTop: spacing.section }}>
-          <Button title="Dalej" variant="accent" onPress={handleNext} disabled={!canProceed} />
-        </View>
-      </View>
+      </OnboardingScreen>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  keyboardWrap: {
     flex: 1,
     backgroundColor: colors.bg,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.section,
-    paddingTop: spacing.tight,
   },
   title: {
     ...typ.display,
