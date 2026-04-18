@@ -9,7 +9,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -18,6 +17,7 @@ import MapView, { Marker } from "react-native-maps";
 import { ProfileGateSheet } from "@/components/ProfileGateSheet";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { Toggle } from "@/components/ui/Toggle";
 import { useIsGhost } from "@/hooks/useIsGhost";
 import { useProfileGate } from "@/hooks/useProfileGate";
 import { trpc } from "@/lib/trpc";
@@ -172,13 +172,7 @@ export default function CreateGroupScreen() {
 
           <View style={styles.toggleRow}>
             <Text style={styles.toggleLabel}>Widoczna w okolicy</Text>
-            <Switch
-              value={isDiscoverable}
-              onValueChange={hasLocation ? setIsDiscoverable : undefined}
-              disabled={!hasLocation}
-              trackColor={{ false: colors.rule, true: colors.accent }}
-              thumbColor={colors.bg}
-            />
+            <Toggle value={isDiscoverable} onValueChange={setIsDiscoverable} disabled={!hasLocation} />
           </View>
           <Text style={styles.toggleDescription}>
             {hasLocation

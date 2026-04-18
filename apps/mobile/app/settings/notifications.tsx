@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Toggle } from "@/components/ui/Toggle";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
@@ -12,12 +13,7 @@ function ToggleRow({ label, value, onValueChange }: ToggleRowProps) {
   return (
     <View style={styles.toggleRow}>
       <Text style={styles.toggleLabel}>{label}</Text>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: colors.rule, true: colors.ink }}
-        thumbColor="white"
-      />
+      <Toggle value={value} onValueChange={onValueChange} />
     </View>
   );
 }

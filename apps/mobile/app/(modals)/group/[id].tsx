@@ -1,10 +1,11 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { ProfileGateSheet } from "@/components/ProfileGateSheet";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { Toggle } from "@/components/ui/Toggle";
 import { useIsGhost } from "@/hooks/useIsGhost";
 import { useProfileGate } from "@/hooks/useProfileGate";
 import { formatDistance } from "@/lib/format";
@@ -402,7 +403,7 @@ export default function GroupInfoScreen() {
           <View style={styles.toggleSection}>
             <View style={styles.toggleLabelRow}>
               <Text style={styles.actionText}>Pokaż moją lokalizację</Text>
-              <Switch value={locationVisible} onValueChange={handleToggleVisibility} />
+              <Toggle value={locationVisible} onValueChange={handleToggleVisibility} />
             </View>
             <Text style={styles.toggleDesc}>Inni członkowie zobaczą, że jesteś w pobliżu</Text>
           </View>

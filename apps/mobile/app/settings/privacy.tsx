@@ -1,7 +1,8 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { IconChevronRight } from "@/components/ui/icons";
+import { Toggle } from "@/components/ui/Toggle";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
@@ -67,20 +68,18 @@ export default function PrivacyScreen() {
 
       {/* DND toggle */}
       <View style={styles.section}>
-        <View style={styles.dndRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.optionName}>Nie przeszkadzać</Text>
-            <Text style={styles.optionDesc}>Pingi dochodzą, ale powiadomienia push wyciszone.</Text>
+        <View style={styles.dndBlock}>
+          <View style={styles.dndRow}>
+            <Text style={[styles.optionName, styles.dndLabel]}>Nie przeszkadzać</Text>
+            <Toggle
+              value={dnd}
+              onValueChange={(v) => {
+                setDnd(v);
+                updateProfile.mutate({ doNotDisturb: v });
+              }}
+            />
           </View>
-          <Switch
-            value={dnd}
-            onValueChange={(v) => {
-              setDnd(v);
-              updateProfile.mutate({ doNotDisturb: v });
-            }}
-            trackColor={{ false: colors.rule, true: "#D4851C" }}
-            thumbColor="#FFFFFF"
-          />
+          <Text style={styles.optionDesc}>Pingi dochodzą, ale powiadomienia push wyciszone.</Text>
         </View>
       </View>
 
@@ -157,11 +156,17 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.gutter,
     lineHeight: 18,
   },
+  dndBlock: {
+    paddingVertical: spacing.compact,
+  },
   dndRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.gutter,
-    paddingVertical: spacing.compact,
+  },
+  dndLabel: {
+    flex: 1,
+    marginBottom: 0,
   },
   blockedRow: {
     flexDirection: "row",
