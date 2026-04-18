@@ -8,6 +8,8 @@ interface GridClusterMarkerProps {
   avatarUrl?: string | null;
   displayName?: string | null;
   highlighted?: boolean;
+  /** Override ghost blur (defaults to the current user's ghost state from auth store) */
+  isGhost?: boolean;
 }
 
 function PulsingWrapper({ active, children }: { active: boolean; children: React.ReactNode }) {
@@ -41,8 +43,15 @@ function PulsingWrapper({ active, children }: { active: boolean; children: React
   return <Animated.View style={{ transform: [{ scale }] }}>{children}</Animated.View>;
 }
 
-export function GridClusterMarker({ count, avatarUrl, displayName, highlighted }: GridClusterMarkerProps) {
-  const isGhost = useIsGhost();
+export function GridClusterMarker({
+  count,
+  avatarUrl,
+  displayName,
+  highlighted,
+  isGhost: isGhostOverride,
+}: GridClusterMarkerProps) {
+  const isGhostFromStore = useIsGhost();
+  const isGhost = isGhostOverride ?? isGhostFromStore;
 
   // Cluster with multiple points — show count badge
   if (count && count > 1) {

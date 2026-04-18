@@ -1,9 +1,11 @@
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
+import { OnboardingStepHeader } from "@/components/onboarding/OnboardingStepHeader";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { IconX } from "@/components/ui/icons";
+import { Toggle } from "@/components/ui/Toggle";
 import { useAuthStore } from "@/stores/authStore";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
@@ -15,8 +17,6 @@ export default function OnboardingNameScreen() {
   const [name, setName] = useState(displayName || user?.name || "");
   const [ageConfirmed, setAgeConfirmed] = useState(false);
 
-  const handleLogout = () => signOutAndReset();
-
   const canProceed = name.trim().length >= 2 && ageConfirmed;
 
   const handleNext = () => {
@@ -26,73 +26,35 @@ export default function OnboardingNameScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <View style={styles.content}>
-        <View style={styles.stepRow}>
-          <Text style={styles.step}>Krok 1</Text>
-          <Pressable onPress={handleLogout} hitSlop={12} style={styles.logoutButton}>
-            <IconX size={12} color={colors.muted} />
-            <Text style={styles.logoutText}>Wyloguj</Text>
-          </Pressable>
-        </View>
-        <Text style={styles.title}>Jak masz na imie?</Text>
-        <Text style={styles.subtitle}>To imie bedzie widoczne dla innych uzytkownikow</Text>
+    <KeyboardAvoidingView style={styles.keyboardWrap} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <Stack.Screen options={{ header: () => <OnboardingStepHeader label="Krok 1" onLogout={signOutAndReset} /> }} />
+      <OnboardingScreen footer={<Button title="Dalej" variant="accent" onPress={handleNext} disabled={!canProceed} />}>
+        <Text style={styles.title}>Jak masz na imię?</Text>
+        <Text style={styles.subtitle}>Twoje imię będzie widoczne publicznie</Text>
 
         <Input
           testID="name-input"
           value={name}
           onChangeText={setName}
-          placeholder="Twoje imie"
+          placeholder="Twoje imię"
           autoCapitalize="words"
           autoFocus
           maxLength={30}
         />
 
         <View style={styles.ageRow}>
-          <Switch
-            testID="age-confirm-toggle"
-            value={ageConfirmed}
-            onValueChange={setAgeConfirmed}
-            trackColor={{ false: colors.rule, true: "#D4851C" }}
-            thumbColor="#FFFFFF"
-          />
+          <Toggle testID="age-confirm-toggle" value={ageConfirmed} onValueChange={setAgeConfirmed} />
           <Text style={styles.ageLabel}>Potwierdzam, że mam ukończone 18 lat</Text>
         </View>
-
-        <View style={{ marginTop: spacing.section }}>
-          <Button title="Dalej" variant="accent" onPress={handleNext} disabled={!canProceed} />
-        </View>
-      </View>
+      </OnboardingScreen>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  keyboardWrap: {
     flex: 1,
     backgroundColor: colors.bg,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.section,
-    paddingTop: 100,
-  },
-  stepRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.tight,
-  },
-  step: {
-    ...typ.caption,
-  },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  logoutText: {
-    ...typ.caption,
   },
   title: {
     ...typ.display,

@@ -1,6 +1,8 @@
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
+import { OnboardingStepHeader } from "@/components/onboarding/OnboardingStepHeader";
 import { Button } from "@/components/ui/Button";
 import { ThinkingIndicator } from "@/components/ui/ThinkingIndicator";
 import { useRetryProfileOnFailure } from "@/hooks/useRetryProfileOnFailure";
@@ -100,6 +102,12 @@ export default function ProfilingResultScreen() {
   if (isGenerating) {
     return (
       <View style={[styles.container, styles.centered]}>
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            header: () => <OnboardingStepHeader label="Ostatni krok" />,
+          }}
+        />
         <ThinkingIndicator
           messages={["Generuję Twój profil...", "Analizuję Twoje odpowiedzi...", "Jeszcze chwilka..."]}
         />
@@ -108,56 +116,64 @@ export default function ProfilingResultScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       testID="profiling-review-screen"
       style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      keyboardShouldPersistTaps="handled"
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <Text style={styles.title}>Oto jak Cię widzę</Text>
-      <Text style={styles.subtitle}>Powiedz czy trafiłem — możesz edytować zanim zapiszesz</Text>
-
-      <Text style={styles.label}>O MNIE</Text>
-      <TextInput
-        testID="bio-input"
-        style={styles.input}
-        value={bio}
-        onChangeText={setBio}
-        multiline
-        maxLength={500}
-        spellCheck={false}
-        autoCorrect={false}
-        placeholderTextColor={colors.muted}
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          header: () => <OnboardingStepHeader label="Ostatni krok" />,
+        }}
       />
-      <Text style={styles.charCount}>{bio.length} / 500</Text>
+      <OnboardingScreen
+        footer={
+          <>
+            <Text style={styles.footnote}>Możesz edytować zanim przejdziesz do aplikacji</Text>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <Button
+              testID="confirm-profile-button"
+              title="Tak, to ja"
+              variant="accent"
+              onPress={handleApply}
+              disabled={isSubmitting || bio.trim().length < 10 || lookingFor.trim().length < 10}
+              loading={isSubmitting}
+            />
+          </>
+        }
+      >
+        <Text style={styles.title}>Oto jak Cię widzę</Text>
 
-      <Text style={styles.label}>KOGO SZUKAM</Text>
-      <TextInput
-        testID="looking-for-input"
-        style={styles.input}
-        value={lookingFor}
-        onChangeText={setLookingFor}
-        multiline
-        maxLength={500}
-        spellCheck={false}
-        autoCorrect={false}
-        placeholderTextColor={colors.muted}
-      />
-      <Text style={styles.charCount}>{lookingFor.length} / 500</Text>
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <View style={styles.buttonContainer}>
-        <Button
-          testID="confirm-profile-button"
-          title="Tak, to ja"
-          variant="accent"
-          onPress={handleApply}
-          disabled={isSubmitting || bio.trim().length < 10 || lookingFor.trim().length < 10}
-          loading={isSubmitting}
+        <Text style={styles.label}>O MNIE</Text>
+        <TextInput
+          testID="bio-input"
+          style={styles.input}
+          value={bio}
+          onChangeText={setBio}
+          multiline
+          maxLength={500}
+          spellCheck={false}
+          autoCorrect={false}
+          placeholderTextColor={colors.muted}
         />
-      </View>
-    </ScrollView>
+        <Text style={styles.charCount}>{bio.length} / 500</Text>
+
+        <Text style={styles.label}>KOGO SZUKAM</Text>
+        <TextInput
+          testID="looking-for-input"
+          style={styles.input}
+          value={lookingFor}
+          onChangeText={setLookingFor}
+          multiline
+          maxLength={500}
+          spellCheck={false}
+          autoCorrect={false}
+          placeholderTextColor={colors.muted}
+        />
+        <Text style={styles.charCount}>{lookingFor.length} / 500</Text>
+      </OnboardingScreen>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -170,19 +186,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  scrollContent: {
-    paddingHorizontal: spacing.section,
-    paddingTop: 80,
-    paddingBottom: spacing.block,
-  },
   title: {
     ...typ.display,
     marginBottom: spacing.tight,
-  },
-  subtitle: {
-    ...typ.body,
-    color: colors.muted,
-    marginBottom: spacing.section,
   },
   label: {
     ...typ.label,
@@ -206,10 +212,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     color: colors.status.error.text,
     fontSize: 14,
-    marginTop: spacing.column,
     textAlign: "center",
   },
-  buttonContainer: {
-    marginTop: spacing.section,
+  footnote: {
+    ...typ.caption,
+    color: colors.muted,
+    textAlign: "center",
   },
 });

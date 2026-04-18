@@ -1,5 +1,5 @@
 import { ONBOARDING_QUESTIONS } from "@repo/shared";
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -12,13 +12,14 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
+import { OnboardingStepHeader } from "@/components/onboarding/OnboardingStepHeader";
 import { Button } from "@/components/ui/Button";
-import { IconChevronLeft } from "@/components/ui/icons";
 import { ThinkingIndicator } from "@/components/ui/ThinkingIndicator";
 import { useRetryQuestionOnFailure } from "@/hooks/useRetryQuestionOnFailure";
 import { trpc } from "@/lib/trpc";
 import { useOnboardingStore } from "@/stores/onboardingStore";
-import { colors, fonts, spacing, type as typ } from "@/theme";
+import { colors, fonts, spacing, symbols, type as typ } from "@/theme";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -275,6 +276,7 @@ export default function QuestionsScreen() {
   if (phase === "submitting") {
     return (
       <View style={[styles.container, styles.centered]}>
+        <Stack.Screen options={{ headerShown: false }} />
         <ThinkingIndicator messages={["Analizuję Twoje odpowiedzi…"]} />
       </View>
     );
@@ -284,6 +286,7 @@ export default function QuestionsScreen() {
   if (phase === "generating") {
     return (
       <View style={[styles.container, styles.centered]}>
+        <Stack.Screen options={{ headerShown: false }} />
         {error ? (
           <View style={styles.errorRetry}>
             <Text style={styles.error}>{error}</Text>
@@ -310,30 +313,103 @@ export default function QuestionsScreen() {
     const currentFU = followUps[followUpIndex];
     if (!currentFU) return null;
 
+    const remainingCount = followUps.length - followUpIndex;
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        {/* Progress bar — stays at 100% during follow-ups */}
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: "100%" }]} />
-        </View>
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            header: () => (
+              <OnboardingStepHeader
+                label="Krok 3"
+                rightLabel={
+                  remainingCount === 1 ? "Zostało ostatnie pytanie" : `Zostały tylko ${remainingCount} pytania`
+                }
+              />
+            ),
+          }}
+        />
+        <OnboardingScreen
+          footer={
+            <>
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+              <Button
+                title="Dalej"
+                variant="accent"
+                onPress={handleFollowUpNext}
+                disabled={!followUpText.trim() || answerFollowUp.isPending}
+                loading={answerFollowUp.isPending}
+              />
+            </>
+          }
+        >
+          <Animated.View style={{ transform: [{ translateX: slideAnim }] }}>
+            <Text style={styles.questionText}>{currentFU.question}</Text>
 
-        <Animated.View style={[styles.content, { transform: [{ translateX: slideAnim }] }]}>
-          <View style={styles.header}>
-            <View />
-            <Text style={styles.counter}>
-              Jeszcze {followUps.length - followUpIndex}{" "}
-              {followUps.length - followUpIndex === 1 ? "pytanie" : "pytania"}
-            </Text>
-          </View>
+            <TextInput
+              testID="question-input"
+              ref={inputRef}
+              style={styles.input}
+              value={followUpText}
+              onChangeText={setFollowUpText}
+              placeholder="Twoja odpowiedź"
+              placeholderTextColor={colors.muted}
+              spellCheck={false}
+              autoCorrect={false}
+              multiline
+              maxLength={500}
+              autoFocus
+            />
+          </Animated.View>
+        </OnboardingScreen>
+      </KeyboardAvoidingView>
+    );
+  }
 
-          <Text style={styles.questionText}>{currentFU.question}</Text>
+  // --- Standard questions phase ---
+  if (!currentQuestion) return null;
+
+  return (
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          header: () => (
+            <OnboardingStepHeader
+              label="Krok 3"
+              onBack={handleBack}
+              rightLabel={`Pytanie ${questionIndex + 1} / ${totalQuestions}`}
+            />
+          ),
+        }}
+      />
+      <OnboardingScreen
+        footer={
+          <>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {!currentQuestion.required && (
+              <Pressable testID="skip-question-button" onPress={handleSkip} hitSlop={8} style={styles.skipWrap}>
+                <Text style={styles.skipText}>Pomiń pytanie</Text>
+              </Pressable>
+            )}
+            <Button
+              title="Dalej"
+              variant="accent"
+              onPress={handleNext}
+              disabled={!currentText.trim() && currentQuestion.required}
+            />
+          </>
+        }
+      >
+        <Animated.View style={{ transform: [{ translateX: slideAnim }] }}>
+          <Text style={styles.questionText}>{currentQuestion.question}</Text>
 
           <TextInput
             testID="question-input"
             ref={inputRef}
             style={styles.input}
-            value={followUpText}
-            onChangeText={setFollowUpText}
+            value={currentText}
+            onChangeText={setCurrentText}
             placeholder="Twoja odpowiedź"
             placeholderTextColor={colors.muted}
             spellCheck={false}
@@ -343,87 +419,19 @@ export default function QuestionsScreen() {
             autoFocus
           />
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <View style={styles.actions}>
-            <Button
-              title="Dalej"
-              variant="accent"
-              onPress={handleFollowUpNext}
-              disabled={!followUpText.trim() || answerFollowUp.isPending}
-              loading={answerFollowUp.isPending}
-            />
-          </View>
-        </Animated.View>
-      </KeyboardAvoidingView>
-    );
-  }
-
-  // --- Standard questions phase ---
-  if (!currentQuestion) return null;
-
-  const progress = (questionIndex + 1) / totalQuestions;
-
-  return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      {/* Progress bar */}
-      <View style={styles.progressBarBg}>
-        <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
-      </View>
-
-      <Animated.View style={[styles.content, { transform: [{ translateX: slideAnim }] }]}>
-        <View style={styles.header}>
-          <Pressable onPress={handleBack} hitSlop={8}>
-            <IconChevronLeft size={24} color={colors.ink} />
-          </Pressable>
-          <Text style={styles.counter}>
-            {questionIndex + 1} / {totalQuestions}
-          </Text>
-        </View>
-
-        <Text style={styles.questionText}>{currentQuestion.question}</Text>
-
-        <TextInput
-          testID="question-input"
-          ref={inputRef}
-          style={styles.input}
-          value={currentText}
-          onChangeText={setCurrentText}
-          placeholder="Twoja odpowiedź"
-          placeholderTextColor={colors.muted}
-          spellCheck={false}
-          autoCorrect={false}
-          multiline
-          maxLength={500}
-          autoFocus
-        />
-
-        {currentQuestion.examples && (
-          <View style={styles.examples}>
-            {currentQuestion.examples.map((ex) => (
-              <Text key={ex} style={styles.exampleText}>
-                np. &ldquo;{ex}&rdquo;
-              </Text>
-            ))}
-          </View>
-        )}
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <View style={styles.actions}>
-          <Button
-            title="Dalej"
-            variant="accent"
-            onPress={handleNext}
-            disabled={!currentText.trim() && currentQuestion.required}
-          />
-          {!currentQuestion.required && (
-            <Pressable testID="skip-question-button" onPress={handleSkip} hitSlop={8}>
-              <Text style={styles.skipText}>Pomiń</Text>
-            </Pressable>
+          {currentQuestion.examples && (
+            <View style={styles.examples}>
+              <Text style={styles.examplesLabel}>Przykładowe odpowiedzi:</Text>
+              {currentQuestion.examples.map((ex) => (
+                <View key={ex} style={styles.exampleRow}>
+                  <Text style={styles.exampleText}>{symbols.bullet}</Text>
+                  <Text style={[styles.exampleText, styles.exampleTextBody]}>{ex}</Text>
+                </View>
+              ))}
+            </View>
           )}
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </OnboardingScreen>
     </KeyboardAvoidingView>
   );
 }
@@ -437,29 +445,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  progressBarBg: {
-    height: 3,
-    backgroundColor: colors.rule,
-    width: "100%",
-  },
-  progressBarFill: {
-    height: 3,
-    backgroundColor: colors.accent,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: spacing.section,
-    paddingTop: spacing.block,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.block,
-  },
-  counter: {
-    ...typ.caption,
-  },
   questionText: {
     ...typ.heading,
     marginBottom: spacing.section,
@@ -468,12 +453,25 @@ const styles = StyleSheet.create({
     marginTop: spacing.gutter,
     gap: spacing.tick,
   },
+  examplesLabel: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    color: colors.muted,
+    marginBottom: spacing.hairline,
+  },
+  exampleRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
   exampleText: {
     fontFamily: fonts.sans,
     fontStyle: "italic",
     fontSize: 13,
     color: colors.muted,
     lineHeight: 18,
+  },
+  exampleTextBody: {
+    flex: 1,
   },
   input: {
     fontFamily: fonts.sans,
@@ -485,10 +483,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     minHeight: 48,
   },
-  actions: {
-    marginTop: spacing.section,
-    gap: spacing.column,
-    alignItems: "center",
+  skipWrap: {
+    alignSelf: "center",
   },
   skipText: {
     ...typ.caption,
