@@ -4,6 +4,7 @@
 > Updated 2026-04-10 --- Onboarding audit fixes: ghost-to-full visibility transition, inline AI fallback, answer persistence (BLI-173).
 > Updated 2026-04-18 — Review screen no longer renders the "PORTRET OSOBOWOŚCI" section or the share-portrait toggle; portrait is applied silently and stays internal (BLI-199).
 > Updated 2026-04-19 — BLI-196 visibility screen redesign: accordion cards "Na razie przeglądam" / "Opowiem o sobie" with NIEWIDOCZNY/WIDOCZNY badges (replaces accent + ghost buttons). Shared onboarding primitives introduced: `OnboardingStepHeader` (Stack.Screen header slot, not in-content), `OnboardingScreen` (footer at viewport bottom for short content, below content for tall). `Toggle` pill replaces native `Switch` on 18+ confirm. Examples on `ONBOARDING_QUESTIONS` rewritten under 3 target personas — full profiles in `packages/shared/src/models.ts` (read before adding/editing questions).
+> Updated 2026-04-19 — BLI-198: inserted `/onboarding/questions-intro` screen between visibility and questions. Sets expectations (7 questions + up to 3 follow-ups, profile gets generated from answers, answers don't need to be polished) before user starts typing. Step numbering shifts: Questions now Step 4, AI Summary Review now Step 5.
 
 Onboarding turns a freshly authenticated user into a discoverable profile. Two paths: full AI-driven profiling (visible on map) or ghost profile (invisible, group-invite only). The flow generates a bio, "looking for" text, personality portrait, embedding vector, and extracted interests --- all via async BullMQ jobs with WS notification on completion.
 
@@ -59,13 +60,27 @@ Two equal-weight accordion cards (neither expanded by default — user must pick
 - **"Na razie przeglądam"** — badge `NIEWIDOCZNY`. Prose expanded body describes: sees others on the map with partial info, cannot ping/message/join groups, can still write in groups they're invited to. Positioned for "chcę najpierw zobaczyć co jest w appce".
 - **"Opowiem o sobie"** — badge `WIDOCZNY`. Prose expanded body describes: will answer a few questions, get full access to people/groups in the area, receive ambient match pushes, be visible on the map to others.
 
-Both are `Pressable` wrapping the whole card (not just the header). Below the graphic and the cards sits a `footnote` ("Profil możesz uzupełnić lub zmienić później w ustawieniach.") and a single CTA in the footer. The CTA label is dynamic: `Dalej` when "Opowiem o sobie" is selected (proceeds to questions), `Wchodzę do aplikacji` when "Na razie przeglądam" is selected (creates ghost profile and jumps to tabs). Disabled state: no card picked.
+Both are `Pressable` wrapping the whole card (not just the header). Below the graphic and the cards sits a `footnote` ("Profil możesz uzupełnić lub zmienić później w ustawieniach.") and a single CTA in the footer. The CTA label is dynamic: `Dalej` when "Opowiem o sobie" is selected (proceeds to the questions-intro screen), `Wchodzę do aplikacji` when "Na razie przeglądam" is selected (creates ghost profile and jumps to tabs). Disabled state: no card picked.
 
 `testID`s preserved for Maestro E2E: `ghost-option`, `fill-option`, `ghost-profile-button`, `fill-profile-button`.
 
 This is the fork point between the full and ghost paths.
 
-### Step 3: Questions
+### Step 3: Questions Intro
+
+**File:** `apps/mobile/app/onboarding/questions-intro.tsx`
+
+Purely presentational screen between the visibility fork and the first question. Sets expectations before the user commits to typing. Header: `Krok 3` (back chevron returns to visibility; no logout button). Title: `Jak to działa`. Three bullets with an accent vertical rule (no numbers):
+
+- **Kilka pytań** — "Zaczniemy od 7 krótkich pytań. Jeśli coś będzie wymagało doprecyzowania, dopytamy maksymalnie o 3 rzeczy." (primes the user on the question count — 7 fixed + up to 3 AI follow-ups per Step 4's rules)
+- **Zrobimy z tego profil** — "Na podstawie Twoich odpowiedzi przygotujemy bio i opis tego, kogo lub czego szukasz. Zobaczysz gotowy tekst i poprawisz, zanim pokażemy go innym." (frames the outcome — deliberately does NOT mention AI; reasoning: avoid polarized AI reactions, disclosure is in the privacy policy)
+- **Nie musi być idealnie** — "Odpowiedzi nie muszą być pełnymi zdaniami. Mogą być krótkie, w punktach, nawet pojedyncze słowa — liczy się co napiszesz, nie jak. Pod każdym pytaniem zobaczysz kilka przykładowych odpowiedzi." (lowers the bar for writing effort; references the examples rendered in Step 4)
+
+CTA: `Dalej` (`testID: questions-intro-start`) → `/onboarding/questions`. Back gesture / chevron → `/onboarding/visibility`.
+
+No store writes, no API calls, no state beyond the bullet render.
+
+### Step 4: Questions
 
 **File:** `apps/mobile/app/onboarding/questions.tsx`
 
@@ -110,7 +125,7 @@ If 0 follow-ups, skips straight to profile generation. Otherwise, shows each fol
 
 After all follow-ups answered (or if none), calls `profiling.completeSession` mutation. This validates min 3 answered questions, then enqueues `profileFromQA` BullMQ job. Shows ThinkingIndicator cycling through messages.
 
-### Step 4: AI Summary Review
+### Step 5: AI Summary Review
 
 **File:** `apps/mobile/app/onboarding/profiling-result.tsx`
 
@@ -171,11 +186,12 @@ After `applyProfile`, the server enqueues a `profileAI` job that:
 | `onboarding/hook.tsx` | Animated intro | Auto-advance 5s, or tap "Zacznij" |
 | `onboarding/index.tsx` | Name + age (Step 1) | Text input + `Toggle` primitive, "Dalej" |
 | `onboarding/visibility.tsx` | Ghost vs fill (Step 2) | Two accordion cards + scattered avatars graphic, dynamic CTA (`Dalej` / `Wchodzę do aplikacji`) |
-| `onboarding/questions.tsx` | Q&A + follow-ups (Step 3) | Slide between questions, 4 phases |
-| `onboarding/profiling-result.tsx` | AI review (Step 4) | Editable fields, "Tak, to ja" |
+| `onboarding/questions-intro.tsx` | Pre-questions intro (Step 3) | Title + 3 bullets with accent vertical rule, CTA `Dalej` |
+| `onboarding/questions.tsx` | Q&A + follow-ups (Step 4) | Slide between questions, 4 phases |
+| `onboarding/profiling-result.tsx` | AI review (Step 5) | Editable fields, "Tak, to ja" |
 
 **Shared primitives** (`apps/mobile/src/components/onboarding/`):
-- `OnboardingStepHeader` — rendered via Stack.Screen `header: () => (...)` slot. Props: `label`, optional `onBack`, optional `onLogout`, optional `rightLabel`. Used by Step 1 (`Krok 1` + logout), Step 2 (`Krok 2` + back + logout), Step 3 standard (`Krok 3` + back + `Pytanie N / 7`), Step 3 follow-ups (`Krok 3` + `Zostało ostatnie pytanie` / `Zostały tylko N pytania`), Step 4 (`Ostatni krok`).
+- `OnboardingStepHeader` — rendered via Stack.Screen `header: () => (...)` slot. Props: `label`, optional `onBack`, optional `onLogout`, optional `rightLabel`. Used by Step 1 (`Krok 1` + logout), Step 2 (`Krok 2` + back + logout), Step 3 questions-intro (`Krok 3` + back), Step 4 standard (`Krok 3` + back + `Pytanie N / 7`), Step 4 follow-ups (`Krok 3` + `Zostało ostatnie pytanie` / `Zostały tylko N pytania`), Step 5 (`Ostatni krok`). Note: questions-intro and questions share the `Krok 3` UI label because they're conceptually the same user step.
 - `OnboardingScreen` — wrapper with `ScrollView contentContainerStyle={{ flexGrow: 1 }}` + inner `flex: 1` content + footer slot. Footer sticks to viewport bottom when content is short, flows naturally below when content is tall. Used by all screens with a primary CTA.
 
 See also `mobile-architecture.md` for the Stack.Screen header slot pattern and `Toggle` primitive spec.

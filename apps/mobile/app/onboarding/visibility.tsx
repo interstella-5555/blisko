@@ -72,7 +72,7 @@ export default function VisibilityScreen() {
   };
 
   const handleFillProfile = () => {
-    router.push("/onboarding/questions");
+    router.push("/onboarding/questions-intro");
   };
 
   const { height: screenHeight } = useWindowDimensions();
