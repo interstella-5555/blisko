@@ -19,7 +19,7 @@ import { ThinkingIndicator } from "@/components/ui/ThinkingIndicator";
 import { useRetryQuestionOnFailure } from "@/hooks/useRetryQuestionOnFailure";
 import { trpc } from "@/lib/trpc";
 import { useOnboardingStore } from "@/stores/onboardingStore";
-import { colors, fonts, spacing, type as typ } from "@/theme";
+import { colors, fonts, spacing, symbols, type as typ } from "@/theme";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -421,10 +421,12 @@ export default function QuestionsScreen() {
 
           {currentQuestion.examples && (
             <View style={styles.examples}>
+              <Text style={styles.examplesLabel}>Przykładowe odpowiedzi:</Text>
               {currentQuestion.examples.map((ex) => (
-                <Text key={ex} style={styles.exampleText}>
-                  np. &ldquo;{ex}&rdquo;
-                </Text>
+                <View key={ex} style={styles.exampleRow}>
+                  <Text style={styles.exampleText}>{symbols.bullet}</Text>
+                  <Text style={[styles.exampleText, styles.exampleTextBody]}>{ex}</Text>
+                </View>
               ))}
             </View>
           )}
@@ -451,12 +453,25 @@ const styles = StyleSheet.create({
     marginTop: spacing.gutter,
     gap: spacing.tick,
   },
+  examplesLabel: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+    color: colors.muted,
+    marginBottom: spacing.hairline,
+  },
+  exampleRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
   exampleText: {
     fontFamily: fonts.sans,
     fontStyle: "italic",
     fontSize: 13,
     color: colors.muted,
     lineHeight: 18,
+  },
+  exampleTextBody: {
+    flex: 1,
   },
   input: {
     fontFamily: fonts.sans,

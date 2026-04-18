@@ -81,6 +81,7 @@ export default function VisibilityScreen() {
   const onNext = expanded === "ghost" ? handleGhost : expanded === "fill" ? handleFillProfile : () => {};
   const ctaTestID =
     expanded === "ghost" ? "ghost-profile-button" : expanded === "fill" ? "fill-profile-button" : "visibility-next";
+  const ctaTitle = expanded === "ghost" ? "Wchodzę do aplikacji" : "Dalej";
 
   return (
     <OnboardingScreen
@@ -90,7 +91,7 @@ export default function VisibilityScreen() {
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button
             testID={ctaTestID}
-            title="Dalej"
+            title={ctaTitle}
             variant="accent"
             onPress={onNext}
             disabled={expanded === null}
