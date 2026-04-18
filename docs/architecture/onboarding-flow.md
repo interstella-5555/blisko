@@ -114,7 +114,7 @@ Once generated data arrives (`generatedBio`, `generatedLookingFor`), shows edita
 The generated portrait is applied silently in the background — no UI element for it in the review screen (BLI-199). Portrait is internal-only ("never shown to user" per `ai-profiling.md`); users can still retrieve it via GDPR data-export.
 
 Calls `profiling.applyProfile` which:
-1. Upserts profile (insert or update on conflict) with displayName, bio, lookingFor, portrait, `portraitSharedForMatching: true`, `isComplete: true`, `visibilityMode: "semi_open"`. The visibility mode change ensures ghost users who later complete profiling become visible in discovery. The `portraitSharedForMatching` field is an optional input (validator: `z.boolean().optional()`) defaulted to `true` on the server side — the field is retained for audit purposes but has no functional effect on matching.
+1. Upserts profile (insert or update on conflict) with displayName, bio, lookingFor, portrait, `isComplete: true`, `visibilityMode: "semi_open"`. The visibility mode change ensures ghost users who later complete profiling become visible in discovery. `portraitSharedForMatching` is no longer written by this procedure — the DB default (`true` since BLI-199) handles inserts and the column is never updated on re-profiling; retained as an audit-only column with no functional effect on matching.
 2. Copies OAuth avatar URL to profile if available
 3. Enqueues `profileAI` job (embedding + interests extraction)
 4. Sets authStore profile and hasCheckedProfile, marks onboarding complete

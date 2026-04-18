@@ -2,7 +2,7 @@
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-11 — `getDetailedAnalysis` zyskał block + isComplete + soft-delete gate; `ensureAnalysis` dostał ten sam zestaw bramek z silent no-op fallbackiem; `getConnectionAnalysis` usunięty jako dead code (wszystkie jego funkcje pokrywa teraz `getDetailedAnalysis` z promocją T3) (BLI-188).
-> Updated 2026-04-18 — Portrait section removed from mobile UI (onboarding + settings review screens); portrait is now purely internal. `portraitSharedForMatching` validator became optional; `applyProfile` hardcodes `true` when absent. DB default flipped to `true`, existing `false` rows backfilled. Flag retained as audit-only (BLI-199).
+> Updated 2026-04-18 — Portrait section removed from mobile UI (onboarding + settings review screens); portrait is now purely internal. `portraitSharedForMatching` dropped from the `applyProfilingSchema` validator and no longer touched by `applyProfile` — DB default (`true`) handles inserts, existing rows backfilled to `true`, re-profiling keeps the existing value. Column retained as audit-only (BLI-199).
 
 Source: `apps/api/src/db/schema.ts`, `apps/api/src/trpc/procedures/profiles.ts`, `packages/shared/src/validators.ts`, `apps/api/src/services/ai.ts`, `apps/api/src/trpc/middleware/featureGate.ts`.
 
@@ -223,7 +223,7 @@ One profile per user. `profiles.userId` is a unique FK to `user.id` with `ON DEL
 - Rationale: the portrait is intentionally "honest, not flattering" (see `ai-profiling.md`). Surfacing it in-app would invite churn without improving matching quality.
 
 **Privacy controls:**
-- `portraitSharedForMatching` boolean: historical consent flag, default `true` since BLI-199. No functional effect — `analyzeConnection` and `quickScore` always receive the portrait if it exists. Retained as audit-only column; slated for removal in a future ticket.
+- `portraitSharedForMatching` boolean: historical consent flag, default `true` since BLI-199. No functional effect — `analyzeConnection` and `quickScore` always receive the portrait if it exists. Column is no longer referenced by `applyProfile` or any validator; retained as audit-only, slated for removal in a future ticket.
 - Portrait is regenerated when `bio` or `lookingFor` changes (via `enqueueProfileAI`)
 
 **Downstream consumers of portrait:**
