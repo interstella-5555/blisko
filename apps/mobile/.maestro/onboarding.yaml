@@ -61,8 +61,10 @@ appId: com.blisko.app
 
 - extendedWaitUntil:
     visible:
-      id: "fill-profile-button"
+      id: "fill-option"
     timeout: 10000
+- tapOn:
+    id: "fill-option"
 - tapOn:
     id: "fill-profile-button"
 

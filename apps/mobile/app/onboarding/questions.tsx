@@ -1,5 +1,5 @@
 import { ONBOARDING_QUESTIONS } from "@repo/shared";
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -12,8 +12,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { OnboardingStepHeader } from "@/components/onboarding/OnboardingStepHeader";
 import { Button } from "@/components/ui/Button";
-import { IconChevronLeft } from "@/components/ui/icons";
 import { ThinkingIndicator } from "@/components/ui/ThinkingIndicator";
 import { useRetryQuestionOnFailure } from "@/hooks/useRetryQuestionOnFailure";
 import { trpc } from "@/lib/trpc";
@@ -275,6 +275,7 @@ export default function QuestionsScreen() {
   if (phase === "submitting") {
     return (
       <View style={[styles.container, styles.centered]}>
+        <Stack.Screen options={{ headerShown: false }} />
         <ThinkingIndicator messages={["Analizuję Twoje odpowiedzi…"]} />
       </View>
     );
@@ -284,6 +285,7 @@ export default function QuestionsScreen() {
   if (phase === "generating") {
     return (
       <View style={[styles.container, styles.centered]}>
+        <Stack.Screen options={{ headerShown: false }} />
         {error ? (
           <View style={styles.errorRetry}>
             <Text style={styles.error}>{error}</Text>
@@ -310,22 +312,20 @@ export default function QuestionsScreen() {
     const currentFU = followUps[followUpIndex];
     if (!currentFU) return null;
 
+    const remainingCount = followUps.length - followUpIndex;
     return (
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        {/* Progress bar — stays at 100% during follow-ups */}
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: "100%" }]} />
-        </View>
-
+        <Stack.Screen
+          options={{
+            header: () => (
+              <OnboardingStepHeader
+                label="Krok 3"
+                rightLabel={`Jeszcze ${remainingCount} ${remainingCount === 1 ? "pytanie" : "pytania"}`}
+              />
+            ),
+          }}
+        />
         <Animated.View style={[styles.content, { transform: [{ translateX: slideAnim }] }]}>
-          <View style={styles.header}>
-            <View />
-            <Text style={styles.counter}>
-              Jeszcze {followUps.length - followUpIndex}{" "}
-              {followUps.length - followUpIndex === 1 ? "pytanie" : "pytania"}
-            </Text>
-          </View>
-
           <Text style={styles.questionText}>{currentFU.question}</Text>
 
           <TextInput
@@ -362,25 +362,20 @@ export default function QuestionsScreen() {
   // --- Standard questions phase ---
   if (!currentQuestion) return null;
 
-  const progress = (questionIndex + 1) / totalQuestions;
-
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      {/* Progress bar */}
-      <View style={styles.progressBarBg}>
-        <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
-      </View>
-
+      <Stack.Screen
+        options={{
+          header: () => (
+            <OnboardingStepHeader
+              label="Krok 3"
+              onBack={handleBack}
+              rightLabel={`Pytanie ${questionIndex + 1} / ${totalQuestions}`}
+            />
+          ),
+        }}
+      />
       <Animated.View style={[styles.content, { transform: [{ translateX: slideAnim }] }]}>
-        <View style={styles.header}>
-          <Pressable onPress={handleBack} hitSlop={8}>
-            <IconChevronLeft size={24} color={colors.ink} />
-          </Pressable>
-          <Text style={styles.counter}>
-            {questionIndex + 1} / {totalQuestions}
-          </Text>
-        </View>
-
         <Text style={styles.questionText}>{currentQuestion.question}</Text>
 
         <TextInput
@@ -437,28 +432,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  progressBarBg: {
-    height: 3,
-    backgroundColor: colors.rule,
-    width: "100%",
-  },
-  progressBarFill: {
-    height: 3,
-    backgroundColor: colors.accent,
-  },
   content: {
     flex: 1,
     paddingHorizontal: spacing.section,
-    paddingTop: spacing.block,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.block,
-  },
-  counter: {
-    ...typ.caption,
+    paddingTop: spacing.tight,
   },
   questionText: {
     ...typ.heading,

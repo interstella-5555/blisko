@@ -62,8 +62,10 @@ appId: com.blisko.app
 
 - extendedWaitUntil:
     visible:
-      id: "ghost-profile-button"
+      id: "ghost-option"
     timeout: 10000
+- tapOn:
+    id: "ghost-option"
 - tapOn:
     id: "ghost-profile-button"
 

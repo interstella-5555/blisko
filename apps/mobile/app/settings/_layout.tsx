@@ -2,7 +2,7 @@ import { router, Stack } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { IconChevronLeft } from "@/components/ui/icons";
-import { colors, fonts, spacing } from "@/theme";
+import { colors, fonts, layout, spacing } from "@/theme";
 
 export default function SettingsLayout() {
   return (
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.section,
-    height: 58,
+    height: layout.headerHeight,
   },
   back: {
     width: 24,

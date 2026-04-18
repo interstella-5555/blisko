@@ -29,7 +29,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useConversationsStore } from "@/stores/conversationsStore";
 import { useMessagesStore } from "@/stores/messagesStore";
 import { useProfilesStore } from "@/stores/profilesStore";
-import { colors, fonts, spacing } from "@/theme";
+import { colors, fonts, layout, spacing } from "@/theme";
 
 // Deterministic color from userId hash for group sender labels
 // Module-level empty array — stable reference for the fallback when a
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.section,
-    height: 58,
+    height: layout.headerHeight,
   },
   headerBack: {
     marginRight: 4,

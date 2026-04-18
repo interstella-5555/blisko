@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
+import { colors } from "@/theme";
 
 export default function OnboardingLayout() {
   const user = useAuthStore((state) => state.user);
@@ -44,16 +45,16 @@ export default function OnboardingLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false,
         animation: "slide_from_right",
+        contentStyle: { backgroundColor: colors.bg },
       }}
       initialRouteName="hook"
     >
-      <Stack.Screen name="hook" options={{ animation: "fade" }} />
+      <Stack.Screen name="hook" options={{ animation: "fade", headerShown: false }} />
       <Stack.Screen name="index" />
       <Stack.Screen name="visibility" />
       <Stack.Screen name="questions" />
-      <Stack.Screen name="profiling-result" />
+      <Stack.Screen name="profiling-result" options={{ headerShown: false }} />
     </Stack>
   );
 }

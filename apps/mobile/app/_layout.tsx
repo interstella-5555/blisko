@@ -23,7 +23,7 @@ import { useMessagesStore } from "@/stores/messagesStore";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import { useProfilesStore } from "@/stores/profilesStore";
 import { useWavesStore } from "@/stores/wavesStore";
-import { colors, fonts, spacing } from "@/theme";
+import { colors, fonts, layout, spacing } from "@/theme";
 
 let accountDeletedAlertShown = false;
 
@@ -202,7 +202,7 @@ export default function RootLayout() {
                           alignItems: "center",
                           justifyContent: "space-between",
                           paddingHorizontal: spacing.section,
-                          height: 58,
+                          height: layout.headerHeight,
                         }}
                       >
                         <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>

@@ -27,6 +27,10 @@ export const spacing = {
   block: 32,
 };
 
+export const layout = {
+  headerHeight: 44,
+};
+
 export const fonts = {
   serif: "InstrumentSerif-Regular",
   serifItalic: "InstrumentSerif-Italic",
