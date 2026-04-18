@@ -3,6 +3,7 @@
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 --- Onboarding audit fixes: ghost-to-full visibility transition, inline AI fallback, answer persistence (BLI-173).
 > Updated 2026-04-18 — Review screen no longer renders the "PORTRET OSOBOWOŚCI" section or the share-portrait toggle; portrait is applied silently and stays internal (BLI-199).
+> Updated 2026-04-19 — BLI-196 visibility screen redesign: accordion cards "Na razie przeglądam" / "Opowiem o sobie" with NIEWIDOCZNY/WIDOCZNY badges (replaces accent + ghost buttons). Shared onboarding primitives introduced: `OnboardingStepHeader` (Stack.Screen header slot, not in-content), `OnboardingScreen` (footer at viewport bottom for short content, below content for tall). `Toggle` pill replaces native `Switch` on 18+ confirm. Examples on `ONBOARDING_QUESTIONS` rewritten under 3 target personas — full profiles in `packages/shared/src/models.ts` (read before adding/editing questions).
 
 Onboarding turns a freshly authenticated user into a discoverable profile. Two paths: full AI-driven profiling (visible on map) or ghost profile (invisible, group-invite only). The flow generates a bio, "looking for" text, personality portrait, embedding vector, and extracted interests --- all via async BullMQ jobs with WS notification on completion.
 
@@ -16,7 +17,9 @@ Onboarding turns a freshly authenticated user into a discoverable profile. Two p
 | Onboarding Krok 4 (Widocznosc) | `visibility.tsx` (ghost vs fill) | "Chcesz byc widoczny?" |
 | Potwierdzenie AI | `profiling-result.tsx` | "Oto jak Cie widze --- powiedz czy trafilem" |
 | Ninja / Semi-Open / Full Nomad | visibilityMode in profile | (not set during onboarding, defaults to semi_open) |
-| Ghost profile | `createGhostProfile`, isComplete=false | "Na razie tylko imie" |
+| Ghost profile | `createGhostProfile`, isComplete=false | "Na razie przeglądam" (BLI-196 rename, was "Na razie tylko imie") |
+| Full profile option | continues to questions flow | "Opowiem o sobie" (BLI-196 rename, was "Wypelnij profil") |
+| Visibility mode on visibility screen | badge beneath card title | "NIEWIDOCZNY" (ghost) / "WIDOCZNY" (fill) |
 | Follow-up questions | `generateFollowUpQuestions` (0--3 AI-generated) | "Jeszcze X pytanie/pytania" |
 
 **Divergence from PRODUCT.md:** The product bible describes a 4-step flow ending with status setup and visibility mode selection. The implementation splits into: name+age, ghost-or-fill choice, questions, AI review. Status setup and visibility mode are available post-onboarding from the main app (set-status sheet, profile settings) rather than being mandatory onboarding steps.
@@ -49,9 +52,16 @@ Proceeds to: `/onboarding/visibility`
 
 **File:** `apps/mobile/app/onboarding/visibility.tsx`
 
-Two options:
-- **"Wypelnij profil"** (accent button) --- continues to questions flow
-- **"Na razie tylko imie"** (ghost button) --- creates ghost profile and skips to tabs
+Header: "Krok 2" (back chevron + "Wyloguj"). Title: "Chcesz być widoczny?". Above the two cards sits a ~20%-of-screen graphic: 12 scattered avatars (4×3 grid with jitter, hand-picked randomuser.me portraits) with a pulsing sonar dot in the center. Dotted 1-px SVG lines connect nearest avatar pairs. In "fill" mode, the sonar dot gets 4 solid 1-px lines to the nearest pins (guaranteed ≥1 left + ≥1 right + 1 random from top-5 + 1 from the 2 furthest on the underrepresented side). In "ghost" mode, avatars render with `blurRadius = ghostBlurRadius` via `GridClusterMarker` (`isGhost` prop override).
+
+Two equal-weight accordion cards (neither expanded by default — user must pick):
+
+- **"Na razie przeglądam"** — badge `NIEWIDOCZNY`. Prose expanded body describes: sees others on the map with partial info, cannot ping/message/join groups, can still write in groups they're invited to. Positioned for "chcę najpierw zobaczyć co jest w appce".
+- **"Opowiem o sobie"** — badge `WIDOCZNY`. Prose expanded body describes: will answer a few questions, get full access to people/groups in the area, receive ambient match pushes, be visible on the map to others.
+
+Both are `Pressable` wrapping the whole card (not just the header). Below the graphic and the cards sits a `footnote` ("Profil możesz uzupełnić lub zmienić później w ustawieniach.") and a single CTA in the footer. The CTA label is dynamic: `Dalej` when "Opowiem o sobie" is selected (proceeds to questions), `Wchodzę do aplikacji` when "Na razie przeglądam" is selected (creates ghost profile and jumps to tabs). Disabled state: no card picked.
+
+`testID`s preserved for Maestro E2E: `ghost-option`, `fill-option`, `ghost-profile-button`, `fill-profile-button`.
 
 This is the fork point between the full and ghost paths.
 
@@ -65,15 +75,17 @@ Four phases: `questions` -> `submitting` -> `followups` -> `generating`.
 
 Questions are defined in `packages/shared/src/models.ts` (`ONBOARDING_QUESTIONS`):
 
-| # | ID | Question | Required | Examples |
-|---|---|---------|----------|----------|
-| 1 | `intro` | Czesc! Wyobraz sobie, ze siadamy przy jednym stoliku. Czym sie zajmujesz i co sprawia ze tracisz poczucie czasu? | Yes | "Gram w squasha i szukam zespolu do jam session", "Projektantka, po pracy biegam i ogladam dokumenty o oceanach", "Inzynier w korpo, weekendy na szlaku lub przy planszowkach" |
-| 2 | `recent_obsession` | Co ostatnio Cie pochlonelo? Miejsce, ksiazka, serial, cokolwiek. | No | --- |
-| 3 | `looking_for` | Kogo szukasz? Znajomych, grupe, konkretna osobe? | Yes | --- |
-| 4 | `activities` | Jakie aktywnosci chcialbys robic z innymi? | No | --- |
-| 5 | `offer` | Co mozesz zaoferowac innym? | No | --- |
-| 6 | `conversation_trigger` | Co sprawiloby, ze chcialbys z kims pogadac? | No | --- |
-| 7 | `public_self` | Co chcialbys zeby inni o tobie wiedzieli? | No | --- |
+| # | ID | Question | Required |
+|---|---|---------|----------|
+| 1 | `intro` | Czesc! Wyobraz sobie, ze siadamy przy jednym stoliku. Czym sie zajmujesz i co sprawia ze tracisz poczucie czasu? | Yes |
+| 2 | `recent_obsession` | Co ostatnio Cie pochlonelo? Miejsce, ksiazka, serial, cokolwiek. | No |
+| 3 | `looking_for` | Kogo szukasz? Znajomych, grupe, konkretna osobe? | Yes |
+| 4 | `activities` | Jakie aktywnosci chcialbys robic z innymi? | No |
+| 5 | `offer` | Co mozesz zaoferowac innym? | No |
+| 6 | `conversation_trigger` | Co sprawiloby, ze chcialbys z kims pogadac? | No |
+| 7 | `public_self` | Co chcialbys zeby inni o tobie wiedzieli? | No |
+
+Every question has `examples: string[]` — 3 sample answers rendered below the input as a bullet list ("Przykładowe odpowiedzi:" label + "·" prefix per item, hanging indent for line wraps). Examples are calibrated for 3 distinct Warsaw target personas (Kacper — student/builder, Maja — fizjoterapeutka, Paweł — angel investor) in a fixed order. Full persona profiles (context, daily rhythm, values, consumption, goals, tone) live in the JSDoc block above `ONBOARDING_QUESTIONS` in `packages/shared/src/models.ts` — read that block before adding or rewording questions so new examples stay consistent.
 
 UI: progress bar (fraction of 7), question counter "N / 7", back chevron, text input (multiline, max 500 chars). Required questions disable "Dalej" if empty. Optional questions show "Pomin" link. Slide animation between questions (200ms timing + spring).
 
@@ -157,10 +169,16 @@ After `applyProfile`, the server enqueues a `profileAI` job that:
 | File | Purpose | Key interaction |
 |------|---------|----------------|
 | `onboarding/hook.tsx` | Animated intro | Auto-advance 5s, or tap "Zacznij" |
-| `onboarding/index.tsx` | Name + age (Step 1) | Text input + toggle, "Dalej" |
-| `onboarding/visibility.tsx` | Ghost vs fill (Step 2) | Two buttons, fork point |
+| `onboarding/index.tsx` | Name + age (Step 1) | Text input + `Toggle` primitive, "Dalej" |
+| `onboarding/visibility.tsx` | Ghost vs fill (Step 2) | Two accordion cards + scattered avatars graphic, dynamic CTA (`Dalej` / `Wchodzę do aplikacji`) |
 | `onboarding/questions.tsx` | Q&A + follow-ups (Step 3) | Slide between questions, 4 phases |
 | `onboarding/profiling-result.tsx` | AI review (Step 4) | Editable fields, "Tak, to ja" |
+
+**Shared primitives** (`apps/mobile/src/components/onboarding/`):
+- `OnboardingStepHeader` — rendered via Stack.Screen `header: () => (...)` slot. Props: `label`, optional `onBack`, optional `onLogout`, optional `rightLabel`. Used by Step 1 (`Krok 1` + logout), Step 2 (`Krok 2` + back + logout), Step 3 standard (`Krok 3` + back + `Pytanie N / 7`), Step 3 follow-ups (`Krok 3` + `Zostało ostatnie pytanie` / `Zostały tylko N pytania`), Step 4 (`Ostatni krok`).
+- `OnboardingScreen` — wrapper with `ScrollView contentContainerStyle={{ flexGrow: 1 }}` + inner `flex: 1` content + footer slot. Footer sticks to viewport bottom when content is short, flows naturally below when content is tall. Used by all screens with a primary CTA.
+
+See also `mobile-architecture.md` for the Stack.Screen header slot pattern and `Toggle` primitive spec.
 
 ---
 
