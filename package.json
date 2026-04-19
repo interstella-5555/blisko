@@ -51,8 +51,8 @@
     "packages/*"
   ],
   "catalog": {
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "typescript": "^6.0.2",
@@ -98,8 +98,5 @@
     "apps/mobile/**/*.{ts,tsx}": "bash -c 'bun run --filter @repo/mobile typecheck'",
     "packages/shared/src/**/*.ts": "bash -c 'bun run --filter @repo/shared typecheck'",
     "apps/admin/**/*.{ts,tsx}": "bash -c 'bun run --filter @repo/admin typecheck'"
-  },
-  "dependencies": {
-    "expo-crypto": "^55.0.14"
   }
 }

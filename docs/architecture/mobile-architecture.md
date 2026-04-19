@@ -12,8 +12,9 @@
 > Updated 2026-04-14 — messaging single source of truth, vanilla tRPC client, lifecycle-safe mutations (BLI-224).
 > Updated 2026-04-19 — BLI-196 onboarding primitives: `OnboardingStepHeader` (Stack.Screen header slot, not in-content), `OnboardingScreen` wrapper (ScrollView + SafeAreaView bottom + footer slot with `flexGrow: 1` + `flex: 1` hang-at-bottom pattern), `Toggle` primitive (Reanimated pill with icons/labels variants, replaces native Switch). New theme consts: `layout.headerHeight = 44` (iOS standard, normalized across 5 custom-header call sites) and `symbols.bullet = "·"`. `OnboardingQuestion.examples` renamed from `hints`/back; persona-driven example voice documented in shared/models.ts.
 > Updated 2026-04-19 — BLI-234: in-app chat notifications route taps through Czaty tab via `openChatFromNotification(conversationId, pathname)` helper (`dismissAll` guarded by `canDismiss` + conditional tab switch + `router.push`). newMessage toasts deduped per conversation using stable `msg-conv-${conversationId}` id — sonner replaces in place, newest message shows, timer resets; different conversations still stack.
+> Updated 2026-04-19 — BLI-223 Expo SDK 54 → 55 upgrade. React Native 0.81.5 → 0.83.4, React 19.1 → 19.2, reanimated 4.1.1 → 4.2.1, worklets 0.5.1 → 0.7.2, all `expo-*` packages → 55.0.x (new versioning scheme: Expo module major version matches SDK). `newArchEnabled` flag removed (option dropped in SDK 55 — legacy arch no longer supported). `android.edgeToEdgeEnabled` removed (default in SDK 55 schema). Added `expo-font` plugin (now required). Added `expo.install.exclude: ["typescript"]` — monorepo stays on TS 6 while Expo pins 5.9.
 
-React Native 0.81.5, Expo SDK 54, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
+React Native 0.83.4, Expo SDK 55, React 19.2, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
 
 ## Terminology & Product Alignment
 
