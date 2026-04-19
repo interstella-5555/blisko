@@ -13,17 +13,17 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
+import { AppGate } from "@/components/AppGate";
 import { IconCheck, IconChevronLeft, IconX } from "@/components/ui/icons";
 import { SplashHold } from "@/components/ui/SplashHold";
 import { authClient } from "@/lib/auth";
 import { getRateLimitMessage } from "@/lib/rateLimitMessages";
 import { showToast } from "@/lib/toast";
-import { getLastFailedRequestId, trpc, trpcClient } from "@/lib/trpc";
+import { trpc, trpcClient } from "@/lib/trpc";
 import { useWebSocket } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
-import { useLocationStore } from "@/stores/locationStore";
 import { resetUserScopedStores } from "@/stores/reset";
-import { colors, fonts, layout, spacing, type as typ } from "@/theme";
+import { colors, fonts, layout, spacing } from "@/theme";
 
 // Keep the native splash visible until RN has mounted and fonts are loaded.
 // Fires at module import (before any render). Once `fontsLoaded` flips in
@@ -157,93 +157,6 @@ const toastBadgeStyles = StyleSheet.create({
     color: colors.bg,
   },
 });
-
-// Gate between the providers and the Stack. Holds the branded splash up as a
-// SINGLE <SplashHold> instance that spans: auth session restore → profile
-// fetch → first real screen. Putting this logic per-group-layout ((tabs),
-// (auth), onboarding) would unmount <SonarDot> between phases and restart
-// the ring animation; keeping the gate at root means one React instance and
-// one continuous animation loop (BLI-243 follow-up — feedback from live device).
-//
-// Must live inside <trpc.Provider> + <QueryClientProvider> because it uses
-// `trpc.profiles.me.useQuery`. The fonts-loading gate above this one in
-// <RootLayout> runs OUTSIDE those providers, so we keep it separate.
-function AppGate({ children }: { children: React.ReactNode }) {
-  const isAuthLoading = useAuthStore((s) => s.isLoading);
-  const user = useAuthStore((s) => s.user);
-  const hasCheckedProfile = useAuthStore((s) => s.hasCheckedProfile);
-  const setProfile = useAuthStore((s) => s.setProfile);
-  const setHasCheckedProfile = useAuthStore((s) => s.setHasCheckedProfile);
-
-  const {
-    data: profileData,
-    isError,
-    refetch,
-  } = trpc.profiles.me.useQuery(undefined, {
-    enabled: !!user && !hasCheckedProfile,
-    retry: 2,
-  });
-
-  useEffect(() => {
-    // Mirror query result into the store once. Don't overwrite a profile that
-    // was just created during onboarding and has landed in the store ahead of
-    // the refetch (same guard as the previous (tabs)-layout effect).
-    if (profileData !== undefined && !hasCheckedProfile) {
-      setProfile(profileData);
-      setHasCheckedProfile(true);
-    }
-  }, [profileData, hasCheckedProfile, setProfile, setHasCheckedProfile]);
-
-  // Profile fetch failed on cold launch — retry screen instead of blindly
-  // redirecting to onboarding. Preserves the "couldn't reach server" path
-  // that existed in (tabs) before this gate moved up.
-  if (isError && !hasCheckedProfile) {
-    const requestId = getLastFailedRequestId();
-    return (
-      <View
-        style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: colors.bg }}
-      >
-        <Text style={{ ...typ.body, color: colors.muted, marginBottom: 16, textAlign: "center" }}>
-          Nie udało się połączyć z serwerem
-        </Text>
-        <Text style={{ ...typ.body, color: colors.accent }} onPress={() => refetch()}>
-          Spróbuj ponownie
-        </Text>
-        {requestId && (
-          <Text selectable style={{ ...typ.caption, color: colors.muted, marginTop: 12 }}>
-            ID: {requestId.slice(0, 8)}
-          </Text>
-        )}
-      </View>
-    );
-  }
-
-  // Auth restore in flight, or authenticated but profile not yet resolved.
-  // Keep the branded splash visible — single instance, no animation restart.
-  if (isAuthLoading || (user && !hasCheckedProfile)) {
-    return <SplashHold />;
-  }
-
-  return <LocationGate>{children}</LocationGate>;
-}
-
-// Same-tree extension of the gate for GPS state. Held separately so that auth +
-// profile can resolve without blocking on a store that only matters once the
-// user lands inside (tabs). Splash holds when the user is authenticated AND
-// permission is known-granted AND we don't have a cached fix yet. "denied" /
-// "undetermined" fall through — (tabs)/index renders its own error or prompt.
-function LocationGate({ children }: { children: React.ReactNode }) {
-  const user = useAuthStore((s) => s.user);
-  const hasCheckedProfile = useAuthStore((s) => s.hasCheckedProfile);
-  const permissionStatus = useLocationStore((s) => s.permissionStatus);
-  const hasLocation = useLocationStore((s) => s.latitude !== null && s.longitude !== null);
-
-  if (user && hasCheckedProfile && permissionStatus === "granted" && !hasLocation) {
-    return <SplashHold />;
-  }
-
-  return <>{children}</>;
-}
 
 export default function RootLayout() {
   const setUser = useAuthStore((state) => state.setUser);
