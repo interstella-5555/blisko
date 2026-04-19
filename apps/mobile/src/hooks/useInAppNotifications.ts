@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import React, { useCallback } from "react";
 import { NotificationToast } from "@/components/ui/NotificationToast";
 import { showNotification } from "@/lib/toast";
@@ -13,8 +13,24 @@ function notification(
   return React.createElement(NotificationToast, { toastId, ...props });
 }
 
+// Tapping a chat-related toast should always leave Czaty tab underneath — so
+// back from the chat returns to the chat list, not to wherever the user
+// happened to be (map, a modal, settings, another chat). `dismissAll` is
+// guarded by `canDismiss` because on the tabs root it dispatches a POP_TO_TOP
+// that no navigator can handle and logs an "unhandled action" warning. The
+// tab switch is skipped when the user is already on /chats because a
+// redundant `router.navigate("/(tabs)/chats")` to the current tab jumps focus
+// to the last tab (Profil) for reasons we haven't fully traced — behaviourally
+// observed, so we just skip it.
+function openChatFromNotification(conversationId: string, currentPathname: string) {
+  if (router.canDismiss()) router.dismissAll();
+  if (currentPathname !== "/chats") router.navigate("/(tabs)/chats");
+  router.push(`/chat/${conversationId}`);
+}
+
 export function useInAppNotifications() {
   const userId = useAuthStore((s) => s.user?.id);
+  const pathname = usePathname();
 
   const handler = useCallback(
     (msg: WSMessage) => {
@@ -36,7 +52,7 @@ export function useInAppNotifications() {
       }
 
       if (msg.type === "waveResponded" && msg.accepted && msg.conversationId) {
-        const { responderProfile } = msg;
+        const { responderProfile, conversationId } = msg;
         const id = `wave-responded-${msg.waveId}`;
         showNotification(
           "waveResponses",
@@ -47,8 +63,8 @@ export function useInAppNotifications() {
             avatarUrl: responderProfile?.avatarUrl ?? null,
             avatarName: responderProfile?.displayName ?? "?",
             onPress: () => {
-              if (useConversationsStore.getState().activeConversationId !== msg.conversationId) {
-                router.push(`/chat/${msg.conversationId}`);
+              if (useConversationsStore.getState().activeConversationId !== conversationId) {
+                openChatFromNotification(conversationId, pathname);
               }
             },
           }),
@@ -84,7 +100,7 @@ export function useInAppNotifications() {
             avatarName: msg.groupName ?? "G",
             onPress: () => {
               if (useConversationsStore.getState().activeConversationId !== msg.conversationId) {
-                router.push(`/chat/${msg.conversationId}`);
+                openChatFromNotification(msg.conversationId, pathname);
               }
             },
           }),
@@ -103,7 +119,7 @@ export function useInAppNotifications() {
         const senderAvatar = conv?.participant?.avatarUrl ?? null;
         const preview = msg.message.content.length > 60 ? `${msg.message.content.slice(0, 60)}…` : msg.message.content;
 
-        const id = `msg-${msg.message.id}`;
+        const id = `msg-conv-${msg.conversationId}`;
         showNotification(
           "newMessages",
           id,
@@ -114,14 +130,14 @@ export function useInAppNotifications() {
             avatarName: senderName,
             onPress: () => {
               if (useConversationsStore.getState().activeConversationId !== msg.conversationId) {
-                router.push(`/chat/${msg.conversationId}`);
+                openChatFromNotification(msg.conversationId, pathname);
               }
             },
           }),
         );
       }
     },
-    [userId],
+    [userId, pathname],
   );
 
   useWebSocket(handler);
