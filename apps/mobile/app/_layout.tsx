@@ -7,6 +7,7 @@ import { LinkPreviewContextProvider } from "expo-router/build/link/preview/LinkP
 import * as SecureStore from "expo-secure-store";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import ms from "ms";
 import { useEffect } from "react";
 import { Alert, AppState, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -104,8 +105,9 @@ export const queryClient = new QueryClient({
 
 // Single sign-out path for all logout flows (settings, account deletion, onboarding abort,
 // ACCOUNT_DELETED error handler). Clears every user-scoped store + React Query cache + Better
-// Auth session + SecureStore tokens. Leaves `locationStore` (device state) and `preferencesStore`
-// (intentionally persisted) untouched.
+// Auth session + SecureStore tokens. `preferencesStore` is the only remaining device-scoped
+// store (notification prefs + nearbyRadius — preserved across logout by product decision);
+// everything else including `locationStore` (BLI-243) is user-scoped and gets wiped.
 export async function signOutAndReset() {
   const pushToken = useAuthStore.getState().pushToken;
   if (pushToken) {
@@ -198,7 +200,7 @@ export default function RootLayout() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       SplashScreen.hideAsync().catch(() => {});
-    }, 3000);
+    }, ms("3s"));
     return () => clearTimeout(timeout);
   }, []);
 

@@ -3,15 +3,23 @@ import { Text, View } from "react-native";
 import { SplashHold } from "@/components/ui/SplashHold";
 import { getLastFailedRequestId, trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
-import { useLocationStore } from "@/stores/locationStore";
 import { colors, type as typ } from "@/theme";
 
 // Gate between the root providers and the Stack. Holds the branded splash up
-// as a SINGLE <SplashHold> instance that spans: auth session restore → profile
-// fetch → first GPS fix → first real screen. Keeping the gate here instead of
-// per-group-layout ((tabs), (auth), onboarding) means one React instance and
-// one continuous SonarDot animation loop — unmount/remount during handovers
-// would restart the ring animation (BLI-243).
+// as one <SplashHold> instance spanning auth session restore → profile fetch
+// → first real screen render. Keeping the gate at the root (instead of per-
+// group-layout early-returns in (tabs), (auth), onboarding) means one React
+// instance and one continuous SonarDot animation loop across the whole cold-
+// launch handover — unmount/remount during a phase flip would restart the
+// ring animation (BLI-243).
+//
+// Location fix is NOT gated here: the permission prompt + GPS fetch live in
+// (tabs)/index.tsx, so holding the splash on "granted + no cached fix" would
+// deadlock (nothing inside the gate drives the fetch). Returning users get
+// the cached fix from the persisted `locationStore` and render the map
+// instantly; first-time users see (tabs)/index's own <SplashHold /> briefly
+// while they grant permission and the first fix arrives — acceptable given
+// the alternative was a hang.
 //
 // Must live inside <trpc.Provider> + <QueryClientProvider> because it uses
 // `trpc.profiles.me.useQuery`. Mount order in app/_layout.tsx:
@@ -69,24 +77,6 @@ export function AppGate({ children }: { children: React.ReactNode }) {
   // Auth restore in flight, or authenticated but profile not yet resolved.
   // Keep the branded splash visible — single instance, no animation restart.
   if (isAuthLoading || (user && !hasCheckedProfile)) {
-    return <SplashHold />;
-  }
-
-  return <LocationGate>{children}</LocationGate>;
-}
-
-// Same-tree extension of the gate for GPS state. Held separately so that auth +
-// profile can resolve without blocking on a store that only matters once the
-// user lands inside (tabs). Splash holds when the user is authenticated AND
-// permission is known-granted AND we don't have a cached fix yet. "denied" /
-// "undetermined" fall through — (tabs)/index renders its own error or prompt.
-function LocationGate({ children }: { children: React.ReactNode }) {
-  const user = useAuthStore((s) => s.user);
-  const hasCheckedProfile = useAuthStore((s) => s.hasCheckedProfile);
-  const permissionStatus = useLocationStore((s) => s.permissionStatus);
-  const hasLocation = useLocationStore((s) => s.latitude !== null && s.longitude !== null);
-
-  if (user && hasCheckedProfile && permissionStatus === "granted" && !hasLocation) {
     return <SplashHold />;
   }
 

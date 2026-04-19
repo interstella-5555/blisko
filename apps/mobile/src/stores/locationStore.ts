@@ -31,10 +31,10 @@ const initialState = {
 // Persist the last known GPS fix across app kills so returning users see the
 // map at their last location immediately on cold launch while the fresh fix
 // is fetched in the background (BLI-243 follow-up: "siedzę w bunkrze, chcę
-// zobaczyć gdzie ostatnio byłem"). permissionStatus is persisted too so the
-// root-layout AppGate can decide whether to hold the splash for a GPS fix
-// (granted + no cached → gate) vs let the app through (denied / undetermined
-// → let (tabs)/index handle the prompt or show the error screen).
+// zobaczyć gdzie ostatnio byłem"). `permissionStatus` is intentionally NOT
+// persisted — (tabs)/index.tsx re-queries the system on mount on every cold
+// launch, so a stale persisted "granted" could mask a user who revoked the
+// permission in iOS Settings while the app was killed.
 export const useLocationStore = create<LocationState>()(
   persist(
     (set) => ({
@@ -46,6 +46,11 @@ export const useLocationStore = create<LocationState>()(
     {
       name: "blisko-location",
       storage: createJSONStorage(() => secureStoreAdapter),
+      partialize: (state) => ({
+        latitude: state.latitude,
+        longitude: state.longitude,
+        lastUpdate: state.lastUpdate,
+      }),
     },
   ),
 );
