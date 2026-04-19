@@ -1,6 +1,7 @@
 import { router, usePathname } from "expo-router";
 import React, { useCallback } from "react";
 import { NotificationToast } from "@/components/ui/NotificationToast";
+import { openChatFromAnywhere } from "@/lib/navigation";
 import { showNotification } from "@/lib/toast";
 import { useWebSocket, type WSMessage } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
@@ -11,21 +12,6 @@ function notification(
   props: { title: string; subtitle?: string; avatarUrl?: string | null; avatarName: string; onPress: () => void },
 ) {
   return React.createElement(NotificationToast, { toastId, ...props });
-}
-
-// Tapping a chat-related toast should always leave Czaty tab underneath — so
-// back from the chat returns to the chat list, not to wherever the user
-// happened to be (map, a modal, settings, another chat). `dismissAll` is
-// guarded by `canDismiss` because on the tabs root it dispatches a POP_TO_TOP
-// that no navigator can handle and logs an "unhandled action" warning. The
-// tab switch is skipped when the user is already on /chats because a
-// redundant `router.navigate("/(tabs)/chats")` to the current tab jumps focus
-// to the last tab (Profil) for reasons we haven't fully traced — behaviourally
-// observed, so we just skip it.
-function openChatFromNotification(conversationId: string, currentPathname: string) {
-  if (router.canDismiss()) router.dismissAll();
-  if (currentPathname !== "/chats") router.navigate("/(tabs)/chats");
-  router.push(`/chat/${conversationId}`);
 }
 
 export function useInAppNotifications() {
@@ -64,7 +50,7 @@ export function useInAppNotifications() {
             avatarName: responderProfile?.displayName ?? "?",
             onPress: () => {
               if (useConversationsStore.getState().activeConversationId !== conversationId) {
-                openChatFromNotification(conversationId, pathname);
+                openChatFromAnywhere(conversationId, pathname);
               }
             },
           }),
@@ -100,7 +86,7 @@ export function useInAppNotifications() {
             avatarName: msg.groupName ?? "G",
             onPress: () => {
               if (useConversationsStore.getState().activeConversationId !== msg.conversationId) {
-                openChatFromNotification(msg.conversationId, pathname);
+                openChatFromAnywhere(msg.conversationId, pathname);
               }
             },
           }),
@@ -130,7 +116,7 @@ export function useInAppNotifications() {
             avatarName: senderName,
             onPress: () => {
               if (useConversationsStore.getState().activeConversationId !== msg.conversationId) {
-                openChatFromNotification(msg.conversationId, pathname);
+                openChatFromAnywhere(msg.conversationId, pathname);
               }
             },
           }),

@@ -90,6 +90,7 @@ export default function ChatsScreen() {
     if (!hydrated || hasPreloaded.current) return;
     hasPreloaded.current = true;
     const store = useMessagesStore.getState();
+    const { conversations } = useConversationsStore.getState();
 
     conversations
       .slice(0, 15)

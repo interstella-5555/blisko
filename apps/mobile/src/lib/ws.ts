@@ -225,7 +225,7 @@ export function useWebSocket(onMessage?: MessageHandler) {
   const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
     connect();
 
@@ -307,11 +307,14 @@ export function useTypingIndicator(conversationId: string | undefined) {
     [conversationId],
   );
 
-  // Cleanup
+  // Cleanup — read latest typingUsers via ref so unmount clears active timeouts
+  // (state would be stale here under empty deps)
+  const typingUsersRef = useRef(typingUsers);
+  typingUsersRef.current = typingUsers;
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      for (const timeout of typingUsers.values()) clearTimeout(timeout);
+      for (const timeout of typingUsersRef.current.values()) clearTimeout(timeout);
     };
   }, []);
 
