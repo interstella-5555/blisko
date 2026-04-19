@@ -56,7 +56,8 @@ const styles = StyleSheet.create({
     borderColor: colors.rule,
     borderRadius: 14,
     padding: 14,
-    width: "100%",
+    alignSelf: "stretch",
+    marginHorizontal: spacing.section,
   },
   textContainer: {
     flex: 1,
