@@ -90,9 +90,9 @@ export default function ChatsScreen() {
     if (!hydrated || hasPreloaded.current) return;
     hasPreloaded.current = true;
     const store = useMessagesStore.getState();
-    const convs = useConversationsStore.getState().conversations;
+    const { conversations } = useConversationsStore.getState();
 
-    convs
+    conversations
       .slice(0, 15)
       .filter((c) => !store.hasChat(c.id))
       .forEach((conv) => {
