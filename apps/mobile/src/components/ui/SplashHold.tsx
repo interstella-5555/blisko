@@ -46,7 +46,10 @@ const styles = StyleSheet.create({
     marginTop: 44,
     fontFamily: fonts.serif,
     fontSize: 40,
-    lineHeight: 40,
+    // No explicit lineHeight — Instrument Serif needs ~1.2x for ascenders +
+    // descenders to render without clipping. Leaving it unset lets RN
+    // compute based on the font's own metrics.
     color: colors.ink,
+    textAlign: "center",
   },
 });
