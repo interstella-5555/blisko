@@ -651,8 +651,12 @@ async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
     jobName: "generate-profile-from-qa",
     userId: job.userId,
     model: AI_MODELS.async,
-    serviceTier: "flex",
-    reasoningEffort: "medium",
+    // User waits on the "Ostatni krok" screen — standard tier for guaranteed
+    // capacity; flex can be deferred/downgraded by OpenAI under load.
+    serviceTier: "standard",
+    // Minimal reasoning leaves the full maxOutputTokens budget for the actual
+    // output (portrait is 200-400 PL words, can exceed 800 tokens).
+    reasoningEffort: "minimal",
   });
 
   await db
