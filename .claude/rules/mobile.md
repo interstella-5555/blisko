@@ -1,5 +1,7 @@
 # `mobile` — React Native / Expo conventions
 
+- `mobile/new-store-categorize` — When adding a new Zustand store in `apps/mobile/src/stores/`, you MUST add the hook to either `USER_SCOPED_STORES` (default, wiped at session boundary) or `DEVICE_SCOPED_STORES` (preserved across sessions) in `src/stores/reset.ts`. Forgetting this leaks the previous account's state into the next session — e.g. onboarding answers bleeding into a fresh user's profiling screen when the app lost a session without going through `signOutAndReset`. Default to user-scoped; opt out only for device state (GPS) or UX preferences the product explicitly wants to survive logout (notification prefs, nearby radius). See "Zustand Stores" in `docs/architecture/mobile-architecture.md`.
+
 - `mobile/no-native-headers` — **NEVER** use React Navigation's native header (`headerLeft`, `headerRight`, `headerStyle`, etc.). iOS wraps them in `UIBarButtonItem` with an ugly capsule background we can't remove. Always use `header: () => (...)` in `screenOptions` for fully custom headers.
 
   Standard pattern — SafeAreaView + centered title + back chevron:

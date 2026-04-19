@@ -57,6 +57,9 @@ Bun native WebSocket server delivering real-time events to mobile clients. Sourc
 | `groupInvited` | server->client | User invited to group | `{ type: "groupInvited", conversationId, groupName }` |
 | `conversationDeleted` | server->client | Conversation removed | `{ type: "conversationDeleted", conversationId }` |
 | `forceDisconnect` | server->client | Account deleted | `{ type: "forceDisconnect" }` (then server closes WS with code 1000) |
+| `reconnected` | **synthetic / client-only** | Emitted by `apps/mobile/src/lib/ws.ts:162` after successful re-auth following a drop (`onclose` → reconnect timer → new `auth` exchange). Delivered to all registered handlers like any other message, but the server never sends it over the wire. | `{ type: "reconnected" }` |
+
+**Why `reconnected` matters.** It is the second leg of the self-heal design — `*Failed` events cover permanent backend failures, but a succeeded job whose completion event the client missed during a WS drop goes unnoticed without it. Handlers that depend on a terminal event (e.g. `profilingComplete`, `analysisReady`, `statusMatchesReady`) should also react to `reconnected` by refetching the resource they were awaiting. Current subscribers: `(tabs)/_layout.tsx` (messages/waves reconciliation + batch `syncGaps`), `onboarding/profiling-result.tsx` (refetch `sessionState` on reconnect — BLI-229).
 
 ## Server Setup
 

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Onboarding examples — list vs carousel</title>
+    <style>
+      :root {
+        --bg: #faf7f2;
+        --ink: #1a1a1a;
+        --muted: #8b8680;
+        --rule: #d5d0c4;
+        --accent: #c0392b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #e8e6de;
+        color: var(--ink);
+      }
+      .wrap {
+        display: flex;
+        gap: 48px;
+        padding: 32px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      .label {
+        font-size: 13px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .phone {
+        width: 380px;
+        height: 780px;
+        background: var(--bg);
+        border-radius: 48px;
+        border: 8px solid #111;
+        padding: 48px 0 0 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .step {
+        padding: 0 24px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .question {
+        padding: 8px 24px 20px;
+        font-family: "Times New Roman", serif;
+        font-size: 26px;
+        line-height: 1.15;
+      }
+      .input {
+        margin: 0 24px 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--ink);
+        font-size: 16px;
+      }
+      .examples-label {
+        padding: 16px 24px 4px;
+        font-size: 13px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      /* --- LIST variant --- */
+      .examples-list {
+        padding: 4px 24px 0;
+      }
+      .example-row {
+        display: flex;
+        gap: 6px;
+        padding: 3px 0;
+      }
+      .example-bullet,
+      .example-text {
+        font-size: 13px;
+        color: var(--muted);
+        font-style: italic;
+        line-height: 1.4;
+      }
+      .example-text {
+        flex: 1;
+      }
+
+      /* --- CAROUSEL variant --- */
+      .carousel-wrap {
+        padding-top: 4px;
+        overflow: hidden;
+      }
+      .carousel {
+        display: flex;
+        gap: 12px;
+        padding: 0 24px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-padding-left: 24px;
+      }
+      .carousel::-webkit-scrollbar {
+        display: none;
+      }
+      .card {
+        flex: 0 0 calc(100% - 48px - 24px); /* viewport width minus outer padding minus peek */
+        scroll-snap-align: start;
+        padding: 14px 16px;
+        background: rgba(139, 134, 128, 0.06);
+        border-radius: 12px;
+        font-size: 14px;
+        color: var(--ink);
+        line-height: 1.5;
+        font-style: italic;
+      }
+      .dots {
+        display: flex;
+        gap: 6px;
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--rule);
+        transition: all 180ms ease;
+      }
+      .dot.active {
+        width: 18px;
+        background: var(--ink);
+      }
+
+      .spacer {
+        flex: 1;
+      }
+      .btn {
+        margin: 0 24px 40px;
+        padding: 16px;
+        border-radius: 8px;
+        background: var(--accent);
+        color: white;
+        text-align: center;
+        font-weight: 600;
+        letter-spacing: 1px;
+      }
+      .annotation {
+        font-size: 12px;
+        color: var(--muted);
+        max-width: 360px;
+        text-align: center;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <!-- LIST (obecne) -->
+      <div class="col">
+        <div class="label">Obecne — lista 3 przykładów</div>
+        <div class="phone">
+          <div class="step">Krok 3 · Pytanie 1 / 7</div>
+          <div class="question">Cześć! Wyobraź sobie, że siadamy przy jednym stoliku. Czym się zajmujesz i co sprawia że tracisz poczucie czasu?</div>
+          <div class="input">Test User</div>
+          <div class="examples-label"><span>Przykładowe odpowiedzi:</span></div>
+          <div class="examples-list">
+            <div class="example-row">
+              <span class="example-bullet">·</span>
+              <span class="example-text">Studiuję SGH, ale po zajęciach koduję z ziomkiem z PW nasz fintechowy MVP — tracę czas grzebiąc w smart kontraktach do 3 w nocy.</span>
+            </div>
+            <div class="example-row">
+              <span class="example-bullet">·</span>
+              <span class="example-text">Fizjoterapeutka z Mokotowa, mam gabinet. Tracę czas czytając o budowaniu biznesu usługowego albo lecząc skomplikowane kręgosłupy.</span>
+            </div>
+            <div class="example-row">
+              <span class="example-bullet">·</span>
+              <span class="example-text">Po exicie w kosmetykach inwestuję w biotech i longevity — tracę czas, gdy analizuję deal przy lampce wina w Szczupaku.</span>
+            </div>
+          </div>
+          <div class="spacer"></div>
+          <div class="btn">DALEJ</div>
+        </div>
+        <div class="annotation">~150px zjadane przez listę przykładów. Na krótszym ekranie input + button mogą być pod klawiaturą.</div>
+      </div>
+
+      <!-- CAROUSEL (proponowane) -->
+      <div class="col">
+        <div class="label">Propozycja — karuzela z peek</div>
+        <div class="phone">
+          <div class="step">Krok 3 · Pytanie 1 / 7</div>
+          <div class="question">Cześć! Wyobraź sobie, że siadamy przy jednym stoliku. Czym się zajmujesz i co sprawia że tracisz poczucie czasu?</div>
+          <div class="input">Test User</div>
+          <div class="examples-label">
+            <span>Przykładowe odpowiedzi:</span>
+            <div class="dots">
+              <span class="dot active"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+          <div class="carousel-wrap">
+            <div class="carousel">
+              <div class="card">Studiuję SGH, ale po zajęciach koduję z ziomkiem z PW nasz fintechowy MVP — tracę czas grzebiąc w smart kontraktach do 3 w nocy.</div>
+              <div class="card">Fizjoterapeutka z Mokotowa, mam gabinet. Tracę czas czytając o budowaniu biznesu usługowego albo lecząc skomplikowane kręgosłupy.</div>
+              <div class="card">Po exicie w kosmetykach inwestuję w biotech i longevity — tracę czas, gdy analizuję deal przy lampce wina w Szczupaku.</div>
+            </div>
+          </div>
+          <div class="spacer"></div>
+          <div class="btn">DALEJ</div>
+        </div>
+        <div class="annotation">~100px. Peek następnej karty (~24px) + kropki progress = zero tutorial, czytelny signal "swipe". Kropki też klikalne (tap → scroll do przykładu).</div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, spacing } from "@/theme";
 
 interface OnboardingScreenProps {
@@ -10,18 +12,25 @@ interface OnboardingScreenProps {
 }
 
 export function OnboardingScreen({ children, footer }: OnboardingScreenProps) {
+  // paddingBottom collapses as keyboard opens so the footer sits flush above it.
+  const insets = useSafeAreaInsets();
+  const keyboard = useReanimatedKeyboardAnimation();
+  const containerStyle = useAnimatedStyle(() => ({
+    paddingBottom: (1 - keyboard.progress.value) * insets.bottom,
+  }));
+
   return (
-    <SafeAreaView edges={["bottom"]} style={styles.safeArea}>
+    <Animated.View style={[styles.container, containerStyle]}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.content}>{children}</View>
         {footer ? <View style={styles.footer}>{footer}</View> : null}
       </ScrollView>
-    </SafeAreaView>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: colors.bg,
   },

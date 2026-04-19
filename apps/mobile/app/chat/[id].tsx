@@ -8,7 +8,6 @@ import {
   Alert,
   FlatList,
   Keyboard,
-  KeyboardAvoidingView,
   type LayoutChangeEvent,
   Platform,
   Pressable,
@@ -16,6 +15,8 @@ import {
   Text,
   View,
 } from "react-native";
+import { KeyboardStickyView, useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { type BubblePosition, MessageBubble } from "@/components/chat/MessageBubble";
@@ -67,6 +68,13 @@ export default function ChatScreen() {
     setChatInputHeight(e.nativeEvent.layout.height);
   };
   const messageRefs = useRef(new Map<string, View>());
+
+  // Animated spacer rendered as inverted-list header (= visual bottom) to keep
+  // newest messages above the keyboard while KeyboardStickyView lifts the input.
+  // `useReanimatedKeyboardAnimation().height.value` is NEGATIVE when the keyboard
+  // is open (library convention for "lift content by this delta"), so negate it.
+  const keyboard = useReanimatedKeyboardAnimation();
+  const keyboardSpacerStyle = useAnimatedStyle(() => ({ height: -keyboard.height.value }));
 
   // Store selectors
   const storeConversation = useConversationsStore((s) => s.conversations.find((c) => c.id === conversationId));
@@ -290,11 +298,7 @@ export default function ChatScreen() {
   const headerAvatarUrl = isGroup ? storeConversation?.groupAvatarUrl : storeConversation?.participant?.avatarUrl;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={0}
-    >
+    <View style={styles.container}>
       <Stack.Screen
         options={{
           header: () => (
@@ -386,6 +390,7 @@ export default function ChatScreen() {
         data={allMessages}
         keyExtractor={(item) => item.id}
         scrollEnabled={!contextMenu}
+        keyboardDismissMode="interactive"
         renderItem={({ item, index }) => {
           const isMine = item.senderId === userId;
           const { position, isLastInGroup } = getGroupInfo(index);
@@ -467,6 +472,7 @@ export default function ChatScreen() {
         contentContainerStyle={styles.messageList}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
+        ListHeaderComponent={<Animated.View style={keyboardSpacerStyle} />}
         ListFooterComponent={
           isLoadingMore ? <ActivityIndicator size="small" color={colors.muted} style={styles.loader} /> : null
         }
@@ -492,24 +498,26 @@ export default function ChatScreen() {
         }
       />
 
-      {someoneTyping && (
-        <View style={styles.typingBar}>
-          <Text style={styles.typingText}>
-            {isGroup && typingDisplayNames.length > 0 ? `${typingDisplayNames.join(", ")} pisze...` : "pisze..."}
-          </Text>
-        </View>
-      )}
+      <KeyboardStickyView>
+        {someoneTyping && (
+          <View style={styles.typingBar}>
+            <Text style={styles.typingText}>
+              {isGroup && typingDisplayNames.length > 0 ? `${typingDisplayNames.join(", ")} pisze...` : "pisze..."}
+            </Text>
+          </View>
+        )}
 
-      <View onLayout={handleChatInputLayout}>
-        <ChatInput
-          onSend={handleSend}
-          onSendImage={handleSendImage}
-          onSendLocation={handleSendLocation}
-          replyingTo={replyingTo}
-          onCancelReply={() => setReplyingTo(null)}
-          onTyping={() => sendTyping(true)}
-        />
-      </View>
+        <View onLayout={handleChatInputLayout}>
+          <ChatInput
+            onSend={handleSend}
+            onSendImage={handleSendImage}
+            onSendLocation={handleSendLocation}
+            replyingTo={replyingTo}
+            onCancelReply={() => setReplyingTo(null)}
+            onTyping={() => sendTyping(true)}
+          />
+        </View>
+      </KeyboardStickyView>
 
       {contextMenu && (
         <MessageContextMenu
@@ -545,7 +553,7 @@ export default function ChatScreen() {
           onClose={() => setContextMenu(null)}
         />
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

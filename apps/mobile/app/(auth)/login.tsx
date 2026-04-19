@@ -1,10 +1,11 @@
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { authClient } from "@/lib/auth";
 import { useAuthStore } from "@/stores/authStore";
+import { resetUserScopedStores } from "@/stores/reset";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -22,6 +23,10 @@ function translateAuthError(message?: string): string {
 }
 
 export default function LoginScreen() {
+  useEffect(() => {
+    resetUserScopedStores();
+  }, []);
+
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const { setUser, setSession, setProfile, setHasCheckedProfile } = useAuthStore();
 
