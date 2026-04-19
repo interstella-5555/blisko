@@ -389,12 +389,13 @@ export default function NearbyScreen() {
     );
   }
 
-  // Loading location — keep the branded <SplashHold> visible so the cold-launch
-  // handover (native splash → AppGate SplashHold → this screen) doesn't bounce
-  // through a generic spinner while we wait for the first GPS fix. First-run
-  // users will see a permission prompt on top of the splash; subsequent cold
-  // launches resolve from the cached fix quickly.
-  if (permissionStatus === "undetermined" || (!latitude && !longitude)) {
+  // Loading location — only shown when we have NO coordinates at all. Returning
+  // users get the cached GPS fix from locationStore (persisted via SecureStore)
+  // and render the map immediately, while a fresh fix comes in from
+  // `Location.watchPositionAsync` in the background. Falls through to the
+  // splash on fresh installs and on the narrow window between permission-
+  // granted and the first GPS fix.
+  if (!latitude || !longitude) {
     return <SplashHold />;
   }
 

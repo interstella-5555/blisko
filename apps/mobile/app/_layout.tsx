@@ -21,6 +21,7 @@ import { showToast } from "@/lib/toast";
 import { getLastFailedRequestId, trpc, trpcClient } from "@/lib/trpc";
 import { useWebSocket } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
+import { useLocationStore } from "@/stores/locationStore";
 import { resetUserScopedStores } from "@/stores/reset";
 import { colors, fonts, layout, spacing, type as typ } from "@/theme";
 
@@ -220,6 +221,24 @@ function AppGate({ children }: { children: React.ReactNode }) {
   // Auth restore in flight, or authenticated but profile not yet resolved.
   // Keep the branded splash visible — single instance, no animation restart.
   if (isAuthLoading || (user && !hasCheckedProfile)) {
+    return <SplashHold />;
+  }
+
+  return <LocationGate>{children}</LocationGate>;
+}
+
+// Same-tree extension of the gate for GPS state. Held separately so that auth +
+// profile can resolve without blocking on a store that only matters once the
+// user lands inside (tabs). Splash holds when the user is authenticated AND
+// permission is known-granted AND we don't have a cached fix yet. "denied" /
+// "undetermined" fall through — (tabs)/index renders its own error or prompt.
+function LocationGate({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((s) => s.user);
+  const hasCheckedProfile = useAuthStore((s) => s.hasCheckedProfile);
+  const permissionStatus = useLocationStore((s) => s.permissionStatus);
+  const hasLocation = useLocationStore((s) => s.latitude !== null && s.longitude !== null);
+
+  if (user && hasCheckedProfile && permissionStatus === "granted" && !hasLocation) {
     return <SplashHold />;
   }
 

@@ -17,10 +17,10 @@ export const USER_SCOPED_STORES = [
   useProfilesStore,
   useWavesStore,
   useOnboardingStore,
+  useLocationStore, // last known GPS fix — user-generated (only populated while authed), wiped on logout for privacy
 ] as const;
 
 export const DEVICE_SCOPED_STORES = [
-  useLocationStore, // current GPS reading — device state, no user data
   usePreferencesStore, // nearbyRadius + notificationPrefs — UX, preserved across logout by product decision
 ] as const;
 
