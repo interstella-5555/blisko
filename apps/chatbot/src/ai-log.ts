@@ -8,6 +8,8 @@ export interface ChatbotAiLogEvent {
   completionTokens: number;
   userId?: string | null;
   targetUserId?: string | null;
+  serviceTier?: "standard" | "flex";
+  reasoningEffort?: "minimal" | "medium" | null;
   durationMs: number;
   status: "success" | "failed";
   errorMessage?: string;
