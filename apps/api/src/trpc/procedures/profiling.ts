@@ -1,4 +1,5 @@
 import {
+  AI_MODELS,
   answerFollowUpSchema,
   answerQuestionSchema,
   applyProfilingSchema,
@@ -415,9 +416,15 @@ export const profilingRouter = router({
 
       let followUps: { questions: string[] };
       try {
+        // Inline tRPC call — user blocks on response. Flex tier would be unsafe here
+        // (latency up to minutes). Uses the async-tier model on Standard to still benefit
+        // from gpt-5-mini's cheaper input pricing without flex's latency variance.
         followUps = await generateFollowUpQuestions(displayName, answeredQA, input.skipped, {
           jobName: "inline-follow-up-questions",
           userId: ctx.userId,
+          model: AI_MODELS.async,
+          serviceTier: "standard",
+          reasoningEffort: "minimal",
         });
       } catch (err) {
         console.error("[profiling] Follow-up generation failed, proceeding without:", err);

@@ -169,6 +169,13 @@
       "when": 1776510806462,
       "tag": "0023_portrait_shared_default_true",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1776565097049,
+      "tag": "0024_add_service_tier_to_ai_calls",
+      "breakpoints": true
     }
   ]
 }

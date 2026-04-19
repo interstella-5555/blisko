@@ -5,6 +5,7 @@
 > Updated 2026-04-11 — `connection_analyses.tier` column (`t1`/`t2`/`t3`) records which scoring tier produced each row, surfaced in admin matching list (BLI-184).
 > Updated 2026-04-14 — added `seq` column to messages table for per-conversation sequence numbers (BLI-224).
 > Updated 2026-04-18 — `profiles.portrait_shared_for_matching` default flipped to `true`; flag retained as audit-only (BLI-199).
+> Updated 2026-04-19 — `metrics.ai_calls` gains `service_tier` (default `'standard'`) + `reasoning_effort` (nullable) columns for the gpt-5-mini + Flex migration (BLI-236).
 
 PostgreSQL on Railway. ORM: Drizzle `^0.45.1` with `postgres` (postgres.js) `^3.4.0` driver. Schema source: `packages/db/src/schema.ts` (the `@repo/db` workspace package). `apps/api/src/db/schema.ts` is now a 3-line re-export wrapper (`export * from "@repo/db/schema"`) preserved so existing `@/db` / `@/db/schema` imports keep working — the real schema definitions live in `@repo/db`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`.
 
@@ -490,13 +491,15 @@ Per-call OpenAI telemetry. Every Vercel AI SDK call logged via `withAiLogging()`
 | `timestamp` | timestamptz | no | DB-generated (`defaultNow()`) |
 | `queue_name` | text | no | `ai` today — placeholder for future queue split |
 | `job_name` | text | no | `quick-score` / `analyze-pair` / `generate-profile-ai` / `status-matching` / `proximity-status-matching` / `evaluate-status-match` / `generate-profiling-question` / `generate-profile-from-qa` / `inline-follow-up-questions` / etc. |
-| `model` | text | no | `gpt-4.1-mini`, `text-embedding-3-small`. `unknown` if call failed before model was known. |
+| `model` | text | no | `gpt-4.1-mini`, `gpt-5-mini`, `text-embedding-3-small`. `unknown` if call failed before model was known. |
 | `prompt_tokens` | integer | no | From Vercel SDK `usage.inputTokens` (or `usage.tokens` for embeddings). 0 on failure. |
 | `completion_tokens` | integer | no | From Vercel SDK `usage.outputTokens`. 0 for embeddings and on failure. |
 | `total_tokens` | integer | no | `prompt_tokens + completion_tokens` |
-| `estimated_cost_usd` | numeric(12,6) | no | Computed via `estimateCostUsd(model, ...)` from `ai-pricing.ts`. Unknown models → 0. |
+| `estimated_cost_usd` | numeric(12,6) | no | Computed via `estimateCostUsd(model, p, c, service_tier)` from `ai-pricing.ts`. `flex` halves the base cost. Unknown models → 0. |
 | `user_id` | text | yes | User who triggered the call. Nullified on anonymization. |
 | `target_user_id` | text | yes | Other user for pair jobs (`quick-score`, `analyze-pair`, `status-matching`). Nullified on anonymization. |
+| `service_tier` | text | no | `standard` / `flex`. Default `standard` for historical rows and sync call-sites. `flex` used on flex-eligible models (`gpt-5-mini`) for async BullMQ jobs — 50% off. |
+| `reasoning_effort` | text | yes | `minimal` / `medium`. Reasoning models only (gpt-5 family). NULL for `gpt-4.1-mini` and embeddings. |
 | `duration_ms` | integer | no | AI call duration only, not full job duration |
 | `status` | text | no | `success` / `failed` |
 | `error_message` | text | yes | Truncated to 200 chars, failures only |
@@ -506,6 +509,7 @@ Per-call OpenAI telemetry. Every Vercel AI SDK call logged via `withAiLogging()`
 - `idx_ai_calls_job_ts` on `(job_name, timestamp)` — breakdown per job type
 - `idx_ai_calls_user_ts` on `(user_id, timestamp)` — top-users query
 - `idx_ai_calls_model_ts` on `(model, timestamp)` — per-model breakdown
+- `idx_ai_calls_tier_ts` on `(service_tier, timestamp)` — per-tier breakdown (Standard vs Flex split)
 
 **No FK to `user`** — metrics schema is isolated, users get anonymized (GDPR). `user_id`/`target_user_id` become historical traces that are nullified when the user is hard-deleted.
 

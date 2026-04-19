@@ -1,4 +1,16 @@
-export const GPT_MODEL = "gpt-4.1-mini";
+/**
+ * AI models keyed by role, not by provider/family.
+ * `sync` — hot-path, user-facing, latency-sensitive (tRPC inline calls, on-demand T3).
+ * `async` — background workers, flex-tier capable, optimizes $/token.
+ * Swap the mapped value to change providers — call-sites reference the role, not the model id.
+ */
+export const AI_MODELS = {
+  sync: "gpt-5-mini",
+  async: "gpt-5-mini",
+} as const;
+
+export type AiModelRole = keyof typeof AI_MODELS;
+
 export const EMBEDDING_MODEL = "text-embedding-3-small";
 
 export interface OnboardingQuestion {

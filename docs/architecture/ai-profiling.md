@@ -1,6 +1,7 @@
 # AI Profiling & Onboarding
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-19 — BLI-236. Async profiling jobs (`generateNextQuestion`, `generateProfileFromQA`, `generatePortrait`, `extractInterests`) run `gpt-5-mini` with `service_tier: "flex"` (50% off). Inline `generateFollowUpQuestions` (in `submitOnboarding`) runs `gpt-5-mini` Standard — cheaper input than the old `gpt-4.1-mini` without flex's latency variance. `generateProfileFromQA` uses `reasoningEffort: "medium"` for richer bio/portrait prose; other calls use `"minimal"`. Legacy `GPT_MODEL` constant is now `AI_MODELS.sync` / `AI_MODELS.async`.
 > Updated 2026-04-10 — Self-healing: `questionFailed`/`profilingFailed` events, BullMQ deduplication, mobile retry hooks (BLI-161, BLI-162).
 > Updated 2026-04-10 — `submitOnboarding` rate limit, inline AI fallback on failure, ghost-to-full visibility fix (BLI-173).
 
@@ -70,7 +71,7 @@ Only `intro` and `looking_for` are required. Users can skip the rest. Each answe
 - Prefer scenarios and open-ended questions
 
 **Config:**
-- Model: `gpt-4.1-mini` (GPT_MODEL)
+- Model/tier: `gpt-5-mini` via `AI_MODELS.async` (async processors use Flex + minimal reasoning; `generateProfileFromQA` uses medium; inline `generateFollowUpQuestions` uses Standard) — see `ai-matching.md#model--tier-matrix` for the full table
 - Temperature: 0.8 (high creativity for natural question variety)
 - maxOutputTokens: 400
 - Output schema: `{ questions: string[] }` — array of 0-3 strings
@@ -122,7 +123,7 @@ Sessions can chain: `basedOnSessionId` links to a previous session. When generat
 - If `directionHint` is provided, it's included as `<user_hint>` for the AI to steer toward
 
 **Config:**
-- Model: `gpt-4.1-mini` (GPT_MODEL)
+- Model/tier: `gpt-5-mini` via `AI_MODELS.async` (async processors use Flex + minimal reasoning; `generateProfileFromQA` uses medium; inline `generateFollowUpQuestions` uses Standard) — see `ai-matching.md#model--tier-matrix` for the full table
 - Temperature: 0.8
 - maxOutputTokens: 300
 - Output schema: `{ question: string, sufficient: boolean }`
@@ -152,7 +153,7 @@ Sessions can chain: `basedOnSessionId` links to a previous session. When generat
 3. **portrait** (200-400 words, 3rd person, Polish) — deep personality description: how they think, what they value, social functioning, motivations. This is a private document used only for AI matching — honest and insightful, not flattering. Avoids platitudes.
 
 **Config:**
-- Model: `gpt-4.1-mini` (GPT_MODEL)
+- Model/tier: `gpt-5-mini` via `AI_MODELS.async` (async processors use Flex + minimal reasoning; `generateProfileFromQA` uses medium; inline `generateFollowUpQuestions` uses Standard) — see `ai-matching.md#model--tier-matrix` for the full table
 - Temperature: 0.7
 - maxOutputTokens: 1000
 - Output schema: `{ bio: string, lookingFor: string, portrait: string }` (Zod-validated via `generateObject`)
@@ -262,5 +263,5 @@ If you change this system, also check:
 - `docs/architecture/account-deletion.md` — profilingSessions generatedBio/lookingFor/portrait nullified, profilingQA answers nullified
 - `docs/architecture/data-export.md` — GDPR export includes profiling session data
 - `apps/api/src/services/ai.ts` — generatePortrait, extractInterests, generateEmbedding run as part of the post-apply pipeline
-- `packages/shared/src/models.ts` — ONBOARDING_QUESTIONS definition, GPT_MODEL constant
+- `packages/shared/src/models.ts` — ONBOARDING_QUESTIONS definition, AI_MODELS role map
 - `packages/shared/src/validators.ts` — all Zod schemas for profiling mutations

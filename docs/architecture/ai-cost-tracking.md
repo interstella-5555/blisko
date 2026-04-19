@@ -1,6 +1,7 @@
 # AI Cost Tracking
 
 > Added 2026-04-11 — BLI-174. Logs every OpenAI call into `metrics.ai_calls` and exposes it in the admin "Koszty AI" dashboard.
+> Updated 2026-04-19 — BLI-236. Async call-sites migrated to `gpt-5-mini` with `service_tier: "flex"` (50% off). Sync sites moved to `gpt-5-mini` standard (cheaper input). `AiLogCtx` gained `model` / `serviceTier` / `reasoningEffort`; `metrics.ai_calls` gained `service_tier` + `reasoning_effort` columns; pricing map + `estimateCostUsd` became tier-aware.
 
 Every call to OpenAI (via Vercel AI SDK) is logged with token counts, USD cost estimate, duration, and context (job type, user, target user). 7-day retention, aggregated in an admin dashboard. Replaces the hand-wave cost estimates previously in `ai-matching.md`.
 
@@ -35,9 +36,11 @@ Events are flushed in batches by the `flush-ai-calls` BullMQ maintenance job eve
 - **Flush interval:** 15s (`upsertJobScheduler every: 15_000`)
 - **Prune interval:** 1h (`upsertJobScheduler every: 3_600_000`)
 - **Retention:** 7 days (`SEVEN_DAYS_MS`)
-- **Pricing (USD per 1M tokens):**
+- **Pricing (USD per 1M tokens, Standard tier):**
   - `gpt-4.1-mini` → input 0.40, output 1.60
+  - `gpt-5-mini` → input 0.25, output 2.00
   - `text-embedding-3-small` → input 0.02, output 0
+- **Flex tier multiplier:** `0.5 ×` base (applies only when `service_tier === 'flex'`, supported on `gpt-5-mini`; ignored elsewhere by OpenAI).
 - **Failure error message:** truncated to 200 chars
 
 ## Schema — `metrics.ai_calls`
@@ -54,11 +57,13 @@ Full column list lives in `database.md`. Summary:
 | `prompt_tokens` / `completion_tokens` / `total_tokens` | integer | From Vercel SDK `usage` (normalized to numbers, undefined → 0) |
 | `estimated_cost_usd` | numeric(12,6) | Computed via `estimateCostUsd()` |
 | `user_id` / `target_user_id` | text, nullable | Nullified on GDPR anonymization |
+| `service_tier` | text | `standard` / `flex`. Default `standard`. `flex` for async BullMQ jobs on flex-capable models. |
+| `reasoning_effort` | text, nullable | `minimal` / `medium`. Reasoning models only (gpt-5 family). NULL elsewhere. |
 | `duration_ms` | integer | AI-call duration only, not full job duration |
 | `status` | text | `success` / `failed` |
 | `error_message` | text, nullable | Truncated to 200 chars |
 
-**Indexes:** `(timestamp)`, `(job_name, timestamp)`, `(user_id, timestamp)`, `(model, timestamp)` — match admin dashboard query patterns.
+**Indexes:** `(timestamp)`, `(job_name, timestamp)`, `(user_id, timestamp)`, `(model, timestamp)`, `(service_tier, timestamp)` — match admin dashboard query patterns.
 
 **No FK on `user_id`** — metrics schema is isolated, users get anonymized, FK would prevent that.
 
@@ -91,6 +96,7 @@ Route: `/dashboard/ai-costs` (under AI Matching → Koszty AI in the sidebar).
 **Breakdowns:**
 - By `job_name` — count, tokens, avg duration, cost (sorted by cost desc). Click row → filter feed by that job.
 - By `model` — count, tokens, cost.
+- By `service_tier` — Standard vs Flex split. Click row → filter feed by tier.
 - Daily chart (7d) — horizontal bar per day.
 - Top 20 users by cost — display name resolved from `profiles`. Click → filter feed.
 - Feed — last 100 calls, expandable for target user / errors.
@@ -100,11 +106,12 @@ Route: `/dashboard/ai-costs` (under AI Matching → Koszty AI in the sidebar).
 - `status`: `success` / `failed` / all
 - `jobName`: free text (populated via table-row click)
 - `userId`: populated via topUsers-row click
+- `serviceTier`: `standard` / `flex` (populated via byServiceTier-row click)
 - `expanded`: currently expanded feed row
 
 **Refresh:** 10 seconds when Live, pausable.
 
-tRPC endpoints (in `apps/admin/src/server/routers/ai-costs.ts`): `summary`, `byJobName`, `byModel`, `byDay`, `topUsers`, `feed`. All use `protectedProcedure`. Aggregates use explicit `::numeric` / `::bigint` casts in raw SQL to avoid float drift.
+tRPC endpoints (in `apps/admin/src/server/routers/ai-costs.ts`): `summary`, `byJobName`, `byModel`, `byServiceTier`, `byDay`, `topUsers`, `feed`. All use `protectedProcedure`. Aggregates use explicit `::numeric` / `::bigint` casts in raw SQL to avoid float drift.
 
 ## GDPR
 

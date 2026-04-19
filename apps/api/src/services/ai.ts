@@ -1,11 +1,23 @@
 import { openai } from "@ai-sdk/openai";
-import { EMBEDDING_MODEL, GPT_MODEL } from "@repo/shared";
+import { AI_MODELS, EMBEDDING_MODEL } from "@repo/shared";
 import { embed, generateObject, generateText } from "ai";
 import { z } from "zod";
 import { type AiLogCtx, withAiLogging } from "./ai-log";
 
 function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
+}
+
+/**
+ * Builds the OpenAI-scoped providerOptions from an AI log context.
+ * Only non-default values are attached so gpt-4.1-mini callers (which do not support
+ * `serviceTier`/`reasoningEffort`) stay on a plain request shape.
+ */
+function providerOptionsFromCtx(ctx: AiLogCtx) {
+  const openaiOpts: Record<string, string> = {};
+  if (ctx.serviceTier && ctx.serviceTier !== "standard") openaiOpts.serviceTier = ctx.serviceTier;
+  if (ctx.reasoningEffort) openaiOpts.reasoningEffort = ctx.reasoningEffort;
+  return Object.keys(openaiOpts).length > 0 ? { openai: openaiOpts } : undefined;
 }
 
 export async function generateEmbedding(text: string, ctx: AiLogCtx): Promise<number[]> {
@@ -39,12 +51,16 @@ export async function generatePortrait(bio: string, lookingFor: string, ctx: AiL
     return `${bio}\n\n${lookingFor}`;
   }
 
+  const model = ctx.model ?? AI_MODELS.sync;
+  const providerOptions = providerOptionsFromCtx(ctx);
+
   try {
     return await withAiLogging(ctx, async () => {
       const { text, usage } = await generateText({
-        model: openai(GPT_MODEL),
+        model: openai(model),
         temperature: 0.7,
         maxOutputTokens: 500,
+        ...(providerOptions && { providerOptions }),
         system: `Na podstawie profilu użytkownika (bio: kim jestem, lookingFor: kogo szukam), wygeneruj bogaty profil społeczny (200-300 słów) opisujący:
 - Kim jest ta osoba: zainteresowania, hobby, styl życia, osobowość
 - Czego szuka u innych: ROZWIĄŻ ogólne sformułowania na konkretne cechy (np. "ludzi o podobnych zainteresowaniach" → wymień jakich zainteresowaniach na podstawie bio)
@@ -55,7 +71,7 @@ NIE wspominaj o aktualnym statusie użytkownika ani bieżących intencjach "na t
       });
       return {
         result: text || `${bio}\n\n${lookingFor}`,
-        model: GPT_MODEL,
+        model,
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
       };
@@ -72,12 +88,16 @@ export async function extractInterests(portrait: string, ctx: AiLogCtx): Promise
     return [];
   }
 
+  const model = ctx.model ?? AI_MODELS.sync;
+  const providerOptions = providerOptionsFromCtx(ctx);
+
   try {
     return await withAiLogging(ctx, async () => {
       const { object, usage } = await generateObject({
-        model: openai(GPT_MODEL),
+        model: openai(model),
         temperature: 0,
         maxOutputTokens: 200,
+        ...(providerOptions && { providerOptions }),
         schema: z.object({
           interests: z
             .array(z.string())
@@ -87,7 +107,7 @@ export async function extractInterests(portrait: string, ctx: AiLogCtx): Promise
       });
       return {
         result: object.interests,
-        model: GPT_MODEL,
+        model,
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
       };
@@ -110,12 +130,16 @@ export async function quickScore(
   profileB: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
   ctx: AiLogCtx,
 ): Promise<QuickScoreResult> {
+  const model = ctx.model ?? AI_MODELS.sync;
+  const providerOptions = providerOptionsFromCtx(ctx);
+
   return withAiLogging(ctx, async () => {
     const { object, usage } = await generateObject({
-      model: openai(GPT_MODEL),
+      model: openai(model),
       schema: quickScoreSchema,
       temperature: 0.3,
       maxOutputTokens: 50,
+      ...(providerOptions && { providerOptions }),
       system: `Oceń kompatybilność dwóch osób. Zwróć asymetryczne scores 0-100 dla każdej strony.
 
 Formuła: spełnienie "czego szukam" drugiej osoby (70%) + wspólne zainteresowania (20%) + zbliżony styl życia (10%).
@@ -131,7 +155,7 @@ Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${pro
     });
     return {
       result: object,
-      model: GPT_MODEL,
+      model,
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
     };
@@ -176,12 +200,16 @@ Profil osoby B: "${otherContext}"
 Czy profil osoby B pasuje do tego czego szuka osoba A?
 Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po polsku, max 60 znaków"}`;
 
+  const model = ctx.model ?? AI_MODELS.sync;
+  const providerOptions = providerOptionsFromCtx(ctx);
+
   try {
     return await withAiLogging(ctx, async () => {
       const { text, usage } = await generateText({
-        model: openai(GPT_MODEL),
+        model: openai(model),
         prompt,
         maxOutputTokens: 100,
+        ...(providerOptions && { providerOptions }),
       });
       // Parse inside the wrapper so malformed LLM output is logged as a failed row
       let parsed: { isMatch?: unknown; reason?: unknown };
@@ -195,7 +223,7 @@ Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po pols
           isMatch: Boolean(parsed.isMatch),
           reason: String(parsed.reason || "").slice(0, 80),
         },
-        model: GPT_MODEL,
+        model,
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
       };
@@ -210,12 +238,16 @@ export async function analyzeConnection(
   profileB: { portrait: string; displayName: string; lookingFor: string; superpower?: string | null },
   ctx: AiLogCtx,
 ): Promise<ConnectionAnalysisResult> {
+  const model = ctx.model ?? AI_MODELS.sync;
+  const providerOptions = providerOptionsFromCtx(ctx);
+
   try {
     return await withAiLogging(ctx, async () => {
       const { object, usage } = await generateObject({
-        model: openai(GPT_MODEL),
+        model: openai(model),
         schema: connectionAnalysisSchema,
         temperature: 0.7,
+        ...(providerOptions && { providerOptions }),
         system: `Jesteś prowadzącym randkę w ciemno. Znasz obie osoby i prezentujesz każdą z perspektywy drugiej.
 
 KRYTYCZNA ZASADA: Opisujesz osoby WYŁĄCZNIE na podstawie ich profilu (bio, zainteresowania, styl życia) i pola "Szuka" (lookingFor).
@@ -323,7 +355,7 @@ Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${pro
       });
       return {
         result: object,
-        model: GPT_MODEL,
+        model,
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
       };

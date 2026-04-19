@@ -8,6 +8,8 @@ import { protectedProcedure, router } from "../trpc";
 const TIMEFRAME = z.enum(["24h", "7d"]);
 type Timeframe = z.infer<typeof TIMEFRAME>;
 
+const SERVICE_TIER = z.enum(["standard", "flex"]);
+
 function timeframeStart(timeframe: Timeframe): Date {
   return timeframe === "24h" ? subHours(new Date(), 24) : subDays(new Date(), 7);
 }
@@ -78,6 +80,28 @@ export const aiCostsRouter = router({
       count: Number(r.count),
       totalTokens: Number(r.totalTokens),
       avgDurationMs: Number(r.avgDurationMs),
+      totalCostUsd: Number(r.totalCostUsd),
+    }));
+  }),
+
+  byServiceTier: protectedProcedure.input(z.object({ timeframe: TIMEFRAME })).query(async ({ input }) => {
+    const since = timeframeStart(input.timeframe);
+    const rows = await db
+      .select({
+        serviceTier: schema.aiCalls.serviceTier,
+        count: count(),
+        totalTokens: sql<string>`SUM(${schema.aiCalls.totalTokens})::bigint`,
+        totalCostUsd: sql<string>`SUM(${schema.aiCalls.estimatedCostUsd})::numeric`,
+      })
+      .from(schema.aiCalls)
+      .where(gte(schema.aiCalls.timestamp, since))
+      .groupBy(schema.aiCalls.serviceTier)
+      .orderBy(desc(sql`SUM(${schema.aiCalls.estimatedCostUsd})`));
+
+    return rows.map((r) => ({
+      serviceTier: r.serviceTier,
+      count: Number(r.count),
+      totalTokens: Number(r.totalTokens),
       totalCostUsd: Number(r.totalCostUsd),
     }));
   }),
@@ -158,6 +182,7 @@ export const aiCostsRouter = router({
         jobName: z.string().optional(),
         userId: z.string().optional(),
         status: z.enum(["success", "failed"]).optional(),
+        serviceTier: SERVICE_TIER.optional(),
         limit: z.number().min(1).max(200).default(50),
         offset: z.number().min(0).default(0),
       }),
@@ -167,6 +192,7 @@ export const aiCostsRouter = router({
       if (input.jobName) conditions.push(eq(schema.aiCalls.jobName, input.jobName));
       if (input.userId) conditions.push(eq(schema.aiCalls.userId, input.userId));
       if (input.status) conditions.push(eq(schema.aiCalls.status, input.status));
+      if (input.serviceTier) conditions.push(eq(schema.aiCalls.serviceTier, input.serviceTier));
 
       const where = and(...conditions);
 
@@ -182,6 +208,7 @@ export const aiCostsRouter = router({
           estimatedCostUsd: schema.aiCalls.estimatedCostUsd,
           userId: schema.aiCalls.userId,
           targetUserId: schema.aiCalls.targetUserId,
+          serviceTier: schema.aiCalls.serviceTier,
           durationMs: schema.aiCalls.durationMs,
           status: schema.aiCalls.status,
           errorMessage: schema.aiCalls.errorMessage,

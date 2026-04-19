@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { GPT_MODEL } from "@repo/shared";
+import { AI_MODELS } from "@repo/shared";
 import { generateText } from "ai";
 
 interface SocialLinks {
@@ -56,7 +56,7 @@ export async function generateBotMessage(
 
   try {
     const { text } = await generateText({
-      model: openai(GPT_MODEL),
+      model: openai(AI_MODELS.sync),
       temperature: 0.9,
       maxOutputTokens: 150,
       system: `Jestes ${botProfile.displayName}. Piszesz na czacie w aplikacji Blisko.

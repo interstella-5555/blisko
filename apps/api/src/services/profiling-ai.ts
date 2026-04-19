@@ -1,11 +1,18 @@
 import { openai } from "@ai-sdk/openai";
-import { GPT_MODEL } from "@repo/shared";
+import { AI_MODELS } from "@repo/shared";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { type AiLogCtx, withAiLogging } from "./ai-log";
 
 function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
+}
+
+function providerOptionsFromCtx(ctx: AiLogCtx) {
+  const openaiOpts: Record<string, string> = {};
+  if (ctx.serviceTier && ctx.serviceTier !== "standard") openaiOpts.serviceTier = ctx.serviceTier;
+  if (ctx.reasoningEffort) openaiOpts.reasoningEffort = ctx.reasoningEffort;
+  return Object.keys(openaiOpts).length > 0 ? { openai: openaiOpts } : undefined;
 }
 
 const followUpQuestionsSchema = z.object({
@@ -29,12 +36,16 @@ export async function generateFollowUpQuestions(
   const skippedBlock =
     skippedQuestionIds.length > 0 ? `\n\nPominięte pytania (ID): ${skippedQuestionIds.join(", ")}` : "";
 
+  const model = ctx.model ?? AI_MODELS.sync;
+  const providerOptions = providerOptionsFromCtx(ctx);
+
   return withAiLogging(ctx, async () => {
     const { object, usage } = await generateObject({
-      model: openai(GPT_MODEL),
+      model: openai(model),
       schema: followUpQuestionsSchema,
       temperature: 0.8,
       maxOutputTokens: 400,
+      ...(providerOptions && { providerOptions }),
       system: `Analizujesz odpowiedzi użytkownika z onboardingu aplikacji społecznościowej i generujesz pytania pogłębiające.
 
 Zasady:
@@ -58,7 +69,7 @@ Wygeneruj pytania pogłębiające (0-3).`,
     });
     return {
       result: object,
-      model: GPT_MODEL,
+      model,
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
     };
@@ -111,12 +122,16 @@ export async function generateNextQuestion(
     }
   }
 
+  const model = ctx.model ?? AI_MODELS.sync;
+  const providerOptions = providerOptionsFromCtx(ctx);
+
   return withAiLogging(ctx, async () => {
     const { object, usage } = await generateObject({
-      model: openai(GPT_MODEL),
+      model: openai(model),
       schema: nextQuestionSchema,
       temperature: 0.8,
       maxOutputTokens: 300,
+      ...(providerOptions && { providerOptions }),
       system: `Jesteś adaptacyjnym profilerem osobowości dla aplikacji społecznościowej. Tworzysz profil osobowości na podstawie rozmowy.
 
 Zasady:
@@ -135,7 +150,7 @@ Wygeneruj następne pytanie.`,
     });
     return {
       result: object,
-      model: GPT_MODEL,
+      model,
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
     };
@@ -173,12 +188,16 @@ export async function generateProfileFromQA(
 
   const qaBlock = qaHistory.map((qa) => `P: ${qa.question}\nO: ${qa.answer}`).join("\n");
 
+  const model = ctx.model ?? AI_MODELS.sync;
+  const providerOptions = providerOptionsFromCtx(ctx);
+
   return withAiLogging(ctx, async () => {
     const { object, usage } = await generateObject({
-      model: openai(GPT_MODEL),
+      model: openai(model),
       schema: profileFromQASchema,
       temperature: 0.7,
       maxOutputTokens: 1000,
+      ...(providerOptions && { providerOptions }),
       system: `Na podstawie rozmowy profilowej generujesz profil użytkownika dla aplikacji społecznościowej.
 
 Generujesz trzy teksty:
@@ -212,7 +231,7 @@ ${qaBlock}${contextBlock}
     });
     return {
       result: object,
-      model: GPT_MODEL,
+      model,
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
     };

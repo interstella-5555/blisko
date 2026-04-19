@@ -7,6 +7,7 @@
 > Updated 2026-04-11 — Per-user diagnostic view at `/dashboard/users/{userId}` lists all persisted T2/T3 rows for a given user plus a full nearby list (replicates `getNearbyUsersForMap` without side-effects — no job enqueue, no block/ninja/soft-delete filters). The nearby list labels each pair with a synthetic `t1` tier when no `connection_analyses` row exists — T1 remains unpersisted in the DB, the label is computed server-side per request (BLI-187).
 > Updated 2026-04-11 — Modal profilu (mobile) zhookowany na `getDetailedAnalysis` (wcześniej wołał `getConnectionAnalysis` — read-only, bez promocji T3; ta procedura została usunięta jako dead code). `ensureAnalysis` i `getDetailedAnalysis` sprawdzają `tier === 't3'` jako readiness, nie "row exists", i mają pełen zestaw gate'ów (block, bilateral isComplete, target soft-delete). Tier invariant udokumentowany explicite (BLI-188).
 > Updated 2026-04-11 — Writer-side staleness gate w `processAnalyzePair` też sprawdza `tier === 't3'` (extract: `isPairAnalysisUpToDate`). Wcześniej skipował na samo hash match, co po BLI-184/185 (T2 zaczął zapisywać wiersz z aktualnymi hashami) powodowało, że `promotePairAnalysis` był no-opem — worker widział T2 row z matching hashes i wracał bez wywołania `analyzeConnection`. Modal leciał w fallback `commonInterests` forever, tak jak przed BLI-188. Tier jest teraz source of truth po obu stronach: reader (`getDetailedAnalysis`/`ensureAnalysis`) i writer (`processAnalyzePair`) (BLI-194).
+> Updated 2026-04-19 — BLI-236. Async AI call-sites run `gpt-5-mini` with `service_tier: "flex"` (50% off); sync/on-demand use `gpt-5-mini` Standard. `analyze-pair` batch + `generate-profile-from-qa` use `reasoningEffort: "medium"`, everything else `"minimal"`. `promotePairAnalysis` sets `isOnDemand: true` on the job so `processAnalyzePair` can pick the sync ctx. Legacy `GPT_MODEL` constant renamed to role-based `AI_MODELS.sync` / `AI_MODELS.async` — swap one line to change providers.
 
 All AI calls use OpenAI via Vercel AI SDK (`@ai-sdk/openai`, `ai` package). Models defined in `packages/shared/src/models.ts`. Source files: `apps/api/src/services/ai.ts` (AI functions), `apps/api/src/services/queue.ts` (BullMQ processors + enqueue helpers), `apps/api/src/trpc/procedures/profiles.ts` (triggers), `apps/api/src/trpc/procedures/waves.ts` (wave-send promotion).
 
@@ -54,7 +55,7 @@ Three tiers exist to avoid O(N^2) pre-computation. The design came from the scal
 **Output schema:** `{ scoreForA: int 0-100, scoreForB: int 0-100 }` (Zod-validated via `generateObject`).
 
 **Config:**
-- Model: `gpt-4.1-mini` (GPT_MODEL)
+- Model/tier: `gpt-5-mini` via `AI_MODELS.async`; Flex for batch/background, Standard for on-demand — see "Model + Tier Matrix" at the end of this doc
 - Temperature: 0.3 (low creativity — we want consistent scores)
 - maxOutputTokens: 50
 - Estimated cost: ~$0.0005/call (approximately 1200 input + 30 output tokens)
@@ -88,7 +89,7 @@ Three tiers exist to avoid O(N^2) pre-computation. The design came from the scal
 **Output schema:** `{ matchScoreForA: 0-100, matchScoreForB: 0-100, snippetForA: max90, snippetForB: max90, descriptionForA: max500, descriptionForB: max500 }` (Zod-validated).
 
 **Config:**
-- Model: `gpt-4.1-mini` (GPT_MODEL)
+- Model/tier: `gpt-5-mini` via `AI_MODELS.async`; Flex for batch/background, Standard for on-demand — see "Model + Tier Matrix" at the end of this doc
 - Temperature: 0.7 (more creative for prose generation)
 - maxOutputTokens: not explicitly set (defaults to model max)
 - Estimated cost: ~$0.01/call (approximately 3000 input + 500 output tokens)
@@ -170,7 +171,7 @@ Two processors handle status matching: one triggered by setting/changing a statu
 **Category-aware matching:** When categories are provided (`categoriesA`, `categoriesB`), they're appended as context hints: `[kontekst: project, networking]`. The prompt instructs the model that different category contexts (e.g., dating vs project) make a match unlikely.
 
 **Config:**
-- Model: `gpt-4.1-mini` (GPT_MODEL)
+- Model/tier: `gpt-5-mini` via `AI_MODELS.async`; Flex for batch/background, Standard for on-demand — see "Model + Tier Matrix" at the end of this doc
 - Temperature: not explicitly set (model default)
 - maxOutputTokens: 100
 - Output: raw JSON text parsed manually (not `generateObject`) — `{ isMatch: boolean, reason: string }`
@@ -193,7 +194,7 @@ Triggered by `enqueueProfileAI` when a profile is created or bio/lookingFor chan
 **The prompt resolves vague lookingFor statements** — e.g., "ludzi o podobnych zainteresowaniach" gets expanded into specific interests derived from bio.
 
 **Config:**
-- Model: `gpt-4.1-mini` (GPT_MODEL)
+- Model/tier: `gpt-5-mini` via `AI_MODELS.async`; Flex for batch/background, Standard for on-demand — see "Model + Tier Matrix" at the end of this doc
 - Temperature: 0.7
 - maxOutputTokens: 500
 - Input: `<user_bio>` + `<user_looking_for>` XML tags
@@ -206,7 +207,7 @@ Triggered by `enqueueProfileAI` when a profile is created or bio/lookingFor chan
 **What:** Extracts 8-12 short interest tags from the generated portrait.
 
 **Config:**
-- Model: `gpt-4.1-mini` (GPT_MODEL)
+- Model/tier: `gpt-5-mini` via `AI_MODELS.async`; Flex for batch/background, Standard for on-demand — see "Model + Tier Matrix" at the end of this doc
 - Temperature: 0 (deterministic — same portrait should yield same tags)
 - maxOutputTokens: 200
 - Output schema: `{ interests: string[] }` — Polish, lowercase, 1-3 words each
@@ -256,6 +257,20 @@ The two `deduplication`-based jobs (`quick-score`, `status-matching`) get auto-r
 - All AI jobs (matching + profiling) share the `ai` worker; ops and maintenance jobs run on separate workers — see `queues-jobs.md` for the full queue split
 
 **Self-healing on failure:** the `worker.on("failed")` handler in `queue.ts` emits a per-job-type WS event after the final retry attempt: `analysisFailed` for `analyze-pair`/`quick-score`, `statusMatchingFailed` for `status-matching`, plus the profiling-side events documented in `ai-profiling.md`. The mobile app's retry hooks (see `mobile-architecture.md`) listen for these and call the matching `retry*` tRPC procedure. This is why the dedup keys must auto-release on failure — so the retry can re-enqueue without colliding.
+
+## Model + Tier Matrix
+
+Per BLI-236, every call-site threads its model/tier/reasoning through `AiLogCtx`. Defaults (`AI_MODELS.sync` / Standard / no reasoning) preserve legacy behavior; the table below captures what each processor passes explicitly.
+
+| Call-site | Model (via) | `serviceTier` | `reasoningEffort` | Why |
+|---|---|---|---|---|
+| `quickScore` (`processQuickScore`) | `AI_MODELS.async` | `flex` | `minimal` | 81% of AI budget; async WS delivery; latency shift invisible |
+| `analyzeConnection` batch (`processAnalyzePair` with `!isOnDemand`) | `AI_MODELS.async` | `flex` | `medium` | Rich prose output; user reads snippet/description |
+| `analyzeConnection` on-demand (`processAnalyzePair` with `isOnDemand: true`) | `AI_MODELS.async` | `standard` | `minimal` | Triggered by `promotePairAnalysis` (tap bubble / wave send); <3s SLA |
+| `evaluateStatusMatch` (`processEvaluateStatusMatch`) | `AI_MODELS.async` | `flex` | `minimal` | Simple classification, tiny output |
+| `generateEmbedding` (everywhere) | `text-embedding-3-small` | `standard` (Flex N/A for embeddings) | — | |
+
+The `isOnDemand` flag lives on `AnalyzePairJob` — `promotePairAnalysis` sets it; `processAnalyzeUserPairs` (batch enqueuer) does not. Single processor, two tier ctxs.
 
 ## Cost Tracking
 
