@@ -5,7 +5,7 @@
  * Swap the mapped value to change providers — call-sites reference the role, not the model id.
  */
 export const AI_MODELS = {
-  sync: "gpt-4.1-mini",
+  sync: "gpt-5-mini",
   async: "gpt-5-mini",
 } as const;
 
