@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — Push send logging via Redis batch buffer + `push_sends` table. Every push (sent, suppressed, failed) is now recorded.
 > Updated 2026-04-11 — `usePushNotifications` now bidirectionally syncs the device's push_tokens row with system permission on every `AppState === "active"`. Local mirror of server state lives in `authStore.pushToken`; register on grant, unregister on revoke, both also on mount. Drops SecureStore coordination between hook and `signOutAndReset` (BLI-205).
+> Updated 2026-04-19 — BLI-242 crash fix. Tap handler migrated from `addNotificationResponseReceivedListener` to `Notifications.useLastNotificationResponse()` + gated on `useRootNavigationState()?.key` (nav mounted) and `userId` (authenticated). Deduped by `response.notification.request.identifier` via `useRef`. Chat/group taps route through `openChatFromAnywhere(conversationId, pathname)` (same helper as in-app toasts from BLI-234); wave taps `router.dismissAll()` (guarded by `canDismiss`) before pushing the user modal. Root cause: pushing onto an unready root stack during cold launch provoked a TurboModule NSException which RN's `convertNSExceptionToJSError` then crashed on from the `com.meta.react.turbomodulemanager.queue` thread while the JS thread was also mid-`HermesRuntimeImpl::setPropertyValue` (cross-thread JSI race, stack-canary fault).
 
 Expo Push API delivering notifications to iOS and Android devices. Source: `apps/api/src/services/push.ts`, `apps/api/src/trpc/procedures/pushTokens.ts`.
 
@@ -215,12 +216,14 @@ Every push includes a `data` field that the mobile client uses for deep-linking:
 
 | Data type | Value | Client behavior |
 |---|---|---|
-| `{ type: "wave", userId }` | New wave received | Navigate to wave detail / user profile |
-| `{ type: "chat", conversationId }` | Message, mutual ping, wave accepted | Navigate to conversation |
-| `{ type: "group", conversationId }` | Group invite | Navigate to group conversation |
-| `{ type: "ambient_match" }` | Status match | Currently no client-side deep-link branch in `usePushNotifications.ts:70-86` — tap returns the user to the last-viewed screen. The push itself reaches the device (ambient collapse applies); there is no navigation side effect. If a "Navigate to map" behavior is desired, add an `ambient_match` branch to the handler. |
+| `{ type: "wave", userId }` | New wave received | `router.dismissAll()` (guarded by `canDismiss`) + push `/(modals)/user/[userId]` |
+| `{ type: "chat", conversationId }` | Message, mutual ping, wave accepted | `openChatFromAnywhere(conversationId, pathname)` — dismiss modals, switch to Czaty tab, push `/chat/[id]` |
+| `{ type: "group", conversationId }` | Group invite | Same as `chat` — `openChatFromAnywhere` |
+| `{ type: "ambient_match" }` | Status match | No client-side branch — tap returns the user to the last-viewed screen. The push itself reaches the device (ambient collapse applies); there is no navigation side effect. If a "Navigate to map" behavior is desired, add an `ambient_match` branch to the handler in `usePushNotifications.ts`. |
 
 **Why structured data:** iOS and Android handle notification taps by passing the `data` object to the app's notification handler. The `type` field lets the client route to the correct screen without fetching additional context.
+
+**Tap-handling gates (BLI-242):** the tap-handling `useEffect` in `usePushNotifications.ts` uses `Notifications.useLastNotificationResponse()` as its single source of truth (covers both cold-launch and warm taps in one path) and early-returns on any of: navigator not mounted (`useRootNavigationState()?.key` falsy), user not authenticated (`userId` null), response missing/already-handled. The dedup key is `response.notification.request.identifier` held in a `useRef` — the effect re-runs on `pathname` changes but the response identity only flips when a new tap arrives. The hook is called from `app/(tabs)/_layout.tsx`, so it's only active inside the authenticated tab stack; taps received while the app sits on the auth/onboarding stacks are silently dropped (the handler never runs because the tab layout isn't mounted).
 
 ## Push Send Logging
 

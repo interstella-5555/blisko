@@ -1,7 +1,8 @@
 import * as Notifications from "expo-notifications";
-import { router } from "expo-router";
-import { useEffect } from "react";
+import { router, usePathname, useRootNavigationState } from "expo-router";
+import { useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
+import { openChatFromAnywhere } from "../lib/navigation";
 import { trpc } from "../lib/trpc";
 import { useAuthStore } from "../stores/authStore";
 
@@ -18,6 +19,10 @@ Notifications.setNotificationHandler({
 
 export function usePushNotifications() {
   const userId = useAuthStore((s) => s.user?.id);
+  const pathname = usePathname();
+  const response = Notifications.useLastNotificationResponse();
+  const rootNavState = useRootNavigationState();
+  const handledIdRef = useRef<string | null>(null);
   const { mutateAsync: registerPushToken } = trpc.pushTokens.register.useMutation();
   const { mutateAsync: unregisterPushToken } = trpc.pushTokens.unregister.useMutation();
 
@@ -66,22 +71,40 @@ export function usePushNotifications() {
     return () => sub.remove();
   }, [userId, registerPushToken, unregisterPushToken]);
 
-  // Deep link on notification tap
+  // Deep link on notification tap.
+  //
+  // `useLastNotificationResponse` covers both cold-launch taps (the notification
+  // that woke the app — exposed on first render) and subsequent warm taps, so
+  // the two cases share one code path. Navigation is gated on nav-mounted
+  // (`rootNavState?.key`) and authenticated (`userId`): pushing onto an unready
+  // root stack during cold launch provoked a TurboModule NSException that RN's
+  // `convertNSExceptionToJSError` crashed on (BLI-242 TestFlight 31).
+  //
+  // `handledIdRef` dedupes — the hook re-runs on pathname changes but the
+  // response identity is stable until a new tap arrives.
+  //
+  // Chat/group taps route through `openChatFromAnywhere` to dismiss open modals
+  // and put the Czaty tab underneath, matching in-app toast taps (BLI-234).
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as Record<string, string> | undefined;
-      if (!data?.type) return;
+    if (!rootNavState?.key) return;
+    if (!userId) return;
+    if (!response) return;
 
-      if (data.type === "wave" && data.userId) {
-        router.push({
-          pathname: "/(modals)/user/[userId]",
-          params: { userId: data.userId },
-        });
-      } else if ((data.type === "chat" || data.type === "group") && data.conversationId) {
-        router.push(`/chat/${data.conversationId}` as never);
-      }
-    });
+    const id = response.notification.request.identifier;
+    if (handledIdRef.current === id) return;
+    handledIdRef.current = id;
 
-    return () => sub.remove();
-  }, []);
+    const data = response.notification.request.content.data as Record<string, string> | undefined;
+    if (!data?.type) return;
+
+    if (data.type === "wave" && typeof data.userId === "string") {
+      if (router.canDismiss()) router.dismissAll();
+      router.push({
+        pathname: "/(modals)/user/[userId]",
+        params: { userId: data.userId },
+      });
+    } else if ((data.type === "chat" || data.type === "group") && typeof data.conversationId === "string") {
+      openChatFromAnywhere(data.conversationId, pathname);
+    }
+  }, [response, rootNavState?.key, userId, pathname]);
 }
