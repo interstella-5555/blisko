@@ -205,6 +205,12 @@
           "notNull": true,
           "default": "'standard'"
         },
+        "reasoning_effort": {
+          "name": "reasoning_effort",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "duration_ms": {
           "name": "duration_ms",
           "type": "integer",
