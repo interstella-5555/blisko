@@ -2,7 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { AI_MODELS, EMBEDDING_MODEL } from "@repo/shared";
 import { embed, generateObject, generateText } from "ai";
 import { z } from "zod";
-import { type AiLogCtx, withAiLogging } from "./ai-log";
+import { type AiCallInput, type AiLogCtx, withAiLogging } from "./ai-log";
 
 function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
@@ -26,8 +26,10 @@ export async function generateEmbedding(text: string, ctx: AiLogCtx): Promise<nu
     return [];
   }
 
+  const input: AiCallInput = { kind: "embed", model: EMBEDDING_MODEL, value: text };
+
   try {
-    return await withAiLogging(ctx, async () => {
+    return await withAiLogging(ctx, input, async () => {
       const { embedding, usage } = await embed({
         model: openai.embedding(EMBEDDING_MODEL),
         value: text,
@@ -37,6 +39,8 @@ export async function generateEmbedding(text: string, ctx: AiLogCtx): Promise<nu
         model: EMBEDDING_MODEL,
         promptTokens: usage?.tokens ?? 0,
         completionTokens: 0,
+        // Don't log the 1536-float vector — unreadable for debug, bloats the table
+        output: { dimensions: embedding.length, tokens: usage?.tokens ?? 0 },
       };
     });
   } catch (error) {
@@ -53,27 +57,39 @@ export async function generatePortrait(bio: string, lookingFor: string, ctx: AiL
 
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
-
-  try {
-    return await withAiLogging(ctx, async () => {
-      const { text, usage } = await generateText({
-        model: openai(model),
-        temperature: 0.7,
-        maxOutputTokens: 500,
-        ...(providerOptions && { providerOptions }),
-        system: `Na podstawie profilu użytkownika (bio: kim jestem, lookingFor: kogo szukam), wygeneruj bogaty profil społeczny (200-300 słów) opisujący:
+  const system = `Na podstawie profilu użytkownika (bio: kim jestem, lookingFor: kogo szukam), wygeneruj bogaty profil społeczny (200-300 słów) opisujący:
 - Kim jest ta osoba: zainteresowania, hobby, styl życia, osobowość
 - Czego szuka u innych: ROZWIĄŻ ogólne sformułowania na konkretne cechy (np. "ludzi o podobnych zainteresowaniach" → wymień jakich zainteresowaniach na podstawie bio)
 - Jakie tematy i aktywności są dla tej osoby ważne
 Nie oceniaj, nie wartościuj — opisuj. Pisz w 3. osobie, naturalnym językiem polskim. Nie używaj nagłówków ani list — pisz płynnym tekstem.
-NIE wspominaj o aktualnym statusie użytkownika ani bieżących intencjach "na teraz" — te informacje są prywatne.`,
-        prompt: `<user_bio>${bio}</user_bio>\n\n<user_looking_for>${lookingFor}</user_looking_for>`,
+NIE wspominaj o aktualnym statusie użytkownika ani bieżących intencjach "na teraz" — te informacje są prywatne.`;
+  const prompt = `<user_bio>${bio}</user_bio>\n\n<user_looking_for>${lookingFor}</user_looking_for>`;
+  const input: AiCallInput = {
+    kind: "generateText",
+    model,
+    system,
+    prompt,
+    temperature: 0.7,
+    maxOutputTokens: 500,
+    providerOptions: providerOptions ?? null,
+  };
+
+  try {
+    return await withAiLogging(ctx, input, async () => {
+      const { text, usage, finishReason } = await generateText({
+        model: openai(model),
+        temperature: 0.7,
+        maxOutputTokens: 500,
+        ...(providerOptions && { providerOptions }),
+        system,
+        prompt,
       });
       return {
         result: text || `${bio}\n\n${lookingFor}`,
         model,
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
+        output: { text, finishReason },
       };
     });
   } catch (error) {
@@ -90,26 +106,36 @@ export async function extractInterests(portrait: string, ctx: AiLogCtx): Promise
 
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
+  const schema = z.object({
+    interests: z.array(z.string()).describe("Lista 8-12 krótkich tagów zainteresowań, po polsku, małymi literami"),
+  });
+  const prompt = `Wyciągnij 8-12 krótkich tagów zainteresowań z podanego profilu społecznego. Tagi powinny być krótkie (1-3 słowa), po polsku, małymi literami.\n\nProfil:\n${portrait}`;
+  const input: AiCallInput = {
+    kind: "generateObject",
+    model,
+    prompt,
+    temperature: 0,
+    maxOutputTokens: 200,
+    providerOptions: providerOptions ?? null,
+    schemaName: "extractInterestsSchema",
+  };
 
   try {
-    return await withAiLogging(ctx, async () => {
+    return await withAiLogging(ctx, input, async () => {
       const { object, usage } = await generateObject({
         model: openai(model),
         temperature: 0,
         maxOutputTokens: 200,
         ...(providerOptions && { providerOptions }),
-        schema: z.object({
-          interests: z
-            .array(z.string())
-            .describe("Lista 8-12 krótkich tagów zainteresowań, po polsku, małymi literami"),
-        }),
-        prompt: `Wyciągnij 8-12 krótkich tagów zainteresowań z podanego profilu społecznego. Tagi powinny być krótkie (1-3 słowa), po polsku, małymi literami.\n\nProfil:\n${portrait}`,
+        schema,
+        prompt,
       });
       return {
         result: object.interests,
         model,
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
+        output: { object },
       };
     });
   } catch (error) {
@@ -132,32 +158,45 @@ export async function quickScore(
 ): Promise<QuickScoreResult> {
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
+  const system = `Oceń kompatybilność dwóch osób. Zwróć asymetryczne scores 0-100 dla każdej strony.
 
-  return withAiLogging(ctx, async () => {
+Formuła: spełnienie "czego szukam" drugiej osoby (70%) + wspólne zainteresowania (20%) + zbliżony styl życia (10%).
+
+Score jest ASYMETRYCZNY — osobno dla A i osobno dla B. Jeśli A szuka kogoś na padla, a B nie gra → scoreForA niski, niezależnie od innych wspólnych cech.`;
+  const prompt = `A: ${profileA.displayName}
+${profileA.portrait}
+Szuka: ${profileA.lookingFor}${profileA.superpower ? `\nMoże zaoferować: ${profileA.superpower}` : ""}
+
+B: ${profileB.displayName}
+${profileB.portrait}
+Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${profileB.superpower}` : ""}`;
+  const input: AiCallInput = {
+    kind: "generateObject",
+    model,
+    system,
+    prompt,
+    temperature: 0.3,
+    maxOutputTokens: 50,
+    providerOptions: providerOptions ?? null,
+    schemaName: "quickScoreSchema",
+  };
+
+  return withAiLogging(ctx, input, async () => {
     const { object, usage } = await generateObject({
       model: openai(model),
       schema: quickScoreSchema,
       temperature: 0.3,
       maxOutputTokens: 50,
       ...(providerOptions && { providerOptions }),
-      system: `Oceń kompatybilność dwóch osób. Zwróć asymetryczne scores 0-100 dla każdej strony.
-
-Formuła: spełnienie "czego szukam" drugiej osoby (70%) + wspólne zainteresowania (20%) + zbliżony styl życia (10%).
-
-Score jest ASYMETRYCZNY — osobno dla A i osobno dla B. Jeśli A szuka kogoś na padla, a B nie gra → scoreForA niski, niezależnie od innych wspólnych cech.`,
-      prompt: `A: ${profileA.displayName}
-${profileA.portrait}
-Szuka: ${profileA.lookingFor}${profileA.superpower ? `\nMoże zaoferować: ${profileA.superpower}` : ""}
-
-B: ${profileB.displayName}
-${profileB.portrait}
-Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${profileB.superpower}` : ""}`,
+      system,
+      prompt,
     });
     return {
       result: object,
       model,
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
+      output: { object },
     };
   });
 }
@@ -202,10 +241,18 @@ Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po pols
 
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
+  const input: AiCallInput = {
+    kind: "generateText",
+    model,
+    prompt,
+    matchType,
+    maxOutputTokens: 100,
+    providerOptions: providerOptions ?? null,
+  };
 
   try {
-    return await withAiLogging(ctx, async () => {
-      const { text, usage } = await generateText({
+    return await withAiLogging(ctx, input, async () => {
+      const { text, usage, finishReason } = await generateText({
         model: openai(model),
         prompt,
         maxOutputTokens: 100,
@@ -226,6 +273,7 @@ Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po pols
         model,
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
+        output: { text, finishReason, parsed },
       };
     });
   } catch {
@@ -240,15 +288,7 @@ export async function analyzeConnection(
 ): Promise<ConnectionAnalysisResult> {
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
-
-  try {
-    return await withAiLogging(ctx, async () => {
-      const { object, usage } = await generateObject({
-        model: openai(model),
-        schema: connectionAnalysisSchema,
-        temperature: 0.7,
-        ...(providerOptions && { providerOptions }),
-        system: `Jesteś prowadzącym randkę w ciemno. Znasz obie osoby i prezentujesz każdą z perspektywy drugiej.
+  const system = `Jesteś prowadzącym randkę w ciemno. Znasz obie osoby i prezentujesz każdą z perspektywy drugiej.
 
 KRYTYCZNA ZASADA: Opisujesz osoby WYŁĄCZNIE na podstawie ich profilu (bio, zainteresowania, styl życia) i pola "Szuka" (lookingFor).
 NIGDY nie wspominaj o aktualnym statusie, bieżących intencjach "na teraz", ani czego ktoś szuka w danym momencie — te informacje są prywatne i mogą nie być widoczne dla drugiej strony. Zdradzenie statusu pośrednio przez opis jest równoznaczne z jego ujawnieniem.
@@ -338,8 +378,8 @@ matchScoreForB: 85 (gra 3x/tydzień, doświadczony — idealny do rozwoju)
 snippetForA: "Gra w padla od pół roku — szuka kogoś na regularne granie"
 snippetForB: "Padel 3x/tydzień — szuka kogoś na regularne mecze. Programista"
 descriptionForA: "Gra w padla od pół roku, szuka kogoś na regularne granie i chce się rozwijać. Chodzi na siłownię, więc ogólnie aktywny. W branży tech — analityk danych."
-descriptionForB: "Gra w padla 3 razy w tygodniu — szuka kogoś na regularne mecze na podobnym poziomie. Programista, pracuje zdalnie. Gra też w squasha i ping-ponga. Ogląda F1."`,
-        prompt: `<user_profile name="A">
+descriptionForB: "Gra w padla 3 razy w tygodniu — szuka kogoś na regularne mecze na podobnym poziomie. Programista, pracuje zdalnie. Gra też w squasha i ping-ponga. Ogląda F1."`;
+  const prompt = `<user_profile name="A">
 ${profileA.displayName}:
 ${profileA.portrait}
 
@@ -351,13 +391,33 @@ ${profileB.displayName}:
 ${profileB.portrait}
 
 Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${profileB.superpower}` : ""}
-</user_profile>`,
+</user_profile>`;
+  const input: AiCallInput = {
+    kind: "generateObject",
+    model,
+    system,
+    prompt,
+    temperature: 0.7,
+    providerOptions: providerOptions ?? null,
+    schemaName: "connectionAnalysisSchema",
+  };
+
+  try {
+    return await withAiLogging(ctx, input, async () => {
+      const { object, usage } = await generateObject({
+        model: openai(model),
+        schema: connectionAnalysisSchema,
+        temperature: 0.7,
+        ...(providerOptions && { providerOptions }),
+        system,
+        prompt,
       });
       return {
         result: object,
         model,
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
+        output: { object },
       };
     });
   } catch (error) {

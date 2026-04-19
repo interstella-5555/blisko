@@ -178,6 +178,10 @@ Runs outside the main transaction because metrics live in a separate PostgreSQL 
 |-------|-----------------|
 | `userId` | `null` (where it matched this user) |
 | `targetUserId` | `null` (where it matched this user) |
+| `inputJsonb` | `null` (for any row referencing the user via `userId` or `targetUserId`) |
+| `outputJsonb` | `null` (for any row referencing the user via `userId` or `targetUserId`) |
+
+Input/output JSONB payloads carry bio / lookingFor / display names = PII. They're already nulled after 24h by `prune-ai-call-payloads`, but hard-delete nulls them immediately for the fresh-within-24h window.
 
 Both tables are wiped in the same post-transaction phase (`queue-ops.ts` hard-delete processor). Errors are caught and logged but do not fail the job — metrics anonymization is best-effort, the user-facing identity in `user`/`profiles` has already been overwritten inside the transaction.
 

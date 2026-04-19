@@ -157,6 +157,10 @@ When a non-bot message arrives in a seed user's conversation:
 
 `generateBotMessage(botProfile, otherProfile, conversationHistory, isOpening)`:
 
+### AI Call Logging
+
+Every call to `generateBotMessage` (success or failure) is logged into `metrics.ai_calls` via the shared-secret `POST /internal/ai-log` endpoint on the API (see `ai-cost-tracking.md`). The helper lives in `apps/chatbot/src/ai-log.ts` and is fire-and-forget — it never blocks response generation. Requires `INTERNAL_AI_LOG_SECRET` env var on both the chatbot and API services (same value). Without the secret, logging is silently disabled. Logged rows carry `jobName: "chatbot-message"`, `userId: botProfile.userId`, `targetUserId: otherProfile.userId`, so chatbot costs and payloads show up in the admin "Koszty AI" dashboard alongside API calls.
+
 **System prompt** builds a persona from the bot's profile: name, bio, lookingFor, interests, portrait. Includes the other user's profile for context. Rules: write in Polish, colloquial, 1--3 sentences, max 200 chars, don't overuse emoji, reference shared interests, ask questions, respond with more enthusiasm when topic matches bot's interests, respond briefly when topic is foreign.
 
 **Prompt:**

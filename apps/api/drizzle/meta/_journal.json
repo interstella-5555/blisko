@@ -176,6 +176,13 @@
       "when": 1776565097049,
       "tag": "0024_add_service_tier_to_ai_calls",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1776598525039,
+      "tag": "0025_add_ai_call_payloads",
+      "breakpoints": true
     }
   ]
 }

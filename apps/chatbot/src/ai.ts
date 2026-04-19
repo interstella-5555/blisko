@@ -1,6 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { AI_MODELS } from "@repo/shared";
 import { generateText } from "ai";
+import { logAiCall } from "./ai-log";
 
 interface SocialLinks {
   facebook?: string;
@@ -9,6 +10,7 @@ interface SocialLinks {
 }
 
 interface BotProfile {
+  userId: string;
   displayName: string;
   bio: string;
   lookingFor: string;
@@ -18,6 +20,7 @@ interface BotProfile {
 }
 
 interface OtherProfile {
+  userId: string;
   displayName: string;
   bio: string;
   lookingFor: string;
@@ -54,12 +57,8 @@ export async function generateBotMessage(
         .map((m) => `${m.senderId === "bot" ? botProfile.displayName : otherProfile.displayName}: ${m.content}`)
         .join("\n")}`;
 
-  try {
-    const { text } = await generateText({
-      model: openai(AI_MODELS.sync),
-      temperature: 0.9,
-      maxOutputTokens: 150,
-      system: `Jestes ${botProfile.displayName}. Piszesz na czacie w aplikacji Blisko.
+  const model = AI_MODELS.sync;
+  const system = `Jestes ${botProfile.displayName}. Piszesz na czacie w aplikacji Blisko.
 
 Twoj profil: ${botDesc}
 Czego szukasz: ${botProfile.lookingFor}
@@ -76,12 +75,56 @@ Zasady:
 - Nawiazuj do wspolnych zainteresowań, zadawaj pytania
 - Nie zaczynaj wiadomosci od swojego imienia — pisz tylko tresc
 - Jezeli rozmowca porusza tematy bliskie Twoim zainteresowaniom, preferencjom lub temu czego szukasz — odpowiadaj z wiekszym zaangazowaniem, entuzjazmem, rozwijaj watek i zadawaj pytania
-- Jezeli temat jest Ci obcy lub nie zwiazany z Twoim profilem — odpowiadaj krotko, grzecznie ale bez entuzjazmu, nie rozwijaj watku`,
+- Jezeli temat jest Ci obcy lub nie zwiazany z Twoim profilem — odpowiadaj krotko, grzecznie ale bez entuzjazmu, nie rozwijaj watku`;
+  const input = {
+    kind: "generateText",
+    model,
+    system,
+    prompt: scenario,
+    temperature: 0.9,
+    maxOutputTokens: 150,
+    isOpening,
+  };
+  const start = Date.now();
+
+  try {
+    const { text, usage, finishReason } = await generateText({
+      model: openai(model),
+      temperature: 0.9,
+      maxOutputTokens: 150,
+      system,
       prompt: scenario,
+    });
+
+    logAiCall({
+      jobName: "chatbot-message",
+      model,
+      promptTokens: usage?.inputTokens ?? 0,
+      completionTokens: usage?.outputTokens ?? 0,
+      userId: botProfile.userId,
+      targetUserId: otherProfile.userId,
+      durationMs: Date.now() - start,
+      status: "success",
+      input,
+      output: { text, finishReason },
     });
 
     return text.slice(0, 200) || (isOpening ? FALLBACK_OPENING : FALLBACK_REPLY);
   } catch (error) {
+    logAiCall({
+      jobName: "chatbot-message",
+      model,
+      promptTokens: 0,
+      completionTokens: 0,
+      userId: botProfile.userId,
+      targetUserId: otherProfile.userId,
+      durationMs: Date.now() - start,
+      status: "failed",
+      errorMessage: error instanceof Error ? error.message : String(error),
+      input,
+      output: null,
+    });
+
     console.error("[bot] AI generation error:", error);
     return isOpening ? FALLBACK_OPENING : FALLBACK_REPLY;
   }

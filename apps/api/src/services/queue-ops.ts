@@ -191,8 +191,16 @@ async function processHardDeleteUser(userId: string) {
     await Promise.all([
       db.update(schema.requestEvents).set({ userId: null }).where(eq(schema.requestEvents.userId, userId)),
       db.update(schema.requestEvents).set({ targetUserId: null }).where(eq(schema.requestEvents.targetUserId, userId)),
-      db.update(schema.aiCalls).set({ userId: null }).where(eq(schema.aiCalls.userId, userId)),
-      db.update(schema.aiCalls).set({ targetUserId: null }).where(eq(schema.aiCalls.targetUserId, userId)),
+      // Payloads hold bio / lookingFor / display name = PII. 24h retention usually
+      // zeros them already, but hard-delete can't wait — nullify alongside user refs.
+      db
+        .update(schema.aiCalls)
+        .set({ userId: null, inputJsonb: null, outputJsonb: null })
+        .where(eq(schema.aiCalls.userId, userId)),
+      db
+        .update(schema.aiCalls)
+        .set({ targetUserId: null, inputJsonb: null, outputJsonb: null })
+        .where(eq(schema.aiCalls.targetUserId, userId)),
     ]);
   } catch (err) {
     console.error(`[queue:ops] failed to anonymize metrics for ${userId}:`, err);

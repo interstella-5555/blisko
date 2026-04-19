@@ -10,13 +10,19 @@ describe("withAiLogging", () => {
     appendSpy.mockImplementation(() => {});
   });
 
-  it("logs success event with token counts and cost", async () => {
-    const result = await withAiLogging({ jobName: "quick-score", userId: "u1", targetUserId: "u2" }, async () => ({
-      result: { scoreForA: 70, scoreForB: 65 },
-      model: "gpt-4.1-mini",
-      promptTokens: 1200,
-      completionTokens: 30,
-    }));
+  it("logs success event with token counts, cost, input and output", async () => {
+    const input = { kind: "generateObject", model: "gpt-4.1-mini", prompt: "foo" };
+    const result = await withAiLogging(
+      { jobName: "quick-score", userId: "u1", targetUserId: "u2" },
+      input,
+      async () => ({
+        result: { scoreForA: 70, scoreForB: 65 },
+        model: "gpt-4.1-mini",
+        promptTokens: 1200,
+        completionTokens: 30,
+        output: { object: { scoreForA: 70, scoreForB: 65 } },
+      }),
+    );
 
     expect(result).toEqual({ scoreForA: 70, scoreForB: 65 });
     expect(appendSpy).toHaveBeenCalledTimes(1);
@@ -31,12 +37,15 @@ describe("withAiLogging", () => {
     expect(event.status).toBe("success");
     expect(event.estimatedCostUsd).toBeGreaterThan(0);
     expect(event.durationMs).toBeGreaterThanOrEqual(0);
+    expect(event.inputJsonb).toEqual(input);
+    expect(event.outputJsonb).toEqual({ object: { scoreForA: 70, scoreForB: 65 } });
   });
 
-  it("logs failed event and rethrows the error", async () => {
+  it("logs failed event with input (for debug) and rethrows the error", async () => {
+    const input = { kind: "generateObject", model: "gpt-4.1-mini", prompt: "boom" };
     const boom = new Error("API timeout");
     await expect(
-      withAiLogging({ jobName: "analyze-pair", userId: "u1" }, async () => {
+      withAiLogging({ jobName: "analyze-pair", userId: "u1" }, input, async () => {
         throw boom;
       }),
     ).rejects.toThrow("API timeout");
@@ -48,12 +57,15 @@ describe("withAiLogging", () => {
     expect(event.promptTokens).toBe(0);
     expect(event.completionTokens).toBe(0);
     expect(event.model).toBe("unknown");
+    // Input must survive failure — that is the main debugging lever
+    expect(event.inputJsonb).toEqual(input);
+    expect(event.outputJsonb).toBeNull();
   });
 
   it("truncates long error messages to 200 chars", async () => {
     const longErr = "x".repeat(500);
     await expect(
-      withAiLogging({ jobName: "analyze-pair" }, async () => {
+      withAiLogging({ jobName: "analyze-pair" }, {}, async () => {
         throw new Error(longErr);
       }),
     ).rejects.toThrow();
@@ -66,7 +78,7 @@ describe("withAiLogging", () => {
     appendSpy.mockImplementationOnce(() => {
       throw new Error("redis down");
     });
-    const result = await withAiLogging({ jobName: "test" }, async () => ({
+    const result = await withAiLogging({ jobName: "quick-score" }, {}, async () => ({
       result: "ok",
       model: "gpt-4.1-mini",
       promptTokens: 10,

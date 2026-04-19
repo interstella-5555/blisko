@@ -250,6 +250,8 @@ export const aiCostsRouter = router({
           durationMs: schema.aiCalls.durationMs,
           status: schema.aiCalls.status,
           errorMessage: schema.aiCalls.errorMessage,
+          inputJsonb: schema.aiCalls.inputJsonb,
+          outputJsonb: schema.aiCalls.outputJsonb,
         })
         .from(schema.aiCalls)
         .where(where)

@@ -2,7 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { AI_MODELS } from "@repo/shared";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { type AiLogCtx, withAiLogging } from "./ai-log";
+import { type AiCallInput, type AiLogCtx, withAiLogging } from "./ai-log";
 
 function isConfigured(): boolean {
   return !!process.env.OPENAI_API_KEY;
@@ -38,15 +38,7 @@ export async function generateFollowUpQuestions(
 
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
-
-  return withAiLogging(ctx, async () => {
-    const { object, usage } = await generateObject({
-      model: openai(model),
-      schema: followUpQuestionsSchema,
-      temperature: 0.8,
-      maxOutputTokens: 400,
-      ...(providerOptions && { providerOptions }),
-      system: `Analizujesz odpowiedzi użytkownika z onboardingu aplikacji społecznościowej i generujesz pytania pogłębiające.
+  const system = `Analizujesz odpowiedzi użytkownika z onboardingu aplikacji społecznościowej i generujesz pytania pogłębiające.
 
 Zasady:
 - Wygeneruj od 0 do 3 pytań pogłębiających
@@ -58,20 +50,41 @@ Zasady:
 - Pytania powinny być naturalne, ciepłe, po polsku
 - Krótkie i konkretne (1-2 zdania)
 - Preferuj scenariusze i pytania otwarte
-- Skup się na lukach: czego brakuje do stworzenia bogatego profilu?`,
-      prompt: `<user_name>${displayName}</user_name>
+- Skup się na lukach: czego brakuje do stworzenia bogatego profilu?`;
+  const prompt = `<user_name>${displayName}</user_name>
 
 <answered_questions>
 ${qaBlock}
 </answered_questions>${skippedBlock}
 
-Wygeneruj pytania pogłębiające (0-3).`,
+Wygeneruj pytania pogłębiające (0-3).`;
+  const input: AiCallInput = {
+    kind: "generateObject",
+    model,
+    system,
+    prompt,
+    temperature: 0.8,
+    maxOutputTokens: 400,
+    providerOptions: providerOptions ?? null,
+    schemaName: "followUpQuestionsSchema",
+  };
+
+  return withAiLogging(ctx, input, async () => {
+    const { object, usage } = await generateObject({
+      model: openai(model),
+      schema: followUpQuestionsSchema,
+      temperature: 0.8,
+      maxOutputTokens: 400,
+      ...(providerOptions && { providerOptions }),
+      system,
+      prompt,
     });
     return {
       result: object,
       model,
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
+      output: { object },
     };
   });
 }
@@ -124,15 +137,7 @@ export async function generateNextQuestion(
 
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
-
-  return withAiLogging(ctx, async () => {
-    const { object, usage } = await generateObject({
-      model: openai(model),
-      schema: nextQuestionSchema,
-      temperature: 0.8,
-      maxOutputTokens: 300,
-      ...(providerOptions && { providerOptions }),
-      system: `Jesteś adaptacyjnym profilerem osobowości dla aplikacji społecznościowej. Tworzysz profil osobowości na podstawie rozmowy.
+  const system = `Jesteś adaptacyjnym profilerem osobowości dla aplikacji społecznościowej. Tworzysz profil osobowości na podstawie rozmowy.
 
 Zasady:
 - Zadawaj pytania które pogłębią zrozumienie charakteru, osobowości, zainteresowań i oczekiwań tej osoby
@@ -142,17 +147,38 @@ Zasady:
 - Generuj 3-4 różnorodne sugerowane odpowiedzi (nie naprowadzające, naturalne)
 - Po 5-7 dobrych odpowiedziach ustaw sufficient: true jeżeli masz wystarczająco materiału na bogaty profil
 - Pisz naturalnym, ciepłym polskim językiem
-- Pytania powinny być krótkie i konkretne (1-2 zdania)${extraInstructions}`,
-      prompt: `<user_name>${displayName}</user_name>
+- Pytania powinny być krótkie i konkretne (1-2 zdania)${extraInstructions}`;
+  const prompt = `<user_name>${displayName}</user_name>
 Liczba dotychczasowych pytań: ${qaHistory.length}${contextBlock}${historyBlock}
 
-Wygeneruj następne pytanie.`,
+Wygeneruj następne pytanie.`;
+  const input: AiCallInput = {
+    kind: "generateObject",
+    model,
+    system,
+    prompt,
+    temperature: 0.8,
+    maxOutputTokens: 300,
+    providerOptions: providerOptions ?? null,
+    schemaName: "nextQuestionSchema",
+  };
+
+  return withAiLogging(ctx, input, async () => {
+    const { object, usage } = await generateObject({
+      model: openai(model),
+      schema: nextQuestionSchema,
+      temperature: 0.8,
+      maxOutputTokens: 300,
+      ...(providerOptions && { providerOptions }),
+      system,
+      prompt,
     });
     return {
       result: object,
       model,
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
+      output: { object },
     };
   });
 }
@@ -190,15 +216,7 @@ export async function generateProfileFromQA(
 
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
-
-  return withAiLogging(ctx, async () => {
-    const { object, usage } = await generateObject({
-      model: openai(model),
-      schema: profileFromQASchema,
-      temperature: 0.7,
-      maxOutputTokens: 1000,
-      ...(providerOptions && { providerOptions }),
-      system: `Na podstawie rozmowy profilowej generujesz profil użytkownika dla aplikacji społecznościowej.
+  const system = `Na podstawie rozmowy profilowej generujesz profil użytkownika dla aplikacji społecznościowej.
 
 Generujesz trzy teksty:
 
@@ -222,18 +240,39 @@ Zasady dla lookingFor:
 
 3. portrait (200-400 słów, 3. osoba, po polsku) — głęboki opis osobowości: jak myśli, co ceni, jak funkcjonuje społecznie, jakie ma motywacje i potrzeby. To jest prywatny dokument — pisz szczerze i wnikliwie, nie pochlebczo. Unikaj banalnych sformułowań.
 
-Bazuj WYŁĄCZNIE na informacjach które wynikają z odpowiedzi. Nie wymyślaj.`,
-      prompt: `<user_name>${displayName}</user_name>
+Bazuj WYŁĄCZNIE na informacjach które wynikają z odpowiedzi. Nie wymyślaj.`;
+  const prompt = `<user_name>${displayName}</user_name>
 
 <profiling_conversation>
 ${qaBlock}${contextBlock}
-</profiling_conversation>`,
+</profiling_conversation>`;
+  const input: AiCallInput = {
+    kind: "generateObject",
+    model,
+    system,
+    prompt,
+    temperature: 0.7,
+    maxOutputTokens: 1000,
+    providerOptions: providerOptions ?? null,
+    schemaName: "profileFromQASchema",
+  };
+
+  return withAiLogging(ctx, input, async () => {
+    const { object, usage } = await generateObject({
+      model: openai(model),
+      schema: profileFromQASchema,
+      temperature: 0.7,
+      maxOutputTokens: 1000,
+      ...(providerOptions && { providerOptions }),
+      system,
+      prompt,
     });
     return {
       result: object,
       model,
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
+      output: { object },
     };
   });
 }
