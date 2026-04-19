@@ -18,11 +18,11 @@ import { SplashHold } from "@/components/ui/SplashHold";
 import { authClient } from "@/lib/auth";
 import { getRateLimitMessage } from "@/lib/rateLimitMessages";
 import { showToast } from "@/lib/toast";
-import { trpc, trpcClient } from "@/lib/trpc";
+import { getLastFailedRequestId, trpc, trpcClient } from "@/lib/trpc";
 import { useWebSocket } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
 import { resetUserScopedStores } from "@/stores/reset";
-import { colors, fonts, layout, spacing } from "@/theme";
+import { colors, fonts, layout, spacing, type as typ } from "@/theme";
 
 // Keep the native splash visible until RN has mounted and fonts are loaded.
 // Fires at module import (before any render). Once `fontsLoaded` flips in
@@ -157,6 +157,75 @@ const toastBadgeStyles = StyleSheet.create({
   },
 });
 
+// Gate between the providers and the Stack. Holds the branded splash up as a
+// SINGLE <SplashHold> instance that spans: auth session restore → profile
+// fetch → first real screen. Putting this logic per-group-layout ((tabs),
+// (auth), onboarding) would unmount <SonarDot> between phases and restart
+// the ring animation; keeping the gate at root means one React instance and
+// one continuous animation loop (BLI-243 follow-up — feedback from live device).
+//
+// Must live inside <trpc.Provider> + <QueryClientProvider> because it uses
+// `trpc.profiles.me.useQuery`. The fonts-loading gate above this one in
+// <RootLayout> runs OUTSIDE those providers, so we keep it separate.
+function AppGate({ children }: { children: React.ReactNode }) {
+  const isAuthLoading = useAuthStore((s) => s.isLoading);
+  const user = useAuthStore((s) => s.user);
+  const hasCheckedProfile = useAuthStore((s) => s.hasCheckedProfile);
+  const setProfile = useAuthStore((s) => s.setProfile);
+  const setHasCheckedProfile = useAuthStore((s) => s.setHasCheckedProfile);
+
+  const {
+    data: profileData,
+    isError,
+    refetch,
+  } = trpc.profiles.me.useQuery(undefined, {
+    enabled: !!user && !hasCheckedProfile,
+    retry: 2,
+  });
+
+  useEffect(() => {
+    // Mirror query result into the store once. Don't overwrite a profile that
+    // was just created during onboarding and has landed in the store ahead of
+    // the refetch (same guard as the previous (tabs)-layout effect).
+    if (profileData !== undefined && !hasCheckedProfile) {
+      setProfile(profileData);
+      setHasCheckedProfile(true);
+    }
+  }, [profileData, hasCheckedProfile, setProfile, setHasCheckedProfile]);
+
+  // Profile fetch failed on cold launch — retry screen instead of blindly
+  // redirecting to onboarding. Preserves the "couldn't reach server" path
+  // that existed in (tabs) before this gate moved up.
+  if (isError && !hasCheckedProfile) {
+    const requestId = getLastFailedRequestId();
+    return (
+      <View
+        style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: colors.bg }}
+      >
+        <Text style={{ ...typ.body, color: colors.muted, marginBottom: 16, textAlign: "center" }}>
+          Nie udało się połączyć z serwerem
+        </Text>
+        <Text style={{ ...typ.body, color: colors.accent }} onPress={() => refetch()}>
+          Spróbuj ponownie
+        </Text>
+        {requestId && (
+          <Text selectable style={{ ...typ.caption, color: colors.muted, marginTop: 12 }}>
+            ID: {requestId.slice(0, 8)}
+          </Text>
+        )}
+      </View>
+    );
+  }
+
+  // Auth restore in flight, or authenticated but profile not yet resolved.
+  // Keep the branded splash visible — single instance, no animation restart.
+  if (isAuthLoading || (user && !hasCheckedProfile)) {
+    return <SplashHold />;
+  }
+
+  return <>{children}</>;
+}
+
 export default function RootLayout() {
   const setUser = useAuthStore((state) => state.setUser);
   const setSession = useAuthStore((state) => state.setSession);
@@ -233,62 +302,64 @@ export default function RootLayout() {
           <QueryClientProvider client={queryClient}>
             <StatusBar style="dark" />
             <LinkPreviewContextProvider>
-              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="settings" options={{ headerShown: false }} />
-                <Stack.Screen name="onboarding" />
-                <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
-                <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
-                <Stack.Screen
-                  name="create-group"
-                  options={{
-                    headerShown: true,
-                    header: () => (
-                      <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            paddingHorizontal: spacing.section,
-                            height: layout.headerHeight,
-                          }}
-                        >
-                          <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
-                            <IconChevronLeft size={24} color={colors.ink} />
-                          </Pressable>
-                          <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
-                          <View style={{ width: 24 }} />
-                        </View>
-                      </SafeAreaView>
-                    ),
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-                <Stack.Screen
-                  name="set-status"
-                  options={{
-                    presentation: "formSheet",
-                    headerShown: false,
-                    sheetAllowedDetents: "fitToContents",
-                    sheetGrabberVisible: true,
-                    sheetCornerRadius: 20,
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-                <Stack.Screen
-                  name="filters"
-                  options={{
-                    presentation: "formSheet",
-                    headerShown: false,
-                    sheetAllowedDetents: "fitToContents",
-                    sheetGrabberVisible: true,
-                    sheetCornerRadius: 20,
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-              </Stack>
+              <AppGate>
+                <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="settings" options={{ headerShown: false }} />
+                  <Stack.Screen name="onboarding" />
+                  <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
+                  <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
+                  <Stack.Screen
+                    name="create-group"
+                    options={{
+                      headerShown: true,
+                      header: () => (
+                        <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              paddingHorizontal: spacing.section,
+                              height: layout.headerHeight,
+                            }}
+                          >
+                            <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
+                              <IconChevronLeft size={24} color={colors.ink} />
+                            </Pressable>
+                            <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
+                            <View style={{ width: 24 }} />
+                          </View>
+                        </SafeAreaView>
+                      ),
+                      contentStyle: { backgroundColor: colors.bg },
+                    }}
+                  />
+                  <Stack.Screen
+                    name="set-status"
+                    options={{
+                      presentation: "formSheet",
+                      headerShown: false,
+                      sheetAllowedDetents: "fitToContents",
+                      sheetGrabberVisible: true,
+                      sheetCornerRadius: 20,
+                      contentStyle: { backgroundColor: colors.bg },
+                    }}
+                  />
+                  <Stack.Screen
+                    name="filters"
+                    options={{
+                      presentation: "formSheet",
+                      headerShown: false,
+                      sheetAllowedDetents: "fitToContents",
+                      sheetGrabberVisible: true,
+                      sheetCornerRadius: 20,
+                      contentStyle: { backgroundColor: colors.bg },
+                    }}
+                  />
+                </Stack>
+              </AppGate>
             </LinkPreviewContextProvider>
             <Toaster
               position="top-center"
