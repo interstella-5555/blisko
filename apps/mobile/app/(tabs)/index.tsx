@@ -22,6 +22,7 @@ import type { UserRowStatus } from "@/components/nearby/UserRow";
 import { UserRow } from "@/components/nearby/UserRow";
 import { Button } from "@/components/ui/Button";
 import { IconFilter, IconPin, IconPlus } from "@/components/ui/icons";
+import { SplashHold } from "@/components/ui/SplashHold";
 import { useNearbyList } from "@/hooks/useNearbyList";
 import { useNearbyMapMarkers } from "@/hooks/useNearbyMapMarkers";
 import { useRetryStatusMatchingOnFailure } from "@/hooks/useRetryStatusMatchingOnFailure";
@@ -388,14 +389,13 @@ export default function NearbyScreen() {
     );
   }
 
-  // Loading location
+  // Loading location — keep the branded <SplashHold> visible so the cold-launch
+  // handover (native splash → AppGate SplashHold → this screen) doesn't bounce
+  // through a generic spinner while we wait for the first GPS fix. First-run
+  // users will see a permission prompt on top of the splash; subsequent cold
+  // launches resolve from the cached fix quickly.
   if (permissionStatus === "undetermined" || (!latitude && !longitude)) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.ink} />
-        <Text style={styles.loadingText}>Pobieranie lokalizacji...</Text>
-      </View>
-    );
+    return <SplashHold />;
   }
 
   const renderItem = ({ item }: { item: ListItem }) => {
