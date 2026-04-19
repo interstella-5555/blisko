@@ -22,6 +22,7 @@ import type { UserRowStatus } from "@/components/nearby/UserRow";
 import { UserRow } from "@/components/nearby/UserRow";
 import { Button } from "@/components/ui/Button";
 import { IconFilter, IconPin, IconPlus } from "@/components/ui/icons";
+import { SplashHold } from "@/components/ui/SplashHold";
 import { useNearbyList } from "@/hooks/useNearbyList";
 import { useNearbyMapMarkers } from "@/hooks/useNearbyMapMarkers";
 import { useRetryStatusMatchingOnFailure } from "@/hooks/useRetryStatusMatchingOnFailure";
@@ -388,14 +389,14 @@ export default function NearbyScreen() {
     );
   }
 
-  // Loading location
-  if (permissionStatus === "undetermined" || (!latitude && !longitude)) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.ink} />
-        <Text style={styles.loadingText}>Pobieranie lokalizacji...</Text>
-      </View>
-    );
+  // Loading location — only shown when we have NO coordinates at all. Returning
+  // users get the cached GPS fix from locationStore (persisted via SecureStore)
+  // and render the map immediately, while a fresh fix comes in from
+  // `Location.watchPositionAsync` in the background. Falls through to the
+  // splash on fresh installs and on the narrow window between permission-
+  // granted and the first GPS fix.
+  if (!latitude || !longitude) {
+    return <SplashHold />;
   }
 
   const renderItem = ({ item }: { item: ListItem }) => {

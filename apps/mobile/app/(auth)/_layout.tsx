@@ -1,20 +1,12 @@
 import { Redirect, Stack } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
 import { useAuthStore } from "@/stores/authStore";
 
 export default function AuthLayout() {
   const session = useAuthStore((state) => state.session);
-  const isLoading = useAuthStore((state) => state.isLoading);
 
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  // If logged in, redirect to tabs
+  // Session restore is handled by <AppGate> in root layout — by the time we
+  // reach here `isLoading` is already false, so we can redirect immediately
+  // without a local splash guard.
   if (session) {
     return <Redirect href="/(tabs)" />;
   }

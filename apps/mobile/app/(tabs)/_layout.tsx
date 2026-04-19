@@ -1,13 +1,13 @@
 import { subMinutes } from "date-fns";
 import { Redirect, router, Tabs } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Pressable } from "react-native";
 import { IconChat, IconPerson, IconPin, IconPlus, IconSettings } from "@/components/ui/icons";
 import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { useInAppNotifications } from "@/hooks/useInAppNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useRetryProfileAIOnFailure } from "@/hooks/useRetryProfileAIOnFailure";
-import { getLastFailedRequestId, trpc } from "@/lib/trpc";
+import { trpc } from "@/lib/trpc";
 import { sendWsMessage, useWebSocket, type WSMessage } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationsStore } from "@/stores/conversationsStore";
@@ -19,10 +19,7 @@ import { colors, fonts, spacing, type as typ } from "@/theme";
 export default function TabsLayout() {
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
-  const isLoading = useAuthStore((state) => state.isLoading);
   const hasCheckedProfile = useAuthStore((state) => state.hasCheckedProfile);
-  const setProfile = useAuthStore((state) => state.setProfile);
-  const setHasCheckedProfile = useAuthStore((state) => state.setHasCheckedProfile);
   const utils = trpc.useUtils();
   const utilsRef = useRef(utils);
   utilsRef.current = utils;
@@ -193,21 +190,14 @@ export default function TabsLayout() {
   useBackgroundSync();
   useRetryProfileAIOnFailure();
 
-  const {
-    data: profileData,
-    isLoading: isLoadingProfile,
-    isError,
-    refetch,
-  } = trpc.profiles.me.useQuery(undefined, {
-    enabled: !!user && !hasCheckedProfile,
-    retry: 2, // Retry twice on failure
-  });
-
-  // Startup health check — if AI pipeline never completed, re-enqueue
+  // Startup health check — if AI pipeline never completed, re-enqueue. The
+  // profile fetch + hasCheckedProfile gating lives in <AppGate> (root layout)
+  // so the cold-launch splash stays as a single <SonarDot> instance without
+  // animation restart; here we just read the hydrated profile from the store.
   const { mutate: retryProfileAI, isPending: isRetryingProfileAI } = trpc.profiles.retryProfileAI.useMutation();
-  const bio = profileData?.bio;
-  const portrait = profileData?.portrait;
-  const updatedAt = profileData?.updatedAt;
+  const bio = profile?.bio;
+  const portrait = profile?.portrait;
+  const updatedAt = profile?.updatedAt;
   useEffect(() => {
     if (!bio || portrait || !updatedAt) return;
     const isStale = new Date(updatedAt) < subMinutes(new Date(), 5);
@@ -315,45 +305,6 @@ export default function TabsLayout() {
     s.received.reduce((n, w) => (w.wave.status === "pending" && !s.viewedWaveIds.has(w.wave.id) ? n + 1 : n), 0),
   );
   const chatsTabBadge = totalUnread + unviewedPings;
-
-  useEffect(() => {
-    // Only set profile from query if we haven't checked yet
-    // This prevents overwriting a profile that was just created in onboarding
-    if (profileData !== undefined && !hasCheckedProfile) {
-      setProfile(profileData);
-      setHasCheckedProfile(true);
-    }
-  }, [profileData, hasCheckedProfile, setProfile, setHasCheckedProfile]);
-
-  // If API error, show retry button instead of redirecting to onboarding
-  if (isError && !hasCheckedProfile) {
-    const requestId = getLastFailedRequestId();
-    return (
-      <View
-        style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: colors.bg }}
-      >
-        <Text style={{ ...typ.body, color: colors.muted, marginBottom: 16, textAlign: "center" }}>
-          Nie udało się połączyć z serwerem
-        </Text>
-        <Text style={{ ...typ.body, color: colors.accent }} onPress={() => refetch()}>
-          Spróbuj ponownie
-        </Text>
-        {requestId && (
-          <Text selectable style={{ ...typ.caption, color: colors.muted, marginTop: 12 }}>
-            ID: {requestId.slice(0, 8)}
-          </Text>
-        )}
-      </View>
-    );
-  }
-
-  if (isLoading || (user && !hasCheckedProfile && isLoadingProfile)) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.bg }}>
-        <ActivityIndicator size="large" color={colors.ink} />
-      </View>
-    );
-  }
 
   // If not logged in, redirect to auth
   if (!user) {

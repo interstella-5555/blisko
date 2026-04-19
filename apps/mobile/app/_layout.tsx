@@ -5,14 +5,18 @@ import { router, Stack } from "expo-router";
 // but ExpoRoot's provider doesn't always reach it
 import { LinkPreviewContextProvider } from "expo-router/build/link/preview/LinkPreviewContext";
 import * as SecureStore from "expo-secure-store";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import ms from "ms";
 import { useEffect } from "react";
-import { ActivityIndicator, Alert, AppState, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, AppState, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
+import { AppGate } from "@/components/AppGate";
 import { IconCheck, IconChevronLeft, IconX } from "@/components/ui/icons";
+import { SplashHold } from "@/components/ui/SplashHold";
 import { authClient } from "@/lib/auth";
 import { getRateLimitMessage } from "@/lib/rateLimitMessages";
 import { showToast } from "@/lib/toast";
@@ -21,6 +25,16 @@ import { useWebSocket } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
 import { resetUserScopedStores } from "@/stores/reset";
 import { colors, fonts, layout, spacing } from "@/theme";
+
+// Keep the native splash visible until RN has mounted and fonts are loaded.
+// Fires at module import (before any render). Once `fontsLoaded` flips in
+// RootLayout we call `SplashScreen.hideAsync()` to fade the native layer;
+// <SplashHold> sits underneath rendering the same dot + wordmark so there's
+// no visible flash if the native layer dismisses before the Stack paints.
+// See BLI-243 and docs/architecture/mobile-architecture.md → Splash.
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Already hidden or native module unavailable (web) — nothing to do.
+});
 
 let accountDeletedAlertShown = false;
 
@@ -91,8 +105,9 @@ export const queryClient = new QueryClient({
 
 // Single sign-out path for all logout flows (settings, account deletion, onboarding abort,
 // ACCOUNT_DELETED error handler). Clears every user-scoped store + React Query cache + Better
-// Auth session + SecureStore tokens. Leaves `locationStore` (device state) and `preferencesStore`
-// (intentionally persisted) untouched.
+// Auth session + SecureStore tokens. `preferencesStore` is the only remaining device-scoped
+// store (notification prefs + nearbyRadius — preserved across logout by product decision);
+// everything else including `locationStore` (BLI-243) is user-scoped and gets wiped.
 export async function signOutAndReset() {
   const pushToken = useAuthStore.getState().pushToken;
   if (pushToken) {
@@ -170,6 +185,25 @@ export default function RootLayout() {
     "DMSans-SemiBold": require("../assets/fonts/DMSans-SemiBold.ttf"),
   });
 
+  // Hide the native splash as soon as fonts are ready — <SplashHold> below
+  // covers the brief moment between the native layer fading and the Stack
+  // first painting so the user never sees a background flash.
+  useEffect(() => {
+    if (!fontsLoaded) return;
+    SplashScreen.hideAsync().catch(() => {});
+  }, [fontsLoaded]);
+
+  // Safety net: if font loading hangs (e.g. asset missing on an unexpected
+  // build), force-hide the native splash after 3s so the user isn't stranded
+  // on it. Anything fatal beyond that point would surface as an error screen
+  // rather than a stuck splash.
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, ms("3s"));
+    return () => clearTimeout(timeout);
+  }, []);
+
   useEffect(() => {
     // Check initial session
     const checkSession = async () => {
@@ -188,12 +222,11 @@ export default function RootLayout() {
     checkSession();
   }, [setUser, setSession, setLoading]);
 
+  // Render <SplashHold> under the native splash while fonts load. Same dot +
+  // wordmark geometry as assets/splash-icon.png, so the user sees a
+  // continuous image even if the native layer fades before the Stack paints.
   if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color={colors.ink} />
-      </View>
-    );
+    return <SplashHold />;
   }
 
   return (
@@ -203,62 +236,64 @@ export default function RootLayout() {
           <QueryClientProvider client={queryClient}>
             <StatusBar style="dark" />
             <LinkPreviewContextProvider>
-              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="settings" options={{ headerShown: false }} />
-                <Stack.Screen name="onboarding" />
-                <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
-                <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
-                <Stack.Screen
-                  name="create-group"
-                  options={{
-                    headerShown: true,
-                    header: () => (
-                      <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            paddingHorizontal: spacing.section,
-                            height: layout.headerHeight,
-                          }}
-                        >
-                          <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
-                            <IconChevronLeft size={24} color={colors.ink} />
-                          </Pressable>
-                          <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
-                          <View style={{ width: 24 }} />
-                        </View>
-                      </SafeAreaView>
-                    ),
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-                <Stack.Screen
-                  name="set-status"
-                  options={{
-                    presentation: "formSheet",
-                    headerShown: false,
-                    sheetAllowedDetents: "fitToContents",
-                    sheetGrabberVisible: true,
-                    sheetCornerRadius: 20,
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-                <Stack.Screen
-                  name="filters"
-                  options={{
-                    presentation: "formSheet",
-                    headerShown: false,
-                    sheetAllowedDetents: "fitToContents",
-                    sheetGrabberVisible: true,
-                    sheetCornerRadius: 20,
-                    contentStyle: { backgroundColor: colors.bg },
-                  }}
-                />
-              </Stack>
+              <AppGate>
+                <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="settings" options={{ headerShown: false }} />
+                  <Stack.Screen name="onboarding" />
+                  <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
+                  <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
+                  <Stack.Screen
+                    name="create-group"
+                    options={{
+                      headerShown: true,
+                      header: () => (
+                        <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              paddingHorizontal: spacing.section,
+                              height: layout.headerHeight,
+                            }}
+                          >
+                            <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
+                              <IconChevronLeft size={24} color={colors.ink} />
+                            </Pressable>
+                            <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
+                            <View style={{ width: 24 }} />
+                          </View>
+                        </SafeAreaView>
+                      ),
+                      contentStyle: { backgroundColor: colors.bg },
+                    }}
+                  />
+                  <Stack.Screen
+                    name="set-status"
+                    options={{
+                      presentation: "formSheet",
+                      headerShown: false,
+                      sheetAllowedDetents: "fitToContents",
+                      sheetGrabberVisible: true,
+                      sheetCornerRadius: 20,
+                      contentStyle: { backgroundColor: colors.bg },
+                    }}
+                  />
+                  <Stack.Screen
+                    name="filters"
+                    options={{
+                      presentation: "formSheet",
+                      headerShown: false,
+                      sheetAllowedDetents: "fitToContents",
+                      sheetGrabberVisible: true,
+                      sheetCornerRadius: 20,
+                      contentStyle: { backgroundColor: colors.bg },
+                    }}
+                  />
+                </Stack>
+              </AppGate>
             </LinkPreviewContextProvider>
             <Toaster
               position="top-center"

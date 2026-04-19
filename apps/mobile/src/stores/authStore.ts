@@ -32,6 +32,8 @@ interface Profile {
   statusCategories?: string[] | null;
   superpower?: string | null;
   offerType?: "volunteer" | "exchange" | "gig" | null;
+  portrait?: string | null;
+  updatedAt?: string | Date;
 }
 
 interface AuthState {

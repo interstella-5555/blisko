@@ -1,45 +1,25 @@
 import { router, Stack } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { trpc } from "@/lib/trpc";
+import { SplashHold } from "@/components/ui/SplashHold";
 import { useAuthStore } from "@/stores/authStore";
 import { colors } from "@/theme";
 
 export default function OnboardingLayout() {
-  const user = useAuthStore((state) => state.user);
-  const isAuthLoading = useAuthStore((state) => state.isLoading);
-  const setProfile = useAuthStore((state) => state.setProfile);
+  const profile = useAuthStore((state) => state.profile);
   const setHasCheckedProfile = useAuthStore((state) => state.setHasCheckedProfile);
 
-  const { data: profile, isLoading } = trpc.profiles.me.useQuery(undefined, {
-    enabled: !!user,
-  });
-
+  // AppGate in root layout has already resolved the profile (or its absence)
+  // into the store before we render. If one exists the user must have come
+  // back to onboarding after completing it — redirect to tabs.
   useEffect(() => {
-    // If profile exists, user already completed onboarding - redirect to tabs
     if (profile) {
-      setProfile(profile);
       setHasCheckedProfile(true);
       router.replace("/(tabs)");
     }
-  }, [profile, setProfile, setHasCheckedProfile]);
+  }, [profile, setHasCheckedProfile]);
 
-  // Show loading while auth session restores or profile query runs
-  if (isAuthLoading || isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  // If profile exists, don't render onboarding (redirect will happen)
   if (profile) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <SplashHold />;
   }
 
   return (
