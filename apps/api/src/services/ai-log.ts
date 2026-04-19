@@ -7,6 +7,7 @@ export type AiJobName =
   | "generate-profile-ai"
   | "status-matching"
   | "proximity-status-matching"
+  | "evaluate-status-match"
   | "generate-profiling-question"
   | "generate-profile-from-qa"
   | "inline-follow-up-questions";

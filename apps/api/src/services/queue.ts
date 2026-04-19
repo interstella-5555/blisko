@@ -82,6 +82,31 @@ interface ProximityStatusMatchingJob {
   longitude: number;
 }
 
+interface EvaluateStatusMatchJob {
+  type: "evaluate-status-match";
+  // The user whose parent-job spawned this child (setter or moving user).
+  userId: string;
+  // The other user in the pair.
+  candidateUserId: string;
+  // Pre-resolved LLM inputs — same arg order as evaluateStatusMatch(). The child does
+  // no rich-text DB fetch. Setter path: contextA = setter's status text. Proximity:
+  // contextA = candidate's status (matchViaStatus) or candidate's profile (!matchViaStatus).
+  contextA: string;
+  contextB: string;
+  matchType: "status" | "profile";
+  categoriesA: string[] | null;
+  categoriesB: string[] | null;
+  // Parent-captured snapshot of userId's profiles.statusSetAt (ISO). Stale children
+  // detect a newer status and skip silently — protects the setter-path DELETE+INSERT
+  // "replace" semantic from rapid setStatus → setStatus races. null disables the check
+  // (used by proximity path where userId is the moving user, not the status setter).
+  stalenessKey: string | null;
+  // unidirectional = setter path; bidirectional = proximity path.
+  insertMode: "unidirectional" | "bidirectional";
+  // WS + ambient push recipients. Setter path: [userId]. Proximity: [userId, candidateUserId].
+  notifyUserIds: string[];
+}
+
 type AIJob =
   | AnalyzePairJob
   | QuickScoreJob
@@ -90,7 +115,8 @@ type AIJob =
   | GenerateProfilingQuestionJob
   | GenerateProfileFromQAJob
   | StatusMatchingJob
-  | ProximityStatusMatchingJob;
+  | ProximityStatusMatchingJob
+  | EvaluateStatusMatchJob;
 
 // --- Queue (lazy init) ---
 
@@ -666,55 +692,37 @@ async function processStatusMatching(userId: string) {
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, 20);
 
-  // LLM evaluation for top candidates
-  const matches: { matchedUserId: string; reason: string; matchedVia: "status" | "profile" }[] = [];
-
-  await Promise.all(
-    scored.map(async ({ user: otherUser, matchViaStatus }) => {
-      const matchType = matchViaStatus ? "status" : "profile";
-      const otherContext = matchViaStatus
-        ? otherUser.currentStatus!
-        : `${otherUser.bio}. Szuka: ${otherUser.lookingFor}`;
-
-      const result = await evaluateStatusMatch(
-        user.currentStatus!,
-        otherContext,
-        matchType,
-        user.statusCategories,
-        matchViaStatus ? otherUser.statusCategories : null,
-        { jobName: "status-matching", userId, targetUserId: otherUser.userId },
-      );
-
-      if (result.isMatch) {
-        matches.push({
-          matchedUserId: otherUser.userId,
-          reason: result.reason,
-          matchedVia: matchType,
-        });
-      }
-    }),
-  );
-
-  // Replace old matches with new ones
+  // Replace old matches with new ones BEFORE fan-out. Children only INSERT → the
+  // DELETE preserves the setter-path "replace" semantic even when children run in
+  // parallel on separate worker slots (BLI-167).
   await db.delete(schema.statusMatches).where(eq(schema.statusMatches.userId, userId));
 
-  if (matches.length > 0) {
-    await db.insert(schema.statusMatches).values(
-      matches.map((m) => ({
-        userId,
-        matchedUserId: m.matchedUserId,
-        reason: m.reason,
-        matchedVia: m.matchedVia,
-      })),
-    );
-  }
+  // Emit immediately so the client drops stale pulsing bubbles for the old status
+  // while LLM evaluation is still in flight. Matches that land later re-fire this.
+  publishEvent("statusMatchesReady", { userId, matchedUserIds: [] });
 
-  // Emit WS event
-  publishEvent("statusMatchesReady", { userId, matchedUserIds: matches.map((m) => m.matchedUserId) });
+  if (scored.length === 0) return;
 
-  if (matches.length > 0) {
-    await sendAmbientPushWithCooldown(userId);
-  }
+  // Invariant: `setStatus` always writes `statusSetAt: new Date()`, and the early
+  // `if (!user?.currentStatus)` guard above rejects rows without a status. So in
+  // practice `statusSetAt` is non-null here — the fallback to `null` is just a
+  // belt-and-suspenders; a null stalenessKey would disable the child-side guard.
+  const stalenessKey = user.statusSetAt ? user.statusSetAt.toISOString() : null;
+  await enqueueEvaluateStatusMatchJobs(
+    scored.map(({ user: otherUser, matchViaStatus }) => ({
+      type: "evaluate-status-match" as const,
+      userId,
+      candidateUserId: otherUser.userId,
+      contextA: user.currentStatus!,
+      contextB: matchViaStatus ? otherUser.currentStatus! : `${otherUser.bio}. Szuka: ${otherUser.lookingFor}`,
+      matchType: matchViaStatus ? "status" : "profile",
+      categoriesA: user.statusCategories,
+      categoriesB: matchViaStatus ? otherUser.statusCategories : null,
+      stalenessKey,
+      insertMode: "unidirectional",
+      notifyUserIds: [userId],
+    })),
+  );
 }
 
 // --- Proximity status matching processor ---
@@ -841,67 +849,96 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
 
   if (scored.length === 0) return;
 
-  const matches: { candidateId: string; reason: string; matchedVia: "status" | "profile" }[] = [];
+  console.log(`[queue] proximity-status-matching for ${userId}: fanning out ${scored.length} children`);
 
-  await Promise.all(
-    scored.map(async ({ candidate, matchViaStatus }) => {
-      const matchType = matchViaStatus ? "status" : "profile";
-      const movingContext = movingUserHasStatus
-        ? movingUser.currentStatus!
-        : `${movingUser.bio}. Szuka: ${movingUser.lookingFor}`;
-      const candidateContext = matchViaStatus
-        ? candidate.currentStatus!
-        : `${candidate.bio}. Szuka: ${candidate.lookingFor}`;
+  const movingContext = movingUserHasStatus
+    ? movingUser.currentStatus!
+    : `${movingUser.bio}. Szuka: ${movingUser.lookingFor}`;
 
-      const result = await evaluateStatusMatch(
-        candidateContext,
-        movingContext,
-        matchType,
-        matchViaStatus ? candidate.statusCategories : null,
-        movingUserHasStatus ? movingUser.statusCategories : null,
-        { jobName: "proximity-status-matching", userId, targetUserId: candidate.userId },
-      );
-
-      if (result.isMatch) {
-        matches.push({
-          candidateId: candidate.userId,
-          reason: result.reason,
-          matchedVia: matchType,
-        });
-      }
-    }),
+  // Mirror original processProximityStatusMatching arg order to evaluateStatusMatch:
+  // (candidateContext, movingContext, ...) — candidate is the "setter" side in proximity
+  // (they had an active status that moving user walked into range of).
+  await enqueueEvaluateStatusMatchJobs(
+    scored.map(({ candidate, matchViaStatus }) => ({
+      type: "evaluate-status-match" as const,
+      userId,
+      candidateUserId: candidate.userId,
+      contextA: matchViaStatus ? candidate.currentStatus! : `${candidate.bio}. Szuka: ${candidate.lookingFor}`,
+      contextB: movingContext,
+      matchType: matchViaStatus ? "status" : "profile",
+      categoriesA: matchViaStatus ? candidate.statusCategories : null,
+      categoriesB: movingUserHasStatus ? movingUser.statusCategories : null,
+      // No staleness guard for proximity — userId is the moving user, not a status setter.
+      // The proximity-status-matching parent itself is debounced 2min, so we accept
+      // that a candidate changing their status mid-debounce may yield a match for a
+      // slightly-stale status. Rare + self-heals on next setStatus run.
+      stalenessKey: null,
+      insertMode: "bidirectional",
+      notifyUserIds: [userId, candidate.userId],
+    })),
   );
+}
 
-  if (matches.length === 0) {
-    console.log(`[queue] proximity-status-matching for ${userId}: ${scored.length} candidates, 0 matches`);
-    return;
+// --- Per-pair status match evaluation (child of status-matching / proximity-status-matching) ---
+
+async function processEvaluateStatusMatch(job: EvaluateStatusMatchJob) {
+  const {
+    userId,
+    candidateUserId,
+    contextA,
+    contextB,
+    matchType,
+    categoriesA,
+    categoriesB,
+    stalenessKey,
+    insertMode,
+    notifyUserIds,
+  } = job;
+
+  // Staleness guard: if userId's status changed after the parent enqueued this child,
+  // skip silently. Setter-path only — proximity passes null.
+  if (stalenessKey) {
+    const current = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, userId),
+      columns: { statusSetAt: true, currentStatus: true },
+    });
+    const currentIso = current?.statusSetAt ? current.statusSetAt.toISOString() : null;
+    if (!current?.currentStatus || currentIso !== stalenessKey) {
+      console.log(`[queue] evaluate-status-match stale for ${userId} → ${candidateUserId}, skipping`);
+      return;
+    }
   }
 
-  console.log(
-    `[queue] proximity-status-matching for ${userId}: ${matches.length} matches from ${scored.length} candidates`,
-  );
+  const result = await evaluateStatusMatch(contextA, contextB, matchType, categoriesA, categoriesB, {
+    jobName: "evaluate-status-match",
+    userId,
+    targetUserId: candidateUserId,
+  });
 
-  const matchRows = matches.flatMap((m) => [
-    { userId: m.candidateId, matchedUserId: userId, reason: m.reason, matchedVia: m.matchedVia },
-    { userId, matchedUserId: m.candidateId, reason: m.reason, matchedVia: m.matchedVia },
-  ]);
+  if (!result.isMatch) return;
+
+  const rows =
+    insertMode === "bidirectional"
+      ? [
+          { userId: candidateUserId, matchedUserId: userId, reason: result.reason, matchedVia: matchType },
+          { userId, matchedUserId: candidateUserId, reason: result.reason, matchedVia: matchType },
+        ]
+      : [{ userId, matchedUserId: candidateUserId, reason: result.reason, matchedVia: matchType }];
 
   await db
     .insert(schema.statusMatches)
-    .values(matchRows)
+    .values(rows)
     .onConflictDoNothing({ target: [schema.statusMatches.userId, schema.statusMatches.matchedUserId] });
 
-  const notifiedUserIds = new Set<string>();
-  for (const m of matches) {
-    notifiedUserIds.add(m.candidateId);
-  }
-  notifiedUserIds.add(userId);
-
-  for (const uid of notifiedUserIds) {
-    publishEvent("statusMatchesReady", { userId: uid, matchedUserIds: [] });
+  // Report the OTHER side as the matched user for each recipient. Proximity fires
+  // the event for both users, so sending `[candidateUserId]` unconditionally would
+  // tell the candidate they matched with themselves.
+  for (const uid of notifyUserIds) {
+    const otherUserId = uid === userId ? candidateUserId : userId;
+    publishEvent("statusMatchesReady", { userId: uid, matchedUserIds: [otherUserId] });
   }
 
-  for (const uid of notifiedUserIds) {
+  for (const uid of notifyUserIds) {
     await sendAmbientPushWithCooldown(uid);
   }
 }
@@ -937,6 +974,9 @@ async function processJob(job: Job<AIJob>) {
       break;
     case "proximity-status-matching":
       await processProximityStatusMatching(data.userId, data.latitude, data.longitude);
+      break;
+    case "evaluate-status-match":
+      await processEvaluateStatusMatch(data);
       break;
   }
 }
@@ -1181,6 +1221,26 @@ export async function enqueueStatusMatching(userId: string) {
     {
       deduplication: { id: `status-matching-${userId}` },
     },
+  );
+}
+
+async function enqueueEvaluateStatusMatchJobs(jobs: EvaluateStatusMatchJob[]) {
+  if (!process.env.REDIS_URL) return;
+  if (jobs.length === 0) return;
+
+  const queue = getQueue();
+  await queue.addBulk(
+    jobs.map((data) => ({
+      name: "evaluate-status-match",
+      data,
+      // Dedup id embeds the stalenessKey so a newer setStatus epoch gets fresh children
+      // (old-epoch children may still be queued; stale check on run rejects them).
+      opts: {
+        deduplication: {
+          id: `evaluate-status-match-${data.userId}-${data.candidateUserId}-${data.stalenessKey ?? "na"}`,
+        },
+      },
+    })),
   );
 }
 

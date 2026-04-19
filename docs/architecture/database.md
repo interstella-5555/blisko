@@ -489,7 +489,7 @@ Per-call OpenAI telemetry. Every Vercel AI SDK call logged via `withAiLogging()`
 | `id` | serial PK | no | |
 | `timestamp` | timestamptz | no | DB-generated (`defaultNow()`) |
 | `queue_name` | text | no | `ai` today — placeholder for future queue split |
-| `job_name` | text | no | `quick-score` / `analyze-pair` / `generate-profile-ai` / `status-matching` / `proximity-status-matching` / `generate-profiling-question` / `generate-profile-from-qa` / `inline-follow-up-questions` / etc. |
+| `job_name` | text | no | `quick-score` / `analyze-pair` / `generate-profile-ai` / `status-matching` / `proximity-status-matching` / `evaluate-status-match` / `generate-profiling-question` / `generate-profile-from-qa` / `inline-follow-up-questions` / etc. |
 | `model` | text | no | `gpt-4.1-mini`, `text-embedding-3-small`. `unknown` if call failed before model was known. |
 | `prompt_tokens` | integer | no | From Vercel SDK `usage.inputTokens` (or `usage.tokens` for embeddings). 0 on failure. |
 | `completion_tokens` | integer | no | From Vercel SDK `usage.outputTokens`. 0 for embeddings and on failure. |

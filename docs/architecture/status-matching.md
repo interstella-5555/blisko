@@ -2,6 +2,7 @@
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — `status-matching` dedup switched from `jobId` to BullMQ `deduplication` (auto-release on failure), `statusMatchingFailed` WS event for self-healing (BLI-164).
+> Updated 2026-04-19 — per-pair LLM eval split from parent Promise.all into `evaluate-status-match` child jobs. Parents handle fetch/embed/prefilter + DELETE (setter path), then fan out via `queue.addBulk`. Child performs one `evaluateStatusMatch` call + INSERT + WS event + ambient push. Staleness guard on setter path via `statusSetAt` snapshot in job payload (BLI-167).
 
 ## Terminology & Product Alignment
 
@@ -79,9 +80,9 @@ Triggered when a user sets a new status. Three steps with progressive filtering.
 
 **Config:** Top 20 candidates, similarity threshold > 0.3
 
-### Step 3: LLM Evaluation
+### Step 3: LLM Evaluation (per-pair child jobs)
 
-**What:** Call `evaluateStatusMatch()` for each of the top 20 candidates.
+**What:** Parent fans out one `evaluate-status-match` child job per top-20 candidate via `queue.addBulk`. Each child runs a single `evaluateStatusMatch()` call in its own BullMQ job, with its own retry budget (3 attempts, exp backoff). The parent does not wait for children — `statusMatchesReady` fires per child on match.
 
 **Two match types:**
 
@@ -96,10 +97,12 @@ Triggered when a user sets a new status. Three steps with progressive filtering.
 
 ### Step 4: Store & Notify
 
-1. **Delete old matches:** `DELETE FROM status_matches WHERE userId = ?` --- full replace, not incremental
-2. **Insert new matches:** batch insert all confirmed matches
-3. **WebSocket:** `statusMatchesReady` event to the user
-4. **Ambient push:** if any matches found, `sendAmbientPushWithCooldown(userId)` sends a push with 1h Redis cooldown
+1. **Delete old matches (parent, before fan-out):** `DELETE FROM status_matches WHERE userId = ?` — full replace. Done in the parent so the setter's pulsing bubbles drop immediately for the old status; children only INSERT.
+2. **Initial `statusMatchesReady` with empty list** (parent, after DELETE) — tells the client to drop stale bubbles while children are still evaluating.
+3. **Child insert per match:** each `evaluate-status-match` child inserts one row via `INSERT ... ON CONFLICT DO NOTHING` when its LLM call returns `isMatch=true`.
+4. **Child WebSocket + push:** each matching child fires `statusMatchesReady` for the setter with `matchedUserIds: [candidateUserId]` and calls `sendAmbientPushWithCooldown(userId)`. The 1h Redis cooldown collapses the fan-out into a single push per user per hour.
+
+**Staleness guard:** The child payload carries the setter's `statusSetAt` at enqueue time. Before running the LLM, the child re-reads `profiles.statusSetAt` and skips silently if the setter has since set a new status — prevents old-batch children from inserting into `status_matches` under a newer status. The child dedup id embeds `statusSetAt` as an epoch suffix for the same reason.
 
 ## Matching Pipeline: processProximityStatusMatching
 
@@ -208,8 +211,9 @@ Note: `statusExpiresAt` is defined in the schema but `isStatusActive` does not c
 
 | Job type | Dedup strategy | Debounce | Notes |
 |---|---|---|---|
-| `status-matching` | BullMQ `deduplication` with id `status-matching-{userId}` | None | Auto-releases on completion/failure — enables self-healing re-enqueue |
-| `proximity-status-matching` | `jobId: proximity-status-{userId}-{timestamp}` | 2 min (`ttl: ms("2m")`) | Debounced --- rapid location updates don't flood |
+| `status-matching` (parent) | BullMQ `deduplication` with id `status-matching-{userId}` | None | Auto-releases on completion/failure — enables self-healing re-enqueue |
+| `proximity-status-matching` (parent) | `jobId: proximity-status-{userId}-{timestamp}` | 2 min (`ttl: ms("2m")`) | Debounced --- rapid location updates don't flood |
+| `evaluate-status-match` (child) | BullMQ `deduplication` with id `evaluate-status-match-{userId}-{candidateUserId}-{statusSetAt ?? "na"}` | None | `statusSetAt` suffix acts as an epoch — a new `setStatus` enqueues fresh children without colliding with the prior batch |
 
 BullMQ queue: `ai` (shared with other AI job types after the BLI-171 queue split), concurrency 50, 3 attempts with exponential backoff (5s base).
 
