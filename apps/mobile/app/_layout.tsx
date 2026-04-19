@@ -7,11 +7,11 @@ import { LinkPreviewContextProvider } from "expo-router/build/link/preview/LinkP
 import * as SecureStore from "expo-secure-store";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { ActivityIndicator, Alert, AppState, Platform, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, AppState, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
-import { IconChevronLeft } from "@/components/ui/icons";
+import { IconCheck, IconChevronLeft, IconX } from "@/components/ui/icons";
 import { authClient } from "@/lib/auth";
 import { getRateLimitMessage } from "@/lib/rateLimitMessages";
 import { showToast } from "@/lib/toast";
@@ -125,6 +125,33 @@ export async function signOutAndReset() {
 
   router.replace("/(auth)/login");
 }
+
+const badgeBase = {
+  width: 22,
+  height: 22,
+  borderRadius: 11,
+  alignItems: "center",
+  justifyContent: "center",
+} as const;
+
+const toastBadgeStyles = StyleSheet.create({
+  success: { ...badgeBase, backgroundColor: colors.status.success.text },
+  error: { ...badgeBase, backgroundColor: colors.status.error.text },
+  warning: { ...badgeBase, backgroundColor: colors.status.warning.text },
+  info: { ...badgeBase, backgroundColor: colors.muted },
+  warningGlyph: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 13,
+    lineHeight: 15,
+    color: colors.bg,
+  },
+  infoGlyph: {
+    fontFamily: fonts.serifItalic,
+    fontSize: 14,
+    lineHeight: 15,
+    color: colors.bg,
+  },
+});
 
 export default function RootLayout() {
   const setUser = useAuthStore((state) => state.setUser);
@@ -245,9 +272,56 @@ export default function RootLayout() {
             duration={4000}
             visibleToasts={3}
             swipeToDismissDirection="up"
-            richColors
             theme="light"
             offset={0}
+            icons={{
+              success: (
+                <View style={toastBadgeStyles.success}>
+                  <IconCheck size={14} color={colors.bg} />
+                </View>
+              ),
+              error: (
+                <View style={toastBadgeStyles.error}>
+                  <IconX size={14} color={colors.bg} />
+                </View>
+              ),
+              warning: (
+                <View style={toastBadgeStyles.warning}>
+                  <Text style={toastBadgeStyles.warningGlyph}>!</Text>
+                </View>
+              ),
+              info: (
+                <View style={toastBadgeStyles.info}>
+                  <Text style={toastBadgeStyles.infoGlyph}>i</Text>
+                </View>
+              ),
+            }}
+            toastOptions={{
+              style: {
+                backgroundColor: colors.bg,
+                borderColor: colors.rule,
+                borderWidth: 1,
+                borderRadius: 14,
+                padding: 14,
+                marginHorizontal: spacing.column,
+              },
+              titleStyle: {
+                fontFamily: fonts.sansSemiBold,
+                fontSize: 15,
+                lineHeight: 20,
+                color: colors.ink,
+              },
+              descriptionStyle: {
+                fontFamily: fonts.sans,
+                fontSize: 13,
+                lineHeight: 18,
+                color: colors.muted,
+              },
+              toastContentStyle: {
+                alignItems: "center",
+                gap: spacing.gutter,
+              },
+            }}
           />
         </QueryClientProvider>
       </trpc.Provider>
