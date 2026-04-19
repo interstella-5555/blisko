@@ -73,7 +73,8 @@ ZASADY:
     system,
     prompt: scenario,
     temperature: 0.9,
-    maxOutputTokens: 150,
+    maxOutputTokens: 500,
+    providerOptions: { openai: { reasoningEffort: "minimal" } },
     isOpening,
   };
   const start = Date.now();
@@ -99,6 +100,8 @@ ZASADY:
       completionTokens: usage?.outputTokens ?? 0,
       userId: botProfile.userId,
       targetUserId: otherProfile.userId,
+      serviceTier: "standard",
+      reasoningEffort: "minimal",
       durationMs: Date.now() - start,
       status: "success",
       input,
@@ -114,6 +117,8 @@ ZASADY:
       completionTokens: 0,
       userId: botProfile.userId,
       targetUserId: otherProfile.userId,
+      serviceTier: "standard",
+      reasoningEffort: "minimal",
       durationMs: Date.now() - start,
       status: "failed",
       errorMessage: error instanceof Error ? error.message : String(error),

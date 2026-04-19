@@ -70,7 +70,10 @@ NIE wspominaj o aktualnym statusie użytkownika ani bieżących intencjach "na t
     system,
     prompt,
     temperature: 0.7,
-    maxOutputTokens: 500,
+    // 200-300 PL words ≈ 420 visible tokens; gpt-5-mini minimal reasoning still
+    // consumes some of the same budget — 500 was clipping at finishReason: "length"
+    // and falling back to raw bio+lookingFor. Same class of bug as BLI-241.
+    maxOutputTokens: 1000,
     providerOptions: providerOptions ?? null,
   };
 
@@ -79,7 +82,7 @@ NIE wspominaj o aktualnym statusie użytkownika ani bieżących intencjach "na t
       const { text, usage, finishReason } = await generateText({
         model: openai(model),
         temperature: 0.7,
-        maxOutputTokens: 500,
+        maxOutputTokens: 1000,
         ...(providerOptions && { providerOptions }),
         system,
         prompt,
@@ -176,7 +179,11 @@ Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${pro
     system,
     prompt,
     temperature: 0.3,
-    maxOutputTokens: 50,
+    // Visible JSON ~25 tokens, but gpt-5-mini minimal reasoning still spends
+    // ~50-150 hidden tokens out of the same budget. 50 was sized for gpt-4.1-mini
+    // (no reasoning) and started clipping with finishReason: "length" → empty
+    // object → Zod validation fails → analysisFailed. Same class of bug as BLI-241.
+    maxOutputTokens: 200,
     providerOptions: providerOptions ?? null,
     schemaName: "quickScoreSchema",
   };
@@ -186,7 +193,7 @@ Szuka: ${profileB.lookingFor}${profileB.superpower ? `\nMoże zaoferować: ${pro
       model: openai(model),
       schema: quickScoreSchema,
       temperature: 0.3,
-      maxOutputTokens: 50,
+      maxOutputTokens: 200,
       ...(providerOptions && { providerOptions }),
       system,
       prompt,
@@ -246,7 +253,11 @@ Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po pols
     model,
     prompt,
     matchType,
-    maxOutputTokens: 100,
+    // Output is JSON with ~60-80 char Polish reason → ~50-80 visible tokens, but
+    // gpt-5-mini minimal reasoning eats from the same budget. 100 was clipping →
+    // JSON.parse throws → caller swallows as { isMatch: false } → status matches
+    // silently dropped. Same class of bug as BLI-241.
+    maxOutputTokens: 300,
     providerOptions: providerOptions ?? null,
   };
 
@@ -255,7 +266,7 @@ Odpowiedz JSON: {"isMatch": true/false, "reason": "krótkie uzasadnienie po pols
       const { text, usage, finishReason } = await generateText({
         model: openai(model),
         prompt,
-        maxOutputTokens: 100,
+        maxOutputTokens: 300,
         ...(providerOptions && { providerOptions }),
       });
       // Parse inside the wrapper so malformed LLM output is logged as a failed row

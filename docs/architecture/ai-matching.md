@@ -8,6 +8,7 @@
 > Updated 2026-04-11 — Modal profilu (mobile) zhookowany na `getDetailedAnalysis` (wcześniej wołał `getConnectionAnalysis` — read-only, bez promocji T3; ta procedura została usunięta jako dead code). `ensureAnalysis` i `getDetailedAnalysis` sprawdzają `tier === 't3'` jako readiness, nie "row exists", i mają pełen zestaw gate'ów (block, bilateral isComplete, target soft-delete). Tier invariant udokumentowany explicite (BLI-188).
 > Updated 2026-04-11 — Writer-side staleness gate w `processAnalyzePair` też sprawdza `tier === 't3'` (extract: `isPairAnalysisUpToDate`). Wcześniej skipował na samo hash match, co po BLI-184/185 (T2 zaczął zapisywać wiersz z aktualnymi hashami) powodowało, że `promotePairAnalysis` był no-opem — worker widział T2 row z matching hashes i wracał bez wywołania `analyzeConnection`. Modal leciał w fallback `commonInterests` forever, tak jak przed BLI-188. Tier jest teraz source of truth po obu stronach: reader (`getDetailedAnalysis`/`ensureAnalysis`) i writer (`processAnalyzePair`) (BLI-194).
 > Updated 2026-04-19 — BLI-236. Async AI call-sites run `gpt-5-mini` with `service_tier: "flex"` (50% off); sync/on-demand use `gpt-5-mini` Standard. `analyze-pair` batch + `generate-profile-from-qa` use `reasoningEffort: "medium"`, everything else `"minimal"`. `promotePairAnalysis` sets `isOnDemand: true` on the job so `processAnalyzePair` can pick the sync ctx. Legacy `GPT_MODEL` constant renamed to role-based `AI_MODELS.sync` / `AI_MODELS.async` — swap one line to change providers.
+> Updated 2026-04-19 — Audit follow-up after BLI-241. Token budgets re-sized for the gpt-5 reasoning-budget mechanic: `quickScore` 50→200, `evaluateStatusMatch` 100→300, `generatePortrait` 500→1000. Pre-migration sizing (gpt-4.1-mini, no hidden reasoning) was clipping calls at `finishReason: "length"` — silent failures: `quickScore` returned empty objects (Zod fails → analysisFailed retries), `evaluateStatusMatch` swallowed JSON parse errors as `isMatch: false` (status matches dropped), `generatePortrait` fell back to raw bio+lookingFor.
 
 All AI calls use OpenAI via Vercel AI SDK (`@ai-sdk/openai`, `ai` package). Models defined in `packages/shared/src/models.ts`. Source files: `apps/api/src/services/ai.ts` (AI functions), `apps/api/src/services/queue.ts` (BullMQ processors + enqueue helpers), `apps/api/src/trpc/procedures/profiles.ts` (triggers), `apps/api/src/trpc/procedures/waves.ts` (wave-send promotion).
 
@@ -57,7 +58,7 @@ Three tiers exist to avoid O(N^2) pre-computation. The design came from the scal
 **Config:**
 - Model/tier: `gpt-5-mini` via `AI_MODELS.async`; Flex for batch/background, Standard for on-demand — see "Model + Tier Matrix" at the end of this doc
 - Temperature: 0.3 (low creativity — we want consistent scores)
-- maxOutputTokens: 50
+- maxOutputTokens: 200 (visible JSON ~25 tokens; headroom for gpt-5 minimal reasoning ~50-150 tokens)
 - Estimated cost: ~$0.0005/call (approximately 1200 input + 30 output tokens)
 
 **When triggered:**
@@ -173,7 +174,7 @@ Two processors handle status matching: one triggered by setting/changing a statu
 **Config:**
 - Model/tier: `gpt-5-mini` via `AI_MODELS.async`; Flex for batch/background, Standard for on-demand — see "Model + Tier Matrix" at the end of this doc
 - Temperature: not explicitly set (model default)
-- maxOutputTokens: 100
+- maxOutputTokens: 300 (visible JSON ~50-80 tokens; headroom for gpt-5 minimal reasoning, was 100 → JSON.parse failed → caller returned isMatch:false silently)
 - Output: raw JSON text parsed manually (not `generateObject`) — `{ isMatch: boolean, reason: string }`
 - Reason: max 60-80 chars, Polish
 
@@ -196,7 +197,7 @@ Triggered by `enqueueProfileAI` when a profile is created or bio/lookingFor chan
 **Config:**
 - Model/tier: `gpt-5-mini` via `AI_MODELS.async`; Flex for batch/background, Standard for on-demand — see "Model + Tier Matrix" at the end of this doc
 - Temperature: 0.7
-- maxOutputTokens: 500
+- maxOutputTokens: 1000 (200-300 PL words ≈ 420 visible tokens; headroom for gpt-5 minimal reasoning, was 500 → finishReason:"length" → fell back to raw bio+lookingFor)
 - Input: `<user_bio>` + `<user_looking_for>` XML tags
 - Cost: ~$0.003/call
 
