@@ -1,7 +1,6 @@
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/ui/Avatar";
-import { IconSparkles } from "@/components/ui/icons";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
@@ -60,17 +59,6 @@ export default function ProfileScreen() {
           {profile?.lookingFor || "Brak opisu"}
         </Text>
       </View>
-
-      <Pressable style={styles.reprofileLink} onPress={() => router.push("/settings/profiling" as never)}>
-        <View style={styles.reprofileRow}>
-          <IconSparkles size={16} color={colors.muted} />
-          <Text style={styles.reprofileTitle}>Wyprobuj automatyczne profilowanie</Text>
-        </View>
-        <Text style={styles.reprofileDescription}>
-          Odpowiedz na kilka pytan — na ich podstawie wygenerujemy nowy opis i sekcje "kogo szukam". Przed zapisaniem
-          mozesz wszystko przejrzec i edytowac.
-        </Text>
-      </Pressable>
     </ScrollView>
   );
 }
@@ -145,26 +133,5 @@ const styles = StyleSheet.create({
   },
   sectionContent: {
     ...typ.body,
-  },
-  reprofileLink: {
-    paddingHorizontal: spacing.section,
-    paddingVertical: spacing.column,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.rule,
-  },
-  reprofileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.tight,
-  },
-  reprofileTitle: {
-    ...typ.caption,
-    color: colors.muted,
-    fontFamily: fonts.sansSemiBold,
-  },
-  reprofileDescription: {
-    ...typ.caption,
-    color: colors.muted,
-    marginTop: spacing.hairline,
   },
 });
