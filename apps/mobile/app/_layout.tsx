@@ -303,7 +303,7 @@ export default function RootLayout() {
                 borderWidth: 1,
                 borderRadius: 14,
                 padding: 14,
-                marginHorizontal: spacing.column,
+                marginHorizontal: spacing.section,
               },
               titleStyle: {
                 fontFamily: fonts.sansSemiBold,
