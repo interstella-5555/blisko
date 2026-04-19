@@ -142,27 +142,24 @@ Two processors handle status matching: one triggered by setting/changing a statu
 
 **When triggered:** User sets a status via `setStatus` mutation, which calls `enqueueStatusMatching`.
 
-**Flow:**
+**Flow (parent → child fan-out, BLI-167):**
 1. Generate embedding for status text (`generateEmbedding`)
 2. Store as `profiles.statusEmbedding`
 3. Find nearby users within ~5km bounding box (NEARBY_RADIUS_DEG = 0.05)
 4. **Pre-filter by cosine similarity** — compare status embedding against: (a) other user's `statusEmbedding` if they have a public active status, or (b) other user's profile `embedding` otherwise. Private statuses are matched via profile embedding only — their status text never enters the LLM. Threshold: > 0.3. Take top 20 candidates.
-5. **LLM evaluation** via `evaluateStatusMatch` for each candidate (in parallel)
-6. Replace all existing `statusMatches` for this user with new matches
-7. Emit `statusMatchesReady` WebSocket event
-8. Send ambient push with cooldown if any matches found
+5. `DELETE FROM statusMatches WHERE userId = ?` — replace-semantic preserved in parent
+6. Emit initial `statusMatchesReady` with empty list so clients drop stale bubbles
+7. `queue.addBulk` fan-out of up to 20 `evaluate-status-match` child jobs. Each child runs one `evaluateStatusMatch` LLM call + INSERT + its own `statusMatchesReady` + ambient push. Retry isolation per pair (3 attempts, exp backoff). Staleness guarded by `statusSetAt` snapshot in payload.
 
 ### processProximityStatusMatching (location-change trigger)
 
 **When triggered:** User updates location, which calls `enqueueProximityStatusMatching` (debounced 2 minutes by BullMQ).
 
-**Flow:** Similar to above but:
-1. Finds nearby users who have an active status (within ~5km)
-2. Filters out pairs that already have a `statusMatches` row (either direction)
-3. Pre-filters by cosine similarity > 0.3, takes top 10 candidates
-4. LLM evaluation for each candidate
-5. **Adds** matches (does not replace — `onConflictDoNothing`), since this is additive to the user's existing status matches
-6. Notifies all matched users via WebSocket + ambient push
+**Flow (parent → child fan-out, BLI-167):**
+1. Find nearby users who have an active status (within ~5km)
+2. Filter out pairs that already have a `statusMatches` row (either direction)
+3. Pre-filter by cosine similarity > 0.3, take top 10 candidates
+4. `queue.addBulk` fan-out of up to 10 `evaluate-status-match` child jobs with `insertMode: "bidirectional"` and `notifyUserIds: [userId, candidateUserId]`. Each child inserts match rows for both directions (`onConflictDoNothing`) and emits WS/push for both users.
 
 ### evaluateStatusMatch (LLM function)
 
@@ -247,6 +244,7 @@ Triggered by `enqueueProfileAI` when a profile is created or bio/lookingFor chan
 | `quick-score` | BullMQ `deduplication` option (auto-released on completion or failure) | N/A |
 | `analyze-pair` | `safeEnqueuePairJob` (manual dedup with priority promotion) | N/A |
 | `status-matching` | BullMQ `deduplication` option (auto-released on completion or failure) | N/A |
+| `evaluate-status-match` | BullMQ `deduplication` with `statusSetAt` epoch suffix in id | N/A |
 
 The two `deduplication`-based jobs (`quick-score`, `status-matching`) get auto-released when the job completes or fails. This is what enables the self-healing retry pattern (BLI-158/164) — after a failed run the dedup key is gone, so the client can re-enqueue without manual cleanup.
 

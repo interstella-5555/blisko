@@ -75,8 +75,7 @@ All AI functions in `ai.ts` and `profiling-ai.ts` take a **required** `ctx: AiLo
 | `generateEmbedding` | `processGenerateProfileAI` | `generate-profile-ai` |
 | `generateEmbedding` | `processStatusMatching` | `status-matching` |
 | `generateEmbedding` | `processProximityStatusMatching` | `proximity-status-matching` |
-| `evaluateStatusMatch` | `processStatusMatching` (per candidate) | `status-matching` |
-| `evaluateStatusMatch` | `processProximityStatusMatching` (per candidate) | `proximity-status-matching` |
+| `evaluateStatusMatch` | `processEvaluateStatusMatch` (one call per child job, spawned by `processStatusMatching` / `processProximityStatusMatching`) | `evaluate-status-match` |
 | `generateNextQuestion` | `processGenerateProfilingQuestion` | `generate-profiling-question` |
 | `generateProfileFromQA` | `processGenerateProfileFromQA` | `generate-profile-from-qa` |
 | `generateFollowUpQuestions` | `profiling.ts` tRPC inline call | `inline-follow-up-questions` |

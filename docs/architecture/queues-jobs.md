@@ -13,6 +13,7 @@
 > Updated 2026-04-10 — Nightly consistency sweep: `consistency-sweep` maintenance job (daily 3 AM), admin trigger, mobile startup health check (BLI-168).
 > Updated 2026-04-11 — AI cost tracking: `flush-ai-calls` (15s batch flush) and `prune-ai-calls` (hourly cleanup) repeatable jobs, Redis buffer entry (BLI-174).
 > Updated 2026-04-11 — Legacy `ai-jobs` cleanup in `startOpsWorker` extended from "rescue hard-delete" to full `obliterate` so stale failed analyze-pair rows and orphaned repeatable schedulers drop out of Redis; `dev-cli:queue-monitor` now reads `ai`/`ops`/`maintenance` instead of the dead `ai-jobs` key (BLI-204).
+> Updated 2026-04-19 — Split status matching LLM fan-out into per-pair `evaluate-status-match` child jobs. Parents (`status-matching`, `proximity-status-matching`) now handle pre-work + fan-out via `queue.addBulk`; each child runs one `evaluateStatusMatch` call + insert + WS event + push. Retry isolation per pair. AI queue now has 9 job types (BLI-167).
 
 Three BullMQ queues grouped by bottleneck: AI (OpenAI-bound), Ops (DB/S3/email-bound critical operations), Maintenance (periodic fire-and-forget). Each has its own worker with independent concurrency and retention policies. Source files: `apps/api/src/services/queue.ts` (AI), `queue-ops.ts` (Ops), `queue-maintenance.ts` (Maintenance), `queue-shared.ts` (shared utilities).
 
@@ -37,7 +38,7 @@ Three queues backed by Redis (`REDIS_URL`). BullMQ uses ioredis internally; all 
 
 | Queue | Name | Source file | Concurrency | Job types | Bottleneck |
 |---|---|---|---|---|---|
-| **AI** | `ai` | `queue.ts` | 50 | 8 (OpenAI-calling jobs) | OpenAI RPM/TPM |
+| **AI** | `ai` | `queue.ts` | 50 | 9 (OpenAI-calling jobs) | OpenAI RPM/TPM |
 | **Ops** | `ops` | `queue-ops.ts` | 10 | 5 (GDPR, admin actions) | DB/S3/email |
 | **Maintenance** | `maintenance` | `queue-maintenance.ts` | 2 | 5 (periodic flush/prune + nightly sweep) | None |
 
@@ -63,9 +64,9 @@ All three workers start at server startup from `src/index.ts`: `startAiWorker()`
 
 On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jobs` Redis queue: it first rescues any delayed `hard-delete-user` jobs by re-adding them to `ops` with preserved remaining delay and job ID, then calls `legacyQueue.obliterate({ force: true })` to remove everything else that stuck around — stale failed `analyze-pair` entries, old completed jobs, and the `flush-push-log`/`prune-push-log` repeatable schedulers that no worker consumes anymore. Both steps no-op gracefully on an empty queue; failures are logged but non-fatal (BLI-204).
 
-## Job Types (18 total)
+## Job Types (19 total)
 
-### AI Queue (8 types) — `queue.ts`
+### AI Queue (9 types) — `queue.ts`
 
 ### 1. `analyze-pair` — Full Connection Analysis (T3)
 
@@ -168,9 +169,9 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **`removeOnComplete`:** default (true)
 
-### 7. `status-matching` — Status Match Discovery
+### 7. `status-matching` — Status Match Discovery (parent)
 
-**What:** Finds users whose status or profile matches the current user's active status.
+**What:** Finds users whose status or profile matches the current user's active status. Fan-out parent — pre-work + DELETE + enqueue children.
 
 **Trigger:** `enqueueStatusMatching()` — when user sets or updates their status.
 
@@ -181,18 +182,17 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 4. Query nearby users (~5km bounding box, `NEARBY_RADIUS_DEG = 0.05`)
 5. Pre-filter by cosine similarity > 0.3, take top 20
 6. Privacy: private statuses matched via profile embedding only — status text never enters LLM
-7. LLM evaluation (`evaluateStatusMatch`) with status categories for each candidate
-8. Replace all existing matches (`DELETE` + `INSERT` into `statusMatches`)
-9. Publish `statusMatchesReady` WS event
-10. Send ambient push with 1-hour cooldown if matches found
+7. `DELETE FROM statusMatches WHERE userId = ?` — atomic replace semantic preserved
+8. Publish initial `statusMatchesReady` with empty list so clients drop stale bubbles
+9. `queue.addBulk` fan-out of up to 20 `evaluate-status-match` child jobs (`insertMode: "unidirectional"`, `notifyUserIds: [userId]`, `stalenessKey: user.statusSetAt.toISOString()`)
 
 **Dedup:** BullMQ `deduplication` option (Simple Mode) with id `status-matching-{userId}`. Automatically releases dedup key on completion or failure — enables self-healing re-enqueue after failure.
 
 **`removeOnComplete`:** default
 
-### 8. `proximity-status-matching` — Proximity-Triggered Status Match
+### 8. `proximity-status-matching` — Proximity-Triggered Status Match (parent)
 
-**What:** When a user moves to a new location, check if nearby users' existing statuses match theirs.
+**What:** When a user moves to a new location, check if nearby users' existing statuses match theirs. Fan-out parent.
 
 **Trigger:** `enqueueProximityStatusMatching()` — called on location update.
 
@@ -203,14 +203,30 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 4. Query nearby users with active statuses (~5km bounding box, limit 100)
 5. Filter out already-matched pairs (either direction)
 6. Pre-filter by cosine similarity > 0.3, take top 10
-7. LLM evaluation for each candidate
-8. Insert new matches bidirectionally (`onConflictDoNothing`)
-9. Publish `statusMatchesReady` for all affected users
-10. Send ambient push with cooldown for all affected users
+7. `queue.addBulk` fan-out of up to 10 `evaluate-status-match` child jobs (`insertMode: "bidirectional"`, `notifyUserIds: [userId, candidateUserId]`, `stalenessKey: null` — userId here is the moving user, not the status setter)
 
 **Debounce:** `id: proximity-status-{userId}`, TTL 2 minutes
 
 **`removeOnComplete`:** true (explicit)
+
+### 9. `evaluate-status-match` — Per-Pair LLM Evaluation (child)
+
+**What:** One LLM call + one INSERT for a single (setter, candidate) pair. Fanned out by `status-matching` and `proximity-status-matching` parents. Retry/backoff isolated per pair — a failed LLM call for one pair doesn't discard siblings' work (BLI-167).
+
+**Trigger:** `queue.addBulk` from parent processors. No direct external enqueue.
+
+**Payload:** `contextA`/`contextB` (pre-resolved LLM inputs in same arg order as `evaluateStatusMatch()`), `matchType`, `categoriesA`/`categoriesB`, `stalenessKey` (setter's `statusSetAt` ISO or `null`), `insertMode` (`"unidirectional"` | `"bidirectional"`), `notifyUserIds`.
+
+**Processor logic:**
+1. If `stalenessKey` is set: re-read `profiles.statusSetAt` for `userId`. If `currentStatus` is cleared or `statusSetAt` differs → skip silently (setter has since set a new status; this child belongs to the old epoch).
+2. Call `evaluateStatusMatch(contextA, contextB, matchType, categoriesA, categoriesB, ctx)` with `ctx.jobName = "evaluate-status-match"`.
+3. If `!isMatch` → return (no event, no push).
+4. INSERT row(s) based on `insertMode` (`onConflictDoNothing`).
+5. For each id in `notifyUserIds`: `publishEvent("statusMatchesReady", { userId: id, matchedUserIds: [otherUserId] })` (where `otherUserId` is the OTHER side of the pair — setter: always `candidateUserId`; proximity: `candidateUserId` when notifying moving user and `userId` when notifying candidate) and `sendAmbientPushWithCooldown(id)`. The 1h Redis cooldown (`ambient-push:{userId}`) collapses fan-out into at most one push per user per hour.
+
+**Dedup:** BullMQ `deduplication` with id `evaluate-status-match-{userId}-{candidateUserId}-{stalenessKey ?? "na"}`. The epoch suffix means rapid setStatus runs produce fresh children for the same pair without collision.
+
+**`removeOnComplete`:** default
 
 ### Ops Queue (5 types) — `queue-ops.ts`
 
@@ -376,7 +392,7 @@ When a job exhausts all retry attempts (3 by default with exponential backoff), 
 - **`generate-profiling-question`:** publishes `questionFailed` to the user. Mobile retries via `retryQuestion` (re-enqueues question generation with current QA state).
 - **`generate-profile-from-qa`:** publishes `profilingFailed` to the user. Mobile retries via `retryProfileGeneration` (re-enqueues profile generation with current QA state).
 - **`generate-profile-ai`:** publishes `profileFailed` to the user. Mobile retries via `retryProfileAI` (re-enqueues portrait/embedding/interest generation with current bio/lookingFor from DB).
-- **`status-matching`:** publishes `statusMatchingFailed` to the user. Mobile retries via `retryStatusMatching` (re-enqueues status matching if user still has active status and complete profile).
+- **`status-matching`:** publishes `statusMatchingFailed` to the user on parent-level terminal failures (DB error, unexpected exception before/after fan-out). Mobile retries via `retryStatusMatching`. Note: individual `evaluate-status-match` child failures are silent by design — `evaluateStatusMatch` itself swallows LLM/parse errors to `{ isMatch: false }`, so a terminal child failure means a non-LLM error (DB write) and the next `setStatus` re-enqueues cleanly.
 
 **Self-healing loop:** The mobile client keeps retrying as long as the user is visible in the UI — there is no retry limit or badge clearing. Natural backoff: each BullMQ cycle takes ~35s (3 retries with exponential backoff 5s→10s→20s). The existing 30s self-healing timer (in the nearby screen) covers the case where the user was offline during the failure event.
 
