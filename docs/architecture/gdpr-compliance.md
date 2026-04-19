@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-11 — Added `metrics.ai_calls` to anonymization pattern; excluded from data export per observability parallel (BLI-174).
 > Updated 2026-04-18 — Clarified that `portrait` is a DB text column, not an S3 file. Privacy policy and child-safety page updated accordingly (BLI-199).
+> Updated 2026-04-19 — Added `/child-safety` as third legal surface alongside `/privacy` and `/terms`.
 
 Blisko processes personal data under RODO (Polish implementation of GDPR). Polish-market focus, single data controller (individual developer). This is the umbrella doc linking the three subsystems that implement GDPR rights: account deletion, data export, and privacy/terms disclosure.
 
@@ -89,7 +90,7 @@ AI processing involves:
 
 ## Privacy Policy & Terms
 
-Served at `blisko.app/privacy` and `blisko.app/terms` (TanStack Start routes in `apps/website/src/routes/`). Written in Polish. Linked from the mobile login screen (acceptance text below OAuth buttons) and the help screen in settings.
+Served at `blisko.app/privacy`, `blisko.app/terms`, and `blisko.app/child-safety` (TanStack Start routes in `apps/website/src/routes/`). Written in Polish. Privacy and Terms are linked from the mobile login screen (acceptance text below OAuth buttons) and the help screen in settings. `/child-safety` is reachable via the Play Console listing but not yet linked from the mobile app — see `privacy-terms.md` for the gap note and the unimplemented-features caveat (report system, image moderation, 24h SLA).
 
 **Details:** `docs/architecture/privacy-terms.md`
 

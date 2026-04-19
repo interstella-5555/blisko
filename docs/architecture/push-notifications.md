@@ -218,7 +218,7 @@ Every push includes a `data` field that the mobile client uses for deep-linking:
 | `{ type: "wave", userId }` | New wave received | Navigate to wave detail / user profile |
 | `{ type: "chat", conversationId }` | Message, mutual ping, wave accepted | Navigate to conversation |
 | `{ type: "group", conversationId }` | Group invite | Navigate to group conversation |
-| `{ type: "ambient_match" }` | Status match | Navigate to map (centered on current location) |
+| `{ type: "ambient_match" }` | Status match | Currently no client-side deep-link branch in `usePushNotifications.ts:70-86` — tap returns the user to the last-viewed screen. The push itself reaches the device (ambient collapse applies); there is no navigation side effect. If a "Navigate to map" behavior is desired, add an `ambient_match` branch to the handler. |
 
 **Why structured data:** iOS and Android handle notification taps by passing the `data` object to the app's notification handler. The `type` field lets the client route to the correct screen without fetching additional context.
 

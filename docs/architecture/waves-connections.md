@@ -1,6 +1,7 @@
 # Waves (Pings) & Connections
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-19 — Rate limits reverted from BLI-189 temp values (300/4h, 600/1h) to long-term values (30/4h, 60/1h). Removed stale `MUTUAL_PING_WINDOW_SECONDS` reference — the 30s window mechanism was replaced by the `waves_active_unique` partial unique index + implicit-accept-on-conflict path.
 
 ## Terminology & Product Alignment
 
@@ -8,7 +9,7 @@
 |---|---|---|
 | Ping | Wave | PRODUCT.md says "ping" everywhere. Code uses "wave" in all tables, types, routes, and events. Legacy naming kept for backward compat. |
 | Ping limit | `DAILY_PING_LIMIT_BASIC` | Config in `pingLimits.ts` |
-| Mutual ping | Mutual wave / `reverseWave` | Auto-accept when both ping within 30s window |
+| Mutual ping | Implicit accept on `pair_key` conflict | Simultaneous pings collapse via the `waves_active_unique` partial unique index — second click hits `ON CONFLICT` and runs `acceptWaveCore` on the other user's pending wave instead. No timed window (replaced the legacy 30s `MUTUAL_PING_WINDOW_SECONDS` mechanism). |
 | First contact card | Conversation `metadata` | Status snapshots stored as `senderStatus` / `recipientStatus` in conversation metadata |
 | Cooldown 24h (after decline) | `DECLINE_COOLDOWN_HOURS` | PRODUCT.md says 24h, code confirms |
 | Banska na mapie (bubble) | Profile on map | No "bubble" entity in code --- it's a client-side rendering of profile data |
@@ -175,12 +176,10 @@ From `rateLimits.ts` (sliding window on Redis):
 
 | Endpoint | Limit | Window |
 |---|---|---|
-| `waves.send` | 300 requests | 4 hours |
-| `waves.respond` | 600 requests | 1 hour |
+| `waves.send` | 30 requests | 4 hours |
+| `waves.respond` | 60 requests | 1 hour |
 
 These are abuse-prevention limits, separate from the business logic limits in `pingLimits.ts`. A normal user sending 5 pings/day will never come close — the daily business cap in `pingLimits.ts` is the limit that shapes real usage.
-
-> **Temporary values (BLI-189):** Both numbers above are currently inflated 10× as a mitigation for the map burning through `profiles.getNearby` buckets and cascading into the `global` catch-all. Long-term values (post-BLI-189): `waves.send` 30/4h, `waves.respond` 60/1h. See `rate-limiting.md` for the full BLI-189 note.
 
 ## Middleware Chain
 
@@ -201,9 +200,8 @@ The `getReceived`, `getSent`, and `getBlocked` queries use only `protectedProced
 | Daily pings (Premium) | 20 / day | PRODUCT.md (not yet in code) |
 | Per-person cooldown | 24 hours | `PER_PERSON_COOLDOWN_HOURS` |
 | Decline cooldown | 24 hours | `DECLINE_COOLDOWN_HOURS` |
-| Mutual ping window | 30 seconds | `MUTUAL_PING_WINDOW_SECONDS` |
-| Rate limit (send) | 300 / 4h (BLI-189 temp; long-term 30/4h) | `rateLimits["waves.send"]` |
-| Rate limit (respond) | 600 / 1h (BLI-189 temp; long-term 60/1h) | `rateLimits["waves.respond"]` |
+| Rate limit (send) | 30 / 4h | `rateLimits["waves.send"]` |
+| Rate limit (respond) | 60 / 1h | `rateLimits["waves.respond"]` |
 
 ## Impact Map
 

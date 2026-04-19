@@ -207,9 +207,12 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **Debounce:** `id: proximity-status-{userId}`, TTL 2 minutes
 
-**`removeOnComplete`:** true (explicit)
+**`removeOnComplete`:** queue default (`{ count: 200, age: 3600 }`)
 
 ### 9. `evaluate-status-match` — Per-Pair LLM Evaluation (child)
+
+<!-- ninth AI-queue job; Ops queue numbering restarts at 10 below -->
+
 
 **What:** One LLM call + one INSERT for a single (setter, candidate) pair. Fanned out by `status-matching` and `proximity-status-matching` parents. Retry/backoff isolated per pair — a failed LLM call for one pair doesn't discard siblings' work (BLI-167).
 
@@ -230,7 +233,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 ### Ops Queue (5 types) — `queue-ops.ts`
 
-### 9. `hard-delete-user` — GDPR Anonymization
+### 10. `hard-delete-user` — GDPR Anonymization
 
 **What:** Permanently anonymizes user data 14 days after soft-delete.
 
@@ -250,7 +253,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **`removeOnComplete`:** true (explicit)
 
-### 10. `export-user-data` — GDPR Data Export
+### 11. `export-user-data` — GDPR Data Export
 
 **What:** Collects all user data and emails it as an export.
 
@@ -266,7 +269,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **Failure handling:** After all retries exhausted: (1) user gets "export delayed" email, (2) prominent `GDPR EXPORT FAILED` console error. Admin alerting TODO(BLI-169). See `data-export.md` for details.
 
-### 11. `admin-soft-delete-user` — Admin Soft Delete
+### 12. `admin-soft-delete-user` — Admin Soft Delete
 
 **What:** Soft-deletes a user account via admin panel. Calls `softDeleteUser()` service function from `apps/api/src/services/user-actions.ts`.
 
@@ -276,7 +279,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **`removeOnComplete`:** true (via admin enqueue options)
 
-### 12. `admin-restore-user` — Admin Restore User
+### 13. `admin-restore-user` — Admin Restore User
 
 **What:** Restores a soft-deleted user during the 14-day grace period. Calls `restoreUser()` service function.
 
@@ -286,7 +289,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **`removeOnComplete`:** true (via admin enqueue options)
 
-### 13. `admin-force-disconnect` — Admin Force Disconnect
+### 14. `admin-force-disconnect` — Admin Force Disconnect
 
 **What:** Closes all active WebSocket connections for a user.
 
@@ -298,7 +301,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 ### Maintenance Queue (5 types) — `queue-maintenance.ts`
 
-### 14. `flush-push-log` — Push Log Batch Flush
+### 15. `flush-push-log` — Push Log Batch Flush
 
 **What:** Drains the `blisko:push-log` Redis list and batch-inserts all buffered push notification events into the `push_sends` database table.
 
@@ -314,7 +317,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **Infrastructure:** Uses `createBatchBuffer` — a generic reusable Redis-buffered batch writer in `apps/api/src/services/batch-buffer.ts`.
 
-### 15. `prune-push-log` — Push Log Cleanup
+### 16. `prune-push-log` — Push Log Cleanup
 
 **What:** Deletes push log entries older than 7 days from the `push_sends` table.
 
@@ -322,7 +325,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **Processor logic:** `DELETE FROM push_sends WHERE created_at < NOW() - 7 days`.
 
-### 16. `flush-ai-calls` — AI Call Log Batch Flush
+### 17. `flush-ai-calls` — AI Call Log Batch Flush
 
 **What:** Drains the `blisko:ai-calls` Redis list and batch-inserts all buffered AI call events into the `metrics.ai_calls` database table.
 
@@ -336,7 +339,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 See `ai-cost-tracking.md` for the wrapper design and admin dashboard.
 
-### 17. `prune-ai-calls` — AI Call Log Cleanup
+### 18. `prune-ai-calls` — AI Call Log Cleanup
 
 **What:** Deletes AI call log entries older than 7 days from the `metrics.ai_calls` table.
 
@@ -344,7 +347,7 @@ See `ai-cost-tracking.md` for the wrapper design and admin dashboard.
 
 **Processor logic:** `DELETE FROM metrics.ai_calls WHERE timestamp < NOW() - INTERVAL '7 days'` via `pruneAiCalls(SEVEN_DAYS_MS)`.
 
-### 18. `consistency-sweep` — Nightly Consistency Sweep
+### 19. `consistency-sweep` — Nightly Consistency Sweep
 
 **What:** Scans for stuck state left by failed queue jobs and repairs it. Three checks: zombie profiles (bio exists but portrait/embedding missing), stuck profiling sessions (all Q&A answered but no generated profile), abandoned sessions (active >24h).
 

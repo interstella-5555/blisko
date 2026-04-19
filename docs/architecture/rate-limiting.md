@@ -145,7 +145,8 @@ These are product rules from PRODUCT.md, not abuse protection. Defined in `apps/
 | `DAILY_PING_LIMIT_BASIC` | 5/day | PRODUCT.md: "5 pingow/dzien (Basic)". Resets at midnight UTC. Forces intentional pinging instead of mass-swiping. |
 | `PER_PERSON_COOLDOWN_HOURS` | 24h | Cannot ping the same person again within 24h regardless of outcome (sent, declined, ignored). Prevents pestering. |
 | `DECLINE_COOLDOWN_HOURS` | 24h | After a decline, extra cooldown before re-pinging the same person. PRODUCT.md: "Cooldown 24h." Combined with the generic per-person cooldown, this means you can never re-ping faster than 24h after any outcome. |
-| `MUTUAL_PING_WINDOW_SECONDS` | 30s | If both users ping each other within 30s, both waves are auto-accepted and a chat opens immediately. PRODUCT.md: "odstep < 30 sekund". Special UX moment with custom copy. |
+
+The legacy 30s `MUTUAL_PING_WINDOW_SECONDS` constant was removed when the `waves_active_unique` partial unique index + implicit-accept-on-conflict path landed — simultaneous pings now collapse via `ON CONFLICT (pair_key)` regardless of timing. See `waves-connections.md` → "Implicit Accept on Conflict".
 
 #### Enforcement order in `waves.send`
 

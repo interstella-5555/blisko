@@ -4,6 +4,7 @@
 > Updated 2026-04-12 — Split nearby into three endpoints: `getNearbyMapMarkers` (lightweight columnar), `getNearbyUsersForMap` (rich list with bbox viewport filter), `getNearbyUsers` (simple list). Status-match-first sort. Separate rate limit buckets (BLI-189).
 > Updated 2026-04-12 — BLI-189 hotfix: `getNearbyMapMarkers` now returns **real coordinates** (not grid-snapped) for user positions; `displayName` added to columnar response. Rate limits tightened to 20/10s. Viewport debounce is 500ms. Supercluster config: `radius: 30`, `maxZoom: 20`.
 > Updated 2026-04-14 — BLI-219: `GRID_SIZE` moved to `@repo/shared/config/nearby.ts`. `grid.ts` imports from shared. Grid utils (`toGridCenter`, `roundDistance`) remain in `apps/api/src/lib/grid.ts`.
+> Updated 2026-04-19 — Removed stale "3 minuty + mobile background task" claim. Background location permission dropped (commit `bbd49cd`); foreground-only updates via tab mount + 3s retry. Flagged as drift from PRODUCT.md.
 
 ## Terminology & Product Alignment
 
@@ -12,7 +13,7 @@
 | Banka na mapie (bubble) | Profile + position | Client renders bubbles from profile data + real coordinates (map markers endpoint) or grid-snapped coords (rich list endpoint) |
 | ~300m odleglosc (approximate distance) | `roundDistance()` | Rounds to nearest 100m |
 | Promien 500m | `GRID_SIZE = 0.0045` | Grid cells are ~500m x 500m |
-| Lokalizacja odswiezana co 3 minuty | `updateLocation` + mobile background task | Server receives updates; frequency controlled by mobile client |
+| Lokalizacja odswiezana co 3 minuty (PRODUCT.md) | `updateLocation` (foreground only) | **Drift from PRODUCT.md.** Current behavior: mobile calls `updateLocation` on the nearby-tab mount + a one-shot 3s retry fallback (`apps/mobile/app/(tabs)/index.tsx:280-311`). No periodic timer, no background task — `ACCESS_BACKGROUND_LOCATION` was removed (commit `bbd49cd`). If PRODUCT.md's 3-minute cadence + auto-off-after-2h-stationary rules become required, they need to be re-added as foreground timers (background location was deliberately dropped because iOS/Android battery + privacy costs were judged too high for the product stage). |
 | Ninja / Semi-Open / Full Nomad | `visibilityMode`: `ninja` / `semi_open` / `full_nomad` | Stored on profiles table |
 | Ping (in PRODUCT.md) | Wave (in code) | See `waves-connections.md` |
 

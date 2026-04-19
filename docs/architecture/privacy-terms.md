@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-18 — Corrected portrait storage (text in DB, not S3 file). Added explicit privacy disclosure that AI generates an internal personality description visible only via data-export (BLI-199).
+> Updated 2026-04-19 — Added `/child-safety` as third legal route (PR #166). Flagged that the page promises unimplemented features (report system, image moderation, 24h SLA) and is not yet linked from the mobile app.
 
 Polish-language privacy policy and terms of service, served as web pages from the website app, linked from the mobile app. Required for RODO/GDPR compliance before public release.
 
@@ -13,6 +14,7 @@ Parent doc: `docs/architecture/gdpr-compliance.md`
 |------------|-------------|-------------|
 | Prywatnosc | `/privacy` route in `apps/website/src/routes/privacy.tsx` | "Polityka Prywatnosci" |
 | Regulamin | `/terms` route in `apps/website/src/routes/terms.tsx` | "Regulamin" |
+| Standardy bezpieczeństwa dzieci | `/child-safety` route in `apps/website/src/routes/child-safety.tsx` | "Standardy Bezpieczeństwa Dzieci" |
 | Wave / ping | `waves` table | "Wave" (terms: "zaproszenie do kontaktu") |
 | Status | `profiles.currentStatus` | "Status" (terms: "intencja") |
 | Grupy | `conversations` (type=group) | "Grupy" |
@@ -25,6 +27,9 @@ Both documents are TanStack Start routes in the website app (`apps/website/`), r
 
 - Privacy policy: `https://blisko.app/privacy`
 - Terms of service: `https://blisko.app/terms`
+- Child safety standards: `https://blisko.app/child-safety` (added 2026-04-18 by PR #166; required by Google Play for apps with under-13 reach, linked from Play Console listing)
+
+> **Caveat:** The child-safety page promises a report system (zgłoszenie profilu / wiadomości), image moderation for avatars, and a 24h response SLA. None of these are implemented in code as of 2026-04-19 (see `blocking-moderation.md` — text moderation only, no report storage). Either the page copy needs tightening or these features need tickets before we rely on the page as a compliance artefact.
 
 Both pages set `<html lang="pl">`, have proper meta tags (title, viewport), display a last-updated date, and use a clean, mobile-friendly layout.
 
@@ -33,9 +38,11 @@ Both pages set `<html lang="pl">`, have proper meta tags (title, viewport), disp
 - Last updated dates (hardcoded in each route, independent per document):
   - `privacy.tsx` → "Ostatnia aktualizacja: 8 kwietnia 2026"
   - `terms.tsx` → "Ostatnia aktualizacja: 7 marca 2026"
+  - `child-safety.tsx` → "Ostatnia aktualizacja: 18 kwietnia 2026"
   Each document ships its own date because the Privacy Policy gets amended more often than Terms (RODO/schema changes vs. commercial terms). Update the relevant route whenever you change the corresponding legal content.
 - Privacy title meta: "Polityka Prywatnosci -- Blisko"
 - Terms title meta: "Regulamin -- Blisko"
+- Child safety title meta: "Standardy Bezpieczeństwa Dzieci -- Blisko"
 
 ## Mobile Integration
 
@@ -46,6 +53,8 @@ The legal documents are linked from two places in the mobile app:
 **Login screen** (`apps/mobile/app/(auth)/login.tsx`): Acceptance text below all OAuth buttons: "Rejestrujac sie akceptujesz Regulamin i Polityke Prywatnosci". Both terms are tappable links that open in the system browser via `Linking.openURL()`.
 
 **Help screen** (`apps/mobile/app/settings/help.tsx`): Two rows: "Regulamin" and "Polityka prywatnosci", each opening the corresponding URL via `Linking.openURL()`.
+
+> **Gap:** `/child-safety` is NOT linked from the mobile app. It is currently reachable only via the Play Console listing URL. If Play Store policy requires an in-app link (typical for apps with under-13 users), add a third row here.
 
 #### Why
 

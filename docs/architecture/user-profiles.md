@@ -3,8 +3,9 @@
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-11 — `getDetailedAnalysis` zyskał block + isComplete + soft-delete gate; `ensureAnalysis` dostał ten sam zestaw bramek z silent no-op fallbackiem; `getConnectionAnalysis` usunięty jako dead code (wszystkie jego funkcje pokrywa teraz `getDetailedAnalysis` z promocją T3) (BLI-188).
 > Updated 2026-04-18 — Portrait section removed from mobile UI (onboarding + settings review screens); portrait is now purely internal. `portraitSharedForMatching` dropped from the `applyProfilingSchema` validator and no longer touched by `applyProfile` — DB default (`true`) handles inserts, existing rows backfilled to `true`, re-profiling keeps the existing value. Column retained as audit-only (BLI-199).
+> Updated 2026-04-19 — Source path corrected to `packages/db/src/schema.ts`. Field reference row for `portraitSharedForMatching` now shows correct default (`true`). BLI-235 removed the "finish profile" CTA from the Profil tab; the only in-app entry point to re-run onboarding is Ustawienia → Profilowanie.
 
-Source: `apps/api/src/db/schema.ts`, `apps/api/src/trpc/procedures/profiles.ts`, `packages/shared/src/validators.ts`, `apps/api/src/services/ai.ts`, `apps/api/src/trpc/middleware/featureGate.ts`.
+Source: `packages/db/src/schema.ts`, `apps/api/src/trpc/procedures/profiles.ts`, `packages/shared/src/validators.ts`, `apps/api/src/services/ai.ts`, `apps/api/src/trpc/middleware/featureGate.ts`. (Canonical schema lives in `@repo/db`; `apps/api/src/db/schema.ts` is a re-export shim.)
 
 ## Terminology & Product Alignment
 
@@ -46,7 +47,7 @@ One profile per user. `profiles.userId` is a unique FK to `user.id` with `ON DEL
 | `interests` | text[] | yes | null | 8-12 AI-extracted tags from portrait (Polish, lowercase). Used for interest overlap scoring |
 | `embedding` | real[] | yes | null | `text-embedding-3-small` vector of the portrait. Used for cosine similarity pre-filtering |
 | `portrait` | text | yes | null | AI-generated rich social profile (200-300 words). NOT an image (see Portrait section) |
-| `portraitSharedForMatching` | boolean | no | `false` | User consent flag --- whether portrait text may be shared with the AI matching pipeline |
+| `portraitSharedForMatching` | boolean | no | `true` | Historical consent flag. Default flipped from `false` to `true` by migration 0023 (BLI-199). No longer written by `applyProfile` or referenced by validators; retained as audit-only, slated for removal. |
 | `isComplete` | boolean | no | `false` | Gates access to discovery, matching, and status features. Set `true` when profiling session is applied |
 | `currentStatus` | text | yes | null | Active "na teraz" status text (max 150 chars). Null means no active status |
 | `statusExpiresAt` | timestamp | yes | null | Optional auto-expiry. Currently set to null on every `setStatus` call (no expiry logic active) |
@@ -189,6 +190,16 @@ One profile per user. `profiles.userId` is a unique FK to `user.id` with `ON DEL
 
 **Config:** Gates are database rows, not code constants. Can be toggled or reconfigured without a deploy. Cache refreshes every 60 seconds.
 
+## Ghost Mode Avatar Blur
+
+**What:** When the current user's profile is a "ghost" (ghost = no `portrait`, no `bio` — signup complete but profiling not done), every other user's avatar visible to them is rendered with a blur. The user's own avatar is never blurred.
+
+**Why:** Progressive disclosure. Ghosts haven't shared anything about themselves yet, so they don't get to see other people's faces sharply either. Once they complete the profiling Q&A and gain a portrait, the blur lifts everywhere.
+
+**Client-side only:** The blur is applied via `blurred` prop on `Avatar`, fed by the `useIsGhost()` hook. Implemented in `apps/mobile/src/components/ui/Avatar.tsx` with `blurRadius={theme.ghostBlurRadius}` from `apps/mobile/src/theme.ts`. Call sites: `UserRow`, `GroupRow`, `GridClusterMarker`/`GroupMarker`, `NotificationToast`, `ConversationRow`, `MessageBubble`. No server-side effect — avatar URLs are unchanged.
+
+**Impact:** Changes to the ghost-detection hook or the blur radius ripple to all 6 call sites simultaneously. Adding a new avatar surface → also wire it to `useIsGhost()`.
+
 ## Display Name Lock
 
 **What:** Display name becomes immutable 5 minutes after profile creation.
@@ -255,7 +266,8 @@ The profile lifecycle has two paths:
 - WS event `profileReady` fires when AI pipeline completes
 
 **Path 2: Profiling Q&A** (`profiling.applyProfile`)
-- Upserts profile with `displayName`, `bio`, `lookingFor`, `portrait` (from profiling session), `portraitSharedForMatching`
+- Upserts profile with `displayName`, `bio`, `lookingFor`, `portrait` (from profiling session)
+- Does NOT write `portraitSharedForMatching` — the DB default (`true`) handles inserts; re-profiling preserves the existing row value (BLI-199)
 - Sets `isComplete: true` immediately
 - Enqueues `profileAI` job for embedding + interests extraction
 - This is the primary onboarding path
@@ -280,6 +292,7 @@ If you change this system, also check:
 | Modify display name lock | `profiles.update` mutation, mobile settings UI |
 | Change `socialLinks` shape | `socialLinksSchema` in validators, mobile profile edit screen, `data-export.ts` |
 | Add new feature gate | `featureGates` DB table, `featureGate.ts` middleware, relevant procedure `.use(featureGate(...))` |
+| Change ghost UI treatment (avatar blur, badges) | `useIsGhost` hook + 6 avatar call sites (UserRow, GroupRow, GroupMarker, NotificationToast, ConversationRow, MessageBubble), `theme.ghostBlurRadius` |
 
 ## Product Alignment Gaps
 

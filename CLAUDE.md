@@ -13,10 +13,10 @@ Rules are in `.claude/rules/` — one file per category: `drizzle.md`, `migratio
 Brief pointers — details are in the code. Look there first.
 
 <!-- arch-ref: infrastructure.md -->
-**Railway:** Project ID `62599e90-30e8-47dd-af34-4e3f73c2261a`. Services: api, chatbot, design, metro (mobile), website, database (Postgres), queue (Redis). Use `mcp__railway__*` tools.
+**Railway:** Project ID `62599e90-30e8-47dd-af34-4e3f73c2261a`. Services: api, chatbot, design, metro (mobile), website, admin, database (Postgres), queue (Redis). Use `mcp__railway__*` tools.
 
 <!-- arch-ref: infrastructure.md -->
-**Running locally:** `bun run api:dev`, `bun run design:dev`, `bun run chatbot:dev`, `bun run website:dev`. Mobile: `cd apps/mobile && npx expo run:ios` (simulator) or `--device` (physical). Simulator location: `xcrun simctl location booted set 52.2010865,20.9618980` (ul. Altowa, Warszawa).
+**Running locally:** `bun run api:dev`, `bun run design:dev`, `bun run chatbot:dev`, `bun run website:dev`, `bun run admin:dev`. Mobile: `cd apps/mobile && npx expo run:ios` (simulator) or `--device` (physical). Simulator location: `xcrun simctl location booted set 52.2010865,20.9618980` (ul. Altowa, Warszawa).
 
 **Full iOS reset:** `bun run mobile:reset-ios` — nukes Metro/Xcode caches, runs `expo prebuild --clean`, rebuilds and launches. Use when adding/removing native deps, after SDK upgrade, or when the simulator "just stops working".
 

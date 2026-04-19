@@ -2,6 +2,7 @@
 
 > v1 — 2026-04-09.
 > Updated 2026-04-09 — Admin write actions implemented (BLI-154): service functions, BullMQ job types, admin mutations, UI actions.
+> Updated 2026-04-19 — BLI-236 flex-tier latency observability surfaced in `/dashboard/ai-costs`: new `byServiceTier` (p50/p95 per `service_tier`) and `byJobNameAndTier` (per (jobName, tier, reasoningEffort)) tRPC procedures on `ai-costs.ts` router. Enables comparing flex vs standard latency/cost per job type.
 
 Internal admin panel for managing users, conversations, waves, groups, and AI matching. TanStack Start + Vite + Nitro, deployed on Railway.
 
@@ -73,7 +74,7 @@ Schema + connection factory shared between API and admin.
 | `/dashboard/matching` | connectionAnalyses + user profiles | AI match scores with score range filter, color-coded |
 | `/dashboard/queue` | BullMQ (ai/ops/maintenance queues) | Live feed of jobs with per-source tabs (AI/Ops/Maintenance), state tabs, job type filter. All filters stored in URL query string via `Route.validateSearch` (zod schema: `source`, `state`, `type`, `expanded`). Lives under the dedicated "Kolejki" sidebar category. |
 | `/dashboard/push-log` | `metrics.push_sends` | Push notification send log (7d retention) |
-| `/dashboard/ai-costs` | `metrics.ai_calls` | AI cost dashboard — per-job/per-model/per-user breakdowns, daily charts, recent-call feed. Backed by `ai-costs.ts` router which aggregates `metrics.ai_calls` (7d retention, see `ai-cost-tracking.md`). Introduced in BLI-174. |
+| `/dashboard/ai-costs` | `metrics.ai_calls` | AI cost dashboard — per-job/per-model/per-user breakdowns, daily charts, recent-call feed. Backed by `ai-costs.ts` router which aggregates `metrics.ai_calls` (7d retention, see `ai-cost-tracking.md`). Introduced in BLI-174; BLI-236 added per-tier latency percentiles (`byServiceTier` — p50/p95 per `service_tier`) and per-(job, tier, reasoningEffort) breakdown (`byJobNameAndTier`) to quantify flex vs standard latency/cost trade-off. |
 
 ## Sidebar Navigation
 

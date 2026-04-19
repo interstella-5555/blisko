@@ -152,7 +152,7 @@ Calls `profiling.applyProfile` which:
 
 ## Ghost Profile Path
 
-When user chooses "Na razie tylko imie" in Step 2:
+When user chooses "Na razie przeglądam" in Step 2 (BLI-196 rename; was "Na razie tylko imie" pre-redesign):
 
 1. Calls `profiling.createGhostProfile({ displayName })`
 2. Server creates profile with empty bio, empty lookingFor, `visibilityMode: "ninja"`, `isComplete` not explicitly set (defaults per schema)

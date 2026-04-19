@@ -279,11 +279,11 @@ Every AI call in this system is logged into `metrics.ai_calls` via the `withAiLo
 | Operation | Model | Frequency (unchanged) |
 |---|---|---|
 | T1 cosine similarity | N/A (math) | Every map view |
-| T2 quick score | gpt-4.1-mini | On map view (missing pairs) |
-| T3 full analysis | gpt-4.1-mini | On bubble tap or wave send |
-| Status match eval | gpt-4.1-mini | On status set/change, location update |
-| Portrait generation | gpt-4.1-mini | On profile create/update |
-| Interest extraction | gpt-4.1-mini | On profile create/update |
+| T2 quick score | gpt-5-mini (flex, minimal reasoning) | On map view (missing pairs) |
+| T3 full analysis | gpt-5-mini (flex+medium batch; standard+minimal on-demand via `isOnDemand` flag) | On bubble tap or wave send |
+| Status match eval | gpt-5-mini (flex, minimal reasoning) | On status set/change, location update |
+| Portrait generation | gpt-5-mini (flex) | On profile create/update |
+| Interest extraction | gpt-5-mini (flex) | On profile create/update |
 | Embedding | text-embedding-3-small | On profile/status create/update |
 
 **Pricing map:** `apps/api/src/services/ai-pricing.ts` — update this file when OpenAI pricing changes.

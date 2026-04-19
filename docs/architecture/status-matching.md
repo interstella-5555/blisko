@@ -13,7 +13,7 @@
 | Kategorie: Projekt/Networking/Randka/Luzne | `statusCategories` array | Values: `project`, `networking`, `dating`, `casual` |
 | Publiczny / Prywatny | `statusVisibility`: `public` / `private` | Per-status choice, mandatory, no default |
 | Ambient push | `sendAmbientPushWithCooldown` | 1h Redis cooldown per user |
-| Matching server-side | `processStatusMatching` / `processProximityStatusMatching` | Two BullMQ job types |
+| Matching server-side | `processStatusMatching` / `processProximityStatusMatching` / `processEvaluateStatusMatch` | Three BullMQ job types — two parents fan out to per-pair `evaluate-status-match` children (BLI-167) |
 | Co nas laczy | `evaluateStatusMatch` + `analyzeConnection` | Status match uses the former, profile analysis uses the latter |
 | Ping (in PRODUCT.md) | Wave (in code) | See `waves-connections.md` for full mapping |
 

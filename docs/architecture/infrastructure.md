@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-11 — added Dev-only HTTP endpoints section covering `/dev/auto-login`, `/dev/mark-complete`, `/dev/send-message` (BLI-178).
+> Updated 2026-04-19 — removed `apps/tasks/` (deleted in PR #163). Added `packages/db/` (canonical schema after @repo/db split). Bumped catalog pins (react 19.2.0, better-auth 1.6.2). Added `mobile:reset-ios` script. Corrected queue row counts (ai: 9 types, maintenance: 5 types).
 
 Monorepo hosted on Railway. Runtime: Bun. Package manager: Bun workspaces. No Turborepo config file -- task orchestration uses Bun's `--filter` flag and root-level script aliases.
 
@@ -40,13 +41,13 @@ Monorepo hosted on Railway. Runtime: Bun. Package manager: Bun workspaces. No Tu
 blisko/
   apps/
     api/          @repo/api       Hono + tRPC + Better Auth + BullMQ
-    mobile/       @repo/mobile    Expo + React Native (iOS)
+    mobile/       @repo/mobile    Expo + React Native (iOS + Android)
     chatbot/      @repo/chatbot   Seed user AI auto-responder
     design/       @repo/design    Design book (TanStack Start)
     website/      @repo/website   Marketing site (TanStack Start)
     admin/        @repo/admin     Admin panel (TanStack Start)
-    tasks/        (no package)    Dev-only Bun.serve task viewer — serves index.html + tasks.json on port 3456. Not in the workspace, not deployed, invoked via `bun apps/tasks/serve.ts`.
   packages/
+    db/           @repo/db        Canonical Drizzle schema (`src/schema.ts`). `apps/api/src/db/schema.ts` is a re-export shim for backward compat.
     shared/       @repo/shared    Cross-app config constants, types, Zod validators, AI model constants, haversine
     dev-cli/      @repo/dev-cli   CLI for development (user management, monitoring)
 ```
@@ -57,14 +58,14 @@ blisko/
 
 | Dependency | Catalog Version |
 |------------|----------------|
-| `react` | `19.1.0` |
+| `react` | `19.2.0` |
 | `typescript` | `^6.0.2` |
 | `zod` | `^4.3.5` |
 | `vitest` | `^3.0.5` |
 | `vite` | `^7.3.1` |
 | `drizzle-orm` | `^0.45.1` |
 | `postgres` | `^3.4.0` |
-| `better-auth` | `^1.5.4` |
+| `better-auth` | `^1.6.2` |
 | `ai` (Vercel AI SDK) | `^6.0.86` |
 | `@ai-sdk/openai` | `^3.0.29` |
 | `tailwindcss` | `^4.2.2` |
@@ -93,9 +94,12 @@ Key root scripts:
 | `dev-cli:queue-monitor` | `bun run --filter '@repo/dev-cli' monitor` — live BullMQ queue state |
 | `dev-cli:chatbot-monitor` | `bun run --filter '@repo/dev-cli' chatbot-monitor` — chatbot activity feed |
 | `mobile:testflight` | `bun run --filter '@repo/mobile' testflight` |
+| `mobile:reset-ios` | `bash apps/mobile/scripts/reset-ios.sh` — nuke Metro/Xcode caches, `expo prebuild --clean`, rebuild + launch simulator. Use after native-dep changes or SDK upgrade. |
 | `ralph` / `ralph:dry` | `bash scripts/ralph.sh [--dry-run]` — Ralph Protocol runner (auto-ticket execution) |
 | `check` | `biome check .` |
 | `check:fix` | `biome check --fix .` |
+
+Build / start / typecheck scripts exist for every deployable app (e.g. `api:build`, `api:start`, `admin:build`, `admin:start`, `admin:typecheck`, `design:build`/`start`/`preview`, `website:build`/`start`/`preview`/`test`, `chatbot:start`). Root `clean` wipes `dist/` + `node_modules/` across the workspace.
 
 ### `@repo/shared` Package
 
@@ -204,9 +208,9 @@ Three queues grouped by bottleneck. See `queues-jobs.md` for full job type docum
 
 | Queue | Source file | Concurrency | Job types | Retention (failed) |
 |---|---|---|---|---|
-| `ai` | `queue.ts` | 50 | 8 AI job types | count: 100 |
+| `ai` | `queue.ts` | 50 | 9 AI job types | count: 100 |
 | `ops` | `queue-ops.ts` | 10 | 5 GDPR/admin types | age: 90 days |
-| `maintenance` | `queue-maintenance.ts` | 2 | 2 periodic types | count: 10 |
+| `maintenance` | `queue-maintenance.ts` | 2 | 5 periodic types (push-log flush/prune, ai-calls flush/prune, consistency sweep) | count: 10 |
 
 All three workers start in the same API process. Shared utilities in `queue-shared.ts`.
 

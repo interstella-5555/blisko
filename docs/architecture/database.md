@@ -170,11 +170,13 @@ Connection requests. Irreversible by design -- no cancel/undo to prevent notific
 | `sender_status_snapshot` | text | yes | -- | Frozen sender status at wave time. Added `0006`. |
 | `recipient_status_snapshot` | text | yes | -- | Frozen recipient status at acceptance. Added `0007`. |
 | `responded_at` | timestamp | yes | -- | When accepted/declined. Added `0008`. |
+| `pair_key` | text STORED | no | `md5(LEAST(from_user_id, to_user_id) || ':' || GREATEST(from_user_id, to_user_id))` | **Generated column**, never written by app code. Direction-agnostic pair hash — `(A,B)` and `(B,A)` produce the same value. Added in migration `0021`. |
 | `created_at` | timestamp | no | `now()` | |
 
 **Indexes:**
 - `waves_from_user_status_idx` on `(from_user_id, status)` -- "my sent waves" filtered by status
 - `waves_to_user_status_idx` on `(to_user_id, status)` -- "my received waves" filtered by status
+- `waves_active_unique` UNIQUE on `pair_key WHERE status IN ('pending', 'accepted')` — partial unique index enforcing at-most-one active wave per user pair. Added in migration `0021`. Replaces the legacy 30s `MUTUAL_PING_WINDOW_SECONDS` mutual-ping mechanism; `waves.send` uses `ON CONFLICT (pair_key) DO NOTHING` + a disambiguation SELECT to implement implicit accept on race. See `waves-connections.md`.
 
 **Why no FK cascade:** Waves are preserved after user deletion per GDPR design. The user row is anonymized, not deleted, so FK integrity is maintained.
 
