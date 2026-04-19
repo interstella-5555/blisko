@@ -1,5 +1,5 @@
 import { type AiCallEvent, aiCallBuffer } from "./ai-log-buffer";
-import { estimateCostUsd } from "./ai-pricing";
+import { estimateCostUsd, type ServiceTier } from "./ai-pricing";
 
 export type AiJobName =
   | "analyze-pair"
@@ -12,10 +12,18 @@ export type AiJobName =
   | "generate-profile-from-qa"
   | "inline-follow-up-questions";
 
+export type ReasoningEffort = "minimal" | "medium";
+
 export interface AiLogCtx {
   jobName: AiJobName;
   userId?: string | null;
   targetUserId?: string | null;
+  /** Explicit model override — falls back to `AI_MODELS.sync` inside ai.ts / profiling-ai.ts. */
+  model?: string;
+  /** Defaults to "standard". "flex" is only passed to OpenAI for flex-eligible models. */
+  serviceTier?: ServiceTier;
+  /** gpt-5 family only — "minimal" keeps latency/cost near non-reasoning baseline. */
+  reasoningEffort?: ReasoningEffort;
 }
 
 export interface AiCallMetadata<T> {
@@ -44,6 +52,7 @@ function safeAppend(event: AiCallEvent): void {
  */
 export async function withAiLogging<T>(ctx: AiLogCtx, call: () => Promise<AiCallMetadata<T>>): Promise<T> {
   const start = Date.now();
+  const serviceTier: ServiceTier = ctx.serviceTier ?? "standard";
   try {
     const { result, model, promptTokens, completionTokens } = await call();
     const totalTokens = promptTokens + completionTokens;
@@ -53,9 +62,11 @@ export async function withAiLogging<T>(ctx: AiLogCtx, call: () => Promise<AiCall
       promptTokens,
       completionTokens,
       totalTokens,
-      estimatedCostUsd: estimateCostUsd(model, promptTokens, completionTokens),
+      estimatedCostUsd: estimateCostUsd(model, promptTokens, completionTokens, serviceTier),
       userId: ctx.userId ?? null,
       targetUserId: ctx.targetUserId ?? null,
+      serviceTier,
+      reasoningEffort: ctx.reasoningEffort ?? null,
       durationMs: Date.now() - start,
       status: "success",
     });
@@ -70,6 +81,8 @@ export async function withAiLogging<T>(ctx: AiLogCtx, call: () => Promise<AiCall
       estimatedCostUsd: 0,
       userId: ctx.userId ?? null,
       targetUserId: ctx.targetUserId ?? null,
+      serviceTier,
+      reasoningEffort: ctx.reasoningEffort ?? null,
       durationMs: Date.now() - start,
       status: "failed",
       errorMessage: String(err instanceof Error ? err.message : err).slice(0, 200),

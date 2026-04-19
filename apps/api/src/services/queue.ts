@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { cosineSimilarity } from "@repo/shared";
+import { AI_MODELS, cosineSimilarity } from "@repo/shared";
 import { type Job, Queue, Worker } from "bullmq";
 import { and, between, eq, gte, inArray, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
 import ms from "ms";
@@ -27,6 +27,13 @@ interface AnalyzePairJob {
   userBId: string;
   nameA?: string;
   nameB?: string;
+  /**
+   * `true` when the analysis was requested by a user action (tap bubble, wave send).
+   * On-demand runs synchronously blocking the UI → we keep Standard tier + minimal
+   * reasoning for predictable latency. Batch runs (no flag) get Flex + medium so we
+   * trade latency for cost + richer prose.
+   */
+  isOnDemand?: boolean;
 }
 
 interface QuickScoreJob {
@@ -228,6 +235,7 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
 
   // --- ai-call phase ---
   const tAi0 = performance.now();
+  const isOnDemand = job.data.isOnDemand === true;
   const result = await analyzeConnection(
     {
       portrait: profileA.portrait,
@@ -241,7 +249,14 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
       lookingFor: profileB.lookingFor,
       superpower: profileB.superpower,
     },
-    { jobName: "analyze-pair", userId: userAId, targetUserId: userBId },
+    {
+      jobName: "analyze-pair",
+      userId: userAId,
+      targetUserId: userBId,
+      model: AI_MODELS.async,
+      serviceTier: isOnDemand ? "standard" : "flex",
+      reasoningEffort: isOnDemand ? "minimal" : "medium",
+    },
   );
   const tAi = performance.now();
 
@@ -378,7 +393,14 @@ async function processQuickScore(userAId: string, userBId: string) {
       lookingFor: profileB.lookingFor,
       superpower: profileB.superpower,
     },
-    { jobName: "quick-score", userId: userAId, targetUserId: userBId },
+    {
+      jobName: "quick-score",
+      userId: userAId,
+      targetUserId: userBId,
+      model: AI_MODELS.async,
+      serviceTier: "flex",
+      reasoningEffort: "minimal",
+    },
   );
   const tAi = performance.now();
 
@@ -553,11 +575,20 @@ async function processAnalyzeUserPairs(userId: string, latitude: number, longitu
 // --- Profile AI processor (refactored from sync) ---
 
 async function processGenerateProfileAI(userId: string, bio: string, lookingFor: string) {
-  const logCtx: AiLogCtx = { jobName: "generate-profile-ai", userId };
-  const portrait = await generatePortrait(bio, lookingFor, logCtx);
+  // GPT calls (portrait, interests) run on gpt-5-mini flex minimal.
+  // Embedding stays on text-embedding-3-small standard — flex N/A for embeddings.
+  const gptCtx: AiLogCtx = {
+    jobName: "generate-profile-ai",
+    userId,
+    model: AI_MODELS.async,
+    serviceTier: "flex",
+    reasoningEffort: "minimal",
+  };
+  const embeddingCtx: AiLogCtx = { jobName: "generate-profile-ai", userId };
+  const portrait = await generatePortrait(bio, lookingFor, gptCtx);
   const [embedding, interests] = await Promise.all([
-    generateEmbedding(portrait, logCtx),
-    extractInterests(portrait, logCtx),
+    generateEmbedding(portrait, embeddingCtx),
+    extractInterests(portrait, gptCtx),
   ]);
 
   await db
@@ -588,7 +619,13 @@ async function processGenerateProfilingQuestion(job: GenerateProfilingQuestionJo
       userRequestedMore,
       directionHint,
     },
-    { jobName: "generate-profiling-question", userId: job.userId },
+    {
+      jobName: "generate-profiling-question",
+      userId: job.userId,
+      model: AI_MODELS.async,
+      serviceTier: "flex",
+      reasoningEffort: "minimal",
+    },
   );
 
   await db.insert(schema.profilingQA).values({
@@ -613,6 +650,9 @@ async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
   const result = await generateProfileFromQA(displayName, qaHistory, previousSessionQA, {
     jobName: "generate-profile-from-qa",
     userId: job.userId,
+    model: AI_MODELS.async,
+    serviceTier: "flex",
+    reasoningEffort: "medium",
   });
 
   await db
@@ -913,6 +953,9 @@ async function processEvaluateStatusMatch(job: EvaluateStatusMatchJob) {
     jobName: "evaluate-status-match",
     userId,
     targetUserId: candidateUserId,
+    model: AI_MODELS.async,
+    serviceTier: "flex",
+    reasoningEffort: "minimal",
   });
 
   if (!result.isMatch) return;
@@ -1139,8 +1182,9 @@ export async function promotePairAnalysis(userAId: string, userBId: string) {
     await existing.remove();
   }
 
-  // Add without priority → FIFO queue, processed before all prioritized jobs
-  await queue.add("analyze-pair", { type: "analyze-pair", userAId: a, userBId: b }, { jobId });
+  // Add without priority → FIFO queue, processed before all prioritized jobs.
+  // `isOnDemand` signals the processor to use Standard tier + minimal reasoning (latency-sensitive).
+  await queue.add("analyze-pair", { type: "analyze-pair", userAId: a, userBId: b, isOnDemand: true }, { jobId });
 }
 
 export async function enqueueProfileAI(userId: string, bio: string, lookingFor: string) {

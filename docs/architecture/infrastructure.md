@@ -105,7 +105,7 @@ Source-only package (`"main": "./src/index.ts"`), no build step. Exports:
 - **`config/waves.ts`** -- Ping business rules: `DECLINE_COOLDOWN_HOURS` (24), `DAILY_PING_LIMIT_BASIC` (5), `PER_PERSON_COOLDOWN_HOURS` (24).
 - **`config/auth.ts`** -- Auth constants: `OTP_LENGTH` (6), `RESEND_COOLDOWN_SECONDS` (30).
 - **`validators.ts`** -- Zod schemas for all API inputs (profile, wave, message, group, topic, status, profiling, nearby queries). Defines limits: `displayName` 2-50 chars, `bio` 10-500 chars, `message.content` 1-2000 chars, `status.text` 1-150 chars, `status.categories` 1-2 items, `nearbyUsers.radiusMeters` 100-50000 (default 5000), `nearbyUsersForMap.limit` 1-100 (default 50), `group.memberUserIds` max 199.
-- **`models.ts`** -- AI model constants: `GPT_MODEL = "gpt-4.1-mini"`, `EMBEDDING_MODEL = "text-embedding-3-small"`.
+- **`models.ts`** -- AI model constants keyed by role (BLI-236): `AI_MODELS = { sync: "gpt-4.1-mini", async: "gpt-5-mini" }`, `EMBEDDING_MODEL = "text-embedding-3-small"`. Call-sites reference the role, not the model id — swap the mapped value to change providers (e.g. `async` → `gemini-2.5-flash-lite`).
 - **`math.ts`** -- `cosineSimilarity(a, b)` function for embedding comparison.
 
 ### `@repo/dev-cli` Package
@@ -190,7 +190,8 @@ On Railway production, `ENABLE_DEV_LOGIN=true` so these routes **are live in pro
 
 | Model | Constant | Used For |
 |-------|----------|----------|
-| `gpt-4.1-mini` | `GPT_MODEL` | Connection analysis, status match evaluation, profile portrait generation, interest extraction, profiling Q&A generation, profiling completion, quick-score |
+| `gpt-4.1-mini` | `AI_MODELS.sync` | Chatbot (demo) only — remaining legacy default. Sync app-side call-sites migrated to `async` role on Standard tier per BLI-236. |
+| `gpt-5-mini` | `AI_MODELS.async` | All main-app AI: connection analysis (batch + on-demand), quick-score, status match evaluation, portrait/interests generation, profile Q&A, profiling question generation, inline follow-up questions. Flex tier (50% off) for async BullMQ jobs; Standard for sync/on-demand. |
 | `text-embedding-3-small` | `EMBEDDING_MODEL` | Profile embeddings, status embeddings |
 | Moderation API | direct fetch | Content moderation (bio, status, messages, group names) |
 

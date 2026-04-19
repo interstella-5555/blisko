@@ -1,5 +1,7 @@
 import { lt } from "drizzle-orm";
 import { db, schema } from "@/db";
+import type { ReasoningEffort } from "./ai-log";
+import type { ServiceTier } from "./ai-pricing";
 import { createBatchBuffer } from "./batch-buffer";
 
 export interface AiCallEvent {
@@ -11,6 +13,8 @@ export interface AiCallEvent {
   estimatedCostUsd: number;
   userId?: string | null;
   targetUserId?: string | null;
+  serviceTier: ServiceTier;
+  reasoningEffort?: ReasoningEffort | null;
   durationMs: number;
   status: "success" | "failed";
   errorMessage?: string | null;
@@ -30,6 +34,8 @@ export const aiCallBuffer = createBatchBuffer<AiCallEvent>({
         estimatedCostUsd: e.estimatedCostUsd.toFixed(6),
         userId: e.userId ?? null,
         targetUserId: e.targetUserId ?? null,
+        serviceTier: e.serviceTier,
+        reasoningEffort: e.reasoningEffort ?? null,
         durationMs: e.durationMs,
         status: e.status,
         errorMessage: e.errorMessage?.slice(0, 200) ?? null,

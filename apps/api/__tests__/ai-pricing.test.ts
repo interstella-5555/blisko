@@ -30,6 +30,24 @@ describe("ai-pricing", () => {
 
   it("PRICING map covers the models used in the app", () => {
     expect(PRICING["gpt-4.1-mini"]).toBeDefined();
+    expect(PRICING["gpt-5-mini"]).toBeDefined();
     expect(PRICING["text-embedding-3-small"]).toBeDefined();
+  });
+
+  it("gpt-5-mini: standard input 1M tokens costs $0.25", () => {
+    expect(estimateCostUsd("gpt-5-mini", 1_000_000, 0)).toBeCloseTo(0.25, 6);
+  });
+
+  it("gpt-5-mini: standard output 1M tokens costs $2.00", () => {
+    expect(estimateCostUsd("gpt-5-mini", 0, 1_000_000)).toBeCloseTo(2.0, 6);
+  });
+
+  it("flex tier halves the cost for supported models", () => {
+    expect(estimateCostUsd("gpt-5-mini", 1_000_000, 0, "flex")).toBeCloseTo(0.125, 6);
+    expect(estimateCostUsd("gpt-5-mini", 0, 1_000_000, "flex")).toBeCloseTo(1.0, 6);
+  });
+
+  it("flex defaults to standard when tier is omitted", () => {
+    expect(estimateCostUsd("gpt-5-mini", 1200, 30)).toBe(estimateCostUsd("gpt-5-mini", 1200, 30, "standard"));
   });
 });

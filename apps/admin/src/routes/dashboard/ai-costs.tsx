@@ -13,6 +13,7 @@ const aiCostsSearchSchema = z.object({
   timeframe: z.enum(["24h", "7d"]).optional(),
   jobName: z.string().optional(),
   status: z.enum(["success", "failed"]).optional(),
+  serviceTier: z.enum(["standard", "flex"]).optional(),
   userId: z.string().optional(),
   expanded: z.string().optional(),
 });
@@ -64,6 +65,7 @@ function AiCostsPage() {
   const statusFilter = search.status ?? "all";
   const jobNameFilter = search.jobName;
   const userFilter = search.userId;
+  const serviceTierFilter = search.serviceTier;
 
   const [isLive, setIsLive] = useState(true);
 
@@ -86,6 +88,7 @@ function AiCostsPage() {
   const summary7d = trpc.aiCosts.summary.useQuery({ timeframe: "7d" }, { refetchInterval });
   const byJobName = trpc.aiCosts.byJobName.useQuery({ timeframe }, { refetchInterval });
   const byModel = trpc.aiCosts.byModel.useQuery({ timeframe }, { refetchInterval });
+  const byServiceTier = trpc.aiCosts.byServiceTier.useQuery({ timeframe }, { refetchInterval });
   const byDay = trpc.aiCosts.byDay.useQuery({ timeframe: "7d" }, { refetchInterval });
   const topUsers = trpc.aiCosts.topUsers.useQuery({ timeframe, limit: 20 }, { refetchInterval });
   const feed = trpc.aiCosts.feed.useQuery(
@@ -94,6 +97,7 @@ function AiCostsPage() {
       jobName: jobNameFilter,
       userId: userFilter,
       status: statusFilter === "all" ? undefined : statusFilter,
+      serviceTier: serviceTierFilter,
       limit: 100,
     },
     { refetchInterval },
@@ -157,6 +161,15 @@ function AiCostsPage() {
                 className="rounded-md border border-input bg-background px-2 py-1 text-xs text-muted-foreground hover:bg-accent"
               >
                 × user: {truncId(userFilter)}
+              </button>
+            )}
+            {serviceTierFilter && (
+              <button
+                type="button"
+                onClick={() => updateSearch({ serviceTier: undefined })}
+                className="rounded-md border border-input bg-background px-2 py-1 text-xs text-muted-foreground hover:bg-accent"
+              >
+                × tier: {serviceTierFilter}
               </button>
             )}
             <div className="flex items-center gap-1">
@@ -294,6 +307,64 @@ function AiCostsPage() {
               </Table>
             )}
           </div>
+        </div>
+
+        {/* By service tier */}
+        <div className="rounded-lg border">
+          <div className="border-b px-4 py-2 text-sm font-medium">Po service tier</div>
+          {byServiceTier.isLoading ? (
+            <Loading />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tier</TableHead>
+                  <TableHead className="text-right">Wywołań</TableHead>
+                  <TableHead className="text-right">Tokeny</TableHead>
+                  <TableHead className="text-right">Koszt</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {byServiceTier.data?.map((row) => {
+                  const isFlex = row.serviceTier === "flex";
+                  return (
+                    <TableRow
+                      key={row.serviceTier}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() =>
+                        updateSearch({
+                          serviceTier:
+                            serviceTierFilter === row.serviceTier
+                              ? undefined
+                              : (row.serviceTier as "standard" | "flex"),
+                        })
+                      }
+                    >
+                      <TableCell>
+                        <Badge variant={isFlex ? "secondary" : "outline"} className="font-mono text-xs">
+                          {row.serviceTier}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm">{formatNumber(row.count)}</TableCell>
+                      <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
+                        {formatNumber(row.totalTokens)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm font-medium">
+                        {formatUsd(row.totalCostUsd)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {byServiceTier.data?.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-6">
+                      Brak danych
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </div>
 
         {/* Daily chart + top users grid */}

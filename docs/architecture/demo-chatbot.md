@@ -71,7 +71,7 @@ The chatbot reads from the database directly (new waves, new messages, participa
 | Activity window | 5 minutes (300,000ms) | `ACTIVITY_WINDOW_MS` constant |
 | Match wait timeout | 60 seconds | `MATCH_WAIT_TIMEOUT` constant |
 | Message history depth | 50 messages | Hardcoded in `handleMessage` |
-| AI model | GPT-4.1-mini | `GPT_MODEL` from `@repo/shared` |
+| AI model | GPT-4.1-mini | `AI_MODELS.sync` from `@repo/shared` (renamed from `GPT_MODEL` in BLI-236) |
 | AI temperature | 0.9 | Hardcoded in `ai.ts` |
 | AI max output tokens | 150 | Hardcoded in `ai.ts` |
 | Message max chars | 200 | `text.slice(0, 200)` in `ai.ts` |

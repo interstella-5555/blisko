@@ -534,6 +534,8 @@ export const aiCalls = metricsSchema.table(
     estimatedCostUsd: numeric("estimated_cost_usd", { precision: 12, scale: 6 }).notNull(),
     userId: text("user_id"),
     targetUserId: text("target_user_id"),
+    serviceTier: text("service_tier").notNull().default("standard"),
+    reasoningEffort: text("reasoning_effort"),
     durationMs: integer("duration_ms").notNull(),
     status: text("status").notNull(),
     errorMessage: text("error_message"),
@@ -543,6 +545,7 @@ export const aiCalls = metricsSchema.table(
     index("idx_ai_calls_job_ts").on(table.jobName, table.timestamp),
     index("idx_ai_calls_user_ts").on(table.userId, table.timestamp),
     index("idx_ai_calls_model_ts").on(table.model, table.timestamp),
+    index("idx_ai_calls_tier_ts").on(table.serviceTier, table.timestamp),
   ],
 );
 
