@@ -401,6 +401,8 @@ When a job exhausts all retry attempts (3 by default with exponential backoff), 
 
 **Self-healing loop:** The mobile client keeps retrying as long as the user is visible in the UI — there is no retry limit or badge clearing. Natural backoff: each BullMQ cycle takes ~35s (3 retries with exponential backoff 5s→10s→20s). The existing 30s self-healing timer (in the nearby screen) covers the case where the user was offline during the failure event.
 
+**Second leg — missed-success reconciliation.** The `*Failed` path above only fires on permanent job failure. If a job succeeds while the client's WS is dropped (sim reload, app backgrounded, flaky network), the terminal `*Ready` / `profilingComplete` / `statusMatchesReady` event is lost. The synthetic `reconnected` event (see `websockets-realtime.md`) fires after re-auth and is consumed by handlers that are still waiting on a completion — e.g. `onboarding/profiling-result.tsx` refetches `profiling.getSessionState` on `reconnected` so a profile generated during the drop transitions the UI forward without the user tapping anything (BLI-229).
+
 **Why no retry cap:** The design principle is that if a user is visible on the map/list without an analysis, the system keeps trying until it succeeds. Transient failures (LLM rate limits, Redis hiccups) resolve themselves; permanent failures (API key revoked) are operational issues that should be fixed at the source, not hidden from users.
 
 ## Debouncing

@@ -3,16 +3,16 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/Button";
+import { IconHelp } from "@/components/ui/icons";
+import { Toggle } from "@/components/ui/Toggle";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
 type Visibility = "public" | "private";
 
-const VISIBILITY_OPTIONS: { value: Visibility; label: string }[] = [
-  { value: "public", label: "Publiczny" },
-  { value: "private", label: "Prywatny" },
-];
+const VISIBILITY_HELP =
+  "Publiczny — tekst statusu + kategorie widoczne dla innych na mapie i w profilu. Dopasowania liczone są DO tekstu statusu.\n\nPrywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim się matchujesz. Dopasowania liczone są do Twojego profilu.";
 
 const CATEGORY_OPTIONS: { value: StatusCategory; label: string; emoji: string }[] = [
   { value: "project", label: "Projekt", emoji: "⚡" },
@@ -29,9 +29,10 @@ export default function SetStatusScreen() {
   }>();
   const setProfile = useAuthStore((state) => state.setProfile);
   const [text, setText] = useState(prefill || "");
-  const [visibility, setVisibility] = useState<Visibility | null>(
-    prefillVisibility === "public" || prefillVisibility === "private" ? prefillVisibility : null,
+  const [visibility, setVisibility] = useState<Visibility>(
+    prefillVisibility === "public" || prefillVisibility === "private" ? prefillVisibility : "public",
   );
+  const [showHelp, setShowHelp] = useState(false);
   const [categories, setCategories] = useState<StatusCategory[]>(() => {
     if (!prefillCategories) return [];
     return prefillCategories
@@ -85,7 +86,7 @@ export default function SetStatusScreen() {
     router.back();
 
     setStatus.mutate(
-      { text: trimmed, visibility: visibility!, categories },
+      { text: trimmed, visibility, categories },
       {
         onError: () => {
           if (previousProfile) setProfile(previousProfile);
@@ -113,7 +114,7 @@ export default function SetStatusScreen() {
     });
   };
 
-  const canSubmit = text.trim().length > 0 && categories.length > 0 && visibility !== null;
+  const canSubmit = text.trim().length > 0 && categories.length > 0;
 
   return (
     <View style={styles.container}>
@@ -152,18 +153,20 @@ export default function SetStatusScreen() {
         <Text style={styles.charCount}>{text.length} / 150</Text>
       </View>
 
-      <Text style={styles.sectionLabel}>WIDOCZNOŚĆ</Text>
-      <View style={styles.chipRow}>
-        {VISIBILITY_OPTIONS.map((opt) => (
-          <Pressable
-            key={opt.value}
-            style={[styles.chip, visibility === opt.value && styles.chipSelected]}
-            onPress={() => setVisibility(opt.value)}
-          >
-            <Text style={[styles.chipText, visibility === opt.value && styles.chipTextSelected]}>{opt.label}</Text>
+      <View style={styles.visibilityRow}>
+        <Text style={[styles.sectionLabel, styles.inlineLabel]}>WIDOCZNOŚĆ</Text>
+        <View style={styles.visibilityControls}>
+          <Pressable onPress={() => setShowHelp((s) => !s)} hitSlop={8}>
+            <IconHelp size={16} color={colors.muted} />
           </Pressable>
-        ))}
+          <Toggle
+            value={visibility === "public"}
+            onValueChange={(v) => setVisibility(v ? "public" : "private")}
+            labels={{ off: "Prywatny", on: "Publiczny" }}
+          />
+        </View>
       </View>
+      {showHelp && <Text style={styles.helpText}>{VISIBILITY_HELP}</Text>}
 
       <View style={styles.submitContainer}>
         <Button
@@ -218,30 +221,26 @@ const styles = StyleSheet.create({
     ...typ.label,
     marginBottom: spacing.gutter,
   },
-  chipRow: {
+  visibilityRow: {
     flexDirection: "row",
-    gap: spacing.tight,
-    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.tight,
+  },
+  visibilityControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  inlineLabel: {
+    marginBottom: 0,
+  },
+  helpText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.muted,
+    lineHeight: 17,
     marginBottom: spacing.block,
-  },
-  chip: {
-    borderWidth: 1.5,
-    borderColor: colors.rule,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  chipSelected: {
-    backgroundColor: "#D4851C",
-    borderColor: "#D4851C",
-  },
-  chipText: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 13,
-    color: colors.ink,
-  },
-  chipTextSelected: {
-    color: "#FFFFFF",
   },
   categoryRow: {
     flexDirection: "row",
@@ -275,9 +274,9 @@ const styles = StyleSheet.create({
   submitContainer: {
     marginTop: spacing.column,
     gap: spacing.column,
-    alignItems: "center",
   },
   clearButton: {
+    alignSelf: "center",
     paddingVertical: spacing.tight,
   },
   clearText: {

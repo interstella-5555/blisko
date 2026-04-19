@@ -1,7 +1,8 @@
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { authClient } from "@/lib/auth";

@@ -4,7 +4,6 @@ import {
   Alert,
   Animated,
   Easing,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -13,6 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import MapView, { Marker } from "react-native-maps";
 import { ProfileGateSheet } from "@/components/ProfileGateSheet";
 import { Avatar } from "@/components/ui/Avatar";

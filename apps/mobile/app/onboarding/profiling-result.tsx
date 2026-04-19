@@ -1,6 +1,7 @@
 import { router, Stack } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
 import { OnboardingStepHeader } from "@/components/onboarding/OnboardingStepHeader";
 import { Button } from "@/components/ui/Button";
@@ -49,11 +50,16 @@ export default function ProfilingResultScreen() {
     }
   }, [sessionState.data]);
 
-  // Listen for WS event when profile generation completes
+  // Listen for WS event when profile generation completes.
+  // `reconnected` covers the case where WS dropped (e.g. sim reload, backgrounding,
+  // flaky network) and rejoined — if the job finished while we were disconnected,
+  // the `profilingComplete` event was missed but `sessionState` now has the result.
   const handleWsMessage = useCallback(
     (msg: WSMessage) => {
       if (!profilingSessionId) return;
       if (msg.type === "profilingComplete" && msg.sessionId === profilingSessionId) {
+        sessionState.refetch();
+      } else if (msg.type === "reconnected") {
         sessionState.refetch();
       }
     },
@@ -102,12 +108,7 @@ export default function ProfilingResultScreen() {
   if (isGenerating) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Stack.Screen
-          options={{
-            headerShown: true,
-            header: () => <OnboardingStepHeader label="Ostatni krok" />,
-          }}
-        />
+        <Stack.Screen options={{ headerShown: false }} />
         <ThinkingIndicator
           messages={["Generuję Twój profil...", "Analizuję Twoje odpowiedzi...", "Jeszcze chwilka..."]}
         />

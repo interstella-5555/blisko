@@ -1,17 +1,8 @@
 import { ONBOARDING_QUESTIONS } from "@repo/shared";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Animated, Dimensions, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Button } from "@/components/ui/Button";
 import { IconChevronLeft } from "@/components/ui/icons";
 import { ThinkingIndicator } from "@/components/ui/ThinkingIndicator";

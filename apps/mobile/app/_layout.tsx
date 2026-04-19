@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, Alert, AppState, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
 import { IconCheck, IconChevronLeft, IconX } from "@/components/ui/icons";
@@ -18,11 +19,7 @@ import { showToast } from "@/lib/toast";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useWebSocket } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
-import { useConversationsStore } from "@/stores/conversationsStore";
-import { useMessagesStore } from "@/stores/messagesStore";
-import { useOnboardingStore } from "@/stores/onboardingStore";
-import { useProfilesStore } from "@/stores/profilesStore";
-import { useWavesStore } from "@/stores/wavesStore";
+import { resetUserScopedStores } from "@/stores/reset";
 import { colors, fonts, layout, spacing } from "@/theme";
 
 let accountDeletedAlertShown = false;
@@ -116,12 +113,7 @@ export async function signOutAndReset() {
   await SecureStore.deleteItemAsync("blisko_session_token");
 
   queryClient.clear();
-  useAuthStore.getState().reset();
-  useProfilesStore.getState().reset();
-  useConversationsStore.getState().reset();
-  useMessagesStore.getState().reset();
-  useWavesStore.getState().reset();
-  useOnboardingStore.getState().reset();
+  resetUserScopedStores();
 
   router.replace("/(auth)/login");
 }
@@ -206,125 +198,127 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
-          <StatusBar style="dark" />
-          <LinkPreviewContextProvider>
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="settings" options={{ headerShown: false }} />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
-              <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
-              <Stack.Screen
-                name="create-group"
-                options={{
-                  headerShown: true,
-                  header: () => (
-                    <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          paddingHorizontal: spacing.section,
-                          height: layout.headerHeight,
-                        }}
-                      >
-                        <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
-                          <IconChevronLeft size={24} color={colors.ink} />
-                        </Pressable>
-                        <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
-                        <View style={{ width: 24 }} />
-                      </View>
-                    </SafeAreaView>
-                  ),
-                  contentStyle: { backgroundColor: colors.bg },
-                }}
-              />
-              <Stack.Screen
-                name="set-status"
-                options={{
-                  presentation: "formSheet",
-                  headerShown: false,
-                  sheetAllowedDetents: "fitToContents",
-                  sheetGrabberVisible: true,
-                  sheetCornerRadius: 20,
-                  contentStyle: { backgroundColor: colors.bg },
-                }}
-              />
-              <Stack.Screen
-                name="filters"
-                options={{
-                  presentation: "formSheet",
-                  headerShown: false,
-                  sheetAllowedDetents: "fitToContents",
-                  sheetGrabberVisible: true,
-                  sheetCornerRadius: 20,
-                  contentStyle: { backgroundColor: colors.bg },
-                }}
-              />
-            </Stack>
-          </LinkPreviewContextProvider>
-          <Toaster
-            position="top-center"
-            duration={4000}
-            visibleToasts={3}
-            swipeToDismissDirection="up"
-            theme="light"
-            offset={0}
-            icons={{
-              success: (
-                <View style={toastBadgeStyles.success}>
-                  <IconCheck size={14} color={colors.bg} />
-                </View>
-              ),
-              error: (
-                <View style={toastBadgeStyles.error}>
-                  <IconX size={14} color={colors.bg} />
-                </View>
-              ),
-              warning: (
-                <View style={toastBadgeStyles.warning}>
-                  <Text style={toastBadgeStyles.warningGlyph}>!</Text>
-                </View>
-              ),
-              info: (
-                <View style={toastBadgeStyles.info}>
-                  <Text style={toastBadgeStyles.infoGlyph}>i</Text>
-                </View>
-              ),
-            }}
-            toastOptions={{
-              style: {
-                backgroundColor: colors.bg,
-                borderColor: colors.rule,
-                borderWidth: 1,
-                borderRadius: 14,
-                padding: 14,
-                marginHorizontal: spacing.section,
-              },
-              titleStyle: {
-                fontFamily: fonts.sansSemiBold,
-                fontSize: 15,
-                lineHeight: 20,
-                color: colors.ink,
-              },
-              descriptionStyle: {
-                fontFamily: fonts.sans,
-                fontSize: 13,
-                lineHeight: 18,
-                color: colors.muted,
-              },
-              toastContentStyle: {
-                alignItems: "center",
-                gap: spacing.gutter,
-              },
-            }}
-          />
-        </QueryClientProvider>
-      </trpc.Provider>
+      <KeyboardProvider>
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
+            <StatusBar style="dark" />
+            <LinkPreviewContextProvider>
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="settings" options={{ headerShown: false }} />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
+                <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
+                <Stack.Screen
+                  name="create-group"
+                  options={{
+                    headerShown: true,
+                    header: () => (
+                      <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            paddingHorizontal: spacing.section,
+                            height: layout.headerHeight,
+                          }}
+                        >
+                          <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
+                            <IconChevronLeft size={24} color={colors.ink} />
+                          </Pressable>
+                          <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
+                          <View style={{ width: 24 }} />
+                        </View>
+                      </SafeAreaView>
+                    ),
+                    contentStyle: { backgroundColor: colors.bg },
+                  }}
+                />
+                <Stack.Screen
+                  name="set-status"
+                  options={{
+                    presentation: "formSheet",
+                    headerShown: false,
+                    sheetAllowedDetents: "fitToContents",
+                    sheetGrabberVisible: true,
+                    sheetCornerRadius: 20,
+                    contentStyle: { backgroundColor: colors.bg },
+                  }}
+                />
+                <Stack.Screen
+                  name="filters"
+                  options={{
+                    presentation: "formSheet",
+                    headerShown: false,
+                    sheetAllowedDetents: "fitToContents",
+                    sheetGrabberVisible: true,
+                    sheetCornerRadius: 20,
+                    contentStyle: { backgroundColor: colors.bg },
+                  }}
+                />
+              </Stack>
+            </LinkPreviewContextProvider>
+            <Toaster
+              position="top-center"
+              duration={4000}
+              visibleToasts={3}
+              swipeToDismissDirection="up"
+              theme="light"
+              offset={0}
+              icons={{
+                success: (
+                  <View style={toastBadgeStyles.success}>
+                    <IconCheck size={14} color={colors.bg} />
+                  </View>
+                ),
+                error: (
+                  <View style={toastBadgeStyles.error}>
+                    <IconX size={14} color={colors.bg} />
+                  </View>
+                ),
+                warning: (
+                  <View style={toastBadgeStyles.warning}>
+                    <Text style={toastBadgeStyles.warningGlyph}>!</Text>
+                  </View>
+                ),
+                info: (
+                  <View style={toastBadgeStyles.info}>
+                    <Text style={toastBadgeStyles.infoGlyph}>i</Text>
+                  </View>
+                ),
+              }}
+              toastOptions={{
+                style: {
+                  backgroundColor: colors.bg,
+                  borderColor: colors.rule,
+                  borderWidth: 1,
+                  borderRadius: 14,
+                  padding: 14,
+                  marginHorizontal: spacing.section,
+                },
+                titleStyle: {
+                  fontFamily: fonts.sansSemiBold,
+                  fontSize: 15,
+                  lineHeight: 20,
+                  color: colors.ink,
+                },
+                descriptionStyle: {
+                  fontFamily: fonts.sans,
+                  fontSize: 13,
+                  lineHeight: 18,
+                  color: colors.muted,
+                },
+                toastContentStyle: {
+                  alignItems: "center",
+                  gap: spacing.gutter,
+                },
+              }}
+            />
+          </QueryClientProvider>
+        </trpc.Provider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

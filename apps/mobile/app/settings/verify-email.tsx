@@ -1,7 +1,8 @@
 import { OTP_LENGTH, RESEND_COOLDOWN_SECONDS } from "@repo/shared";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Button } from "@/components/ui/Button";
 import { IconSend } from "@/components/ui/icons";
 import { authClient } from "@/lib/auth";

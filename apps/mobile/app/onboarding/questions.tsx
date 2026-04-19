@@ -4,14 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
-  KeyboardAvoidingView,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
 import { OnboardingStepHeader } from "@/components/onboarding/OnboardingStepHeader";
 import { Button } from "@/components/ui/Button";
@@ -19,9 +22,17 @@ import { ThinkingIndicator } from "@/components/ui/ThinkingIndicator";
 import { useRetryQuestionOnFailure } from "@/hooks/useRetryQuestionOnFailure";
 import { trpc } from "@/lib/trpc";
 import { useOnboardingStore } from "@/stores/onboardingStore";
-import { colors, fonts, spacing, symbols, type as typ } from "@/theme";
+import { colors, fonts, spacing, type as typ } from "@/theme";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
+
+// Examples carousel geometry. Cards live inside OnboardingScreen's
+// `paddingHorizontal: spacing.section` area; card width is sized so the next
+// card peeks in from the right, signalling "swipe for more".
+const EXAMPLE_CARD_GAP = spacing.gutter;
+const EXAMPLE_CARD_PEEK = 24;
+const EXAMPLE_CARD_WIDTH = SCREEN_WIDTH - 2 * spacing.section - EXAMPLE_CARD_GAP - EXAMPLE_CARD_PEEK;
+const EXAMPLE_SNAP = EXAMPLE_CARD_WIDTH + EXAMPLE_CARD_GAP;
 
 type Phase = "questions" | "submitting" | "followups" | "generating";
 
@@ -53,6 +64,19 @@ export default function QuestionsScreen() {
   // Animation
   const slideAnim = useRef(new Animated.Value(0)).current;
   const inputRef = useRef<TextInput>(null);
+  const examplesScrollRef = useRef<ScrollView>(null);
+  const [exampleIndex, setExampleIndex] = useState(0);
+
+  // Reset carousel to first example when navigating between questions.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: questionIndex is the trigger; scrollRef is stable
+  useEffect(() => {
+    setExampleIndex(0);
+    examplesScrollRef.current?.scrollTo({ x: 0, animated: false });
+  }, [questionIndex]);
+
+  const handleExamplesScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setExampleIndex(Math.round(e.nativeEvent.contentOffset.x / EXAMPLE_SNAP));
+  };
 
   const submitOnboarding = trpc.profiling.submitOnboarding.useMutation();
   const answerFollowUp = trpc.profiling.answerFollowUp.useMutation();
@@ -419,15 +443,40 @@ export default function QuestionsScreen() {
             autoFocus
           />
 
-          {currentQuestion.examples && (
+          {currentQuestion.examples && currentQuestion.examples.length > 0 && (
             <View style={styles.examples}>
-              <Text style={styles.examplesLabel}>Przykładowe odpowiedzi:</Text>
-              {currentQuestion.examples.map((ex) => (
-                <View key={ex} style={styles.exampleRow}>
-                  <Text style={styles.exampleText}>{symbols.bullet}</Text>
-                  <Text style={[styles.exampleText, styles.exampleTextBody]}>{ex}</Text>
+              <ScrollView
+                ref={examplesScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={EXAMPLE_SNAP}
+                decelerationRate="fast"
+                onMomentumScrollEnd={handleExamplesScroll}
+                contentContainerStyle={styles.carousel}
+              >
+                {currentQuestion.examples.map((ex, i) => (
+                  <View key={ex} style={styles.card}>
+                    <Text style={styles.cardPrefix}>Przykład {i + 1}</Text>
+                    <Text style={styles.cardText}>{ex}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+              {currentQuestion.examples.length > 1 && (
+                <View style={styles.dots}>
+                  {currentQuestion.examples.map((ex, i) => (
+                    <Pressable
+                      key={ex}
+                      onPress={() => {
+                        examplesScrollRef.current?.scrollTo({ x: i * EXAMPLE_SNAP, animated: true });
+                        setExampleIndex(i);
+                      }}
+                      hitSlop={8}
+                    >
+                      <View style={[styles.dot, i === exampleIndex && styles.dotActive]} />
+                    </Pressable>
+                  ))}
                 </View>
-              ))}
+              )}
             </View>
           )}
         </Animated.View>
@@ -451,27 +500,47 @@ const styles = StyleSheet.create({
   },
   examples: {
     marginTop: spacing.gutter,
-    gap: spacing.tick,
   },
-  examplesLabel: {
-    fontFamily: fonts.sans,
-    fontSize: 13,
-    color: colors.muted,
-    marginBottom: spacing.hairline,
-  },
-  exampleRow: {
+  dots: {
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
+    marginTop: spacing.tick,
   },
-  exampleText: {
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.rule,
+  },
+  dotActive: {
+    width: 18,
+    backgroundColor: colors.ink,
+  },
+  carousel: {
+    gap: EXAMPLE_CARD_GAP,
+  },
+  card: {
+    width: EXAMPLE_CARD_WIDTH,
+    padding: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: "rgba(139,134,128,0.08)",
+  },
+  cardText: {
     fontFamily: fonts.sans,
-    fontStyle: "italic",
     fontSize: 13,
     color: colors.muted,
     lineHeight: 18,
   },
-  exampleTextBody: {
-    flex: 1,
+  cardPrefix: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    color: colors.muted,
+    marginBottom: spacing.tick,
   },
   input: {
     fontFamily: fonts.sans,

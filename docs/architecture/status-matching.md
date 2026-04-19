@@ -3,6 +3,7 @@
 > v1 --- AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — `status-matching` dedup switched from `jobId` to BullMQ `deduplication` (auto-release on failure), `statusMatchingFailed` WS event for self-healing (BLI-164).
 > Updated 2026-04-19 — per-pair LLM eval split from parent Promise.all into `evaluate-status-match` child jobs. Parents handle fetch/embed/prefilter + DELETE (setter path), then fan out via `queue.addBulk`. Child performs one `evaluateStatusMatch` call + INSERT + WS event + ambient push. Staleness guard on setter path via `statusSetAt` snapshot in job payload (BLI-167).
+> Updated 2026-04-19 — BLI-229: set-status UI reworked. Visibility chip-row → `Toggle` primitive (Prywatny ↔ Publiczny) with inline help text revealed by tapping `IconHelp` next to the label. UI default flipped from "no default, must pick" to `public` (most common case; one tap to switch to private). DB column stays nullable — no migration.
 
 ## Terminology & Product Alignment
 
