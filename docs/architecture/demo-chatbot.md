@@ -73,7 +73,8 @@ The chatbot reads from the database directly (new waves, new messages, participa
 | Message history depth | 50 messages | Hardcoded in `handleMessage` |
 | AI model | gpt-5-mini | `AI_MODELS.sync` from `@repo/shared` (BLI-236: full app standardizes on gpt-5-mini; chatbot auto-migrates via the shared constant). |
 | AI temperature | 0.9 | Hardcoded in `ai.ts` |
-| AI max output tokens | 150 | Hardcoded in `ai.ts` |
+| AI max output tokens | 500 | Hardcoded in `ai.ts` — raised from 150 in BLI-240 to leave headroom even at `reasoningEffort: "minimal"`. |
+| AI reasoning effort | minimal | `providerOptions.openai.reasoningEffort` in `ai.ts`. Without this, gpt-5-mini defaults to `medium` and consumes the entire `maxOutputTokens` budget on invisible reasoning tokens, returning empty visible text and tripping the `FALLBACK_REPLY` path (BLI-240). |
 | Message max chars | 200 | `text.slice(0, 200)` in `ai.ts` |
 | Heartbeat log | Every 100 polls | Modulo check in main loop |
 
@@ -161,7 +162,7 @@ When a non-bot message arrives in a seed user's conversation:
 
 Every call to `generateBotMessage` (success or failure) is logged into `metrics.ai_calls` via the shared-secret `POST /internal/ai-log` endpoint on the API (see `ai-cost-tracking.md`). The helper lives in `apps/chatbot/src/ai-log.ts` and is fire-and-forget — it never blocks response generation. Requires `INTERNAL_AI_LOG_SECRET` env var on both the chatbot and API services (same value). Without the secret, logging is silently disabled. Logged rows carry `jobName: "chatbot-message"`, `userId: botProfile.userId`, `targetUserId: otherProfile.userId`, so chatbot costs and payloads show up in the admin "Koszty AI" dashboard alongside API calls.
 
-**System prompt** builds a persona from the bot's profile: name, bio, lookingFor, interests, portrait. Includes the other user's profile for context. Rules: write in Polish, colloquial, 1--3 sentences, max 200 chars, don't overuse emoji, reference shared interests, ask questions, respond with more enthusiasm when topic matches bot's interests, respond briefly when topic is foreign.
+**System prompt** builds a persona from the bot's profile: name, bio, lookingFor. Includes the other user's name, bio and lookingFor for context. Rules: write in Polish, colloquial, 1--3 sentences, max 200 chars, rare emoji, don't start with own name, respond with more enthusiasm when topic matches bot's interests, respond briefly when foreign. Previously also included `interests` + `portrait`, removed in BLI-240 — `portrait` is a 3rd-person AI-generated restatement of `bio`, and `interests` are derivable from `bio`; together they roughly tripled prompt tokens without improving chat quality.
 
 **Prompt:**
 - Opening: "Pierwsza wiadomosc po zaakceptowaniu wave. Przywitaj sie nawiazujac do tego co was laczy."

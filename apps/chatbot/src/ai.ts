@@ -15,8 +15,6 @@ interface BotProfile {
   bio: string;
   lookingFor: string;
   socialLinks: SocialLinks | null;
-  interests: string[] | null;
-  portrait: string | null;
 }
 
 interface OtherProfile {
@@ -45,11 +43,6 @@ export async function generateBotMessage(
     return isOpening ? FALLBACK_OPENING : FALLBACK_REPLY;
   }
 
-  const botDesc = botProfile.bio;
-  const botInterests = botProfile.interests?.join(", ") || "brak danych";
-  const botPortrait = botProfile.portrait || "brak";
-  const otherDesc = otherProfile.bio;
-
   const scenario = isOpening
     ? "Pierwsza wiadomosc po zaakceptowaniu wave. Przywitaj sie nawiazujac do tego co was laczy."
     : `Kontynuujesz rozmowe. Odpowiedz na ostatnia wiadomosc.\n\nOstatnie wiadomosci:\n${conversationHistory
@@ -58,24 +51,22 @@ export async function generateBotMessage(
         .join("\n")}`;
 
   const model = AI_MODELS.sync;
-  const system = `Jestes ${botProfile.displayName}. Piszesz na czacie w aplikacji Blisko.
+  // Keep bio + lookingFor; skip portrait + interests — portrait is a 3rd-person
+  // restatement of bio (AI-generated) and interests are derivable from bio.
+  // Together they roughly tripled prompt tokens with no chat-quality gain.
+  const system = `Jestes ${botProfile.displayName}, piszesz na czacie Blisko.
 
-Twoj profil: ${botDesc}
-Czego szukasz: ${botProfile.lookingFor}
-Twoje zainteresowania: ${botInterests}
-Twoj portret: ${botPortrait}
+O TOBIE: ${botProfile.bio}
+SZUKASZ: ${botProfile.lookingFor}
 
-Profil rozmowcy (${otherProfile.displayName}): ${otherDesc}
-Czego szuka rozmowca: ${otherProfile.lookingFor}
+ROZMOWCA (${otherProfile.displayName}): ${otherProfile.bio}
+SZUKA: ${otherProfile.lookingFor}
 
-Zasady:
-- Pisz po polsku, potocznie
-- 1-3 zdania, max 200 znakow
-- Nie naduzywaj emoji
-- Nawiazuj do wspolnych zainteresowań, zadawaj pytania
-- Nie zaczynaj wiadomosci od swojego imienia — pisz tylko tresc
-- Jezeli rozmowca porusza tematy bliskie Twoim zainteresowaniom, preferencjom lub temu czego szukasz — odpowiadaj z wiekszym zaangazowaniem, entuzjazmem, rozwijaj watek i zadawaj pytania
-- Jezeli temat jest Ci obcy lub nie zwiazany z Twoim profilem — odpowiadaj krotko, grzecznie ale bez entuzjazmu, nie rozwijaj watku`;
+ZASADY:
+- Po polsku, potocznie, 1-3 zdania, max 200 znakow
+- Nie zaczynaj od imienia, tylko tresc
+- Rzadko emoji
+- Temat bliski Twoim zainteresowaniom albo temu czego szukasz → rozwijaj, pytaj; obcy → krotko, bez entuzjazmu`;
   const input = {
     kind: "generateText",
     model,
@@ -91,7 +82,12 @@ Zasady:
     const { text, usage, finishReason } = await generateText({
       model: openai(model),
       temperature: 0.9,
-      maxOutputTokens: 150,
+      // gpt-5-mini is a reasoning model — without `reasoningEffort: "minimal"`
+      // OpenAI defaults to medium, which ate the whole maxOutputTokens budget
+      // on invisible reasoning and returned text: "" with finishReason: "length",
+      // so every reply fell through to FALLBACK_REPLY. See BLI-240 / BLI-236.
+      maxOutputTokens: 500,
+      providerOptions: { openai: { reasoningEffort: "minimal" } },
       system,
       prompt: scenario,
     });
