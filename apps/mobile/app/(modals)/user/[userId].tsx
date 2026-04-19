@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, usePathname } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ProfileGateSheet } from "@/components/ProfileGateSheet";
@@ -7,6 +7,7 @@ import { IconChat, IconCheck, IconWave } from "@/components/ui/icons";
 import { useIsGhost } from "@/hooks/useIsGhost";
 import { useProfileGate } from "@/hooks/useProfileGate";
 import { formatDistance } from "@/lib/format";
+import { openChatFromAnywhere } from "@/lib/navigation";
 import { trpc } from "@/lib/trpc";
 import { sendWsMessage, useWebSocket, type WSMessage } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
@@ -100,6 +101,7 @@ export default function UserProfileScreen() {
   }>();
 
   const userId = params.userId;
+  const pathname = usePathname();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const isGhost = useIsGhost();
   const distance = Number(params.distance) || 0;
@@ -286,7 +288,7 @@ export default function UserProfileScreen() {
 
   const handleOpenChat = () => {
     if (conversationId) {
-      router.push(`/chat/${conversationId}`);
+      openChatFromAnywhere(conversationId, pathname);
     }
   };
 
