@@ -46,6 +46,15 @@ function formatNumber(n: number): string {
   return new Intl.NumberFormat("pl-PL").format(n);
 }
 
+function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "—";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)}s`;
+  const m = Math.floor(ms / 60_000);
+  const s = Math.round((ms % 60_000) / 1000);
+  return s > 0 ? `${m}m${s}s` : `${m}m`;
+}
+
 function formatTime(timestamp: string | Date): string {
   const d = new Date(timestamp);
   if (isToday(d)) return format(d, "HH:mm:ss");
@@ -89,6 +98,7 @@ function AiCostsPage() {
   const byJobName = trpc.aiCosts.byJobName.useQuery({ timeframe }, { refetchInterval });
   const byModel = trpc.aiCosts.byModel.useQuery({ timeframe }, { refetchInterval });
   const byServiceTier = trpc.aiCosts.byServiceTier.useQuery({ timeframe }, { refetchInterval });
+  const byJobNameAndTier = trpc.aiCosts.byJobNameAndTier.useQuery({ timeframe }, { refetchInterval });
   const byDay = trpc.aiCosts.byDay.useQuery({ timeframe: "7d" }, { refetchInterval });
   const topUsers = trpc.aiCosts.topUsers.useQuery({ timeframe, limit: 20 }, { refetchInterval });
   const feed = trpc.aiCosts.feed.useQuery(
@@ -321,12 +331,18 @@ function AiCostsPage() {
                   <TableHead>Tier</TableHead>
                   <TableHead className="text-right">Wywołań</TableHead>
                   <TableHead className="text-right">Tokeny</TableHead>
+                  <TableHead className="text-right">Śr. czas</TableHead>
+                  <TableHead className="text-right">p50</TableHead>
+                  <TableHead className="text-right">p95</TableHead>
                   <TableHead className="text-right">Koszt</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {byServiceTier.data?.map((row) => {
                   const isFlex = row.serviceTier === "flex";
+                  // Flex SLA per OpenAI docs: "seconds to minutes". Flag if p95 > 60s — signal that
+                  // flex pool is starving and we may want to watch for 429s / fallback.
+                  const flexP95Hot = isFlex && row.p95DurationMs > 60_000;
                   return (
                     <TableRow
                       key={row.serviceTier}
@@ -349,6 +365,18 @@ function AiCostsPage() {
                       <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
                         {formatNumber(row.totalTokens)}
                       </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
+                        {formatDuration(row.avgDurationMs)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
+                        {formatDuration(row.p50DurationMs)}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right tabular-nums text-sm ${flexP95Hot ? "font-medium text-amber-600" : "text-muted-foreground"}`}
+                        title={flexP95Hot ? "Flex p95 > 60s — pool może być przeciążony" : undefined}
+                      >
+                        {formatDuration(row.p95DurationMs)}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums text-sm font-medium">
                         {formatUsd(row.totalCostUsd)}
                       </TableCell>
@@ -357,7 +385,80 @@ function AiCostsPage() {
                 })}
                 {byServiceTier.data?.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-6">
+                    <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">
+                      Brak danych
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+
+        {/* By (job, tier, reasoning) — separates analyze-pair batch vs on-demand etc. */}
+        <div className="rounded-lg border">
+          <div className="border-b px-4 py-2 text-sm font-medium">Po (job × tier × reasoning)</div>
+          {byJobNameAndTier.isLoading ? (
+            <Loading />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Job</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>Reasoning</TableHead>
+                  <TableHead className="text-right">Wywołań</TableHead>
+                  <TableHead className="text-right">Tokeny</TableHead>
+                  <TableHead className="text-right">Śr. czas</TableHead>
+                  <TableHead className="text-right">p50</TableHead>
+                  <TableHead className="text-right">p95</TableHead>
+                  <TableHead className="text-right">Koszt</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {byJobNameAndTier.data?.map((row) => {
+                  const isFlex = row.serviceTier === "flex";
+                  const flexP95Hot = isFlex && row.p95DurationMs > 60_000;
+                  return (
+                    <TableRow
+                      key={`${row.jobName}-${row.serviceTier}-${row.reasoningEffort ?? "none"}`}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => updateSearch({ jobName: row.jobName })}
+                    >
+                      <TableCell className="font-medium text-sm">{row.jobName}</TableCell>
+                      <TableCell>
+                        <Badge variant={isFlex ? "secondary" : "outline"} className="font-mono text-xs">
+                          {row.serviceTier}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {row.reasoningEffort ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm">{formatNumber(row.count)}</TableCell>
+                      <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
+                        {formatNumber(row.totalTokens)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
+                        {formatDuration(row.avgDurationMs)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
+                        {formatDuration(row.p50DurationMs)}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right tabular-nums text-sm ${flexP95Hot ? "font-medium text-amber-600" : "text-muted-foreground"}`}
+                        title={flexP95Hot ? "Flex p95 > 60s — pool może być przeciążony" : undefined}
+                      >
+                        {formatDuration(row.p95DurationMs)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm font-medium">
+                        {formatUsd(row.totalCostUsd)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {byJobNameAndTier.data?.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center text-sm text-muted-foreground py-6">
                       Brak danych
                     </TableCell>
                   </TableRow>
