@@ -2,6 +2,7 @@
 
 > Added 2026-04-11 — BLI-174. Logs every OpenAI call into `metrics.ai_calls` and exposes it in the admin "Koszty AI" dashboard.
 > Updated 2026-04-19 — BLI-236. Async call-sites migrated to `gpt-5-mini` with `service_tier: "flex"` (50% off). Sync sites moved to `gpt-5-mini` standard (cheaper input). `AiLogCtx` gained `model` / `serviceTier` / `reasoningEffort`; `metrics.ai_calls` gained `service_tier` + `reasoning_effort` columns; pricing map + `estimateCostUsd` became tier-aware.
+> Updated 2026-04-19 — BLI-236 follow-up. Admin dashboard gains `byServiceTier` latency percentiles (avg / p50 / p95) and a new `byJobNameAndTier` breakdown so `analyze-pair` batch and on-demand latencies can be tracked separately. Flex p95 > 60s flags amber — early signal that the flex pool is starving.
 
 Every call to OpenAI (via Vercel AI SDK) is logged with token counts, USD cost estimate, duration, and context (job type, user, target user). 7-day retention, aggregated in an admin dashboard. Replaces the hand-wave cost estimates previously in `ai-matching.md`.
 
@@ -96,7 +97,8 @@ Route: `/dashboard/ai-costs` (under AI Matching → Koszty AI in the sidebar).
 **Breakdowns:**
 - By `job_name` — count, tokens, avg duration, cost (sorted by cost desc). Click row → filter feed by that job.
 - By `model` — count, tokens, cost.
-- By `service_tier` — Standard vs Flex split. Click row → filter feed by tier.
+- By `service_tier` — Standard vs Flex split with avg/p50/p95 duration and cost. Flex row flags amber when `p95 > 60s` (flex pool likely starving). Click → filter feed by tier.
+- By `(job_name, service_tier, reasoning_effort)` — groups the same job name across its different tier/reasoning ctxs (e.g. `analyze-pair` batch vs on-demand) so latency attribution is cleanly separated. Same p50/p95 + flex p95>60s flag as above.
 - Daily chart (7d) — horizontal bar per day.
 - Top 20 users by cost — display name resolved from `profiles`. Click → filter feed.
 - Feed — last 100 calls, expandable for target user / errors.
@@ -111,7 +113,7 @@ Route: `/dashboard/ai-costs` (under AI Matching → Koszty AI in the sidebar).
 
 **Refresh:** 10 seconds when Live, pausable.
 
-tRPC endpoints (in `apps/admin/src/server/routers/ai-costs.ts`): `summary`, `byJobName`, `byModel`, `byServiceTier`, `byDay`, `topUsers`, `feed`. All use `protectedProcedure`. Aggregates use explicit `::numeric` / `::bigint` casts in raw SQL to avoid float drift.
+tRPC endpoints (in `apps/admin/src/server/routers/ai-costs.ts`): `summary`, `byJobName`, `byModel`, `byServiceTier`, `byJobNameAndTier`, `byDay`, `topUsers`, `feed`. All use `protectedProcedure`. Aggregates use explicit `::numeric` / `::bigint` / `::int` casts in raw SQL to avoid float drift; duration percentiles use `PERCENTILE_CONT(x) WITHIN GROUP (ORDER BY duration_ms)`.
 
 ## GDPR
 

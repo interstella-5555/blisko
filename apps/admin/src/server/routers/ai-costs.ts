@@ -91,6 +91,9 @@ export const aiCostsRouter = router({
         serviceTier: schema.aiCalls.serviceTier,
         count: count(),
         totalTokens: sql<string>`SUM(${schema.aiCalls.totalTokens})::bigint`,
+        avgDurationMs: sql<string>`AVG(${schema.aiCalls.durationMs})::int`,
+        p50DurationMs: sql<string>`PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${schema.aiCalls.durationMs})::int`,
+        p95DurationMs: sql<string>`PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY ${schema.aiCalls.durationMs})::int`,
         totalCostUsd: sql<string>`SUM(${schema.aiCalls.estimatedCostUsd})::numeric`,
       })
       .from(schema.aiCalls)
@@ -102,6 +105,41 @@ export const aiCostsRouter = router({
       serviceTier: r.serviceTier,
       count: Number(r.count),
       totalTokens: Number(r.totalTokens),
+      avgDurationMs: Number(r.avgDurationMs),
+      p50DurationMs: Number(r.p50DurationMs),
+      p95DurationMs: Number(r.p95DurationMs),
+      totalCostUsd: Number(r.totalCostUsd),
+    }));
+  }),
+
+  byJobNameAndTier: protectedProcedure.input(z.object({ timeframe: TIMEFRAME })).query(async ({ input }) => {
+    const since = timeframeStart(input.timeframe);
+    const rows = await db
+      .select({
+        jobName: schema.aiCalls.jobName,
+        serviceTier: schema.aiCalls.serviceTier,
+        reasoningEffort: schema.aiCalls.reasoningEffort,
+        count: count(),
+        totalTokens: sql<string>`SUM(${schema.aiCalls.totalTokens})::bigint`,
+        avgDurationMs: sql<string>`AVG(${schema.aiCalls.durationMs})::int`,
+        p50DurationMs: sql<string>`PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${schema.aiCalls.durationMs})::int`,
+        p95DurationMs: sql<string>`PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY ${schema.aiCalls.durationMs})::int`,
+        totalCostUsd: sql<string>`SUM(${schema.aiCalls.estimatedCostUsd})::numeric`,
+      })
+      .from(schema.aiCalls)
+      .where(gte(schema.aiCalls.timestamp, since))
+      .groupBy(schema.aiCalls.jobName, schema.aiCalls.serviceTier, schema.aiCalls.reasoningEffort)
+      .orderBy(desc(sql`SUM(${schema.aiCalls.estimatedCostUsd})`));
+
+    return rows.map((r) => ({
+      jobName: r.jobName,
+      serviceTier: r.serviceTier,
+      reasoningEffort: r.reasoningEffort,
+      count: Number(r.count),
+      totalTokens: Number(r.totalTokens),
+      avgDurationMs: Number(r.avgDurationMs),
+      p50DurationMs: Number(r.p50DurationMs),
+      p95DurationMs: Number(r.p95DurationMs),
       totalCostUsd: Number(r.totalCostUsd),
     }));
   }),
