@@ -17,6 +17,7 @@
 > Updated 2026-04-19 — BLI-229: adopted `react-native-keyboard-controller`. `KeyboardProvider` at root. Chat (`chat/[id].tsx`) uses `KeyboardStickyView` around the input + `useReanimatedKeyboardAnimation` + `Animated.View` as inverted-list `ListHeaderComponent` spacer (Reanimated animated styles can't be passed to FlatList `contentContainerStyle` — spacer component pattern instead). All other keyboard-aware screens swapped to the library's `KeyboardAvoidingView` drop-in replacement. `OnboardingScreen` wrapper now animates `paddingBottom` via `useReanimatedKeyboardAnimation()` instead of static `SafeAreaView edges={["bottom"]}` — fixes the ~34px gap between footer button and keyboard on iPhones with home indicator. Previous attempt on SDK 54 (BLI-180) hit codegen errors; retry on SDK 55 succeeded cleanly. See "Keyboard handling" under Providers & Overlays.
 > Updated 2026-04-19 — BLI-229 follow-ups (same PR): (a) `onboarding/questions.tsx` examples swapped from vertical bullet list to horizontal `ScrollView` carousel — one card visible + ~24px peek of next + tappable dot indicator under the cards; scroll resets to index 0 when user navigates between questions. (b) `set-status.tsx` visibility chip-row replaced with `Toggle` primitive + inline help text toggled by `IconHelp`; UI default flipped to `public`. See `status-matching.md` for visibility semantics. (c) `onboarding/profiling-result.tsx` loader screen now uses `headerShown: false` (drop stale "Ostatni krok" on pure-spinner view) and also refetches `sessionState` on the synthetic `reconnected` WS event — belt-and-braces for "sim reload / app background during generation, WS missed `profilingComplete`".
 > Updated 2026-04-19 — Store reset registry (`src/stores/reset.ts`). Two arrays — `USER_SCOPED_STORES` (wiped on session boundary: auth/conversations/messages/profiles/waves/onboarding) and `DEVICE_SCOPED_STORES` (intentionally preserved: location/preferences). `resetUserScopedStores()` is the single call site; `signOutAndReset` uses it, and `(auth)/login` calls it on mount as belt-and-braces cleanup for sessions lost without going through logout (token expired, server invalidation, dev crash). Rule: `.claude/rules/mobile.md#mobile/new-store-categorize`.
+> Updated 2026-04-20 — BLI-243 branded splash. Added `expo-splash-screen` (native module), replaced `assets/splash-icon.png` with dot + "Blisko" Instrument Serif wordmark on `#FAF7F2` bg, new `components/ui/SplashHold.tsx` (RN hold screen matching the PNG geometry via `<SonarDot size=24 />` inside a `marginVertical: -30` wrapper that collapses the 84pt SonarDot layout box to 24pt so the wordmark sits at the same y as the native splash). `preventAutoHideAsync()` at `_layout.tsx` module load; `hideAsync()` in a `useEffect` when `fontsLoaded` flips; 3s safety-timeout `hideAsync()` as fallback. See "Splash" under Providers & Overlays.
 
 React Native 0.83.4, Expo SDK 55, React 19.2, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
 
@@ -236,6 +237,18 @@ Handled events: `newWave` ("Pinguje Cie!"), `waveResponded` accepted ("Przyjal(a
 ---
 
 ## Providers & Overlays
+
+### Splash (native LaunchScreen + RN hold)
+
+Cold launch shows a native LaunchScreen compiled from `app.json` → `splash` (image `assets/splash-icon.png`, bg `#FAF7F2`, `resizeMode: "contain"`). The asset is a dot-only design: centred red `colors.accent` circle + `"Blisko"` wordmark in Instrument Serif — intentionally NO sonar rings in the PNG so the animated `<SonarDot>` in the RN hold screen can emanate rings from a flat state at handover without a scale-jump.
+
+**Why the handover needs a RN hold screen.** `expo-splash-screen`'s `preventAutoHideAsync()` is called at module-import time in `app/_layout.tsx`, so the native splash stays up until we explicitly call `hideAsync()` (fired in a `useEffect` when `fontsLoaded` flips). While the native layer is visible, `<SplashHold>` renders as the root layout's "fonts loading" return value — same dot + wordmark geometry as the PNG — so if the native layer dismisses a frame before the Stack paints, the user sees continuous content instead of a `colors.bg` flash.
+
+**Geometry alignment.** `SplashHold` uses `<SonarDot size={24} color={colors.accent} />` centred in the screen with a 44pt gap above the "Blisko" wordmark (Instrument Serif 40pt). `SonarDot` reserves `size * 3.5 = 84pt` of layout space for fully-expanded rings; `SplashHold` wraps it in a `marginVertical: -30` View so the stack's layout height collapses to just the 24pt dot. Without that collapse the wordmark sits ~30pt lower than it does in the PNG, producing a visible jump at handover.
+
+**Safety timeout.** A 3-second `setTimeout` in `RootLayout` calls `hideAsync()` unconditionally to prevent a stuck splash if font loading hangs. Anything fatal after that point surfaces as an error screen rather than a frozen brand screen.
+
+**Platform note.** `expo-splash-screen` is a native module linked via Expo autolinking. Adding/removing it, or changing the `splash.image` / `splash.backgroundColor` config, requires `bun run mobile:reset-ios` (prebuild → regenerated `ios/` LaunchScreen storyboard → rebuild). Metro refresh is not sufficient.
 
 ### Toast System (sonner-native)
 

@@ -40,6 +40,7 @@
     "expo-notifications": "~55.0.19",
     "expo-router": "~55.0.12",
     "expo-secure-store": "~55.0.13",
+    "expo-splash-screen": "~55.0.18",
     "expo-status-bar": "~55.0.5",
     "expo-web-browser": "~55.0.14",
     "ms": "catalog:",
