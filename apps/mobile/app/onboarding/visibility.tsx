@@ -87,7 +87,7 @@ export default function VisibilityScreen() {
     <OnboardingScreen
       footer={
         <>
-          <Text style={styles.footnote}>Profil możesz uzupełnić lub zmienić później w ustawieniach.</Text>
+          <Text style={styles.footnote}>Widoczność i prywatność zmienisz w każdej chwili w ustawieniach.</Text>
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button
             testID={ctaTestID}
@@ -114,7 +114,7 @@ export default function VisibilityScreen() {
           testID="ghost-option"
           title="Na razie przeglądam"
           badge="NIEWIDOCZNY"
-          description="Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, kto jest w twojej okolicy."
+          description="Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, kto jest w twojej okolicy. Profil uzupełnisz później."
           expanded={expanded === "ghost"}
           onPress={() => toggle("ghost")}
         />
