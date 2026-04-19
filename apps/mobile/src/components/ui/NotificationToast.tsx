@@ -54,17 +54,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     borderWidth: 1,
     borderColor: colors.rule,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-    borderRadius: 12,
-    paddingHorizontal: spacing.column,
-    paddingVertical: spacing.gutter,
+    borderRadius: 14,
+    padding: 14,
     width: "100%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
   },
   textContainer: {
     flex: 1,
@@ -73,11 +65,13 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.sansSemiBold,
     fontSize: 15,
+    lineHeight: 20,
     color: colors.ink,
   },
   subtitle: {
     fontFamily: fonts.sans,
     fontSize: 13,
+    lineHeight: 18,
     color: colors.muted,
   },
 });
