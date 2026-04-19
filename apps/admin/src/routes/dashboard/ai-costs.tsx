@@ -637,6 +637,31 @@ function AiCostsPage() {
                                   <span className="text-xs">{row.errorMessage}</span>
                                 </div>
                               )}
+                              {row.inputJsonb && (
+                                <details className="mt-3">
+                                  <summary className="cursor-pointer font-medium text-muted-foreground">
+                                    Input (kliknij)
+                                  </summary>
+                                  <pre className="mt-2 max-h-96 overflow-auto rounded bg-background p-3 text-xs">
+                                    {JSON.stringify(row.inputJsonb, null, 2)}
+                                  </pre>
+                                </details>
+                              )}
+                              {row.outputJsonb && (
+                                <details className="mt-2">
+                                  <summary className="cursor-pointer font-medium text-muted-foreground">
+                                    Output (kliknij)
+                                  </summary>
+                                  <pre className="mt-2 max-h-96 overflow-auto rounded bg-background p-3 text-xs">
+                                    {JSON.stringify(row.outputJsonb, null, 2)}
+                                  </pre>
+                                </details>
+                              )}
+                              {!row.inputJsonb && !row.outputJsonb && row.status === "success" && (
+                                <div className="mt-3 text-xs text-muted-foreground italic">
+                                  Payload wyczyszczony (starsze niż 24h lub GDPR anonymization)
+                                </div>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>

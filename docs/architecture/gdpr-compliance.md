@@ -4,6 +4,7 @@
 > Updated 2026-04-11 — Added `metrics.ai_calls` to anonymization pattern; excluded from data export per observability parallel (BLI-174).
 > Updated 2026-04-18 — Clarified that `portrait` is a DB text column, not an S3 file. Privacy policy and child-safety page updated accordingly (BLI-199).
 > Updated 2026-04-19 — Added `/child-safety` as third legal surface alongside `/privacy` and `/terms`.
+> Updated 2026-04-19 — `metrics.ai_calls.input_jsonb` + `output_jsonb` (PII-heavy payloads) are nulled on hard-delete alongside `userId` / `targetUserId`. 24h retention on these fields via `prune-ai-call-payloads` also bounds PII exposure for non-deleted users (BLI-239).
 
 Blisko processes personal data under RODO (Polish implementation of GDPR). Polish-market focus, single data controller (individual developer). This is the umbrella doc linking the three subsystems that implement GDPR rights: account deletion, data export, and privacy/terms disclosure.
 
@@ -61,7 +62,7 @@ Blisko processes personal data under RODO (Polish implementation of GDPR). Polis
 | AI analysis | `connectionAnalyses`, `profiles.embedding` | Consent | Embeddings cleared on deletion, analyses preserved |
 | Profiling Q&A | `profilingSessions`, `profilingQA` | Contract | Answers nullified on deletion, questions preserved |
 | Behavioral data | `metrics.requestEvents` | Legitimate interest | userId nullified on deletion |
-| AI cost telemetry | `metrics.aiCalls` | Legitimate interest | userId / targetUserId nullified on deletion; excluded from data export |
+| AI cost telemetry | `metrics.aiCalls` | Legitimate interest | userId / targetUserId + `input_jsonb` / `output_jsonb` nullified on deletion. Payloads also auto-nulled after 24h. Excluded from data export. |
 | Blocks | `blocks` | Legitimate interest | Preserved after deletion |
 | Status matches | `statusMatches` | Contract | Preserved after deletion |
 | Conversation ratings | `conversationRatings` | Contract | Preserved after deletion |

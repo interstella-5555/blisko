@@ -539,6 +539,10 @@ export const aiCalls = metricsSchema.table(
     durationMs: integer("duration_ms").notNull(),
     status: text("status").notNull(),
     errorMessage: text("error_message"),
+    // Full prompt + completion for debug. Nullified by `prune-ai-payloads` after 24h
+    // (metadata columns above stay 7d — see ai-cost-tracking.md).
+    inputJsonb: jsonb("input_jsonb").$type<Record<string, unknown>>(),
+    outputJsonb: jsonb("output_jsonb").$type<Record<string, unknown>>(),
   },
   (table) => [
     index("idx_ai_calls_timestamp").on(table.timestamp),

@@ -1,6 +1,6 @@
 import { type Job, Queue, Worker } from "bullmq";
 import ms from "ms";
-import { aiCallBuffer, pruneAiCalls } from "./ai-log";
+import { aiCallBuffer, pruneAiCallPayloads, pruneAiCalls } from "./ai-log";
 import { prunePushLog, pushLogBuffer } from "./push-log";
 import { attachWorkerLogger, getConnectionConfig, QUEUE_NAMES } from "./queue-shared";
 
@@ -26,7 +26,17 @@ interface PruneAiCallsJob {
   type: "prune-ai-calls";
 }
 
-type MaintenanceJob = FlushPushLogJob | PrunePushLogJob | ConsistencySweepJob | FlushAiCallsJob | PruneAiCallsJob;
+interface PruneAiCallPayloadsJob {
+  type: "prune-ai-call-payloads";
+}
+
+type MaintenanceJob =
+  | FlushPushLogJob
+  | PrunePushLogJob
+  | ConsistencySweepJob
+  | FlushAiCallsJob
+  | PruneAiCallsJob
+  | PruneAiCallPayloadsJob;
 
 // --- Queue (lazy init) ---
 
@@ -77,6 +87,11 @@ async function processMaintenanceJob(job: Job<MaintenanceJob>) {
       console.log("[queue:maintenance] pruned old ai call entries");
       break;
     }
+    case "prune-ai-call-payloads": {
+      await pruneAiCallPayloads(ms("24 hours"));
+      console.log("[queue:maintenance] nulled ai call payloads older than 24h");
+      break;
+    }
   }
 }
 
@@ -122,6 +137,11 @@ export function startMaintenanceWorker() {
     "prune-ai-calls",
     { every: ms("1 hour") },
     { name: "prune-ai-calls", data: { type: "prune-ai-calls" } },
+  );
+  void queue.upsertJobScheduler(
+    "prune-ai-call-payloads",
+    { every: ms("1 hour") },
+    { name: "prune-ai-call-payloads", data: { type: "prune-ai-call-payloads" } },
   );
 
   console.log("[queue:maintenance] Maintenance worker started");

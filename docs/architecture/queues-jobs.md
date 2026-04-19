@@ -17,7 +17,9 @@
 
 Three BullMQ queues grouped by bottleneck: AI (OpenAI-bound), Ops (DB/S3/email-bound critical operations), Maintenance (periodic fire-and-forget). Each has its own worker with independent concurrency and retention policies. Source files: `apps/api/src/services/queue.ts` (AI), `queue-ops.ts` (Ops), `queue-maintenance.ts` (Maintenance), `queue-shared.ts` (shared utilities).
 
-All AI jobs in the AI queue are instrumented via `withAiLogging()` — every OpenAI call through the Vercel AI SDK is logged into `metrics.ai_calls` for cost tracking. See `ai-cost-tracking.md`.
+All AI jobs in the AI queue are instrumented via `withAiLogging()` — every OpenAI call through the Vercel AI SDK is logged into `metrics.ai_calls` for cost tracking, including full prompt + completion payloads (24h retention, metrics kept 7d). See `ai-cost-tracking.md`.
+
+Maintenance queue adds a `prune-ai-call-payloads` scheduler (hourly) that nulls `input_jsonb` / `output_jsonb` for rows older than 24h — companion to the existing `prune-ai-calls` DELETE (7d).
 
 ## Terminology & Product Alignment
 

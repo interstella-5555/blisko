@@ -56,6 +56,46 @@ app.get("/metrics", honoRateLimit("metrics.prometheus"), async (c) => {
   return c.text(metrics, 200, { "Content-Type": registry.contentType });
 });
 
+// Internal: AI call log ingest (shared-secret auth). Lets the chatbot service
+// push AI call events into the same `metrics.ai_calls` pipeline as the API.
+// Cost is computed server-side from `model` + tokens — clients don't send it.
+app.post("/internal/ai-log", async (c) => {
+  const secret = process.env.INTERNAL_AI_LOG_SECRET;
+  if (!secret) return c.json({ error: "not configured" }, 503);
+  if (c.req.header("x-internal-secret") !== secret) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  try {
+    const body = await c.req.json();
+    const { aiCallBuffer } = await import("./services/ai-log-buffer");
+    const { estimateCostUsd } = await import("./services/ai-pricing");
+    const promptTokens = Number(body.promptTokens ?? 0);
+    const completionTokens = Number(body.completionTokens ?? 0);
+    const serviceTier = body.serviceTier === "flex" ? "flex" : "standard";
+    aiCallBuffer.append({
+      jobName: String(body.jobName ?? "unknown"),
+      model: String(body.model ?? "unknown"),
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens,
+      estimatedCostUsd: estimateCostUsd(String(body.model ?? "unknown"), promptTokens, completionTokens, serviceTier),
+      userId: body.userId ?? null,
+      targetUserId: body.targetUserId ?? null,
+      serviceTier,
+      reasoningEffort: body.reasoningEffort ?? null,
+      durationMs: Number(body.durationMs ?? 0),
+      status: body.status === "failed" ? "failed" : "success",
+      errorMessage: body.errorMessage ? String(body.errorMessage).slice(0, 200) : null,
+      inputJsonb: body.input ?? null,
+      outputJsonb: body.output ?? null,
+    });
+    return c.json({ ok: true });
+  } catch (err) {
+    console.error("[internal/ai-log] append failed:", err);
+    return c.json({ error: "bad payload" }, 400);
+  }
+});
+
 // Pre-auth rate limits (by IP, before Better Auth handler)
 app.post("/api/auth/sign-in/email-otp", honoRateLimit("auth.otpRequest"));
 app.post("/api/auth/email-otp/verify-email", honoRateLimit("auth.otpVerify"));
