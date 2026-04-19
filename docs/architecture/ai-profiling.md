@@ -263,5 +263,5 @@ If you change this system, also check:
 - `docs/architecture/account-deletion.md` — profilingSessions generatedBio/lookingFor/portrait nullified, profilingQA answers nullified
 - `docs/architecture/data-export.md` — GDPR export includes profiling session data
 - `apps/api/src/services/ai.ts` — generatePortrait, extractInterests, generateEmbedding run as part of the post-apply pipeline
-- `packages/shared/src/models.ts` — ONBOARDING_QUESTIONS definition, GPT_MODEL constant
+- `packages/shared/src/models.ts` — ONBOARDING_QUESTIONS definition, AI_MODELS role map
 - `packages/shared/src/validators.ts` — all Zod schemas for profiling mutations
