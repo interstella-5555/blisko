@@ -9,6 +9,7 @@
   "dependencies": {
     "@ai-sdk/openai": "catalog:",
     "@repo/shared": "workspace:*",
+    "@sentry/bun": "^10.49.0",
     "ai": "catalog:",
     "drizzle-orm": "catalog:",
     "postgres": "catalog:"

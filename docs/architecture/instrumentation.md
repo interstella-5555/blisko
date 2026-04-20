@@ -243,6 +243,68 @@ Hooks are wired into `apps/api/src/ws/handler.ts`:
 
 The mobile app extracts the `X-Request-Id` header from API responses and displays it on error screens. Users can report this ID for debugging — it maps directly to a row in `metrics.request_events` for exact request tracing.
 
+## Error Tracking (Bugsink)
+
+Server-side crashes are captured by `@sentry/bun` and sent to a self-hosted Bugsink instance (Sentry-SDK-compatible, separate Railway project — see `infrastructure.md`). Bugsink has a project per app: `blisko-api` and `blisko-chatbot` so far; mobile/admin/website/design will follow as separate tickets.
+
+Bugsink complements `metrics.request_events` and Prometheus, it does not replace them. Request events answer "what happened across the fleet" (latencies, error rates, SLO breaches). Bugsink answers "give me the stack trace and full request context for this one crash".
+
+### Init
+
+| App | Module | Init point |
+|-----|--------|------------|
+| `apps/api` | `src/services/sentry.ts` | First import in `src/index.ts` (before `Hono`) |
+| `apps/chatbot` | `src/sentry.ts` | First import in `src/index.ts` (before any other module) |
+
+`initSentry()` is a no-op when `SENTRY_DSN` is unset, so local dev stays silent unless the env var is explicitly exported.
+
+### Init contract
+
+| Option | Value | Why |
+|--------|-------|-----|
+| `tracesSampleRate` | `0` | Bugsink does not support traces. Performance is covered by Prometheus + `request_events`. |
+| `sendDefaultPii` | `true` | Bugsink is self-hosted, so the per-event `request.headers`, query string, and user IP stay inside our infra. Improves debug context. |
+| `environment` | `RAILWAY_ENVIRONMENT_NAME` or `"local"` | Lets us filter by Railway env in Bugsink UI. |
+| `release` | `RAILWAY_DEPLOYMENT_ID` if present | Tracks first-seen / regressions per deploy. |
+| `beforeSend` (api only) | Strips `authorization`, `cookie`, `x-internal-secret` headers | `sendDefaultPii: true` would otherwise leak session bearer tokens and the shared secret protecting `POST /internal/ai-log`. Chatbot doesn't expose HTTP, so no header scrubbing needed. |
+
+### Capture sites
+
+**`apps/api`:**
+
+| Site | File | Tags |
+|------|------|------|
+| Hono `app.onError` (unhandled HTTP errors outside tRPC) | `src/index.ts` | `source: hono.onError`, `method`, `path` |
+| `trpcServer` `onError` callback, filtered to `INTERNAL_SERVER_ERROR` | `src/index.ts` | `source: trpc`, `path`, `type` |
+| BullMQ `worker.on("failed")` after final retry attempt | `src/services/queue-shared.ts` | `queue`, `jobType`; extras: `jobId`, `attemptsMade` |
+
+The tRPC filter skips client errors (`BAD_REQUEST`, `UNAUTHORIZED`, validation, etc.) so the dashboard isn't drowned in expected user mistakes. Only server-side bugs surface.
+
+The BullMQ guard checks `attemptsMade >= opts.attempts` before sending — intermediate failures BullMQ will retry are not reported, only true terminal failures.
+
+**`apps/chatbot`:**
+
+| Site | Notes |
+|------|-------|
+| `handleWave` catch (terminal) | Tag `source: chatbot.handleWave`, includes bot name |
+| `handleWave` opening-message catch (non-terminal) | Tag `source: chatbot.opening` |
+| `handleMessage` catch | Tag `source: chatbot.handleMessage` |
+| `pollWaves` / `pollMessages` catch | Tag `source: chatbot.pollWaves` / `chatbot.pollMessages` |
+| `main().catch` (fatal, before `process.exit(1)`) | Tag `source: chatbot.main`. Awaits `Sentry.flush(2000)` before exit, otherwise the in-flight event is dropped with the process. |
+
+### Out of scope
+
+- No source maps yet — stack traces from `bun build` output will be against the bundled file. Add via `bugsink-cli` (Sentry-CLI compatible) when it becomes worth the effort.
+- No release automation beyond passing `RAILWAY_DEPLOYMENT_ID` — no source-map upload step in CI.
+- No tracing / performance — see `tracesSampleRate: 0` rationale above.
+- WebSocket handler errors are not currently captured (most paths swallow via existing `wsAuthResult("failed")` / metric counters). Add specific `captureException` calls if a class of WS errors becomes a problem.
+
+### Bugsink instance
+
+- URL: `https://bugsink-production-2c92.up.railway.app/`
+- Railway project ID: `ed637dd9-bcb7-4f0b-9a3e-2827934ade1a` (separate from the main `blisko` project so the error tracker survives outages of what it monitors)
+- Per-project DSN lives only in Railway env vars on each app service. Never commit DSNs to the repo or to `apps/api/.env*`.
+
 ## GDPR / Compliance Alignment
 
 - 30-day raw event retention satisfies GDPR Art. 32/33 audit trail requirements.
@@ -265,3 +327,4 @@ If you change this system, also check:
 - **`apps/api/src/services/data-export.ts`** — GDPR data export. If metrics schema stores new PII, export service may need updating.
 - **`docs/architecture/ai-cost-tracking.md`** — AI call logging pipeline, pricing map, and admin dashboard. New AI functions must be wrapped via `withAiLogging()`.
 - **`apps/api/src/services/ai-log.ts` / `ai-log-buffer.ts`** — `withAiLogging` wrapper + `createBatchBuffer`-based flush pipeline.
+- **`apps/api/src/services/sentry.ts` / `apps/chatbot/src/sentry.ts`** — Bugsink (Sentry SDK) init. New apps wired to Bugsink need their own Bugsink project (`POST /api/canonical/0/projects/`), DSN injected as `SENTRY_DSN` on the Railway service, and the init module imported first in their entrypoint.
