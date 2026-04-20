@@ -1,5 +1,6 @@
 import { randomUUID } from "expo-crypto";
 import { create } from "zustand";
+import { handleGlobalError, isContentModerationError, isRateLimitError } from "@/lib/globalErrorHandler";
 import { showToast } from "@/lib/toast";
 import { vanillaClient } from "@/lib/trpc";
 import { useConversationsStore } from "./conversationsStore";
@@ -345,14 +346,20 @@ export const useMessagesStore = create<MessagesStore>((setState, getState) => ({
         };
         getState().replaceOptimistic(convId, tempId, enriched);
       })
-      .catch(() => {
+      .catch((err) => {
         getState().removeOptimistic(convId, tempId);
+        // vanillaClient bypasses MutationCache, so the global handler would
+        // not otherwise run for this call path — invoke it explicitly.
+        handleGlobalError(err);
+        if (isRateLimitError(err) || isContentModerationError(err)) return;
         showToast("error", "Nie udało się wysłać wiadomości");
       });
   },
 
   react(messageId, emoji) {
-    vanillaClient.messages.react.mutate({ messageId, emoji }).catch(() => {
+    vanillaClient.messages.react.mutate({ messageId, emoji }).catch((err) => {
+      handleGlobalError(err);
+      if (isRateLimitError(err)) return;
       showToast("error", "Nie udało się dodać reakcji");
     });
   },
@@ -367,7 +374,7 @@ export const useMessagesStore = create<MessagesStore>((setState, getState) => ({
       content: "",
     });
 
-    vanillaClient.messages.deleteMessage.mutate({ messageId }).catch(() => {
+    vanillaClient.messages.deleteMessage.mutate({ messageId }).catch((err) => {
       // Restore on failure
       if (original) {
         getState().updateMessage(convId, messageId, {
@@ -375,6 +382,8 @@ export const useMessagesStore = create<MessagesStore>((setState, getState) => ({
           content: original.content,
         });
       }
+      handleGlobalError(err);
+      if (isRateLimitError(err)) return;
       showToast("error", "Nie udało się usunąć wiadomości");
     });
   },

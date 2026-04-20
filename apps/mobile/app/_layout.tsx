@@ -18,8 +18,7 @@ import { AppGate } from "@/components/AppGate";
 import { IconCheck, IconChevronLeft, IconX } from "@/components/ui/icons";
 import { SplashHold } from "@/components/ui/SplashHold";
 import { authClient } from "@/lib/auth";
-import { getRateLimitMessage } from "@/lib/rateLimitMessages";
-import { showToast } from "@/lib/toast";
+import { handleGlobalError as runGlobalErrorHandlers } from "@/lib/globalErrorHandler";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useWebSocket } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
@@ -54,38 +53,8 @@ function handleAccountDeleted(error: unknown) {
   }
 }
 
-function handleRateLimitError(error: unknown) {
-  const err = error as { data?: { code?: string }; message?: string };
-  if (err?.data?.code !== "TOO_MANY_REQUESTS") return;
-
-  try {
-    const parsed = JSON.parse(err.message ?? "");
-    if (parsed.error === "RATE_LIMITED") {
-      showToast("error", getRateLimitMessage(parsed.context));
-    }
-  } catch {
-    showToast("error", getRateLimitMessage());
-  }
-}
-
-function handleContentModeration(error: unknown) {
-  const err = error as { data?: { code?: string }; message?: string };
-  if (err?.data?.code !== "BAD_REQUEST") return;
-
-  try {
-    const parsed = JSON.parse(err.message ?? "");
-    if (parsed.error === "CONTENT_MODERATED") {
-      showToast("error", "Treść narusza regulamin");
-    }
-  } catch {
-    // Not a moderation error — ignore
-  }
-}
-
 function handleGlobalError(error: unknown) {
-  handleAccountDeleted(error);
-  handleRateLimitError(error);
-  handleContentModeration(error);
+  runGlobalErrorHandlers(error, handleAccountDeleted);
 }
 
 export const queryClient = new QueryClient({

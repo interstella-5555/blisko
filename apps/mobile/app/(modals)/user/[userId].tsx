@@ -7,6 +7,7 @@ import { IconChat, IconCheck, IconWave } from "@/components/ui/icons";
 import { useIsGhost } from "@/hooks/useIsGhost";
 import { useProfileGate } from "@/hooks/useProfileGate";
 import { formatDistance } from "@/lib/format";
+import { isRateLimitError } from "@/lib/globalErrorHandler";
 import { openChatFromAnywhere } from "@/lib/navigation";
 import { trpc } from "@/lib/trpc";
 import { sendWsMessage, useWebSocket, type WSMessage } from "@/lib/ws";
@@ -211,7 +212,8 @@ export default function UserProfileScreen() {
               const updated = await updateProfileMutation.mutateAsync({ visibilityMode: "semi_open" });
               if (updated) useAuthStore.getState().setProfile(updated);
               handleWave();
-            } catch {
+            } catch (err) {
+              if (isRateLimitError(err)) return; // global handler shows localized toast
               Alert.alert("Błąd", "Nie udało się zmienić trybu widoczności.");
             }
           },
@@ -260,6 +262,10 @@ export default function UserProfileScreen() {
       await utils.waves.getSent.invalidate();
     } catch (error: unknown) {
       useWavesStore.getState().removeSent("optimistic");
+      if (isRateLimitError(error)) {
+        setPendingWaveId(null);
+        return; // global handler shows localized toast
+      }
       const errorMsg = error instanceof Error ? error.message : String(error);
       if (errorMsg.includes("already_waved")) {
         // Already waved — keep pending state, let next sync pick up the real ID
