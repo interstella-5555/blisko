@@ -263,10 +263,10 @@ Bugsink complements `metrics.request_events` and Prometheus, it does not replace
 | Option | Value | Why |
 |--------|-------|-----|
 | `tracesSampleRate` | `0` | Bugsink does not support traces. Performance is covered by Prometheus + `request_events`. |
-| `sendDefaultPii` | `true` | Bugsink is self-hosted, so the per-event `request.headers`, query string, and user IP stay inside our infra. Improves debug context. |
+| `sendDefaultPii` | `false` | The api carries OTP codes (`POST /api/auth/email-otp/verify-email`), the AI-log shared secret payload (`POST /internal/ai-log`), uploaded file bytes (`POST /uploads`), and arbitrary user-generated DM/profile text. `sendDefaultPii: true` would auto-attach all of that to events. Bugsink being self-hosted is a privacy mitigation, not a license to ship raw user input. |
 | `environment` | `RAILWAY_ENVIRONMENT_NAME` or `"local"` | Lets us filter by Railway env in Bugsink UI. |
 | `release` | `RAILWAY_DEPLOYMENT_ID` if present | Tracks first-seen / regressions per deploy. |
-| `beforeSend` (api only) | Strips `authorization`, `cookie`, `x-internal-secret` headers | `sendDefaultPii: true` would otherwise leak session bearer tokens and the shared secret protecting `POST /internal/ai-log`. Chatbot doesn't expose HTTP, so no header scrubbing needed. |
+| `beforeSend` (both apps) | Belt-and-suspenders scrub. Strips `authorization`, `cookie`, `x-internal-secret` headers (case-insensitive). Drops `event.request.data` / `query_string` / `cookies` even if a future SDK default change re-attaches them. Walks `event.breadcrumbs[].data` to redact the same headers and drop attached `body`. | The chatbot also has a scrubber because its outgoing `fetch()` calls to `/trpc/*` carry bearer tokens, which the http-breadcrumb instrumentation captures. |
 
 ### Capture sites
 
@@ -274,23 +274,27 @@ Bugsink complements `metrics.request_events` and Prometheus, it does not replace
 
 | Site | File | Tags |
 |------|------|------|
-| Hono `app.onError` (unhandled HTTP errors outside tRPC) | `src/index.ts` | `source: hono.onError`, `method`, `path` |
-| `trpcServer` `onError` callback, filtered to `INTERNAL_SERVER_ERROR` | `src/index.ts` | `source: trpc`, `path`, `type` |
+| Hono `app.onError` (unhandled HTTP errors outside tRPC) | `src/index.ts` | `source: hono.onError`, `method`, `path` (uses `c.req.path`, not `new URL(...)`, to avoid throwing inside the error handler) |
+| `trpcServer` `onError` callback, filtered to `INTERNAL_SERVER_ERROR`, capturing `error.cause ?? error` | `src/index.ts` | `source: trpc`, `path`, `type` |
 | BullMQ `worker.on("failed")` after final retry attempt | `src/services/queue-shared.ts` | `queue`, `jobType`; extras: `jobId`, `attemptsMade` |
 
-The tRPC filter skips client errors (`BAD_REQUEST`, `UNAUTHORIZED`, validation, etc.) so the dashboard isn't drowned in expected user mistakes. Only server-side bugs surface.
+The tRPC filter skips client errors (`BAD_REQUEST`, `UNAUTHORIZED`, validation, etc.) so the dashboard isn't drowned in expected user mistakes. Capturing `error.cause` (rather than the `TRPCError` wrapper) is critical so Bugsink fingerprints by the underlying stack trace — otherwise every server bug groups as a single issue.
 
 The BullMQ guard checks `attemptsMade >= opts.attempts` before sending — intermediate failures BullMQ will retry are not reported, only true terminal failures.
 
 **`apps/chatbot`:**
 
+All non-fatal capture sites go through `captureExceptionRateLimited(source, err, context)` (`apps/chatbot/src/sentry.ts`) instead of `Sentry.captureException` directly. The helper allows at most one event per `source` per 60 seconds. Polling runs every 3s, so without this debounce a sustained outage (DB / API / OpenAI key) would emit ~20 events/min/source and drown the dashboard.
+
 | Site | Notes |
 |------|-------|
-| `handleWave` catch (terminal) | Tag `source: chatbot.handleWave`, includes bot name |
-| `handleWave` opening-message catch (non-terminal) | Tag `source: chatbot.opening` |
-| `handleMessage` catch | Tag `source: chatbot.handleMessage` |
-| `pollWaves` / `pollMessages` catch | Tag `source: chatbot.pollWaves` / `chatbot.pollMessages` |
-| `main().catch` (fatal, before `process.exit(1)`) | Tag `source: chatbot.main`. Awaits `Sentry.flush(2000)` before exit, otherwise the in-flight event is dropped with the process. |
+| `handleWave` catch (terminal) | Rate-limited. Tag `source: chatbot.handleWave`, includes bot name. |
+| `handleWave` opening-message catch (non-terminal) | Rate-limited. Tag `source: chatbot.opening`. |
+| `handleMessage` catch | Rate-limited. Tag `source: chatbot.handleMessage`. |
+| `pollWaves` / `pollMessages` catch | Rate-limited. Tag `source: chatbot.pollWaves` / `chatbot.pollMessages`. |
+| `main().catch` (fatal, before `process.exit(1)`) | Direct (not rate-limited). Tag `source: chatbot.main`. Awaits `Sentry.flush(2000)` before exit. |
+| `process.on("unhandledRejection")` backstop | Direct. Tag `source: chatbot.unhandledRejection`. |
+| `SIGINT` handler | No capture; awaits `Sentry.flush(2000)` after `client.end()` so any in-flight rate-limited event from the polling loop has a chance to leave the process. |
 
 ### Out of scope
 
@@ -301,7 +305,7 @@ The BullMQ guard checks `attemptsMade >= opts.attempts` before sending — inter
 
 ### Bugsink instance
 
-- URL: `https://bugsink-production-2c92.up.railway.app/`
+- URL: `https://bugsink.up.railway.app/`
 - Railway project ID: `ed637dd9-bcb7-4f0b-9a3e-2827934ade1a` (separate from the main `blisko` project so the error tracker survives outages of what it monitors)
 - Per-project DSN lives only in Railway env vars on each app service. Never commit DSNs to the repo or to `apps/api/.env*`.
 
