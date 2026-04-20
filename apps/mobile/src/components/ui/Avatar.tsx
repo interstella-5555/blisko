@@ -3,7 +3,7 @@ import { colors, fonts, ghostBlurRadius } from "../../theme";
 
 interface AvatarProps {
   uri?: string | null;
-  name: string;
+  name: string | null | undefined;
   size?: number;
   blurred?: boolean;
 }
@@ -11,6 +11,7 @@ interface AvatarProps {
 export function Avatar({ uri, name, size = 40, blurred }: AvatarProps) {
   const borderRadius = size / 2;
   const fontSize = size * 0.4;
+  const initial = (name?.trim().charAt(0) || "?").toUpperCase();
 
   return (
     <View
@@ -34,7 +35,7 @@ export function Avatar({ uri, name, size = 40, blurred }: AvatarProps) {
         </>
       ) : (
         <View style={[styles.fallback, { width: size, height: size, borderRadius }]}>
-          <Text style={[styles.letter, { fontSize, lineHeight: fontSize }]}>{name.charAt(0).toUpperCase()}</Text>
+          <Text style={[styles.letter, { fontSize, lineHeight: fontSize }]}>{initial}</Text>
         </View>
       )}
     </View>
