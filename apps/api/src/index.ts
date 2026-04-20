@@ -328,13 +328,29 @@ app.use(
   trpcServer({
     router: appRouter,
     createContext,
-    onError({ error, path, type }) {
+    onError({ error, path, type, ctx }) {
       // Skip expected client errors (validation, auth) — only surface server bugs.
       if (error.code !== "INTERNAL_SERVER_ERROR") return;
+
+      // Mirror the error to stdout so `railway logs --filter '@level:error'` finds
+      // it without depending on Bugsink. Batched tRPC requests return HTTP 200 with
+      // errors in the body, so the Hono access log shows success — without this
+      // line, Railway logs are silent on tRPC failures (BLI-190 incident).
+      const cause = error.cause;
+      const causeName = cause instanceof Error ? cause.constructor.name : undefined;
+      const causeMessage = cause instanceof Error ? cause.message : undefined;
+      const stack = cause instanceof Error ? cause.stack : error.stack;
+      const userId = (ctx as { userId?: string } | undefined)?.userId ?? "anonymous";
+      console.error(
+        `[trpc:error] path=${path ?? "unknown"} type=${type} userId=${userId} code=${error.code}` +
+          (causeName ? ` cause=${causeName}` : "") +
+          ` message=${JSON.stringify(causeMessage ?? error.message)}\n${stack ?? "(no stack)"}`,
+      );
+
       // Capture the underlying cause when present so Bugsink fingerprints by the
       // real stack trace. Capturing the TRPCError wrapper would group every server
       // error as a single issue.
-      Sentry.captureException(error.cause ?? error, {
+      Sentry.captureException(cause ?? error, {
         tags: { source: "trpc", path: path ?? "unknown", type },
       });
     },

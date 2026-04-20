@@ -275,7 +275,7 @@ Bugsink complements `metrics.request_events` and Prometheus, it does not replace
 | Site | File | Tags |
 |------|------|------|
 | Hono `app.onError` (unhandled HTTP errors outside tRPC) | `src/index.ts` | `source: hono.onError`, `method`, `path` (uses `c.req.path`, not `new URL(...)`, to avoid throwing inside the error handler) |
-| `trpcServer` `onError` callback, filtered to `INTERNAL_SERVER_ERROR`, capturing `error.cause ?? error` | `src/index.ts` | `source: trpc`, `path`, `type` |
+| `trpcServer` `onError` callback, filtered to `INTERNAL_SERVER_ERROR`, capturing `error.cause ?? error`. Same handler also writes a structured `[trpc:error] path=… code=… cause=… message=… <stack>` line to stdout so Railway logs (`@level:error` filter) surface failures even if Bugsink ingest is down. Necessary because batched tRPC requests return HTTP 200 with errors in the body — the Hono access log can't see them. | `src/index.ts` | `source: trpc`, `path`, `type` |
 | BullMQ `worker.on("failed")` after final retry attempt | `src/services/queue-shared.ts` | `queue`, `jobType`; extras: `jobId`, `attemptsMade` |
 
 The tRPC filter skips client errors (`BAD_REQUEST`, `UNAUTHORIZED`, validation, etc.) so the dashboard isn't drowned in expected user mistakes. Capturing `error.cause` (rather than the `TRPCError` wrapper) is critical so Bugsink fingerprints by the underlying stack trace — otherwise every server bug groups as a single issue.
