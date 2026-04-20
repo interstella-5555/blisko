@@ -331,7 +331,12 @@ app.use(
     onError({ error, path, type }) {
       // Skip expected client errors (validation, auth) — only surface server bugs.
       if (error.code !== "INTERNAL_SERVER_ERROR") return;
-      Sentry.captureException(error, { tags: { source: "trpc", path: path ?? "unknown", type } });
+      // Capture the underlying cause when present so Bugsink fingerprints by the
+      // real stack trace. Capturing the TRPCError wrapper would group every server
+      // error as a single issue.
+      Sentry.captureException(error.cause ?? error, {
+        tags: { source: "trpc", path: path ?? "unknown", type },
+      });
     },
   }),
 );
@@ -344,8 +349,10 @@ app.notFound((c) => {
 // Error handler
 app.onError((err, c) => {
   console.error("Server error:", err);
+  // c.req.path is always set and pre-parsed by Hono — `new URL(c.req.url)` can throw
+  // on relative/malformed URLs and would crash the global error handler.
   Sentry.captureException(err, {
-    tags: { source: "hono.onError", method: c.req.method, path: new URL(c.req.url).pathname },
+    tags: { source: "hono.onError", method: c.req.method, path: c.req.path },
   });
   return c.json({ error: "Internal Server Error" }, 500);
 });

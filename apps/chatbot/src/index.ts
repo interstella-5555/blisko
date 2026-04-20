@@ -1,4 +1,4 @@
-import { initSentry, Sentry } from "./sentry";
+import { captureExceptionRateLimited, initSentry, Sentry } from "./sentry";
 
 initSentry();
 
@@ -281,7 +281,7 @@ async function handleWave(wave: { id: string; fromUserId: string; toUserId: stri
       }
     }
   } catch (err: unknown) {
-    Sentry.captureException(err, { tags: { source: "chatbot.handleWave", bot: botName } });
+    captureExceptionRateLimited("chatbot.handleWave", err, { tags: { source: "chatbot.handleWave", bot: botName } });
     emit({
       type: "wave_error",
       bot: botName,
@@ -355,7 +355,9 @@ async function handleMessage(conversationId: string, seedUserId: string, seedEma
     await sendMessage(token, conversationId, content);
     emit({ type: "reply_sent", bot: botName, from: otherName, message: content.slice(0, 80) });
   } catch (err: unknown) {
-    Sentry.captureException(err, { tags: { source: "chatbot.handleMessage", bot: botName } });
+    captureExceptionRateLimited("chatbot.handleMessage", err, {
+      tags: { source: "chatbot.handleMessage", bot: botName },
+    });
     emit({
       type: "reply_error",
       bot: botName,
@@ -393,7 +395,7 @@ async function pollWaves() {
       await handleWave(wave);
     }
   } catch (err) {
-    Sentry.captureException(err, { tags: { source: "chatbot.pollWaves" } });
+    captureExceptionRateLimited("chatbot.pollWaves", err, { tags: { source: "chatbot.pollWaves" } });
     console.error("[bot] pollWaves error:", err);
   }
 }
@@ -450,7 +452,7 @@ async function pollMessages() {
       handleMessage(convId, seedParticipant.userId, seedParticipant.email);
     }
   } catch (err) {
-    Sentry.captureException(err, { tags: { source: "chatbot.pollMessages" } });
+    captureExceptionRateLimited("chatbot.pollMessages", err, { tags: { source: "chatbot.pollMessages" } });
     console.error("[bot] pollMessages error:", err);
   }
 }
@@ -487,9 +489,18 @@ main().catch(async (err) => {
   process.exit(1);
 });
 
-process.on("SIGINT", () => {
+// Backstop for promise rejections that escape the try/catch in setInterval callbacks
+// (e.g. a future refactor that drops one of the inner catches). Without this they'd
+// terminate the process silently with no Sentry capture.
+process.on("unhandledRejection", (reason) => {
+  console.error("[bot] unhandledRejection:", reason);
+  Sentry.captureException(reason, { tags: { source: "chatbot.unhandledRejection" } });
+});
+
+process.on("SIGINT", async () => {
   console.log("\n[bot] Shutting down...");
   closeEvents();
-  client.end();
+  await client.end();
+  await Sentry.flush(2000).catch(() => {});
   process.exit(0);
 });
