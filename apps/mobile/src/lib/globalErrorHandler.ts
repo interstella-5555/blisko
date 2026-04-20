@@ -22,6 +22,13 @@ export function isContentModerationError(error: unknown): boolean {
   }
 }
 
+// Stable toast ids so bursts of the same error (user mashes a rate-limited
+// button, sends several moderated messages in a row) collapse into a single
+// toast in sonner-native instead of stacking. Same pattern as `msg-conv-*`
+// for WS notifications — see mobile-architecture.md "Toast ids and dedupe".
+const RATE_LIMIT_TOAST_ID = "rate-limit";
+const CONTENT_MODERATION_TOAST_ID = "content-moderation";
+
 function handleRateLimitError(error: unknown) {
   const err = error as TrpcLikeError;
   if (err?.data?.code !== "TOO_MANY_REQUESTS") return;
@@ -29,16 +36,16 @@ function handleRateLimitError(error: unknown) {
   try {
     const parsed = JSON.parse(err.message ?? "");
     if (parsed.error === "RATE_LIMITED") {
-      showToast("error", getRateLimitMessage(parsed.context));
+      showToast("error", getRateLimitMessage(parsed.context), undefined, { id: RATE_LIMIT_TOAST_ID });
     }
   } catch {
-    showToast("error", getRateLimitMessage());
+    showToast("error", getRateLimitMessage(), undefined, { id: RATE_LIMIT_TOAST_ID });
   }
 }
 
 function handleContentModeration(error: unknown) {
   if (!isContentModerationError(error)) return;
-  showToast("error", "Treść narusza regulamin");
+  showToast("error", "Treść narusza regulamin", undefined, { id: CONTENT_MODERATION_TOAST_ID });
 }
 
 // Callable from MutationCache/QueryCache onError AND from vanillaClient .catch()

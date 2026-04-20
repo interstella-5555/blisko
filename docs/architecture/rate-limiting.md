@@ -187,7 +187,7 @@ tRPC wraps the same payload in a `TRPCError` with code `TOO_MANY_REQUESTS`. The 
 
 ## Client-Side Handling
 
-The mobile app maps `context` to a Polish user-facing message. Red toast, auto-dismiss 3s, zero auto-retry.
+The mobile app maps `context` to a Polish user-facing message. Red toast, auto-dismiss 3s, zero auto-retry. Rate-limit and content-moderation toasts use stable sonner-native ids (`rate-limit`, `content-moderation`) so bursts — user mashing a rate-limited button, sending several moderated messages in a row — collapse into a single toast instead of stacking. Same pattern as `msg-conv-${id}` for WS notifications.
 
 | Context | Message |
 |---------|---------|
