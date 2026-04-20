@@ -3,6 +3,7 @@ import { eq, placeholder } from "drizzle-orm";
 import { DEFAULT_RATE_LIMIT_MESSAGE, rateLimitMessages, rateLimits } from "@/config/rateLimits";
 import { db, preparedName, schema } from "@/db";
 import { checkRateLimit } from "@/services/rate-limiter";
+import { Sentry } from "@/services/sentry";
 import type { TRPCContext } from "./context";
 
 const t = initTRPC.context<TRPCContext>().create();
@@ -44,6 +45,17 @@ const isAuthed = t.middleware(async ({ ctx, next }) => {
   });
 });
 
+// Tag the Sentry scope with the authenticated user id. Runs after `isAuthed` so
+// `ctx.userId` is guaranteed. Sentry isolates scope per request via AsyncLocalStorage,
+// so any `captureException`/`captureMessage` fired during this request — including
+// from sub-functions and breadcrumbs — picks up the user automatically. The
+// per-call `user` we still pass in `trpcServer.onError` is a backstop in case the
+// ALS context doesn't reach the adapter callback.
+const tagSentryUser = t.middleware(async ({ ctx, next }) => {
+  if (ctx.userId) Sentry.setUser({ id: ctx.userId });
+  return next();
+});
+
 // Global rate limit — safety net for all authenticated requests
 const globalRateLimit = t.middleware(async ({ ctx, next }) => {
   if (!ctx.userId) return next();
@@ -67,4 +79,4 @@ const globalRateLimit = t.middleware(async ({ ctx, next }) => {
   return next();
 });
 
-export const protectedProcedure = t.procedure.use(isAuthed).use(globalRateLimit);
+export const protectedProcedure = t.procedure.use(isAuthed).use(tagSentryUser).use(globalRateLimit);

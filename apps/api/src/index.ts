@@ -350,8 +350,12 @@ app.use(
       // Capture the underlying cause when present so Bugsink fingerprints by the
       // real stack trace. Capturing the TRPCError wrapper would group every server
       // error as a single issue.
+      // Pass `user` per-call (not via Sentry.setUser, which is process-global state
+      // and would bleed into concurrent requests) so Bugsink can show "affected
+      // users" / filter issues by user.
       Sentry.captureException(cause ?? error, {
         tags: { source: "trpc", path: path ?? "unknown", type },
+        user: ctx && (ctx as { userId?: string }).userId ? { id: (ctx as { userId: string }).userId } : undefined,
       });
     },
   }),
