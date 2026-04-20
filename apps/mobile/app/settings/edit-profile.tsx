@@ -5,6 +5,7 @@ import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, Vi
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { isRateLimitError } from "@/lib/globalErrorHandler";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
@@ -28,7 +29,8 @@ export default function EditProfileScreen() {
       utils.profiles.me.invalidate();
       router.back();
     },
-    onError: () => {
+    onError: (err) => {
+      if (isRateLimitError(err)) return; // global handler shows localized toast
       Alert.alert("Blad", "Nie udalo sie zapisac profilu");
     },
   });

@@ -4,6 +4,7 @@
 > Updated 2026-04-12 — Reverted BLI-189 temporary inflation (waves.send 300→30, waves.respond 600→60, profiles.getNearby 600→30, global 2000→200). Added `profiles.getNearbyMap` bucket for new lightweight map markers endpoint.
 > Updated 2026-04-12 — BLI-189 hotfix: tightened `profiles.getNearby` and `profiles.getNearbyMap` to 20/10s (was 30/60s). Coupled with 500ms viewport debounce on client (max 2 req/s = 20 in 10s window).
 > Updated 2026-04-14 — BLI-219: nearby rate limit values (`NEARBY_RATE_LIMIT`) and viewport debounce (`VIEWPORT_DEBOUNCE_MS`) moved to `@repo/shared/config/nearby.ts`. Ping business limits (`DECLINE_COOLDOWN_HOURS`, `DAILY_PING_LIMIT_BASIC`, `PER_PERSON_COOLDOWN_HOURS`) moved to `@repo/shared/config/waves.ts` — `pingLimits.ts` re-exports from shared.
+> Updated 2026-04-20 — BLI-214: global tRPC error handlers extracted from `app/_layout.tsx` into `src/lib/globalErrorHandler.ts` (`handleGlobalError`, `isRateLimitError`, `isContentModerationError`). Local `onError` / `catch` blocks in `settings/account.tsx`, `settings/edit-profile.tsx`, and `(modals)/user/[userId].tsx` now early-return on `isRateLimitError(err)` so the global localized toast fires exactly once. `messagesStore.ts` vanillaClient catches (`send`, `react`, `deleteMessage`) call `handleGlobalError` directly — vanillaClient bypasses `MutationCache` so the root interceptor does not run for that code path.
 
 ## Terminology & Product Alignment
 
@@ -186,7 +187,7 @@ tRPC wraps the same payload in a `TRPCError` with code `TOO_MANY_REQUESTS`. The 
 
 ## Client-Side Handling
 
-The mobile app maps `context` to a Polish user-facing message. Red toast, auto-dismiss 3s, zero auto-retry.
+The mobile app maps `context` to a Polish user-facing message. Red toast, auto-dismiss 3s, zero auto-retry. Rate-limit and content-moderation toasts use stable sonner-native ids (`rate-limit`, `content-moderation`) so bursts — user mashing a rate-limited button, sending several moderated messages in a row — collapse into a single toast instead of stacking. Same pattern as `msg-conv-${id}` for WS notifications.
 
 | Context | Message |
 |---------|---------|
@@ -201,9 +202,12 @@ The mobile app maps `context` to a Polish user-facing message. Red toast, auto-d
 | WebSocket | Silent drop, no UI. |
 | (catch-all) | "Zbyt wiele prób. Spróbuj ponownie za chwilę." |
 
-Handled in two places:
-- **Pre-auth (OTP):** Auth/login flow catches HTTP 429.
-- **Post-auth (tRPC):** Global error handler catches `RATE_LIMITED` error code.
+Handled in three places:
+- **Pre-auth (OTP):** Auth/login flow catches HTTP 429 via Better Auth — `translateAuthError()` in `(auth)/email.tsx` / `(auth)/verify.tsx` parses the JSON payload.
+- **Post-auth (tRPC hooks):** `handleGlobalError` from `src/lib/globalErrorHandler.ts` is wired into `QueryCache.onError` and `MutationCache.onError` in `app/_layout.tsx`. It calls `handleRateLimitError` which checks `err.data.code === "TOO_MANY_REQUESTS"`, parses the `context` out of the JSON message, and shows the localized toast via `getRateLimitMessage(context)`.
+- **Post-auth (vanillaClient):** `messagesStore.ts` uses `vanillaClient.*.mutate()` for lifecycle-safe mutations (BLI-224). Those calls bypass `MutationCache` entirely, so the store's `.catch()` handlers call `handleGlobalError(err)` explicitly and early-return on `isRateLimitError(err)` / `isContentModerationError(err)` before falling back to a generic toast.
+
+Local `onError` and `catch` blocks in call sites that handle domain-specific errors (e.g. `waves.send` branching on `already_waved` / `daily_limit` / `cooldown:`) must short-circuit on `isRateLimitError(err)` first — otherwise they either dump the raw JSON payload into an Alert (bug BLI-214) or show a generic "failed" toast on top of the localized one.
 
 ## Fail-Open on Redis Error
 
@@ -374,5 +378,5 @@ If you change this system, also check:
 - **`apps/api/src/trpc/procedures/messages.ts`** — Determines `hasUnread` per recipient and sets `collapseId` accordingly. Also contains message idempotency logic (Redis keys, TTL).
 - **`apps/api/src/trpc/procedures/waves.ts`** — Enforces ping business limits (daily, per-person, decline cooldown, mutual detection). Serializable transaction for dedup. The error messages (`daily_limit`, `per_person:N`, `cooldown:N`) are parsed by the mobile client.
 - **`apps/api/src/ws/handler.ts`** — In-memory WS rate limiting + periodic cleanup interval. The cleanup interval (5 min) and counter map are not bounded — if adding new WS message types, ensure they're rate limited.
-- **Mobile error handling** — Two separate catch paths: pre-auth HTTP 429 (in auth/login flow) vs post-auth tRPC `RATE_LIMITED` (in global error handler). Adding a new pre-auth rate limit requires handling in the login flow specifically.
+- **Mobile error handling** — Three catch paths: pre-auth HTTP 429 (auth/login flow), post-auth tRPC hooks via `QueryCache`/`MutationCache.onError`, and vanillaClient via explicit `handleGlobalError(err)` in the `.catch()`. All three share the same localized-message lookup (`getRateLimitMessage`) through `src/lib/globalErrorHandler.ts`. Adding a new pre-auth rate limit requires handling in the login flow specifically; adding a new vanillaClient call site requires wiring `handleGlobalError` into its `.catch()`.
 - **PRODUCT.md** — Ping limits are product decisions. Any change to `pingLimits.ts` values should be reflected in PRODUCT.md (pricing table, limit descriptions) and vice versa.

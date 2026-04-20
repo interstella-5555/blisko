@@ -12,9 +12,12 @@ const hapticMap = {
 
 type ToastType = keyof typeof hapticMap;
 
-export function showToast(type: ToastType, title: string, message?: string) {
+export function showToast(type: ToastType, title: string, message?: string, opts?: { id?: string }) {
   Haptics.notificationAsync(hapticMap[type]);
-  toast[type](title, message ? { description: message } : undefined);
+  toast[type](title, {
+    ...(message ? { description: message } : {}),
+    ...(opts?.id ? { id: opts.id } : {}),
+  });
 }
 
 // --- Notification (WS-driven — respects user prefs) ---

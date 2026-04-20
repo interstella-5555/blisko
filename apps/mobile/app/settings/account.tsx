@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import Svg, { Path, Polyline } from "react-native-svg";
 import { authClient } from "@/lib/auth";
+import { isRateLimitError } from "@/lib/globalErrorHandler";
 import { showToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
@@ -175,7 +176,8 @@ export default function AccountScreen() {
     onSuccess: () => {
       showToast("success", "Eksport danych", "Eksport został zlecony. Sprawdź swój e-mail.");
     },
-    onError: () => {
+    onError: (err) => {
+      if (isRateLimitError(err)) return; // global handler shows localized toast
       showToast("error", "Błąd", "Nie udało się zlecić eksportu. Spróbuj ponownie.");
     },
   });
