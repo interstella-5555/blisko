@@ -156,6 +156,8 @@ Migration script (`apps/api/src/migrate.ts`): imports `drizzle-orm/node-postgres
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth |
 | `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET` | Facebook OAuth |
 | `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | LinkedIn OAuth |
+| `SENTRY_DSN` | Bugsink (Sentry-compatible) DSN for the `blisko-api` project. Unset locally → error reporting disabled. See `instrumentation.md`. |
+| `RAILWAY_ENVIRONMENT_NAME` / `RAILWAY_DEPLOYMENT_ID` | Railway-injected. Used as Sentry `environment` / `release` tags. |
 
 **After changing any env var on a Railway service, immediately redeploy that service.**
 
@@ -223,6 +225,10 @@ Transactional email only. Falls back to `console.log` when `RESEND_API_KEY` is n
 **From address:** `process.env.EMAIL_FROM || "Blisko <noreply@blisko.app>"`
 
 Templates: `signInOtp`, `changeEmailOtp`, `dataExportReady`. All wrapped in `layout()` with branded header/footer.
+
+### Bugsink (Error Tracking)
+
+Self-hosted, Sentry-SDK-compatible. Lives in a **separate Railway project** (`bugsink`, ID `ed637dd9-bcb7-4f0b-9a3e-2827934ade1a`) so it survives outages of the apps it monitors. Single instance hosts one project per app (`blisko-api`, `blisko-chatbot`, …). Each app gets its own DSN injected as `SENTRY_DSN` on its Railway service. Init contract, capture sites, and `beforeSend` scrubbing live in `instrumentation.md`. Chatbot uses a separate DSN so its noise doesn't drown api errors.
 
 ### Expo Push Notifications
 

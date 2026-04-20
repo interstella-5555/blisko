@@ -1,6 +1,7 @@
 import type { Worker } from "bullmq";
 import { RedisClient } from "bun";
 import { recordJobCompleted, recordJobFailed } from "./queue-metrics";
+import { Sentry } from "./sentry";
 
 export const QUEUE_NAMES = {
   ai: "ai",
@@ -38,5 +39,13 @@ export function attachWorkerLogger(worker: Worker, queueName: string) {
   worker.on("failed", (job, err) => {
     recordJobFailed(queueName);
     console.error(`[queue:${queueName}] Job ${job?.id} failed:`, err.message);
+    // Only report to Sentry once attempts are exhausted — we don't want noise from
+    // intermediate retry failures that BullMQ recovers from.
+    if (job && (!job.opts.attempts || job.attemptsMade >= job.opts.attempts)) {
+      Sentry.captureException(err, {
+        tags: { queue: queueName, jobType: (job.data as { type?: string })?.type ?? "unknown" },
+        extra: { jobId: job.id, attemptsMade: job.attemptsMade },
+      });
+    }
   });
 }

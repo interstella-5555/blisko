@@ -1,3 +1,7 @@
+import { initSentry, Sentry } from "./sentry";
+
+initSentry();
+
 import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -259,6 +263,7 @@ async function handleWave(wave: { id: string; fromUserId: string; toUserId: stri
             emit({ type: "opening_sent", bot: botName, from: fromName, message: content.slice(0, 80) });
           }
         } catch (err: unknown) {
+          Sentry.captureException(err, { tags: { source: "chatbot.opening", bot: botName } });
           emit({
             type: "opening_error",
             bot: botName,
@@ -276,6 +281,7 @@ async function handleWave(wave: { id: string; fromUserId: string; toUserId: stri
       }
     }
   } catch (err: unknown) {
+    Sentry.captureException(err, { tags: { source: "chatbot.handleWave", bot: botName } });
     emit({
       type: "wave_error",
       bot: botName,
@@ -349,6 +355,7 @@ async function handleMessage(conversationId: string, seedUserId: string, seedEma
     await sendMessage(token, conversationId, content);
     emit({ type: "reply_sent", bot: botName, from: otherName, message: content.slice(0, 80) });
   } catch (err: unknown) {
+    Sentry.captureException(err, { tags: { source: "chatbot.handleMessage", bot: botName } });
     emit({
       type: "reply_error",
       bot: botName,
@@ -386,6 +393,7 @@ async function pollWaves() {
       await handleWave(wave);
     }
   } catch (err) {
+    Sentry.captureException(err, { tags: { source: "chatbot.pollWaves" } });
     console.error("[bot] pollWaves error:", err);
   }
 }
@@ -442,6 +450,7 @@ async function pollMessages() {
       handleMessage(convId, seedParticipant.userId, seedParticipant.email);
     }
   } catch (err) {
+    Sentry.captureException(err, { tags: { source: "chatbot.pollMessages" } });
     console.error("[bot] pollMessages error:", err);
   }
 }
@@ -470,8 +479,11 @@ async function main() {
   console.log("[bot] Ready. Waiting for waves and messages...");
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
   console.error("[bot] Fatal error:", err);
+  Sentry.captureException(err, { tags: { source: "chatbot.main" } });
+  // Make sure the fatal event leaves the process before we exit.
+  await Sentry.flush(2000).catch(() => {});
   process.exit(1);
 });
 

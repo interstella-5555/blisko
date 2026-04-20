@@ -27,6 +27,7 @@
     "@hono/trpc-server": "^0.4.2",
     "@repo/db": "workspace:*",
     "@repo/shared": "workspace:*",
+    "@sentry/bun": "^10.49.0",
     "@trpc/server": "catalog:",
     "ai": "catalog:",
     "better-auth": "catalog:",

@@ -1,3 +1,9 @@
+// Sentry must initialize before anything else so request handlers + workers
+// loaded below pick up the configured client.
+import { initSentry, Sentry } from "./services/sentry";
+
+initSentry();
+
 import { trpcServer } from "@hono/trpc-server";
 import { addDays } from "date-fns";
 import { Hono } from "hono";
@@ -322,6 +328,11 @@ app.use(
   trpcServer({
     router: appRouter,
     createContext,
+    onError({ error, path, type }) {
+      // Skip expected client errors (validation, auth) — only surface server bugs.
+      if (error.code !== "INTERNAL_SERVER_ERROR") return;
+      Sentry.captureException(error, { tags: { source: "trpc", path: path ?? "unknown", type } });
+    },
   }),
 );
 
@@ -333,6 +344,9 @@ app.notFound((c) => {
 // Error handler
 app.onError((err, c) => {
   console.error("Server error:", err);
+  Sentry.captureException(err, {
+    tags: { source: "hono.onError", method: c.req.method, path: new URL(c.req.url).pathname },
+  });
   return c.json({ error: "Internal Server Error" }, 500);
 });
 
