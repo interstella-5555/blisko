@@ -18,6 +18,7 @@
     "dev-cli": "bun run --filter '@repo/dev-cli' cli",
     "dev-cli:queue-monitor": "bun run --filter '@repo/dev-cli' monitor",
     "dev-cli:chatbot-monitor": "bun run --filter '@repo/dev-cli' chatbot-monitor",
+    "dev-cli:move-clustered-to-golaszew": "bun run --filter '@repo/dev-cli' move-clustered-to-golaszew",
     "api:scatter": "bun run --filter '@repo/api' scatter",
     "api:scatter:production": "bun run --filter '@repo/api' scatter:production",
     "api:seed:slo": "bun run --filter '@repo/api' seed:slo",

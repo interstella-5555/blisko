@@ -4,7 +4,8 @@
   "scripts": {
     "cli": "bun run src/cli.ts",
     "monitor": "bun run src/queue-monitor.ts",
-    "chatbot-monitor": "bun run src/chatbot-monitor.ts"
+    "chatbot-monitor": "bun run src/chatbot-monitor.ts",
+    "move-clustered-to-golaszew": "bun run src/move-clustered-to-golaszew.ts"
   },
   "dependencies": {
     "@repo/db": "workspace:*",
