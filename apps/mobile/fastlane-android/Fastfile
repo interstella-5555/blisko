@@ -14,9 +14,11 @@ platform :android do
     # Generate release notes for Play Console before uploading. Supply reads the
     # file at metadata/android/<locale>/changelogs/<versionCode>.txt — we write
     # it dynamically so the notes always reflect the actual build number
-    # (GITHUB_RUN_NUMBER) and versionName (from apps/mobile/app.json).
+    # (GITHUB_RUN_NUMBER) and versionName (from apps/mobile/app.json). At runtime
+    # this Fastfile lives in apps/mobile/android/fastlane/, so app.json is two
+    # levels up (apps/mobile/app.json), not one.
     version_code = ENV.fetch("GITHUB_RUN_NUMBER", "1")
-    version_name = JSON.parse(File.read(File.expand_path("../app.json", __dir__))).dig("expo", "version")
+    version_name = JSON.parse(File.read(File.expand_path("../../app.json", __dir__))).dig("expo", "version")
     changelog_dir = File.expand_path("metadata/android/pl-PL/changelogs", __dir__)
     FileUtils.mkdir_p(changelog_dir)
     File.write(
