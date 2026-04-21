@@ -80,7 +80,7 @@ jobs:
 
       - name: Create .env.local for mobile app
         run: |
-          { echo "EXPO_PUBLIC_API_URL=https://api.blisko.app"; echo "EXPO_PUBLIC_IMGPROXY_URL=https://img.blisko.app"; } > apps/mobile/.env.local
+          { echo "EXPO_PUBLIC_API_URL=https://api.blisko.app"; echo "EXPO_PUBLIC_IMGPROXY_URL=${{ vars.EXPO_PUBLIC_IMGPROXY_URL }}"; } > apps/mobile/.env.local
 
       - name: Build Expo release (Android)
         working-directory: apps/mobile
@@ -89,7 +89,7 @@ jobs:
           cd android && ./gradlew assembleRelease
         env:
           EXPO_PUBLIC_API_URL: https://api.blisko.app
-          EXPO_PUBLIC_IMGPROXY_URL: https://img.blisko.app
+          EXPO_PUBLIC_IMGPROXY_URL: ${{ vars.EXPO_PUBLIC_IMGPROXY_URL }}
           GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
 
       - name: Run E2E tests
