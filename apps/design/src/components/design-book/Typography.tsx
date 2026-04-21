@@ -67,7 +67,7 @@ const SANS_SPECIMENS = [
     leading: "1.2",
     transform: "uppercase",
     sample: "FILTRUJ",
-    samplePl: "WYD. PORANNE \u00b7 5 LUT 2026 \u00b7 TWOJA OKOLICA",
+    samplePl: "WYD. PORANNE · 5 LUT 2026 · TWOJA OKOLICA",
   },
   {
     label: "Button",
@@ -77,7 +77,7 @@ const SANS_SPECIMENS = [
     leading: "1.2",
     transform: "uppercase",
     sample: "WYŚLIJ",
-    samplePl: "ZAAKCEPTUJ \u00b7 ODRZUĆ \u00b7 WYLOGUJ",
+    samplePl: "ZAAKCEPTUJ · ODRZUĆ · WYLOGUJ",
   },
   {
     label: "Caption",
@@ -86,7 +86,7 @@ const SANS_SPECIMENS = [
     tracking: "0.5px",
     leading: "1.4",
     sample: "DM Sans Caption",
-    samplePl: "\u00a7 pies \u00a7 kręgle \u00a7 bieganie \u00a7 kawa",
+    samplePl: "§ pies § kręgle § bieganie § kawa",
   },
   {
     label: "Tab Label",
@@ -96,7 +96,7 @@ const SANS_SPECIMENS = [
     leading: "1.2",
     transform: "uppercase",
     sample: "OBOK  FALE  CZATY  PROFIL",
-    samplePl: "W OKOLICY \u00b7 ZACZEPIENIA \u00b7 CZATY \u00b7 PROFIL",
+    samplePl: "W OKOLICY · ZACZEPIENIA · CZATY · PROFIL",
   },
 ];
 
@@ -106,7 +106,7 @@ export function Typography() {
       <div className={s.family}>
         <div className={s.familyHeader}>
           <h4 className={s.familyName}>Instrument Serif</h4>
-          <span className={s.familyRole}>{"Display \u00b7 Headings \u00b7 Names"}</span>
+          <span className={s.familyRole}>{"Display · Headings · Names"}</span>
         </div>
         <div className={s.specimens}>
           {SERIF_SPECIMENS.map((spec) => (
@@ -139,7 +139,7 @@ export function Typography() {
       <div className={s.family}>
         <div className={s.familyHeader}>
           <h4 className={s.familyName}>DM Sans</h4>
-          <span className={s.familyRole}>{"Body \u00b7 Labels \u00b7 Buttons \u00b7 UI"}</span>
+          <span className={s.familyRole}>{"Body · Labels · Buttons · UI"}</span>
         </div>
         <div className={s.specimens}>
           {SANS_SPECIMENS.map((spec) => (

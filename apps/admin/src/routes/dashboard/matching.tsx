@@ -32,7 +32,7 @@ const TIER_FILTER_LABELS: Record<TierFilter, string> = {
 
 const SORT_LABELS: Record<SortOption, string> = {
   newest: "Najnowsze",
-  highest: "Najwy\u017cszy score",
+  highest: "Najwyższy score",
 };
 
 const PAGE_SIZE = 25;
@@ -64,10 +64,10 @@ function MatchingPage() {
         <div className="grid grid-cols-4 gap-4">
           <StatCard label="Wszystkie analizy" value={stats.data?.total} />
           <StatCard
-            label="\u015aredni score"
+            label="Średni score"
             value={stats.data?.avgScore !== undefined ? `${stats.data.avgScore}` : undefined}
           />
-          <StatCard label="Wysoki match (\u226575)" value={stats.data?.highMatches} />
+          <StatCard label="Wysoki match (≥75)" value={stats.data?.highMatches} />
           <StatCard label="Niski match (<25)" value={stats.data?.lowMatches} />
         </div>
 
@@ -115,7 +115,7 @@ function MatchingPage() {
             ))}
           </select>
           <span className="ml-auto text-sm text-muted-foreground">
-            {analyses.data ? `${analyses.data.total} wynik\u00f3w` : ""}
+            {analyses.data ? `${analyses.data.total} wyników` : ""}
           </span>
         </div>
 
@@ -127,17 +127,17 @@ function MatchingPage() {
             </div>
           ) : analyses.error ? (
             <div className="flex items-center justify-center py-12 text-destructive text-sm">
-              B\u0142\u0105d: {analyses.error.message}
+              Błąd: {analyses.error.message}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[220px]">U\u017cytkownik 1</TableHead>
-                  <TableHead className="w-[220px]">U\u017cytkownik 2</TableHead>
+                  <TableHead className="w-[220px]">Użytkownik 1</TableHead>
+                  <TableHead className="w-[220px]">Użytkownik 2</TableHead>
                   <TableHead className="w-[80px]">Tier</TableHead>
                   <TableHead className="w-[100px]">Score</TableHead>
-                  <TableHead>Kr\u00f3tki opis</TableHead>
+                  <TableHead>Krótki opis</TableHead>
                   <TableHead className="w-[130px]">Data analizy</TableHead>
                 </TableRow>
               </TableHeader>
@@ -165,10 +165,10 @@ function MatchingPage() {
                       <ScoreBadge score={analysis.aiMatchScore} />
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">
-                      {analysis.shortSnippet ?? "\u2014"}
+                      {analysis.shortSnippet ?? "—"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {analysis.createdAt ? new Date(analysis.createdAt).toLocaleDateString("pl-PL") : "\u2014"}
+                      {analysis.createdAt ? new Date(analysis.createdAt).toLocaleDateString("pl-PL") : "—"}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -208,7 +208,7 @@ function StatCard({ label, value }: { label: string; value?: number | string }) 
   return (
     <div className="rounded-lg border bg-card p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="text-2xl font-semibold tabular-nums">{value !== undefined ? value : "\u2014"}</p>
+      <p className="text-2xl font-semibold tabular-nums">{value !== undefined ? value : "—"}</p>
     </div>
   );
 }
