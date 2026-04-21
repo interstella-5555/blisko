@@ -1,0 +1,103 @@
+diff --git a/android/src/main/java/com/rnmaps/maps/MapMarker.java b/android/src/main/java/com/rnmaps/maps/MapMarker.java
+index 3e0250f1b562480583656d8e5c0d2e166d15219c..c56ac7d2fb044d9be396f164256fa7e2e9b8143b 100644
+--- a/android/src/main/java/com/rnmaps/maps/MapMarker.java
++++ b/android/src/main/java/com/rnmaps/maps/MapMarker.java
+@@ -469,10 +469,97 @@ public class MapMarker extends MapFeature {
+         if (!(child instanceof MapCallout)) {
+             hasCustomMarkerView = true;
+             updateTracksViewChanges();
+-            hackToHandleDraweeLifecycle(child);
++            hackToHandleImageLifecycleRecursive(child);
+         }
+         update(true);
+     }
++
++    /**
++     * Recursively walk the child view tree to find and initialize image views.
++     * Handles both Fresco-based DraweeViews (original hack) and Glide-based ImageViews
++     * (e.g. FastImage backed by AppCompatImageView). The existing hackToHandleDraweeLifecycle
++     * only checks immediate children, but image components like FastImage wrap their
++     * image view deeper in the hierarchy.
++     */
++    private void hackToHandleImageLifecycleRecursive(View view) {
++        hackToHandleDraweeLifecycle(view);
++        if (!(view instanceof DraweeView) && view instanceof android.widget.ImageView) {
++            hackToHandleGlideImageView(view);
++        }
++        if (view instanceof android.view.ViewGroup) {
++            android.view.ViewGroup vg = (android.view.ViewGroup) view;
++            for (int i = 0; i < vg.getChildCount(); i++) {
++                hackToHandleImageLifecycleRecursive(vg.getChildAt(i));
++            }
++        }
++    }
++
++    /**
++     * Handle Glide-backed ImageViews (e.g. FastImage on Fabric).
++     * On Fabric, FastImageViewManager.onAfterUpdateTransaction() may not be called
++     * through the interop layer, so Glide's .into(view) is never executed. This method
++     * reads the image source URI from FastImage's mSource field and loads it directly
++     * via Glide. A RequestListener (via dynamic Proxy) triggers a marker icon re-capture
++     * when the image finishes loading.
++     */
++    private void hackToHandleGlideImageView(View view) {
++        // Defer until the MapMarker is attached to a window (via attacherGroup),
++        // so Glide can properly manage the request lifecycle.
++        new Handler(Looper.getMainLooper()).postDelayed(() -> {
++            try {
++                java.lang.reflect.Field sourceField = view.getClass().getDeclaredField("mSource");
++                sourceField.setAccessible(true);
++                Object source = sourceField.get(view);
++
++                if (source instanceof ReadableMap) {
++                    ReadableMap sourceMap = (ReadableMap) source;
++                    String uri = sourceMap.hasKey("uri") ? sourceMap.getString("uri") : null;
++
++                    if (uri != null && !uri.isEmpty()) {
++                        Object requestManager = Class.forName("com.bumptech.glide.Glide")
++                            .getMethod("with", android.content.Context.class)
++                            .invoke(null, view.getContext());
++
++                        Object requestBuilder = requestManager.getClass()
++                            .getMethod("load", String.class)
++                            .invoke(requestManager, uri);
++
++                        // Create a Glide RequestListener via dynamic Proxy to trigger
++                        // marker icon re-capture when the image finishes loading.
++                        Class<?> listenerClass = Class.forName("com.bumptech.glide.request.RequestListener");
++                        Object listener = java.lang.reflect.Proxy.newProxyInstance(
++                            listenerClass.getClassLoader(),
++                            new Class<?>[]{listenerClass},
++                            (proxy, method, args) -> {
++                                if ("onResourceReady".equals(method.getName())) {
++                                    new Handler(Looper.getMainLooper()).post(() -> {
++                                        clearDrawableCache();
++                                        update(true);
++                                    });
++                                }
++                                // Return false to let Glide deliver the resource to the ImageView
++                                if (method.getReturnType() == boolean.class) {
++                                    return false;
++                                }
++                                return null;
++                            }
++                        );
++
++                        requestBuilder = requestBuilder.getClass()
++                            .getMethod("listener", listenerClass)
++                            .invoke(requestBuilder, listener);
++
++                        requestBuilder.getClass()
++                            .getMethod("into", android.widget.ImageView.class)
++                            .invoke(requestBuilder, (android.widget.ImageView) view);
++                    }
++                }
++            } catch (Exception e) {
++                // Silently fail — marker will render without the image (same as before this fix)
++            }
++        }, 200);
++    }
++
+     private void hackToHandleDraweeLifecycle(View child){
+         if (child instanceof DraweeView<?>) {
+             try {
