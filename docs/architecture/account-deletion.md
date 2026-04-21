@@ -97,7 +97,7 @@ The `processHardDeleteUser()` function in `apps/api/src/services/queue-ops.ts` r
 
 ### Step 1: S3 File Deletion
 
-Reads `profiles.avatarUrl` and `profiles.portrait` before overwriting profile data. Extracts S3 keys via regex (`/uploads\/[^?]+/`), then deletes each key individually. Errors are logged but do not abort the job.
+Reads `profiles.avatarUrl` and `profiles.portrait` before overwriting profile data. Extracts S3 keys via shared `extractOurS3Key()` helper from `@repo/shared` — only `s3://bucket/key` URLs resolve to a key, everything else (OAuth, seed HTTPS) returns `null` and is intentionally skipped (those objects aren't ours to delete). Errors are logged but do not abort the job. See `images.md` for the source scheme.
 
 ### Step 2: Anonymize User and Profile (Transaction)
 
@@ -210,7 +210,7 @@ Preserving relational data maintains conversation history for other users. The d
 - Anonymized display name: `"Usunięty użytkownik"` (Polish for "Deleted user")
 - Anonymized email domain: `@deleted.localhost` (not a deliverable domain)
 - Anonymized visibility mode: `"ninja"` (most restrictive)
-- S3 key extraction regex: `/uploads\/[^?]+/`
+- S3 key extraction: `extractOurS3Key()` from `@repo/shared/avatar` — parses `s3://bucket/key` URLs only; returns `null` for OAuth / seed HTTPS URLs so we never try to delete third-party CDN objects (BLI-254)
 
 ## Tables Affected by Cascade Delete
 

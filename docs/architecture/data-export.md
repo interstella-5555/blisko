@@ -84,13 +84,13 @@ The export queries 12 database tables. All data belonging to the requesting user
 | Field | Export key | Notes |
 |-------|-----------|-------|
 | `displayName` | `profile.displayName` | |
-| `avatarUrl` | `profile.avatarUrl` | Direct URL |
+| `avatarUrl` | `profile.avatarUrl` | `s3://` source → presigned 7-day download URL via `resolveExportableUrl()`; OAuth / seed HTTPS URLs pass through untouched (BLI-254) |
 | `bio` | `profile.bio` | |
 | `lookingFor` | `profile.lookingFor` | |
 | `interests` | `profile.interests` | String array |
 | `socialLinks` | `profile.socialLinks` | JSON object |
 | `visibilityMode` | `profile.visibilityMode` | `"ninja"` / `"semi_open"` / `"full_nomad"` |
-| `portrait` | `profile.portraitUrl` | Mapped from `portrait` column |
+| `portrait` | `profile.portraitUrl` | Mapped from `portrait` column. Same presigning as `avatarUrl` (BLI-254). |
 | `currentStatus` | `profile.status` | |
 | `statusCategories` | `profile.statusCategories` | String array (e.g. `["projekt", "networking"]`) |
 | `statusVisibility` | `profile.statusVisibility` | `"public"` / `"private"` |

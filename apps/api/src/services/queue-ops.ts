@@ -1,3 +1,4 @@
+import { extractOurS3Key } from "@repo/shared";
 import { type Job, Queue, Worker } from "bullmq";
 import { subDays } from "date-fns";
 import { eq, inArray } from "drizzle-orm";
@@ -86,14 +87,13 @@ async function processHardDeleteUser(userId: string) {
     columns: { avatarUrl: true, portrait: true },
   });
 
-  // 2. Delete S3 files (avatar, portrait)
+  // 2. Delete S3 files (avatar, portrait). Only our s3:// sources — OAuth / seed URLs
+  // are never ours to delete (extractOurS3Key returns null for any non-s3:// scheme).
   if (profile) {
     const keysToDelete: string[] = [];
     for (const url of [profile.avatarUrl, profile.portrait]) {
-      if (url) {
-        const match = url.match(/uploads\/[^?]+/);
-        if (match) keysToDelete.push(match[0]);
-      }
+      const key = extractOurS3Key(url);
+      if (key) keysToDelete.push(key);
     }
     if (keysToDelete.length > 0) {
       const { S3Client } = await import("bun");

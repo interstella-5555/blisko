@@ -295,30 +295,15 @@ app.post("/uploads", async (c) => {
     const buffer = await file.arrayBuffer();
     await s3.write(key, buffer, { type: file.type });
 
-    // Generate a presigned URL for reading (7 days)
-    const url = s3.presign(key, {
-      expiresIn: 7 * 24 * 60 * 60,
-    });
-
-    return c.json({ url, key });
+    // Return a stable source pointer. Mobile stores this in profiles.avatarUrl and
+    // renders via the imgproxy helper (packages/shared/src/avatar.ts). Pre-BLI-254
+    // we returned a presigned URL that expired in 7 days — which is why old uploads
+    // silently 403 across the app.
+    const source = `s3://${process.env.BUCKET_NAME}/${key}`;
+    return c.json({ source });
   } catch (error) {
     console.error("Upload error:", error);
     return c.json({ error: "Upload failed" }, 500);
-  }
-});
-
-app.get("/uploads/:key", async (c) => {
-  const key = c.req.param("key");
-  if (key.includes("..")) {
-    return c.json({ error: "Invalid key" }, 400);
-  }
-
-  try {
-    const file = s3.file(`uploads/${key}`);
-    const url = file.presign({ expiresIn: 7 * 24 * 60 * 60 });
-    return c.redirect(url);
-  } catch {
-    return c.json({ error: "File not found" }, 404);
   }
 });
 

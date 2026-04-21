@@ -427,23 +427,7 @@ function generateLookingFor(): string {
 
 const FEMALE_NAME_SET = new Set(FEMALE_NAMES);
 
-function detectPetType(bio: string, interests: string[]): "cat" | "dog" | null {
-  const text = `${bio} ${interests.join(" ")}`.toLowerCase();
-  const hasCat = text.includes("kot") || text.includes("koty");
-  const hasDog = text.includes("pies") || text.includes("psy") || text.includes("schronisk");
-  const hasGenericPet = text.includes("zwierz") || text.includes("weteryn");
-
-  if (hasCat && !hasDog) return "cat";
-  if (hasDog) return "dog";
-  if (hasGenericPet) return "cat";
-  return null;
-}
-
 function generateAvatarUrl(user: SeedUserData, index: number): string {
-  const pet = detectPetType(user.bio, user.interests);
-  if (pet === "cat") return `https://placekitten.com/${400 + (index % 20)}/${400 + (index % 15)}`;
-  if (pet === "dog") return `https://placedog.net/400/400?id=${index + 1}`;
-
   const isFemale = FEMALE_NAME_SET.has(user.name);
   const gender = isFemale ? "women" : "men";
   return `https://randomuser.me/api/portraits/${gender}/${index % 100}.jpg`;
