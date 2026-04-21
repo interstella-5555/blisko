@@ -19,6 +19,7 @@ COPY apps/admin/package.json ./apps/admin/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 COPY packages/db/package.json ./packages/db/package.json
 COPY packages/dev-cli/package.json ./packages/dev-cli/package.json
+COPY patches/ ./patches/
 
 RUN bun install --frozen-lockfile
 
