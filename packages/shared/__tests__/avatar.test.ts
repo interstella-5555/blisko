@@ -48,12 +48,19 @@ describe("buildImgproxyUrl", () => {
 
   it("wraps seed URLs", () => {
     expect(buildImgproxyUrl("https://randomuser.me/api/portraits/men/42.jpg", 96, BASE)).toContain("unsafe/rs:fill");
-    expect(buildImgproxyUrl("https://placekitten.com/200/200", 96, BASE)).toContain("unsafe/rs:fill");
   });
 
   it("falls back to raw URL for unknown sources (Facebook CDN etc)", () => {
     const fb = "https://scontent-waw1-1.xx.fbcdn.net/v/t39.30808-1/abc.jpg";
     expect(buildImgproxyUrl(fb, 96, BASE)).toBe(fb);
+  });
+
+  it("falls back to raw source when imgproxyBase is empty (env var missing)", () => {
+    const src = "https://randomuser.me/api/portraits/men/42.jpg";
+    expect(buildImgproxyUrl(src, 96, "")).toBe(src);
+    expect(buildImgproxyUrl("s3://storage-kcd1m5rwdjmg8k6qp/uploads/abc.jpg", 96, "")).toBe(
+      "s3://storage-kcd1m5rwdjmg8k6qp/uploads/abc.jpg",
+    );
   });
 
   it("picks the right bucket for DPR=3 retina renders", () => {
@@ -81,7 +88,7 @@ describe("extractOurS3Key", () => {
 
   it("returns null for non-s3 schemes (OAuth, seeds)", () => {
     expect(extractOurS3Key("https://lh3.googleusercontent.com/a/abc")).toBeNull();
-    expect(extractOurS3Key("https://placekitten.com/200/200")).toBeNull();
+    expect(extractOurS3Key("https://randomuser.me/api/portraits/men/42.jpg")).toBeNull();
   });
 
   it("returns null for null/undefined/empty", () => {

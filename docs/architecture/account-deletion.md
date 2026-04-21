@@ -210,7 +210,7 @@ Preserving relational data maintains conversation history for other users. The d
 - Anonymized display name: `"Usunięty użytkownik"` (Polish for "Deleted user")
 - Anonymized email domain: `@deleted.localhost` (not a deliverable domain)
 - Anonymized visibility mode: `"ninja"` (most restrictive)
-- S3 key extraction regex: `/uploads\/[^?]+/`
+- S3 key extraction: `extractOurS3Key()` from `@repo/shared/avatar` — parses `s3://bucket/key` URLs only; returns `null` for OAuth / seed HTTPS URLs so we never try to delete third-party CDN objects (BLI-254)
 
 ## Tables Affected by Cascade Delete
 

@@ -19,12 +19,23 @@
  */
 export const IMGPROXY_SOURCES = [
   "s3://",
-  "https://lh3.googleusercontent.com/", // Google OAuth
-  "https://is1-ssl.mzstatic.com/", // Apple OAuth
-  "https://media.licdn.com/", // LinkedIn OAuth
-  "https://placekitten.com/", // seed
-  "https://placedog.net/", // seed
-  "https://randomuser.me/", // seed
+  // Google OAuth — returns any of lh1..lh6 for load balancing
+  "https://lh1.googleusercontent.com/",
+  "https://lh2.googleusercontent.com/",
+  "https://lh3.googleusercontent.com/",
+  "https://lh4.googleusercontent.com/",
+  "https://lh5.googleusercontent.com/",
+  "https://lh6.googleusercontent.com/",
+  // Apple OAuth — is1-ssl..is5-ssl
+  "https://is1-ssl.mzstatic.com/",
+  "https://is2-ssl.mzstatic.com/",
+  "https://is3-ssl.mzstatic.com/",
+  "https://is4-ssl.mzstatic.com/",
+  "https://is5-ssl.mzstatic.com/",
+  // LinkedIn OAuth — single CDN
+  "https://media.licdn.com/",
+  // seed avatars
+  "https://randomuser.me/",
 ] as const;
 
 /**
@@ -67,6 +78,10 @@ export function buildImgproxyUrl(
   imgproxyBase: string,
 ): string | null {
   if (!source) return null;
+  // Fall back to the raw source when imgproxy isn't configured (e.g. dev device
+  // missing `EXPO_PUBLIC_IMGPROXY_URL`). Building `/unsafe/...` against an empty
+  // base would produce a truthy relative URL that silently 404s in <Image>.
+  if (!imgproxyBase) return source;
   if (!sourceIsAllowed(source)) return source;
 
   const bucket = avatarPixelBucket(targetPx);

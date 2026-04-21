@@ -19,7 +19,7 @@ All user-facing image rendering goes through **imgproxy**, a self-hosted resize/
        ▼
 [Tigris S3 (private)] ← via S3 creds (s3:// sources)
 [OAuth CDNs]          ← via HTTPS (Google / Apple / LinkedIn)
-[Seed placeholders]   ← via HTTPS (placekitten / placedog / randomuser)
+[Seed placeholders]   ← via HTTPS (randomuser.me)
 ```
 
 ## Source URL scheme
@@ -30,7 +30,7 @@ All user-facing image rendering goes through **imgproxy**, a self-hosted resize/
 |---|---|---|
 | Our uploads | `s3://${BUCKET_NAME}/uploads/{uuid}.{ext}` | `POST /uploads` returns this (`apps/api/src/index.ts`) |
 | OAuth | `https://lh3.googleusercontent.com/...` | `profiles.create` copies `authUser.image` (`apps/api/src/trpc/procedures/profiles.ts:74`) |
-| Seeds | `https://placekitten.com/...`, `https://randomuser.me/...` | `apps/api/scripts/seed-users.ts` |
+| Seeds | `https://randomuser.me/...` | `apps/api/scripts/seed-users.ts` |
 
 The API never stores presigned URLs with querystrings. The only time we presign is (a) inside `data-export.ts` when composing the export JSON and (b) inside `queue-ops.ts` for delete operations.
 
@@ -90,7 +90,7 @@ Deployed as a separate Railway service in the Blisko project (image: `darthsim/i
 | `IMGPROXY_MAX_SRC_FILE_SIZE` | `10485760` (10 MB) |
 | `IMGPROXY_TTL` | `2592000` (30 days response `Cache-Control`) |
 | `IMGPROXY_SET_CANONICAL_HEADER` | `true` |
-| `IMGPROXY_ALLOWED_SOURCES` | `s3://${BUCKET_NAME}/,https://lh3.googleusercontent.com/,https://is1-ssl.mzstatic.com/,https://media.licdn.com/,https://placekitten.com/,https://placedog.net/,https://randomuser.me/` (substitute the real bucket name from the api service's `BUCKET_NAME`) |
+| `IMGPROXY_ALLOWED_SOURCES` | `s3://${BUCKET_NAME}/,https://lh[1-6].googleusercontent.com/,https://is[1-5]-ssl.mzstatic.com/,https://media.licdn.com/,https://randomuser.me/` — substitute the real bucket name from api's `BUCKET_NAME`, and expand the shorthand `lh[1-6]` / `is[1-5]-ssl` into 6 / 5 explicit prefixes (imgproxy doesn't support wildcards in ALLOWED_SOURCES; Google + Apple return any of those subdomains for load balancing) |
 
 ### Domain
 
