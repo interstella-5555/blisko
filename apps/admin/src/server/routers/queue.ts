@@ -127,7 +127,17 @@ export const queueRouter = router({
         if (state) allJobs = allJobs.filter((j) => j.state === state);
         if (type) allJobs = allJobs.filter((j) => j.type === type);
 
-        result = allJobs.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
+        // Scheduler tab sorts by next-run ascending (soonest first, numeric —
+        // never the formatted countdown string). Other states keep newest-first
+        // by createdAt.
+        const sorted =
+          state === "scheduled"
+            ? allJobs.sort(
+                (a, b) =>
+                  (a.scheduler?.next ?? Number.POSITIVE_INFINITY) - (b.scheduler?.next ?? Number.POSITIVE_INFINITY),
+              )
+            : allJobs.sort((a, b) => b.createdAt - a.createdAt);
+        result = sorted.slice(0, limit);
       } catch {
         return { jobs: [], nameMap: {} };
       }
