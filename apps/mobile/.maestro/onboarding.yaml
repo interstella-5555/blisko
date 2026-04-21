@@ -81,7 +81,7 @@ appId: com.blisko.app
 
 # Q1 (required) — intro
 - extendedWaitUntil:
-    visible: "1 / 7"
+    visible: "Pytanie 1 / 7"
     timeout: 15000
 - tapOn:
     id: "question-input"
@@ -92,7 +92,7 @@ appId: com.blisko.app
 
 # Q2 (optional) — recent_obsession
 - extendedWaitUntil:
-    visible: "2 / 7"
+    visible: "Pytanie 2 / 7"
     timeout: 10000
 - tapOn:
     id: "question-input"
@@ -103,7 +103,7 @@ appId: com.blisko.app
 
 # Q3 (required) — looking_for
 - extendedWaitUntil:
-    visible: "3 / 7"
+    visible: "Pytanie 3 / 7"
     timeout: 10000
 - tapOn:
     id: "question-input"
@@ -114,7 +114,7 @@ appId: com.blisko.app
 
 # Q4 (optional) — activities
 - extendedWaitUntil:
-    visible: "4 / 7"
+    visible: "Pytanie 4 / 7"
     timeout: 10000
 - tapOn:
     id: "question-input"
@@ -125,7 +125,7 @@ appId: com.blisko.app
 
 # Q5 (optional) — offer
 - extendedWaitUntil:
-    visible: "5 / 7"
+    visible: "Pytanie 5 / 7"
     timeout: 10000
 - tapOn:
     id: "question-input"
@@ -136,7 +136,7 @@ appId: com.blisko.app
 
 # Q6 (optional) — conversation_trigger
 - extendedWaitUntil:
-    visible: "6 / 7"
+    visible: "Pytanie 6 / 7"
     timeout: 10000
 - tapOn:
     id: "question-input"
@@ -147,7 +147,7 @@ appId: com.blisko.app
 
 # Q7 (optional) — public_self
 - extendedWaitUntil:
-    visible: "7 / 7"
+    visible: "Pytanie 7 / 7"
     timeout: 10000
 - tapOn:
     id: "question-input"
