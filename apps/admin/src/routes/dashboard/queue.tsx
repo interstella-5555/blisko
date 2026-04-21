@@ -478,10 +478,10 @@ function ScheduledCountdown({ next, onReachZero }: { next: number; onReachZero: 
   useSyncExternalStore(subscribeSecondTick, getSecondTickSnapshot, getSecondTickSnapshot);
   const firedRef = useRef<number | null>(null);
 
-  // Round BullMQ's sub-second `next` to the nearest whole second so schedulers
-  // that fire within the same second display identical countdown values and
-  // flip together.
-  const nextSec = Math.round(next / 1000) * 1000;
+  // Ceil BullMQ's sub-second `next` up to a whole second so the display never
+  // claims "za 0 sekund" before the scheduler has actually fired — with
+  // `nextSec >= next`, reached means real fire time has passed.
+  const nextSec = Math.ceil(next / 1000) * 1000;
   const reached = nextSec - Date.now() <= 0;
 
   useEffect(() => {
