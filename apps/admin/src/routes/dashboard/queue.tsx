@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { format, isToday } from "date-fns";
+import { format, formatDistanceStrict, formatDistanceToNowStrict, isToday } from "date-fns";
 import { pl } from "date-fns/locale";
 import { CircleIcon, ClockIcon, LoaderIcon, PauseIcon, PlayIcon, WrenchIcon } from "lucide-react";
 import { Fragment, useState } from "react";
@@ -445,26 +445,15 @@ function formatDuration(ms: number): string {
 }
 
 function formatRelativeFuture(timestamp: number): string {
-  const diff = timestamp - Date.now();
-  if (diff <= 0) return "teraz";
-  if (diff < 60_000) return `za ${Math.round(diff / 1000)}s`;
-  if (diff < 3_600_000) return `za ${Math.round(diff / 60_000)} min`;
-  if (diff < 86_400_000) return `za ${Math.round(diff / 3_600_000)}h`;
-  return `za ${Math.round(diff / 86_400_000)} dni`;
-}
-
-function formatEvery(ms: number): string {
-  if (ms < 60_000) return `co ${Math.round(ms / 1000)}s`;
-  if (ms < 3_600_000) return `co ${Math.round(ms / 60_000)} min`;
-  if (ms < 86_400_000) return `co ${Math.round(ms / 3_600_000)}h`;
-  return `co ${Math.round(ms / 86_400_000)} dni`;
+  if (timestamp <= Date.now()) return "teraz";
+  return formatDistanceToNowStrict(new Date(timestamp), { locale: pl, addSuffix: true });
 }
 
 function formatScheduleInterval(
   scheduler: { pattern: string | null; every: number | null } | null | undefined,
 ): string {
   if (!scheduler) return "—";
-  if (scheduler.every != null) return formatEvery(scheduler.every);
+  if (scheduler.every != null) return `co ${formatDistanceStrict(scheduler.every, 0, { locale: pl })}`;
   if (scheduler.pattern) return `cron: ${scheduler.pattern}`;
   return "—";
 }
