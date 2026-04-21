@@ -491,11 +491,11 @@ function ScheduledCountdown({ next, onReachZero }: { next: number; onReachZero: 
     }
   }, [reached, next, onReachZero]);
 
-  // When the countdown crosses zero, render "za 0 sekund" until the refetch
-  // triggered by onReachZero swaps in the new `next`. Can't let date-fns do
-  // it — with addSuffix on a past Date it outputs "0 sekund temu".
-  if (reached) return <>za 0 sekund</>;
-  return <>{formatDistanceToNowStrict(new Date(nextSec), { locale: pl, addSuffix: true })}</>;
+  // When the countdown crosses zero, hold at "za 1 sekundę" until the refetch
+  // triggered by onReachZero swaps in the new `next` — we'd rather briefly
+  // linger on "1s" than flash "za 0 sekund" (or "0 sekund temu" from date-fns).
+  if (reached) return <>za 1 sekundę</>;
+  return <>{formatDistanceToNowStrict(new Date(nextSec), { locale: pl, addSuffix: true, roundingMethod: "ceil" })}</>;
 }
 
 function formatScheduleInterval(
