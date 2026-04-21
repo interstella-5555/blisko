@@ -447,6 +447,13 @@ Cluster badges (text-only) and initial-letter placeholders (`<View>` + `<Text>`)
 
 Based on [zjkuang's comment on react-native-maps#5784](https://github.com/react-native-maps/react-native-maps/issues/5784#issuecomment-3937390643).
 
+**Fragile timing assumption.** The patch's `hackToHandleGlideImageView` wraps its body in `new Handler(Looper.getMainLooper()).postDelayed(..., 200)`. The 200ms is **not** waiting for the network image to load — that part is async via Glide's `RequestListener.onResourceReady`. The delay is waiting for two things to happen after `addView()` returns:
+
+1. Fabric's reconciliation pass must have propagated the `source={{uri}}` prop down to the ImageView's `mSource` field (the patch reads it via reflection).
+2. The `MapMarker` must have been attached to its parent window (`attacherGroup`) so Glide can bind its lifecycle.
+
+On a fast device this takes ~50ms; 200ms is a comfortable margin. **If a future bug report says "some avatars stay white on Android, especially on cold start or slower devices,"** check this first — on slow devices or under heavy startup pressure, the props/attachment can take longer, reflection returns `null`, and the patch silently fails (the catch block swallows the exception and the marker stays on the pre-load empty container). A less fragile fix would be an `OnAttachStateChangeListener` + a `ViewTreeObserver` observer on the prop field, but that's a bigger rewrite than the patch attempts.
+
 **Follow-up to consider.** [BLI-254](https://linear.app/blisko/issue/BLI-254) introduces `@s`/`@m`/`@l` avatar variants at upload time; combined with migrating `statusMatch` pulsing to an overlay `<Marker>` with a `<View>`-only ring (no `<Image>` child), we could drop the patch and rely on stock react-native-maps. Until then the patch stays.
 
 ### Double-tap send guard in ChatInput
