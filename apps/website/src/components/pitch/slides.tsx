@@ -230,7 +230,7 @@ export function SlideRealLife() {
     { emoji: "☕", name: "Kawiarnia", desc: "Ktoś obok pasuje. Rozmowa już trwa — Blisko ją domyka." },
     { emoji: "🏋️", name: "Siłownia", desc: "Te same twarze, zero rozmów. Ktoś szuka partnera do biegania." },
     { emoji: "💼", name: "Konferencja", desc: "Ping zamiast wizytówek w ciemno." },
-    { emoji: "✈️", name: "Podróż", desc: "\u201EKolacja, fintech\u201D. Ktoś w hotelu szuka rozmówcy." },
+    { emoji: "✈️", name: "Podróż", desc: "„Kolacja, fintech”. Ktoś w hotelu szuka rozmówcy." },
     { emoji: "🎓", name: "Uczelnia", desc: "Status zamiast maili na grupę." },
     { emoji: "📱", name: "Zawsze", desc: "Apka 24/7 w tle. Push gdy ktoś pasujący w pobliżu." },
   ];
@@ -368,8 +368,8 @@ export function SlideClosing() {
         Wizja
       </p>
       <div className="font-serif italic text-xl sm:text-3xl lg:text-4xl leading-snug max-w-[750px]">
-        <span className="text-pitch-accent/30 not-italic">{"\u201E"}</span>To nie przypadek. To Blisko.
-        <span className="text-pitch-accent/30 not-italic">{"\u201D"}</span>
+        <span className="text-pitch-accent/30 not-italic">{"„"}</span>To nie przypadek. To Blisko.
+        <span className="text-pitch-accent/30 not-italic">{"”"}</span>
       </div>
       <p className="font-light text-xs sm:text-base text-pitch-dim mt-6 sm:mt-10 max-w-[680px] mx-auto leading-relaxed">
         Startujemy w Polsce, z wersją ukraińską od dnia pierwszego. Cel: Europa w ciągu 18 miesięcy. Budujemy warstwę
