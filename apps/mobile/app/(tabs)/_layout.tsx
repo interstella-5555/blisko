@@ -1,8 +1,8 @@
 import { subMinutes } from "date-fns";
 import { Redirect, router, Tabs } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
-import { Pressable } from "react-native";
 import { IconChat, IconPerson, IconPin, IconPlus, IconSettings } from "@/components/ui/icons";
+import { TabHeader } from "@/components/ui/TabHeader";
 import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { useInAppNotifications } from "@/hooks/useInAppNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -14,7 +14,7 @@ import { useConversationsStore } from "@/stores/conversationsStore";
 import { useMessagesStore } from "@/stores/messagesStore";
 import { useProfilesStore } from "@/stores/profilesStore";
 import { useWavesStore } from "@/stores/wavesStore";
-import { colors, fonts, spacing, type as typ } from "@/theme";
+import { colors, fonts, type as typ } from "@/theme";
 
 export default function TabsLayout() {
   const user = useAuthStore((state) => state.user);
@@ -328,23 +328,7 @@ export default function TabsLayout() {
           borderTopColor: colors.rule,
           height: 75,
         },
-        tabBarLabelStyle: {
-          fontFamily: fonts.sansMedium,
-          fontSize: 8,
-          letterSpacing: 1.5,
-          textTransform: "uppercase",
-        },
-        headerStyle: {
-          backgroundColor: colors.bg,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.rule,
-        },
-        headerTitleStyle: {
-          ...typ.heading,
-          fontSize: 18,
-        },
-        headerShadowVisible: false,
-        headerShown: true,
+        tabBarLabelStyle: typ.tabLabel,
       }}
     >
       <Tabs.Screen
@@ -353,6 +337,7 @@ export default function TabsLayout() {
           title: "W okolicy",
           tabBarIcon: ({ color }) => <IconPin size={20} color={color} />,
           tabBarAccessibilityLabel: "tab-nearby",
+          header: () => <TabHeader title="W okolicy" />,
         }}
       />
       <Tabs.Screen
@@ -370,14 +355,15 @@ export default function TabsLayout() {
             height: 18,
             lineHeight: 18,
           },
-          headerRight: () => (
-            <Pressable
-              testID="create-group-header-btn"
-              onPress={() => router.push("/create-group")}
-              style={{ marginRight: spacing.section }}
-            >
-              <IconPlus size={20} color={colors.muted} />
-            </Pressable>
+          header: () => (
+            <TabHeader
+              title="Czaty"
+              rightAction={{
+                Icon: IconPlus,
+                onPress: () => router.push("/create-group"),
+                testID: "create-group-header-btn",
+              }}
+            />
           ),
         }}
       />
@@ -387,10 +373,14 @@ export default function TabsLayout() {
           title: "Profil",
           tabBarIcon: ({ color }) => <IconPerson size={20} color={color} />,
           tabBarAccessibilityLabel: "tab-profile",
-          headerRight: () => (
-            <Pressable onPress={() => router.push("/settings" as never)} style={{ marginRight: spacing.section }}>
-              <IconSettings size={20} color={colors.muted} />
-            </Pressable>
+          header: () => (
+            <TabHeader
+              title="Profil"
+              rightAction={{
+                Icon: IconSettings,
+                onPress: () => router.push("/settings"),
+              }}
+            />
           ),
         }}
       />
