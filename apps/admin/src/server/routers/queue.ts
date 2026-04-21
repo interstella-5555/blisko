@@ -127,17 +127,22 @@ export const queueRouter = router({
         if (state) allJobs = allJobs.filter((j) => j.state === state);
         if (type) allJobs = allJobs.filter((j) => j.type === type);
 
-        // Scheduler tab sorts by next-run ascending (soonest first, numeric —
-        // never the formatted countdown string). Other states keep newest-first
-        // by createdAt.
-        const sorted =
-          state === "scheduled"
-            ? allJobs.sort(
-                (a, b) =>
-                  (a.scheduler?.next ?? Number.POSITIVE_INFINITY) - (b.scheduler?.next ?? Number.POSITIVE_INFINITY),
-              )
-            : allJobs.sort((a, b) => b.createdAt - a.createdAt);
-        result = sorted.slice(0, limit);
+        // Two buckets: scheduler markers first (by next-run ascending, numeric
+        // — never the formatted countdown string), then every other job (by
+        // createdAt descending). Works the same in Harmonogram-only and in the
+        // mixed view, where scheduler rows would otherwise bubble arbitrarily
+        // against unrelated activity.
+        result = allJobs
+          .sort((a, b) => {
+            const aIsSched = a.state === "scheduled";
+            const bIsSched = b.state === "scheduled";
+            if (aIsSched !== bIsSched) return aIsSched ? -1 : 1;
+            if (aIsSched) {
+              return (a.scheduler?.next ?? Number.POSITIVE_INFINITY) - (b.scheduler?.next ?? Number.POSITIVE_INFINITY);
+            }
+            return b.createdAt - a.createdAt;
+          })
+          .slice(0, limit);
       } catch {
         return { jobs: [], nameMap: {} };
       }
