@@ -35,7 +35,7 @@ export default function BlockedUsersScreen() {
   if (!blockedUsers?.length) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emptyText}>Brak zablokowanych uzytkownikow</Text>
+        <Text style={styles.emptyText}>Brak zablokowanych użytkowników</Text>
       </View>
     );
   }

@@ -94,14 +94,14 @@ export default function CreateGroupScreen() {
       router.replace(`/chat/${data.id}`);
     },
     onError: () => {
-      Alert.alert("Blad", "Nie udalo sie utworzyc grupy");
+      Alert.alert("Błąd", "Nie udało się utworzyć grupy");
     },
   });
 
   const handleCreate = () => {
     if (!gate.requireFullProfile()) return;
     if (name.trim().length < 1) {
-      Alert.alert("Blad", "Podaj nazwe grupy");
+      Alert.alert("Błąd", "Podaj nazwę grupy");
       return;
     }
     createGroup.mutate({
@@ -176,7 +176,7 @@ export default function CreateGroupScreen() {
           </View>
           <Text style={styles.toggleDescription}>
             {hasLocation
-              ? "Osoby w poblizu beda mogly znalezc i dolaczyc do grupy"
+              ? "Osoby w pobliżu będą mogły znaleźć i dołączyć do grupy"
               : "Włącz lokalizację, żeby grupa była widoczna"}
           </Text>
 
@@ -213,7 +213,7 @@ export default function CreateGroupScreen() {
 
           {dmContacts.length > 0 && (
             <View style={styles.membersSection}>
-              <Text style={styles.label}>Dodaj czlonkow</Text>
+              <Text style={styles.label}>Dodaj członków</Text>
               {dmContacts.map((contact) => (
                 <Pressable key={contact.userId} style={styles.contactRow} onPress={() => toggleMember(contact.userId)}>
                   <Avatar uri={contact.avatarUrl} name={contact.displayName} size={36} blurred={isGhost} />
@@ -231,7 +231,7 @@ export default function CreateGroupScreen() {
           <View style={styles.submitContainer}>
             <Button
               testID="create-group-btn"
-              title="Utworz grupe"
+              title="Utwórz grupę"
               variant="fullWidth"
               onPress={handleCreate}
               disabled={!canCreate}

@@ -44,7 +44,7 @@ async function getDisplayName(userId: string): Promise<string> {
     where: eq(schema.profiles.userId, userId),
     columns: { displayName: true },
   });
-  return profile?.displayName ?? "Uzytkownik";
+  return profile?.displayName ?? "Użytkownik";
 }
 
 async function loadRetryContext(sessionId: string, userId: string) {

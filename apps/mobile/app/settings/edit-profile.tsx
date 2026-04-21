@@ -31,7 +31,7 @@ export default function EditProfileScreen() {
     },
     onError: (err) => {
       if (isRateLimitError(err)) return; // global handler shows localized toast
-      Alert.alert("Blad", "Nie udalo sie zapisac profilu");
+      Alert.alert("Błąd", "Nie udało się zapisać profilu");
     },
   });
 
@@ -68,7 +68,7 @@ export default function EditProfileScreen() {
       const { source } = await response.json();
       setAvatarUrl(source);
     } catch (_error) {
-      Alert.alert("Blad", "Nie udalo sie przeslac zdjecia");
+      Alert.alert("Błąd", "Nie udało się przesłać zdjęcia");
     } finally {
       setUploading(false);
     }
@@ -76,11 +76,11 @@ export default function EditProfileScreen() {
 
   const handleSave = () => {
     if (bio.trim().length < 10) {
-      Alert.alert("Blad", "Bio musi miec co najmniej 10 znakow");
+      Alert.alert("Błąd", "Bio musi mieć co najmniej 10 znaków");
       return;
     }
     if (lookingFor.trim().length < 10) {
-      Alert.alert("Blad", '"Kogo szukam" musi miec co najmniej 10 znakow');
+      Alert.alert("Błąd", '"Kogo szukam" musi mieć co najmniej 10 znaków');
       return;
     }
 
@@ -103,12 +103,12 @@ export default function EditProfileScreen() {
             <Avatar uri={avatarUrl} name={displayName || "?"} size={100} />
           </Pressable>
           <Pressable onPress={handlePickAvatar} disabled={uploading}>
-            <Text style={styles.changePhotoText}>{uploading ? "Przesylanie..." : "Zmien zdjecie"}</Text>
+            <Text style={styles.changePhotoText}>{uploading ? "Przesyłanie..." : "Zmień zdjęcie"}</Text>
           </Pressable>
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Imie</Text>
+          <Text style={styles.label}>Imię</Text>
           <TextInput
             testID="edit-name-input"
             style={[styles.input, styles.inputLocked]}
@@ -125,7 +125,7 @@ export default function EditProfileScreen() {
             style={[styles.input, styles.multilineInput]}
             value={bio}
             onChangeText={setBio}
-            placeholder="Napisz kilka slow o sobie..."
+            placeholder="Napisz kilka słów o sobie..."
             placeholderTextColor={colors.muted}
             spellCheck={false}
             autoCorrect={false}
@@ -144,7 +144,7 @@ export default function EditProfileScreen() {
             style={[styles.input, styles.multilineInput]}
             value={lookingFor}
             onChangeText={setLookingFor}
-            placeholder="Opisz, jakie osoby chcialbys poznac..."
+            placeholder="Opisz, jakie osoby chciałbyś poznać..."
             placeholderTextColor={colors.muted}
             spellCheck={false}
             autoCorrect={false}
