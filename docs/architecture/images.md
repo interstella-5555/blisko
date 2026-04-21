@@ -90,7 +90,7 @@ Deployed as a separate Railway service in the Blisko project (image: `darthsim/i
 | `IMGPROXY_MAX_SRC_FILE_SIZE` | `10485760` (10 MB) |
 | `IMGPROXY_TTL` | `2592000` (30 days response `Cache-Control`) |
 | `IMGPROXY_SET_CANONICAL_HEADER` | `true` |
-| `IMGPROXY_ALLOWED_SOURCES` | `s3://${BUCKET_NAME}/,https://lh[1-6].googleusercontent.com/,https://is[1-5]-ssl.mzstatic.com/,https://media.licdn.com/,https://randomuser.me/` — substitute the real bucket name from api's `BUCKET_NAME`, and expand the shorthand `lh[1-6]` / `is[1-5]-ssl` into 6 / 5 explicit prefixes (imgproxy doesn't support wildcards in ALLOWED_SOURCES; Google + Apple return any of those subdomains for load balancing) |
+| `IMGPROXY_ALLOWED_SOURCES` | `s3://${BUCKET_NAME}/,https://lh[1-6].googleusercontent.com/a/,https://media.licdn.com/dms/image/,https://randomuser.me/api/portraits/` — substitute the real bucket name from api's `BUCKET_NAME`, and expand `lh[1-6]` into 6 explicit prefixes (imgproxy doesn't support wildcards). Path prefixes `/a/`, `/dms/image/`, `/api/portraits/` narrow the allow-list to the specific OAuth-profile / seed-avatar routes on each CDN — prevents proxying arbitrary Google Photos, LinkedIn post images, or randomuser JSON through our imgproxy hostname (which would otherwise cache at Cloudflare for a month). Apple OAuth is not in the list because Sign in with Apple does not return a profile image URL. |
 
 ### Domain
 

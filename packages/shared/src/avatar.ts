@@ -19,23 +19,23 @@
  */
 export const IMGPROXY_SOURCES = [
   "s3://",
-  // Google OAuth — returns any of lh1..lh6 for load balancing
-  "https://lh1.googleusercontent.com/",
-  "https://lh2.googleusercontent.com/",
-  "https://lh3.googleusercontent.com/",
-  "https://lh4.googleusercontent.com/",
-  "https://lh5.googleusercontent.com/",
-  "https://lh6.googleusercontent.com/",
-  // Apple OAuth — is1-ssl..is5-ssl
-  "https://is1-ssl.mzstatic.com/",
-  "https://is2-ssl.mzstatic.com/",
-  "https://is3-ssl.mzstatic.com/",
-  "https://is4-ssl.mzstatic.com/",
-  "https://is5-ssl.mzstatic.com/",
-  // LinkedIn OAuth — single CDN
-  "https://media.licdn.com/",
-  // seed avatars
-  "https://randomuser.me/",
+  // Google OAuth — `/a/` path is reserved for OAuth profile pictures; Google
+  // Photos / Drive share the same domain on different paths (`/d/`, `/pw/`, etc)
+  // which we intentionally don't proxy. Google rotates lh1..lh6 for load balance.
+  "https://lh1.googleusercontent.com/a/",
+  "https://lh2.googleusercontent.com/a/",
+  "https://lh3.googleusercontent.com/a/",
+  "https://lh4.googleusercontent.com/a/",
+  "https://lh5.googleusercontent.com/a/",
+  "https://lh6.googleusercontent.com/a/",
+  // Apple OAuth intentionally omitted — Sign in with Apple does not return a
+  // profile image URL (per Apple + better-auth docs). mzstatic.com is the App
+  // Store / Apple Music CDN, not OAuth-related.
+  // LinkedIn OAuth — narrow to `/dms/image/` (profile pics live there). LinkedIn
+  // doesn't publish a dedicated prefix for profile-only images.
+  "https://media.licdn.com/dms/image/",
+  // seed avatars — narrow to `/api/portraits/` to avoid their JSON API surface
+  "https://randomuser.me/api/portraits/",
 ] as const;
 
 /**
