@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { format, formatDistanceStrict, formatDistanceToNowStrict, isToday } from "date-fns";
 import { pl } from "date-fns/locale";
 import { CircleIcon, ClockIcon, LoaderIcon, PauseIcon, PlayIcon, WrenchIcon } from "lucide-react";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { z } from "zod";
 import { DashboardHeader } from "~/components/dashboard-header";
 import { Badge } from "~/components/ui/badge";
@@ -449,14 +449,34 @@ function formatDuration(ms: number): string {
   return `${(ms / 60_000).toFixed(1)}m`;
 }
 
-function ScheduledCountdown({ next, onReachZero }: { next: number; onReachZero: () => void }) {
-  const [, forceTick] = useState(0);
-  const firedRef = useRef<number | null>(null);
+// One shared 1Hz ticker for all countdowns on the page so their seconds update
+// in lockstep instead of each row running its own drifting interval.
+const tickSubscribers = new Set<() => void>();
+let tickInterval: ReturnType<typeof setInterval> | null = null;
 
-  useEffect(() => {
-    const id = setInterval(() => forceTick((n) => n + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
+function subscribeSecondTick(callback: () => void) {
+  tickSubscribers.add(callback);
+  if (tickInterval == null) {
+    tickInterval = setInterval(() => {
+      for (const fn of tickSubscribers) fn();
+    }, 1000);
+  }
+  return () => {
+    tickSubscribers.delete(callback);
+    if (tickSubscribers.size === 0 && tickInterval != null) {
+      clearInterval(tickInterval);
+      tickInterval = null;
+    }
+  };
+}
+
+function getSecondTickSnapshot() {
+  return Math.floor(Date.now() / 1000);
+}
+
+function ScheduledCountdown({ next, onReachZero }: { next: number; onReachZero: () => void }) {
+  useSyncExternalStore(subscribeSecondTick, getSecondTickSnapshot, getSecondTickSnapshot);
+  const firedRef = useRef<number | null>(null);
 
   const reached = next - Date.now() <= 0;
 
@@ -467,8 +487,10 @@ function ScheduledCountdown({ next, onReachZero }: { next: number; onReachZero: 
     }
   }, [reached, next, onReachZero]);
 
-  if (reached) return <LoaderIcon className="size-3.5 animate-spin text-muted-foreground" />;
-  return <>{formatDistanceToNowStrict(new Date(next), { locale: pl, addSuffix: true })}</>;
+  if (reached) return <span className="italic text-muted-foreground">Uruchamianie…</span>;
+  // Ceil so the countdown reads "za N sekund" for the full Nth second and
+  // flips straight to "Uruchamianie" when it crosses zero — never "za 0 sekund".
+  return <>{formatDistanceToNowStrict(new Date(next), { locale: pl, addSuffix: true, roundingMethod: "ceil" })}</>;
 }
 
 function formatScheduleInterval(
