@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { format, isToday } from "date-fns";
+import { format, formatDistanceStrict, formatDistanceToNowStrict, isToday } from "date-fns";
 import { pl } from "date-fns/locale";
-import { CircleIcon, LoaderIcon, PauseIcon, PlayIcon, WrenchIcon } from "lucide-react";
+import { CircleIcon, ClockIcon, LoaderIcon, PauseIcon, PlayIcon, WrenchIcon } from "lucide-react";
 import { Fragment, useState } from "react";
 import { z } from "zod";
 import { DashboardHeader } from "~/components/dashboard-header";
@@ -10,7 +10,7 @@ import { Button } from "~/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
 import { trpc } from "~/lib/trpc";
 
-const JOB_STATES = ["active", "waiting", "delayed", "completed", "failed"] as const;
+const JOB_STATES = ["active", "waiting", "delayed", "scheduled", "completed", "failed"] as const;
 type JobState = (typeof JOB_STATES)[number];
 
 const JOB_SOURCES = ["ai", "ops", "maintenance"] as const;
@@ -63,6 +63,7 @@ const STATE_TABS: { key: JobState | "all"; label: string }[] = [
   { key: "active", label: "Aktywne" },
   { key: "waiting", label: "Oczekujące" },
   { key: "delayed", label: "Opóźnione" },
+  { key: "scheduled", label: "Harmonogram" },
   { key: "completed", label: "Ukończone" },
   { key: "failed", label: "Błędy" },
 ];
@@ -71,6 +72,7 @@ const STATE_COLORS: Record<string, string> = {
   active: "bg-blue-500",
   waiting: "bg-gray-300",
   delayed: "bg-yellow-500",
+  scheduled: "bg-indigo-500",
   completed: "bg-green-500",
   failed: "bg-red-500",
 };
@@ -122,16 +124,23 @@ function QueuePage() {
     active: 0,
     waiting: 0,
     delayed: 0,
+    scheduled: 0,
     completed: 0,
     failed: 0,
   };
 
   const stateCounts: Record<string, number> = {
     all:
-      activeCounts.active + activeCounts.waiting + activeCounts.delayed + activeCounts.completed + activeCounts.failed,
+      activeCounts.active +
+      activeCounts.waiting +
+      activeCounts.delayed +
+      activeCounts.scheduled +
+      activeCounts.completed +
+      activeCounts.failed,
     active: activeCounts.active,
     waiting: activeCounts.waiting,
     delayed: activeCounts.delayed,
+    scheduled: activeCounts.scheduled,
     completed: activeCounts.completed,
     failed: activeCounts.failed,
   };
@@ -293,6 +302,7 @@ function QueuePage() {
                 {jobs.map((job) => {
                   const rowKey = `${job.source}:${job.id}`;
                   const isExpanded = expandedId === rowKey;
+                  const isScheduled = job.state === "scheduled";
                   return (
                     <Fragment key={rowKey}>
                       <TableRow
@@ -302,11 +312,17 @@ function QueuePage() {
                         onClick={() => updateSearch({ expanded: isExpanded ? undefined : rowKey })}
                       >
                         <TableCell className="text-sm tabular-nums text-muted-foreground">
-                          {formatTime(job.createdAt)}
+                          {isScheduled && job.scheduler?.next
+                            ? formatRelativeFuture(job.scheduler.next)
+                            : formatTime(job.createdAt)}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className={`size-2 rounded-full ${STATE_COLORS[job.state] ?? "bg-gray-300"}`} />
+                            {isScheduled ? (
+                              <ClockIcon className="size-3.5 text-indigo-500" />
+                            ) : (
+                              <span className={`size-2 rounded-full ${STATE_COLORS[job.state] ?? "bg-gray-300"}`} />
+                            )}
                             <span className="text-sm">{formatState(job.state)}</span>
                           </div>
                         </TableCell>
@@ -317,7 +333,11 @@ function QueuePage() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{job.type}</TableCell>
                         <TableCell className="text-sm max-w-[300px]">
-                          <div className="truncate">{summarizeJobData(job.type, job.data, nameMap)}</div>
+                          <div className="truncate">
+                            {isScheduled
+                              ? formatScheduleInterval(job.scheduler)
+                              : summarizeJobData(job.type, job.data, nameMap)}
+                          </div>
                           {!isExpanded && job.state === "failed" && job.failedReason && (
                             <div className="text-xs text-red-600 truncate mt-0.5">
                               {job.failedReason.split("\n")[0]?.slice(0, 120)}
@@ -339,6 +359,14 @@ function QueuePage() {
                                 <span className="font-medium text-muted-foreground">ID:</span>{" "}
                                 <span className="font-mono text-xs">{job.id}</span>
                               </div>
+                              {isScheduled && job.scheduler && (
+                                <div className="text-xs text-muted-foreground">
+                                  Harmonogram: {formatScheduleInterval(job.scheduler)}
+                                  {job.scheduler.next && (
+                                    <> | Następne: {new Date(job.scheduler.next).toLocaleString("pl-PL")}</>
+                                  )}
+                                </div>
+                              )}
                               <div>
                                 <span className="font-medium text-muted-foreground">Dane:</span>
                                 <pre className="mt-1 text-xs font-mono bg-background rounded p-2 overflow-x-auto whitespace-pre-wrap break-all">
@@ -384,10 +412,12 @@ function QueuePage() {
 }
 
 function sumCounts(
-  counts: { active: number; waiting: number; delayed: number; completed: number; failed: number } | undefined,
+  counts:
+    | { active: number; waiting: number; delayed: number; scheduled: number; completed: number; failed: number }
+    | undefined,
 ): number {
   if (!counts) return 0;
-  return counts.active + counts.waiting + counts.delayed + counts.completed + counts.failed;
+  return counts.active + counts.waiting + counts.delayed + counts.scheduled + counts.completed + counts.failed;
 }
 
 function formatState(state: string): string {
@@ -395,6 +425,7 @@ function formatState(state: string): string {
     active: "Aktywny",
     waiting: "Oczekuje",
     delayed: "Opóźniony",
+    scheduled: "Harmonogram",
     completed: "Ukończony",
     failed: "Błąd",
   };
@@ -411,6 +442,20 @@ function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
   return `${(ms / 60_000).toFixed(1)}m`;
+}
+
+function formatRelativeFuture(timestamp: number): string {
+  if (timestamp <= Date.now()) return "teraz";
+  return formatDistanceToNowStrict(new Date(timestamp), { locale: pl, addSuffix: true });
+}
+
+function formatScheduleInterval(
+  scheduler: { pattern: string | null; every: number | null } | null | undefined,
+): string {
+  if (!scheduler) return "—";
+  if (scheduler.every != null) return `co ${formatDistanceStrict(scheduler.every, 0, { locale: pl })}`;
+  if (scheduler.pattern) return `cron: ${scheduler.pattern}`;
+  return "—";
 }
 
 function truncId(id: unknown): string {
