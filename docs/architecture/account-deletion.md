@@ -97,7 +97,7 @@ The `processHardDeleteUser()` function in `apps/api/src/services/queue-ops.ts` r
 
 ### Step 1: S3 File Deletion
 
-Reads `profiles.avatarUrl` and `profiles.portrait` before overwriting profile data. Extracts S3 keys via regex (`/uploads\/[^?]+/`), then deletes each key individually. Errors are logged but do not abort the job.
+Reads `profiles.avatarUrl` and `profiles.portrait` before overwriting profile data. Extracts S3 keys via shared `extractOurS3Key()` helper from `@repo/shared` — only `s3://bucket/key` URLs resolve to a key, everything else (OAuth, seed HTTPS) returns `null` and is intentionally skipped (those objects aren't ours to delete). Errors are logged but do not abort the job. See `images.md` for the source scheme.
 
 ### Step 2: Anonymize User and Profile (Transaction)
 

@@ -1,0 +1,82 @@
+// Avatar URL resolver — composes imgproxy URLs from a source pointer and a target pixel size.
+//
+// Source pointers stored in `profiles.avatarUrl`:
+//   - our uploads: `s3://blisko-bucket/uploads/{uuid}.{ext}`
+//   - OAuth:       `https://lh3.googleusercontent.com/...`, `https://is1-ssl.mzstatic.com/...`, ...
+//   - seeds:       `https://placekitten.com/...`, `https://randomuser.me/...`
+//
+// When the source prefix is in IMGPROXY_SOURCES, we wrap it in an imgproxy URL:
+//   {base}/unsafe/rs:fill:{N}:{N}/f:webp/plain/{SOURCE}
+// Unknown sources (Facebook's dynamic CDN, anything else) fall through as raw — the caller
+// renders the original URL as-is. See BLI-256 for rehosting FB avatars to S3.
+
+/**
+ * Source URL prefixes imgproxy is configured to fetch from (matches IMGPROXY_ALLOWED_SOURCES
+ * on the imgproxy service). Keep in sync with the Railway env var.
+ */
+export const IMGPROXY_SOURCES = [
+  "s3://blisko-bucket/",
+  "https://lh3.googleusercontent.com/", // Google OAuth
+  "https://is1-ssl.mzstatic.com/", // Apple OAuth
+  "https://media.licdn.com/", // LinkedIn OAuth
+  "https://placekitten.com/", // seed
+  "https://placedog.net/", // seed
+  "https://randomuser.me/", // seed
+] as const;
+
+/**
+ * Cache buckets for imgproxy-served avatars. A target pixel size rounds up to the
+ * smallest bucket that covers it, keeping the cache topology small. See BLI-257 for
+ * the sibling effort to normalize `<Avatar size>` props to design tokens and drop
+ * buckets we never hit.
+ */
+export const AVATAR_PIXEL_BUCKETS = [96, 144, 288, 384, 576] as const;
+
+/**
+ * Round up `targetPx` to the smallest pixel bucket that covers it. Clamps to the
+ * largest bucket if the target exceeds all of them.
+ */
+export function avatarPixelBucket(targetPx: number): number {
+  for (const bucket of AVATAR_PIXEL_BUCKETS) {
+    if (bucket >= targetPx) return bucket;
+  }
+  return AVATAR_PIXEL_BUCKETS[AVATAR_PIXEL_BUCKETS.length - 1];
+}
+
+function sourceIsAllowed(source: string): boolean {
+  return IMGPROXY_SOURCES.some((prefix) => source.startsWith(prefix));
+}
+
+/**
+ * Compose an imgproxy URL for a given source and target pixel size.
+ *
+ * @param source       Source pointer from `profiles.avatarUrl` (or group avatarUrl etc.)
+ * @param targetPx     Target size in physical pixels — caller passes `sizePt * pixelRatio`
+ * @param imgproxyBase Base URL of the imgproxy service (e.g. `https://img.blisko.app`)
+ *
+ * Returns `null` when `source` is null/empty. Returns the raw `source` when it doesn't
+ * match any allow-listed prefix (e.g. Facebook CDN URLs — the caller should render the
+ * original image and accept no resize). Otherwise returns a composed imgproxy URL.
+ */
+export function buildImgproxyUrl(
+  source: string | null | undefined,
+  targetPx: number,
+  imgproxyBase: string,
+): string | null {
+  if (!source) return null;
+  if (!sourceIsAllowed(source)) return source;
+
+  const bucket = avatarPixelBucket(targetPx);
+  return `${imgproxyBase}/unsafe/rs:fill:${bucket}:${bucket}/f:webp/plain/${encodeURIComponent(source)}`;
+}
+
+/**
+ * Extract the S3 object key from an `s3://bucket/key` URL. Returns `null` for any
+ * other scheme — anonymization and cleanup jobs should never delete OAuth or seed
+ * URLs because those objects aren't ours.
+ */
+export function extractOurS3Key(url: string | null | undefined): string | null {
+  if (!url?.startsWith("s3://")) return null;
+  const match = url.match(/^s3:\/\/[^/]+\/(.+)$/);
+  return match?.[1] ?? null;
+}

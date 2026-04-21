@@ -65,8 +65,8 @@ export default function EditProfileScreen() {
       });
 
       if (!response.ok) throw new Error("Upload failed");
-      const { url } = await response.json();
-      setAvatarUrl(url);
+      const { source } = await response.json();
+      setAvatarUrl(source);
     } catch (_error) {
       Alert.alert("Blad", "Nie udalo sie przeslac zdjecia");
     } finally {

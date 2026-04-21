@@ -12,6 +12,7 @@ import { useState } from "react";
 import { DashboardHeader } from "~/components/dashboard-header";
 import { Badge } from "~/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
+import { UserCell } from "~/components/user-cell";
 import { trpc } from "~/lib/trpc";
 
 export const Route = createFileRoute("/dashboard/waves")({
@@ -180,33 +181,6 @@ function WavesPage() {
         )}
       </div>
     </>
-  );
-}
-
-function UserCell({
-  displayName,
-  avatarUrl,
-  email,
-}: {
-  displayName: string | null;
-  avatarUrl: string | null;
-  email: string;
-}) {
-  const name = displayName ?? email;
-  return (
-    <div className="flex items-center gap-3">
-      {avatarUrl ? (
-        <img src={avatarUrl} alt="" className="size-8 rounded-full object-cover" />
-      ) : (
-        <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
-          {name.charAt(0).toUpperCase()}
-        </div>
-      )}
-      <div className="min-w-0">
-        <span className="truncate font-medium text-sm block">{name}</span>
-        <span className="text-xs text-muted-foreground truncate block">{email}</span>
-      </div>
-    </div>
   );
 }
 

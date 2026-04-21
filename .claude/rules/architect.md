@@ -58,3 +58,4 @@ Architecture reference docs live in `docs/architecture/`. These are the source o
 | `monetization.md` | Subscription tiers (planned, not implemented) |
 | `friends-system.md` | Friends/contacts (planned, not implemented) |
 | `e2e-test-coverage.md` | E2E test coverage map (flow → test status) |
+| `images.md` | Avatar / portrait pipeline — imgproxy sidecar, `s3://` source scheme, resolver helper, pixel buckets |

@@ -30,6 +30,7 @@ Monorepo hosted on Railway. Runtime: Bun. Package manager: Bun workspaces. No Tu
 | **metro** | Mobile metro bundler (dev only, not always running) | Bun | -- |
 | **website** | Marketing website (TanStack Start + Vite) | Bun (Nitro output) | 4000 |
 | **admin** | Admin panel (TanStack Start + Vite) | Node (Nitro output) | 3001 |
+| **imgproxy** | On-demand image resize + WebP transcode in front of Tigris S3 (Docker `darthsim/imgproxy:latest`). Serves `https://img.blisko.app/...`. See `images.md`. | Go (Docker) | 8080 |
 | **database** | PostgreSQL | -- | -- |
 | **queue** | Redis (BullMQ job queue, pub/sub for WebSocket cross-replica events, rate limiting sliding window counters) | -- | -- |
 
@@ -242,11 +243,12 @@ Invalid tokens (failed delivery) are cleaned up on ticket check.
 
 ### Tigris / S3-Compatible Storage
 
-Uses Bun's built-in `S3Client`. Three usage points in the codebase:
+Uses Bun's built-in `S3Client`. Four usage points in the codebase:
 
-1. **File uploads** (`POST /uploads` in `index.ts`): Max 5MB, images only. Presigned URLs with 7-day expiry.
-2. **GDPR data export** (`data-export.ts`): JSON file uploaded, presigned URL emailed. 7-day link expiry.
-3. **Anonymization** (`queue-ops.ts` hard-delete): Deletes avatar and portrait S3 files.
+1. **File uploads** (`POST /uploads` in `index.ts`): Max 5MB, images only. Returns `{ source: "s3://blisko-bucket/uploads/{uuid}.{ext}" }` — stable source pointer stored in `profiles.avatarUrl`. Rendering goes through imgproxy, not presigning. See `images.md`.
+2. **GDPR data export** (`data-export.ts`): JSON file uploaded, presigned URL emailed. 7-day link expiry. Avatar/portrait `s3://` sources in the export JSON are also presigned at export time via `resolveExportableUrl()`.
+3. **Anonymization** (`queue-ops.ts` hard-delete): Deletes avatar and portrait S3 files for keys extracted via shared `extractOurS3Key()` helper.
+4. **imgproxy service** (`images.md`): reads from the bucket directly via S3 creds to serve resized/WebP variants on demand.
 
 ### WebSocket (Bun native)
 

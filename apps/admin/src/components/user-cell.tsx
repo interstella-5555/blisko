@@ -1,3 +1,5 @@
+import { resolveAvatarUri } from "~/lib/avatar";
+
 export function UserCell({
   displayName,
   avatarUrl,
@@ -10,10 +12,11 @@ export function UserCell({
   muted?: boolean;
 }) {
   const name = displayName ?? email;
+  const resolvedUri = resolveAvatarUri(avatarUrl, 32);
   return (
     <div className={`flex items-center gap-3 ${muted ? "opacity-50" : ""}`}>
-      {avatarUrl ? (
-        <img src={avatarUrl} alt="" className="size-8 rounded-full object-cover" />
+      {resolvedUri ? (
+        <img src={resolvedUri} alt="" className="size-8 rounded-full object-cover" />
       ) : (
         <div className="flex size-8 items-center justify-center rounded-full bg-muted font-medium text-xs">
           {name.charAt(0).toUpperCase()}

@@ -1,4 +1,5 @@
 import { Image, StyleSheet, Text, View } from "react-native";
+import { resolveAvatarUri } from "@/lib/avatar";
 import { colors, fonts, ghostBlurRadius } from "../../theme";
 
 interface AvatarProps {
@@ -12,6 +13,7 @@ export function Avatar({ uri, name, size = 40, blurred }: AvatarProps) {
   const borderRadius = size / 2;
   const fontSize = size * 0.4;
   const initial = (name?.trim().charAt(0) || "?").toUpperCase();
+  const resolvedUri = resolveAvatarUri(uri, size);
 
   return (
     <View
@@ -24,10 +26,10 @@ export function Avatar({ uri, name, size = 40, blurred }: AvatarProps) {
         },
       ]}
     >
-      {uri ? (
+      {resolvedUri ? (
         <>
           <Image
-            source={{ uri }}
+            source={{ uri: resolvedUri }}
             style={[styles.image, { width: size, height: size, borderRadius }]}
             blurRadius={blurred ? ghostBlurRadius : 0}
           />

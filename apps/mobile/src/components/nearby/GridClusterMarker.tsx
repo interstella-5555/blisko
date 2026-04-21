@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
 import { useIsGhost } from "@/hooks/useIsGhost";
+import { resolveAvatarUri } from "@/lib/avatar";
 import { ghostBlurRadius } from "@/theme";
+
+const AVATAR_SIZE_PT = 40;
 
 interface GridClusterMarkerProps {
   count?: number;
@@ -64,12 +67,13 @@ export function GridClusterMarker({
     );
   }
 
-  // Single user — show avatar
-  if (avatarUrl) {
+  // Single user — show avatar (routed through imgproxy helper, BLI-254).
+  const resolvedUri = resolveAvatarUri(avatarUrl, AVATAR_SIZE_PT);
+  if (resolvedUri) {
     return (
       <PulsingWrapper active={!!highlighted}>
         <View style={styles.singleContainer}>
-          <Image source={{ uri: avatarUrl }} style={styles.avatar} blurRadius={isGhost ? ghostBlurRadius : 0} />
+          <Image source={{ uri: resolvedUri }} style={styles.avatar} blurRadius={isGhost ? ghostBlurRadius : 0} />
         </View>
       </PulsingWrapper>
     );
