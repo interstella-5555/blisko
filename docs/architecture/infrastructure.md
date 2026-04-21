@@ -245,7 +245,7 @@ Invalid tokens (failed delivery) are cleaned up on ticket check.
 
 Uses Bun's built-in `S3Client`. Four usage points in the codebase:
 
-1. **File uploads** (`POST /uploads` in `index.ts`): Max 5MB, images only. Returns `{ source: "s3://blisko-bucket/uploads/{uuid}.{ext}" }` — stable source pointer stored in `profiles.avatarUrl`. Rendering goes through imgproxy, not presigning. See `images.md`.
+1. **File uploads** (`POST /uploads` in `index.ts`): Max 5MB, images only. Returns `{ source: "s3://${BUCKET_NAME}/uploads/{uuid}.{ext}" }` — stable source pointer stored in `profiles.avatarUrl`. Rendering goes through imgproxy, not presigning. See `images.md`.
 2. **GDPR data export** (`data-export.ts`): JSON file uploaded, presigned URL emailed. 7-day link expiry. Avatar/portrait `s3://` sources in the export JSON are also presigned at export time via `resolveExportableUrl()`.
 3. **Anonymization** (`queue-ops.ts` hard-delete): Deletes avatar and portrait S3 files for keys extracted via shared `extractOurS3Key()` helper.
 4. **imgproxy service** (`images.md`): reads from the bucket directly via S3 creds to serve resized/WebP variants on demand.

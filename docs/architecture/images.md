@@ -28,7 +28,7 @@ All user-facing image rendering goes through **imgproxy**, a self-hosted resize/
 
 | Source | Example | Who stores it |
 |---|---|---|
-| Our uploads | `s3://blisko-bucket/uploads/{uuid}.{ext}` | `POST /uploads` returns this (`apps/api/src/index.ts`) |
+| Our uploads | `s3://${BUCKET_NAME}/uploads/{uuid}.{ext}` | `POST /uploads` returns this (`apps/api/src/index.ts`) |
 | OAuth | `https://lh3.googleusercontent.com/...` | `profiles.create` copies `authUser.image` (`apps/api/src/trpc/procedures/profiles.ts:74`) |
 | Seeds | `https://placekitten.com/...`, `https://randomuser.me/...` | `apps/api/scripts/seed-users.ts` |
 
@@ -90,7 +90,7 @@ Deployed as a separate Railway service in the Blisko project (image: `darthsim/i
 | `IMGPROXY_MAX_SRC_FILE_SIZE` | `10485760` (10 MB) |
 | `IMGPROXY_TTL` | `2592000` (30 days response `Cache-Control`) |
 | `IMGPROXY_SET_CANONICAL_HEADER` | `true` |
-| `IMGPROXY_ALLOWED_SOURCES` | `s3://blisko-bucket/,https://lh3.googleusercontent.com/,https://is1-ssl.mzstatic.com/,https://media.licdn.com/,https://placekitten.com/,https://placedog.net/,https://randomuser.me/` |
+| `IMGPROXY_ALLOWED_SOURCES` | `s3://${BUCKET_NAME}/,https://lh3.googleusercontent.com/,https://is1-ssl.mzstatic.com/,https://media.licdn.com/,https://placekitten.com/,https://placedog.net/,https://randomuser.me/` (substitute the real bucket name from the api service's `BUCKET_NAME`) |
 
 ### Domain
 
@@ -107,7 +107,7 @@ CNAME `img.blisko.app` → Railway-generated domain. Cloudflare proxies (orange 
 1. Auth check → bearer token from session.
 2. Rate limit check → `uploads` key, per user.
 3. File validation (`image/*`, ≤5 MB).
-4. Write raw bytes to `s3://blisko-bucket/uploads/{uuid}.{ext}` via Bun S3Client.
+4. Write raw bytes to `s3://${BUCKET_NAME}/uploads/{uuid}.{ext}` via Bun S3Client.
 5. Return `{ source: "s3://blisko-bucket/uploads/{uuid}.{ext}" }`.
 
 Mobile's `edit-profile.tsx` stores `source` straight into `profiles.avatarUrl` via `profiles.update` mutation. No client-side transformation.

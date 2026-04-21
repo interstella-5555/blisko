@@ -1,7 +1,7 @@
 // Avatar URL resolver — composes imgproxy URLs from a source pointer and a target pixel size.
 //
 // Source pointers stored in `profiles.avatarUrl`:
-//   - our uploads: `s3://blisko-bucket/uploads/{uuid}.{ext}`
+//   - our uploads: `s3://${BUCKET_NAME}/uploads/{uuid}.{ext}` (BUCKET_NAME is Railway-generated)
 //   - OAuth:       `https://lh3.googleusercontent.com/...`, `https://is1-ssl.mzstatic.com/...`, ...
 //   - seeds:       `https://placekitten.com/...`, `https://randomuser.me/...`
 //
@@ -11,11 +11,14 @@
 // renders the original URL as-is. See BLI-256 for rehosting FB avatars to S3.
 
 /**
- * Source URL prefixes imgproxy is configured to fetch from (matches IMGPROXY_ALLOWED_SOURCES
- * on the imgproxy service). Keep in sync with the Railway env var.
+ * Source URL prefixes imgproxy knows how to fetch. `s3://` covers any bucket — the
+ * bucket name is Railway-generated (`storage-<id>`) and lives in `BUCKET_NAME` on
+ * the api service. imgproxy enforces the concrete bucket via its own
+ * `IMGPROXY_ALLOWED_SOURCES` env var; the helper's job here is just to decide
+ * which sources are eligible for the imgproxy round-trip vs. raw passthrough.
  */
 export const IMGPROXY_SOURCES = [
-  "s3://blisko-bucket/",
+  "s3://",
   "https://lh3.googleusercontent.com/", // Google OAuth
   "https://is1-ssl.mzstatic.com/", // Apple OAuth
   "https://media.licdn.com/", // LinkedIn OAuth

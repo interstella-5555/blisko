@@ -34,9 +34,9 @@ describe("buildImgproxyUrl", () => {
   });
 
   it("wraps our s3:// source in imgproxy URL", () => {
-    const out = buildImgproxyUrl("s3://blisko-bucket/uploads/abc.jpg", 120, BASE);
+    const out = buildImgproxyUrl("s3://storage-kcd1m5rwdjmg8k6qp/uploads/abc.jpg", 120, BASE);
     expect(out).toBe(
-      "https://img.blisko.app/unsafe/rs:fill:144:144/f:webp/plain/s3%3A%2F%2Fblisko-bucket%2Fuploads%2Fabc.jpg",
+      `https://img.blisko.app/unsafe/rs:fill:144:144/f:webp/plain/${encodeURIComponent("s3://storage-kcd1m5rwdjmg8k6qp/uploads/abc.jpg")}`,
     );
   });
 
@@ -58,11 +58,11 @@ describe("buildImgproxyUrl", () => {
 
   it("picks the right bucket for DPR=3 retina renders", () => {
     // 40pt at DPR=3 → 120px → bucket 144
-    expect(buildImgproxyUrl("s3://blisko-bucket/u/a.jpg", 120, BASE)).toContain(":144:144");
+    expect(buildImgproxyUrl("s3://storage-kcd1m5rwdjmg8k6qp/u/a.jpg", 120, BASE)).toContain(":144:144");
     // 100pt at DPR=3 → 300px → bucket 384
-    expect(buildImgproxyUrl("s3://blisko-bucket/u/a.jpg", 300, BASE)).toContain(":384:384");
+    expect(buildImgproxyUrl("s3://storage-kcd1m5rwdjmg8k6qp/u/a.jpg", 300, BASE)).toContain(":384:384");
     // 28pt at DPR=2 → 56px → bucket 96
-    expect(buildImgproxyUrl("s3://blisko-bucket/u/a.jpg", 56, BASE)).toContain(":96:96");
+    expect(buildImgproxyUrl("s3://storage-kcd1m5rwdjmg8k6qp/u/a.jpg", 56, BASE)).toContain(":96:96");
   });
 
   it("encodes source URL safely for query-looking characters", () => {
@@ -75,7 +75,7 @@ describe("buildImgproxyUrl", () => {
 
 describe("extractOurS3Key", () => {
   it("extracts key from s3:// URL", () => {
-    expect(extractOurS3Key("s3://blisko-bucket/uploads/abc.jpg")).toBe("uploads/abc.jpg");
+    expect(extractOurS3Key("s3://storage-kcd1m5rwdjmg8k6qp/uploads/abc.jpg")).toBe("uploads/abc.jpg");
     expect(extractOurS3Key("s3://another-bucket/foo/bar/baz.png")).toBe("foo/bar/baz.png");
   });
 
@@ -91,7 +91,7 @@ describe("extractOurS3Key", () => {
   });
 
   it("returns null for malformed s3:// (no key)", () => {
-    expect(extractOurS3Key("s3://blisko-bucket/")).toBeNull();
-    expect(extractOurS3Key("s3://blisko-bucket")).toBeNull();
+    expect(extractOurS3Key("s3://storage-kcd1m5rwdjmg8k6qp/")).toBeNull();
+    expect(extractOurS3Key("s3://storage-kcd1m5rwdjmg8k6qp")).toBeNull();
   });
 });
