@@ -478,7 +478,11 @@ function ScheduledCountdown({ next, onReachZero }: { next: number; onReachZero: 
   useSyncExternalStore(subscribeSecondTick, getSecondTickSnapshot, getSecondTickSnapshot);
   const firedRef = useRef<number | null>(null);
 
-  const reached = next - Date.now() <= 0;
+  // Round BullMQ's sub-second `next` to the nearest whole second so schedulers
+  // that fire within the same second display identical countdown values and
+  // flip together.
+  const nextSec = Math.round(next / 1000) * 1000;
+  const reached = nextSec - Date.now() <= 0;
 
   useEffect(() => {
     if (reached && firedRef.current !== next) {
@@ -487,12 +491,11 @@ function ScheduledCountdown({ next, onReachZero }: { next: number; onReachZero: 
     }
   }, [reached, next, onReachZero]);
 
-  // Ceil so each "za N sekund" holds for its full second; when diff crosses
-  // zero render "za 0 sekund" (future suffix) until the refetch triggered by
-  // onReachZero swaps in the new `next`. Can't let date-fns format it —
-  // with addSuffix on a past Date it would output "0 sekund temu".
+  // When the countdown crosses zero, render "za 0 sekund" until the refetch
+  // triggered by onReachZero swaps in the new `next`. Can't let date-fns do
+  // it — with addSuffix on a past Date it outputs "0 sekund temu".
   if (reached) return <>za 0 sekund</>;
-  return <>{formatDistanceToNowStrict(new Date(next), { locale: pl, addSuffix: true, roundingMethod: "ceil" })}</>;
+  return <>{formatDistanceToNowStrict(new Date(nextSec), { locale: pl, addSuffix: true })}</>;
 }
 
 function formatScheduleInterval(
