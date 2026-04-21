@@ -58,8 +58,8 @@ const SOURCE_TABS: { key: JobSource | "all"; label: string }[] = [
   { key: "maintenance", label: "Maintenance" },
 ];
 
-const STATE_TABS: { key: JobState | "all"; label: string }[] = [
-  { key: "all", label: "Wszystkie" },
+const DEFAULT_STATE: JobState = "active";
+const STATE_TABS: { key: JobState; label: string }[] = [
   { key: "active", label: "Aktywne" },
   { key: "waiting", label: "Oczekujące" },
   { key: "delayed", label: "Opóźnione" },
@@ -81,7 +81,7 @@ function QueuePage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const search = Route.useSearch();
   const sourceFilter: JobSource | "all" = search.source ?? "all";
-  const stateFilter: JobState | "all" = search.state ?? "all";
+  const stateFilter: JobState = search.state ?? DEFAULT_STATE;
   const typeFilter = search.type ?? "";
   const expandedId = search.expanded ?? null;
 
@@ -91,9 +91,11 @@ function QueuePage() {
     navigate({
       search: (prev) => {
         const next = { ...prev, ...patch };
-        // Strip empty values so URL stays clean
+        // Strip defaults/empties so URL stays clean
         for (const key of Object.keys(next) as (keyof QueueSearch)[]) {
-          if (next[key] === undefined || next[key] === "" || next[key] === "all") delete next[key];
+          const value = next[key];
+          if (value === undefined || value === "" || value === "all") delete next[key];
+          else if (key === "state" && value === DEFAULT_STATE) delete next[key];
         }
         return next;
       },
@@ -110,7 +112,7 @@ function QueuePage() {
     {
       source: sourceFilter === "all" ? undefined : sourceFilter,
       type: typeFilter || undefined,
-      state: stateFilter === "all" ? undefined : stateFilter,
+      state: stateFilter,
       limit: 100,
     },
     {
@@ -137,14 +139,7 @@ function QueuePage() {
     failed: 0,
   };
 
-  const stateCounts: Record<string, number> = {
-    all:
-      activeCounts.active +
-      activeCounts.waiting +
-      activeCounts.delayed +
-      activeCounts.scheduled +
-      activeCounts.completed +
-      activeCounts.failed,
+  const stateCounts: Record<JobState, number> = {
     active: activeCounts.active,
     waiting: activeCounts.waiting,
     delayed: activeCounts.delayed,
@@ -197,7 +192,7 @@ function QueuePage() {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => updateSearch({ state: tab.key === "all" ? undefined : tab.key, expanded: undefined })}
+                onClick={() => updateSearch({ state: tab.key, expanded: undefined })}
                 className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   stateFilter === tab.key
                     ? "bg-foreground text-background"
