@@ -478,7 +478,11 @@ function ScheduledCountdown({ next, onReachZero }: { next: number; onReachZero: 
   useSyncExternalStore(subscribeSecondTick, getSecondTickSnapshot, getSecondTickSnapshot);
   const firedRef = useRef<number | null>(null);
 
-  const reached = next - Date.now() <= 0;
+  // Ceil BullMQ's sub-second `next` up to a whole second so the display never
+  // claims the scheduler has fired before it actually has — with
+  // `nextSec >= next`, reached means real fire time has passed.
+  const nextSec = Math.ceil(next / 1000) * 1000;
+  const reached = nextSec - Date.now() <= 0;
 
   useEffect(() => {
     if (reached && firedRef.current !== next) {
@@ -487,10 +491,11 @@ function ScheduledCountdown({ next, onReachZero }: { next: number; onReachZero: 
     }
   }, [reached, next, onReachZero]);
 
-  if (reached) return <span className="italic text-muted-foreground">Uruchamianie…</span>;
-  // Ceil so the countdown reads "za N sekund" for the full Nth second and
-  // flips straight to "Uruchamianie" when it crosses zero — never "za 0 sekund".
-  return <>{formatDistanceToNowStrict(new Date(next), { locale: pl, addSuffix: true, roundingMethod: "ceil" })}</>;
+  // Hold at "za 1 sekundę" through the refetch triggered by onReachZero —
+  // skips both "Uruchamianie…" and the ambiguous "za 0 sekund" flash. User
+  // sees N → N-1 → … → 1 → [new countdown].
+  if (reached) return <>za 1 sekundę</>;
+  return <>{formatDistanceToNowStrict(new Date(nextSec), { locale: pl, addSuffix: true, roundingMethod: "ceil" })}</>;
 }
 
 function formatScheduleInterval(
