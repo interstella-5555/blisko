@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -29,18 +29,20 @@ jobs:
           cache-dependency-path: bun.lock
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version-file: '.node-version'
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
 
       - name: Install dependencies
         run: bun install
 
       - name: Setup EAS
-        uses: expo/expo-github-action@v8
+        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # 8.2.1
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -57,7 +59,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: AVD cache
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         id: avd-cache
         with:
           path: |
@@ -67,7 +69,7 @@ jobs:
 
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@0a638108440efd5c7f980e6ba145dbcdd8f32009 # v2.37.0
         with:
           api-level: 34
           target: google_apis
@@ -80,7 +82,7 @@ jobs:
 
       - name: Create .env.local for mobile app
         run: |
-          echo "EXPO_PUBLIC_API_URL=https://api.blisko.app" > apps/mobile/.env.local
+          { echo "EXPO_PUBLIC_API_URL=${{ vars.EXPO_PUBLIC_API_URL }}"; echo "EXPO_PUBLIC_IMGPROXY_URL=${{ vars.EXPO_PUBLIC_IMGPROXY_URL }}"; } > apps/mobile/.env.local
 
       - name: Build Expo release (Android)
         working-directory: apps/mobile
@@ -88,11 +90,12 @@ jobs:
           npx expo prebuild --platform android --clean
           cd android && ./gradlew assembleRelease
         env:
-          EXPO_PUBLIC_API_URL: https://api.blisko.app
-          GOOGLE_MAPS_ANDROID_API_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_API_KEY }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+          EXPO_PUBLIC_IMGPROXY_URL: ${{ vars.EXPO_PUBLIC_IMGPROXY_URL }}
+          GOOGLE_MAPS_ANDROID_API_KEY: ${{ vars.GOOGLE_MAPS_ANDROID_API_KEY }}
 
       - name: Run E2E tests
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@0a638108440efd5c7f980e6ba145dbcdd8f32009 # v2.37.0
         with:
           api-level: 34
           target: google_apis
@@ -107,7 +110,7 @@ jobs:
 
       - name: Upload Maestro artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: maestro-artifacts
           path: ~/.maestro/tests
