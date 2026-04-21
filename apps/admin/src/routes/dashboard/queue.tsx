@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { format, formatDistanceStrict, formatDistanceToNowStrict, isToday } from "date-fns";
 import { pl } from "date-fns/locale";
 import { CircleIcon, ClockIcon, LoaderIcon, PauseIcon, PlayIcon, WrenchIcon } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { DashboardHeader } from "~/components/dashboard-header";
 import { Badge } from "~/components/ui/badge";
@@ -100,6 +100,7 @@ function QueuePage() {
     });
 
   const sweep = trpc.queue.runConsistencySweep.useMutation();
+  const utils = trpc.useUtils();
 
   const stats = trpc.queue.stats.useQuery(undefined, {
     refetchInterval: isLive ? 1000 : false,
@@ -116,6 +117,13 @@ function QueuePage() {
       refetchInterval: isLive ? 1000 : false,
     },
   );
+
+  // Fired when a scheduler's countdown hits zero — force-refresh regardless of
+  // refetchInterval so the user always sees the new `next` without delay.
+  const onScheduledZero = useCallback(() => {
+    utils.queue.feed.invalidate();
+    utils.queue.stats.invalidate();
+  }, [utils]);
 
   const jobs = feed.data?.jobs ?? [];
   const nameMap = feed.data?.nameMap ?? {};
@@ -312,9 +320,11 @@ function QueuePage() {
                         onClick={() => updateSearch({ expanded: isExpanded ? undefined : rowKey })}
                       >
                         <TableCell className="text-sm tabular-nums text-muted-foreground">
-                          {isScheduled && job.scheduler?.next
-                            ? formatRelativeFuture(job.scheduler.next)
-                            : formatTime(job.createdAt)}
+                          {isScheduled && job.scheduler?.next ? (
+                            <ScheduledCountdown next={job.scheduler.next} onReachZero={onScheduledZero} />
+                          ) : (
+                            formatTime(job.createdAt)
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -444,9 +454,26 @@ function formatDuration(ms: number): string {
   return `${(ms / 60_000).toFixed(1)}m`;
 }
 
-function formatRelativeFuture(timestamp: number): string {
-  if (timestamp <= Date.now()) return "teraz";
-  return formatDistanceToNowStrict(new Date(timestamp), { locale: pl, addSuffix: true });
+function ScheduledCountdown({ next, onReachZero }: { next: number; onReachZero: () => void }) {
+  const [, forceTick] = useState(0);
+  const firedRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const id = setInterval(() => forceTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const reached = next - Date.now() <= 0;
+
+  useEffect(() => {
+    if (reached && firedRef.current !== next) {
+      firedRef.current = next;
+      onReachZero();
+    }
+  }, [reached, next, onReachZero]);
+
+  if (reached) return <LoaderIcon className="size-3.5 animate-spin text-muted-foreground" />;
+  return <>{formatDistanceToNowStrict(new Date(next), { locale: pl, addSuffix: true })}</>;
 }
 
 function formatScheduleInterval(
