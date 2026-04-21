@@ -487,9 +487,11 @@ function ScheduledCountdown({ next, onReachZero }: { next: number; onReachZero: 
     }
   }, [reached, next, onReachZero]);
 
-  if (reached) return <span className="italic text-muted-foreground">Uruchamianie…</span>;
-  // Ceil so the countdown reads "za N sekund" for the full Nth second and
-  // flips straight to "Uruchamianie" when it crosses zero — never "za 0 sekund".
+  // Ceil so each "za N sekund" holds for its full second; when diff crosses
+  // zero render "za 0 sekund" (future suffix) until the refetch triggered by
+  // onReachZero swaps in the new `next`. Can't let date-fns format it —
+  // with addSuffix on a past Date it would output "0 sekund temu".
+  if (reached) return <>za 0 sekund</>;
   return <>{formatDistanceToNowStrict(new Date(next), { locale: pl, addSuffix: true, roundingMethod: "ceil" })}</>;
 }
 
