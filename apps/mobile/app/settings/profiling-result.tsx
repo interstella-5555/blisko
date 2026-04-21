@@ -81,7 +81,7 @@ export default function ProfilingResultModal() {
       router.dismiss();
     } catch (err) {
       console.error("Failed to apply profile:", err);
-      setError("Nie udalo sie zapisac profilu. Sprobuj ponownie.");
+      setError("Nie udało się zapisać profilu. Spróbuj ponownie.");
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +92,7 @@ export default function ProfilingResultModal() {
     return (
       <View style={[styles.container, styles.centered]}>
         <ThinkingIndicator
-          messages={["Generuje Twoj profil...", "Analizuje Twoje odpowiedzi...", "Jeszcze chwilka..."]}
+          messages={["Generuję Twój profil...", "Analizuję Twoje odpowiedzi...", "Jeszcze chwilka..."]}
         />
       </View>
     );
@@ -105,7 +105,7 @@ export default function ProfilingResultModal() {
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.title}>Nowy profil</Text>
-      <Text style={styles.subtitle}>Mozesz edytowac tekst przed zapisaniem</Text>
+      <Text style={styles.subtitle}>Możesz edytować tekst przed zapisaniem</Text>
 
       <Text style={styles.label}>O MNIE</Text>
       <TextInput

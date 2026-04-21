@@ -30,8 +30,8 @@ interface MessageEntry {
   content: string;
 }
 
-const FALLBACK_OPENING = "Hej! Milo mi :)";
-const FALLBACK_REPLY = "Fajnie, opowiedz wiecej!";
+const FALLBACK_OPENING = "Hej! Miło mi :)";
+const FALLBACK_REPLY = "Fajnie, opowiedz więcej!";
 
 export async function generateBotMessage(
   botProfile: BotProfile,
@@ -44,8 +44,8 @@ export async function generateBotMessage(
   }
 
   const scenario = isOpening
-    ? "Pierwsza wiadomosc po zaakceptowaniu wave. Przywitaj sie nawiazujac do tego co was laczy."
-    : `Kontynuujesz rozmowe. Odpowiedz na ostatnia wiadomosc.\n\nOstatnie wiadomosci:\n${conversationHistory
+    ? "Pierwsza wiadomość po zaakceptowaniu wave. Przywitaj się nawiązując do tego co was łączy."
+    : `Kontynuujesz rozmowę. Odpowiedz na ostatnią wiadomość.\n\nOstatnie wiadomości:\n${conversationHistory
         .slice(-50)
         .map((m) => `${m.senderId === "bot" ? botProfile.displayName : otherProfile.displayName}: ${m.content}`)
         .join("\n")}`;
@@ -54,7 +54,7 @@ export async function generateBotMessage(
   // Keep bio + lookingFor; skip portrait + interests — portrait is a 3rd-person
   // restatement of bio (AI-generated) and interests are derivable from bio.
   // Together they roughly tripled prompt tokens with no chat-quality gain.
-  const system = `Jestes ${botProfile.displayName}, piszesz na czacie Blisko.
+  const system = `Jesteś ${botProfile.displayName}, piszesz na czacie Blisko.
 
 O TOBIE: ${botProfile.bio}
 SZUKASZ: ${botProfile.lookingFor}
@@ -63,10 +63,10 @@ ROZMOWCA (${otherProfile.displayName}): ${otherProfile.bio}
 SZUKA: ${otherProfile.lookingFor}
 
 ZASADY:
-- Po polsku, potocznie, 1-3 zdania, max 200 znakow
-- Nie zaczynaj od imienia, tylko tresc
+- Po polsku, potocznie, 1-3 zdania, max 200 znaków
+- Nie zaczynaj od imienia, tylko treść
 - Rzadko emoji
-- Temat bliski Twoim zainteresowaniom albo temu czego szukasz → rozwijaj, pytaj; obcy → krotko, bez entuzjazmu`;
+- Temat bliski Twoim zainteresowaniom albo temu czego szukasz → rozwijaj, pytaj; obcy → krótko, bez entuzjazmu`;
   const input = {
     kind: "generateText",
     model,

@@ -51,7 +51,7 @@ export default function PrivacyScreen() {
     <ScrollView style={styles.container}>
       {/* Visibility mode section */}
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>TRYB WIDOCZNOSCI</Text>
+        <Text style={styles.sectionLabel}>TRYB WIDOCZNOŚCI</Text>
         {VISIBILITY_OPTIONS.map((opt) => (
           <Pressable key={opt.key} style={styles.option} onPress={() => handleChangeMode(opt.key)}>
             <View style={[styles.radio, mode === opt.key && styles.radioSelected]}>
@@ -63,7 +63,7 @@ export default function PrivacyScreen() {
             </View>
           </Pressable>
         ))}
-        <Text style={styles.note}>Zmiana trybu widocznosci nie wplywa na istniejace rozmowy i dopasowania.</Text>
+        <Text style={styles.note}>Zmiana trybu widoczności nie wpływa na istniejące rozmowy i dopasowania.</Text>
       </View>
 
       {/* DND toggle */}
@@ -86,7 +86,7 @@ export default function PrivacyScreen() {
       {/* Blocked users section */}
       <View style={styles.section}>
         <Pressable style={styles.blockedRow} onPress={() => router.push("/settings/blocked-users" as never)}>
-          <Text style={styles.blockedLabel}>Zablokowani uzytkownicy</Text>
+          <Text style={styles.blockedLabel}>Zablokowani użytkownicy</Text>
           <IconChevronRight size={16} color={colors.muted} />
         </Pressable>
       </View>

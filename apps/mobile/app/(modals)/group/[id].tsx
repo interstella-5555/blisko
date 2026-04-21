@@ -17,7 +17,7 @@ import { useLocationStore } from "@/stores/locationStore";
 import { colors, fonts, spacing } from "@/theme";
 
 const ROLE_LABELS: Record<string, string> = {
-  owner: "Wlasciciel",
+  owner: "Właściciel",
   admin: "Admin",
   member: "",
 };
@@ -73,7 +73,7 @@ export default function GroupInfoScreen() {
       router.replace("/(tabs)/chats");
     },
     onError: (error) => {
-      Alert.alert("Blad", error.message);
+      Alert.alert("Błąd", error.message);
     },
   });
 
@@ -97,9 +97,9 @@ export default function GroupInfoScreen() {
     },
     onError: (error) => {
       if (error.message === "Group is full") {
-        Alert.alert("Blad", "Ta grupa jest pełna");
+        Alert.alert("Błąd", "Ta grupa jest pełna");
       } else {
-        Alert.alert("Blad", "Nie udalo sie dolaczyc do grupy");
+        Alert.alert("Błąd", "Nie udało się dołączyć do grupy");
       }
     },
   });
@@ -112,7 +112,7 @@ export default function GroupInfoScreen() {
       utils.groups.getGroupInfo.invalidate({ conversationId: conversationId! });
     },
     onError: () => {
-      Alert.alert("Blad", "Nie udalo sie utworzyc watku");
+      Alert.alert("Błąd", "Nie udało się utworzyć wątku");
     },
   });
 
@@ -138,10 +138,10 @@ export default function GroupInfoScreen() {
   );
 
   const handleLeave = useCallback(() => {
-    Alert.alert("Opusc grupe", "Czy na pewno chcesz opuscic te grupe?", [
+    Alert.alert("Opuść grupę", "Czy na pewno chcesz opuścić tę grupę?", [
       { text: "Anuluj", style: "cancel" },
       {
-        text: "Opusc",
+        text: "Opuść",
         style: "destructive",
         onPress: () => leaveGroup.mutate({ conversationId: conversationId! }),
       },
@@ -216,7 +216,7 @@ export default function GroupInfoScreen() {
             <Avatar uri={groupInfo.avatarUrl} name={groupInfo.name ?? "G"} size={80} blurred={isGhost} />
             <Text style={styles.groupName}>{groupInfo.name}</Text>
             {groupInfo.description ? <Text style={styles.groupDescription}>{groupInfo.description}</Text> : null}
-            <Text style={styles.memberCountLabel}>{groupInfo.memberCount} czlonkow</Text>
+            <Text style={styles.memberCountLabel}>{groupInfo.memberCount} członków</Text>
             {nearbyData && nearbyData.totalNearby > 0 && (
               <View style={styles.nearbySection}>
                 <Text style={[styles.sectionTitle, styles.nearbyTitle]}>W pobliżu ({nearbyData.totalNearby})</Text>
@@ -252,13 +252,13 @@ export default function GroupInfoScreen() {
           <Avatar uri={groupInfo.avatarUrl} name={groupInfo.name ?? "G"} size={80} blurred={isGhost} />
           <Text style={styles.groupName}>{groupInfo.name}</Text>
           {groupInfo.description ? <Text style={styles.groupDescription}>{groupInfo.description}</Text> : null}
-          <Text style={styles.memberCountLabel}>{groupInfo.memberCount} czlonkow</Text>
+          <Text style={styles.memberCountLabel}>{groupInfo.memberCount} członków</Text>
         </View>
 
         {/* Topics */}
         {(groupInfo.topics.length > 0 || isAdmin) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Watki</Text>
+            <Text style={styles.sectionTitle}>Wątki</Text>
             {groupInfo.topics.map((topic) => (
               <Pressable key={topic.id} style={styles.topicRow} onPress={() => handleOpenTopic(topic.id)}>
                 <Text style={styles.topicEmoji}>{topic.emoji || "💬"}</Text>
@@ -267,7 +267,7 @@ export default function GroupInfoScreen() {
                     {topic.name}
                   </Text>
                   {(topic.messageCount ?? 0) > 0 && (
-                    <Text style={styles.topicMeta}>{topic.messageCount} wiadomosci</Text>
+                    <Text style={styles.topicMeta}>{topic.messageCount} wiadomości</Text>
                   )}
                 </View>
                 <ChevronRight />
@@ -351,7 +351,7 @@ export default function GroupInfoScreen() {
 
         {/* Members */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Czlonkowie ({sortedMembers.length})</Text>
+          <Text style={styles.sectionTitle}>Członkowie ({sortedMembers.length})</Text>
           {visibleMembers.map((member) => (
             <Pressable
               key={member.userId}
@@ -397,7 +397,7 @@ export default function GroupInfoScreen() {
         <View style={styles.section}>
           <Pressable style={styles.actionRow} onPress={handleShareInvite}>
             <Text style={styles.actionText}>Link zaproszenia</Text>
-            <Text style={styles.actionHint}>Udostepnij</Text>
+            <Text style={styles.actionHint}>Udostępnij</Text>
           </Pressable>
 
           <View style={styles.toggleSection}>
@@ -409,7 +409,7 @@ export default function GroupInfoScreen() {
           </View>
 
           <Pressable style={[styles.actionRow, styles.dangerAction]} onPress={handleLeave}>
-            <Text style={styles.dangerText}>Opusc grupe</Text>
+            <Text style={styles.dangerText}>Opuść grupę</Text>
           </Pressable>
         </View>
       </ScrollView>

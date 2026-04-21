@@ -18,13 +18,13 @@ export function ProfileGateSheet({ visible, onDismiss }: ProfileGateSheetProps) 
       <Pressable style={styles.backdrop} onPress={onDismiss}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={styles.handle} />
-          <Text style={styles.title}>Uzupelnij profil</Text>
-          <Text style={styles.body}>Zeby korzystac z tej funkcji, uzupelnij swoj profil.</Text>
+          <Text style={styles.title}>Uzupełnij profil</Text>
+          <Text style={styles.body}>Żeby korzystać z tej funkcji, uzupełnij swój profil.</Text>
           <Pressable style={styles.cta} onPress={handleComplete}>
-            <Text style={styles.ctaText}>Uzupelnij teraz</Text>
+            <Text style={styles.ctaText}>Uzupełnij teraz</Text>
           </Pressable>
           <Pressable style={styles.dismiss} onPress={onDismiss}>
-            <Text style={styles.dismissText}>Pozniej</Text>
+            <Text style={styles.dismissText}>Później</Text>
           </Pressable>
         </Pressable>
       </Pressable>

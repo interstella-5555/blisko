@@ -22,7 +22,7 @@ function BlockAction({ userId, displayName }: { userId: string; displayName: str
   const utils = trpc.useUtils();
 
   const handleBlock = () => {
-    Alert.alert("Zablokuj", `Czy na pewno chcesz zablokowac ${displayName}?`, [
+    Alert.alert("Zablokuj", `Czy na pewno chcesz zablokować ${displayName}?`, [
       { text: "Anuluj", style: "cancel" },
       {
         text: "Zablokuj",
@@ -42,7 +42,7 @@ function BlockAction({ userId, displayName }: { userId: string; displayName: str
             await Promise.all([utils.waves.getSent.invalidate(), utils.waves.getReceived.invalidate()]);
             router.back();
           } catch {
-            Alert.alert("Blad", "Nie udalo sie zablokowac uzytkownika.");
+            Alert.alert("Błąd", "Nie udało się zablokować użytkownika.");
           }
         },
       },
@@ -51,7 +51,7 @@ function BlockAction({ userId, displayName }: { userId: string; displayName: str
 
   return (
     <Pressable style={styles.blockAction} onPress={handleBlock} disabled={blockMutation.isPending}>
-      <Text style={styles.blockActionText}>{blockMutation.isPending ? "Blokowanie..." : "Zablokuj uzytkownika"}</Text>
+      <Text style={styles.blockActionText}>{blockMutation.isPending ? "Blokowanie..." : "Zablokuj użytkownika"}</Text>
     </Pressable>
   );
 }

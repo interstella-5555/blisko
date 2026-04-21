@@ -49,7 +49,7 @@ export default function NotificationsScreen() {
         />
 
         <Text style={styles.helperText}>
-          Powiadomienia push wymagaja zgody systemowej. Jesli je wylaczyles, wlacz je w Ustawieniach iPhone'a {">"}{" "}
+          Powiadomienia push wymagają zgody systemowej. Jeśli je wyłączyłeś, włącz je w Ustawieniach iPhone'a {">"}{" "}
           Blisko.
         </Text>
       </View>

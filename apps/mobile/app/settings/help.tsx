@@ -19,13 +19,13 @@ function Row({ label, onPress }: RowProps) {
 export default function HelpScreen() {
   return (
     <View style={styles.container}>
-      <Row label="Jak to dziala?" onPress={() => Alert.alert("Wkrotce!")} />
+      <Row label="Jak to działa?" onPress={() => Alert.alert("Wkrótce!")} />
       <Row
-        label="Zglos problem"
-        onPress={() => Linking.openURL("mailto:support@blisko.app?subject=Zgloszenie problemu")}
+        label="Zgłoś problem"
+        onPress={() => Linking.openURL("mailto:support@blisko.app?subject=Zgłoszenie problemu")}
       />
       <Row label="Regulamin" onPress={() => Linking.openURL("https://blisko.app/terms")} />
-      <Row label="Polityka prywatnosci" onPress={() => Linking.openURL("https://blisko.app/privacy")} />
+      <Row label="Polityka prywatności" onPress={() => Linking.openURL("https://blisko.app/privacy")} />
     </View>
   );
 }
