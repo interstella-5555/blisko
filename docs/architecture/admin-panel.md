@@ -4,6 +4,7 @@
 > Updated 2026-04-09 — Admin write actions implemented (BLI-154): service functions, BullMQ job types, admin mutations, UI actions.
 > Updated 2026-04-19 — BLI-236 flex-tier latency observability surfaced in `/dashboard/ai-costs`: new `byServiceTier` (p50/p95 per `service_tier`) and `byJobNameAndTier` (per (jobName, tier, reasoningEffort)) tRPC procedures on `ai-costs.ts` router. Enables comparing flex vs standard latency/cost per job type.
 > Updated 2026-04-22 — BLI-269 image moderation review queue (`/dashboard/moderation`, `moderation.ts` router, `admin-remove-flagged-upload` ops job). Fills the queue that BLI-268 starts writing to.
+> Updated 2026-04-22 — BLI-156 suspension actions: `admin.users.suspend` / `unsuspend`, new `admin-suspend-user` / `admin-unsuspend-user` ops jobs, `"suspended"` user-list filter + status badge, ban-reason textarea dialog. See `moderation-suspension.md`.
 
 Internal admin panel for managing users, conversations, waves, groups, and AI matching. TanStack Start + Vite + Nitro, deployed on Railway.
 
@@ -67,7 +68,7 @@ Schema + connection factory shared between API and admin.
 |-------|------|-------------|
 | `/dashboard` | — | Layout with sidebar, renders child routes |
 | `/dashboard/` | — | Home (placeholder cards) |
-| `/dashboard/users` | users + profiles + wave/msg/group counts | User list with search, status filter, seed toggle, profile detail panel |
+| `/dashboard/users` | users + profiles + wave/msg/group counts | User list with search (status filter includes `suspended`, BLI-156), seed toggle, profile detail panel; dropdown actions include "Zawieś konto" / "Odwieś konto" alongside soft-delete |
 | `/dashboard/users/{userId}` | connectionAnalyses + profiles (nearby query) | Per-user diagnostic: T2/T3 analyses list + full nearby list (read-only, no AI side-effects, no privacy filters). Nearby rows synthesize a `t1` tier client-side for pairs without a persisted analysis row. Backed by `user-analyses.ts` router — split out from `users.ts` because the analysis-browsing queries share no shape with the user listing endpoints. |
 | `/dashboard/waves` | waves + from/to user profiles | Wave list with status filter, accept rate stats |
 | `/dashboard/conversations` | conversations (type=dm) + participants | DM list with participant info, message counts |
@@ -111,6 +112,8 @@ Implemented via BLI-154. Admin tRPC mutations enqueue BullMQ jobs, wait for API 
 |--------|---------------|----------|-----------------|
 | Soft delete user | `users.softDelete` | `admin-soft-delete-user` | `softDeleteUser()` |
 | Restore user | `users.restore` | `admin-restore-user` | `restoreUser()` |
+| Suspend user | `users.suspend` | `admin-suspend-user` | `suspendUser()` — see `moderation-suspension.md` |
+| Unsuspend user | `users.unsuspend` | `admin-unsuspend-user` | `unsuspendUser()` |
 | Re-analyze AI | `users.reanalyze` | `analyze-user-pairs` (existing) | — (reads lat/lon from DB) |
 | Regenerate profile | `users.regenerateProfile` | `generate-profile-ai` (existing) + `analyze-user-pairs` | — (reads bio/lookingFor from DB) |
 | Force disconnect | `users.forceDisconnect` | `admin-force-disconnect` | `publishEvent("forceDisconnect")` |

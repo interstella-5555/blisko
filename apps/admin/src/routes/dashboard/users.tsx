@@ -6,10 +6,12 @@ import {
   ChevronRightIcon,
   ChevronsLeftIcon,
   ChevronsRightIcon,
+  CircleCheckIcon,
   EyeIcon,
   LoaderIcon,
   MoreHorizontalIcon,
   NetworkIcon,
+  PauseCircleIcon,
   RotateCcwIcon,
   SearchIcon,
   ShieldAlertIcon,
@@ -46,18 +48,22 @@ export const Route = createFileRoute("/dashboard/users")({
   component: UsersPage,
 });
 
-type UserStatus = "active" | "onboarding" | "deleted";
+type UserStatus = "active" | "onboarding" | "deleted" | "suspended";
 
-const STATUS_COLORS: Record<UserStatus, "default" | "secondary" | "destructive"> = {
+const STATUS_COLORS: Record<UserStatus, "default" | "secondary" | "destructive" | "outline"> = {
   active: "default",
   onboarding: "secondary",
   deleted: "destructive",
+  // Amber-ish via outline; distinguishable from the destructive red of deleted
+  // while keeping the shared Badge component (no new variant needed).
+  suspended: "outline",
 };
 
 const STATUS_LABELS: Record<UserStatus, string> = {
   active: "Aktywny",
   onboarding: "Onboarding",
   deleted: "Usunięty",
+  suspended: "Zawieszony",
 };
 
 const VISIBILITY_LABELS: Record<string, string> = {
@@ -88,6 +94,8 @@ function UsersPage() {
   const selectedUser = trpc.users.getById.useQuery({ id: selectedUserId! }, { enabled: !!selectedUserId });
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [suspendDialog, setSuspendDialog] = useState<{ id: string; name: string } | null>(null);
+  const [suspendReason, setSuspendReason] = useState("");
 
   const utils = trpc.useUtils();
 
@@ -124,6 +132,26 @@ function UsersPage() {
 
   const forceDisconnectMutation = trpc.users.forceDisconnect.useMutation({
     onSuccess: () => toast.success("Użytkownik został rozłączony"),
+    onError: (err) => toast.error(`Błąd: ${err.message}`),
+  });
+
+  const suspendMutation = trpc.users.suspend.useMutation({
+    onSuccess: () => {
+      toast.success("Konto zostało zawieszone");
+      utils.users.list.invalidate();
+      if (selectedUserId) utils.users.getById.invalidate({ id: selectedUserId });
+      setSuspendDialog(null);
+      setSuspendReason("");
+    },
+    onError: (err) => toast.error(`Błąd: ${err.message}`),
+  });
+
+  const unsuspendMutation = trpc.users.unsuspend.useMutation({
+    onSuccess: () => {
+      toast.success("Konto zostało odwieszone");
+      utils.users.list.invalidate();
+      if (selectedUserId) utils.users.getById.invalidate({ id: selectedUserId });
+    },
     onError: (err) => toast.error(`Błąd: ${err.message}`),
   });
 
@@ -168,6 +196,7 @@ function UsersPage() {
             <option value="all">Wszystkie statusy</option>
             <option value="active">Aktywni</option>
             <option value="onboarding">Onboarding</option>
+            <option value="suspended">Zawieszeni</option>
             <option value="deleted">Usunięci</option>
           </select>
           <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
@@ -214,7 +243,10 @@ function UsersPage() {
               </TableHeader>
               <TableBody>
                 {users.data?.users.map((user) => (
-                  <TableRow key={user.id} className={user.status === "deleted" ? "opacity-50" : ""}>
+                  <TableRow
+                    key={user.id}
+                    className={user.status === "deleted" || user.status === "suspended" ? "opacity-50" : ""}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
@@ -304,6 +336,22 @@ function UsersPage() {
                             Rozłącz
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
+                          {user.status === "suspended" ? (
+                            <DropdownMenuItem
+                              onSelect={() => unsuspendMutation.mutate({ userId: user.id })}
+                              disabled={unsuspendMutation.isPending}
+                            >
+                              <CircleCheckIcon className="text-muted-foreground" />
+                              Odwieś konto
+                            </DropdownMenuItem>
+                          ) : user.status !== "deleted" ? (
+                            <DropdownMenuItem
+                              onSelect={() => setSuspendDialog({ id: user.id, name: user.displayName })}
+                            >
+                              <PauseCircleIcon className="text-muted-foreground" />
+                              Zawieś konto
+                            </DropdownMenuItem>
+                          ) : null}
                           {user.status === "deleted" ? (
                             <DropdownMenuItem
                               onSelect={() => restoreMutation.mutate({ userId: user.id })}
@@ -390,6 +438,15 @@ function UsersPage() {
                   }
                 />
                 <Field
+                  label="Zawieszono"
+                  value={
+                    selectedUser.data.suspendedAt
+                      ? new Date(selectedUser.data.suspendedAt).toLocaleString("pl-PL")
+                      : "—"
+                  }
+                />
+                <Field label="Powód zawieszenia" value={selectedUser.data.suspendReason || "—"} />
+                <Field
                   label="Data urodzenia"
                   value={
                     selectedUser.data.dateOfBirth
@@ -427,6 +484,44 @@ function UsersPage() {
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={!!suspendDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSuspendDialog(null);
+            setSuspendReason("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Zawiesić konto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Konto użytkownika {suspendDialog?.name} zostanie zawieszone — logowanie zablokowane, sesje i push-tokeny
+              skasowane, pending pingi odrzucone. Powód nie jest pokazywany użytkownikowi, tylko zapisany do audytu.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <textarea
+            value={suspendReason}
+            onChange={(e) => setSuspendReason(e.target.value)}
+            rows={4}
+            placeholder="Powód zawieszenia (widoczny tylko dla administracji)"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                suspendDialog && suspendMutation.mutate({ userId: suspendDialog.id, reason: suspendReason.trim() })
+              }
+              disabled={suspendMutation.isPending || suspendReason.trim().length < 3}
+            >
+              {suspendMutation.isPending ? "Zawieszam..." : "Zawieś konto"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
         <AlertDialogContent>

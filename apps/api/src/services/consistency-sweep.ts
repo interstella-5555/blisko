@@ -1,6 +1,7 @@
 import { subHours } from "date-fns";
 import { and, eq, gt, isNotNull, isNull, lt } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { userIsActive } from "@/db/filters";
 import { enqueueProfileAI, enqueueProfileFromQA } from "./queue";
 
 export interface SweepResult {
@@ -50,7 +51,7 @@ export async function runConsistencySweep(): Promise<SweepResult> {
         isNotNull(schema.profiles.bio),
         isNull(schema.profiles.portrait),
         lt(schema.profiles.updatedAt, oneHourAgo),
-        isNull(schema.user.deletedAt),
+        userIsActive(),
       ),
     );
 
@@ -78,7 +79,7 @@ export async function runConsistencySweep(): Promise<SweepResult> {
         isNull(schema.profilingSessions.generatedBio),
         lt(schema.profilingSessions.createdAt, oneHourAgo),
         gt(schema.profilingSessions.createdAt, twentyFourHoursAgo),
-        isNull(schema.user.deletedAt),
+        userIsActive(),
       ),
     );
 

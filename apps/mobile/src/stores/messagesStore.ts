@@ -1,6 +1,11 @@
 import { randomUUID } from "expo-crypto";
 import { create } from "zustand";
-import { handleGlobalError, isContentModerationError, isRateLimitError } from "@/lib/globalErrorHandler";
+import {
+  handleGlobalError,
+  isContentModerationError,
+  isRateLimitError,
+  isRecipientSuspendedError,
+} from "@/lib/globalErrorHandler";
 import { showToast } from "@/lib/toast";
 import { vanillaClient } from "@/lib/trpc";
 import { useConversationsStore } from "./conversationsStore";
@@ -351,7 +356,7 @@ export const useMessagesStore = create<MessagesStore>((setState, getState) => ({
         // vanillaClient bypasses MutationCache, so the global handler would
         // not otherwise run for this call path — invoke it explicitly.
         handleGlobalError(err);
-        if (isRateLimitError(err) || isContentModerationError(err)) return;
+        if (isRateLimitError(err) || isContentModerationError(err) || isRecipientSuspendedError(err)) return;
         showToast("error", "Nie udało się wysłać wiadomości");
       });
   },

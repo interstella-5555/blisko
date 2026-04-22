@@ -499,6 +499,7 @@ export default function ChatScreen() {
             replyingTo={replyingTo}
             onCancelReply={() => setReplyingTo(null)}
             onTyping={() => sendTyping(true)}
+            disabledReason={!isGroup && storeConversation?.participant?.isSuspended ? "Konto zawieszone" : null}
           />
         </View>
       </KeyboardStickyView>

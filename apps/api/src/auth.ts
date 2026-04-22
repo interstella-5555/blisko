@@ -1,11 +1,22 @@
 import { expo } from "@better-auth/expo";
 import { OTP_LENGTH } from "@repo/shared";
-import { betterAuth } from "better-auth";
+import { APIError, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { changeEmailOtp, sendEmail, signInOtp } from "@/services/email";
+
+// Pre-auth gate: block session creation for soft-deleted or suspended users.
+// Runs for every path that lands in databaseHooks.session.create.before —
+// OAuth callbacks (all four providers), email-OTP verify, and dev auto-login
+// (dev auto-login bypasses Better Auth but we keep the check symmetric). The
+// emailOTP sendVerificationOTP callback handles the earlier "don't even send
+// the code" case; this hook is the catch-all for OAuth where there is no OTP.
+function assertUserCanSignIn(user: { deletedAt: Date | null; suspendedAt: Date | null } | undefined) {
+  if (user?.deletedAt) throw new APIError("FORBIDDEN", { message: "ACCOUNT_DELETED" });
+  if (user?.suspendedAt) throw new APIError("FORBIDDEN", { message: "ACCOUNT_SUSPENDED" });
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -23,6 +34,17 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   trustedOrigins: ["blisko://", "exp://", "http://localhost:8081", "http://localhost:19000", "http://localhost:19006"],
   databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const user = await db.query.user.findFirst({
+            where: eq(schema.user.id, session.userId),
+            columns: { deletedAt: true, suspendedAt: true },
+          });
+          assertUserCanSignIn(user);
+        },
+      },
+    },
     account: {
       create: {
         after: async (account) => {
@@ -109,6 +131,17 @@ export const auth = betterAuth({
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
         if (type !== "sign-in" && type !== "change-email") return;
+
+        // Short-circuit for suspended / deleted accounts on the sign-in path.
+        // Skipping this for change-email: a change-email OTP means the user
+        // already has a valid session, which isAuthed has already vetted.
+        if (type === "sign-in") {
+          const user = await db.query.user.findFirst({
+            where: eq(schema.user.email, email),
+            columns: { deletedAt: true, suspendedAt: true },
+          });
+          assertUserCanSignIn(user);
+        }
 
         console.log(`OTP for ${email}: ${otp}`);
 

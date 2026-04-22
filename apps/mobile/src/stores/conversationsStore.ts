@@ -8,6 +8,7 @@ export interface ConversationEntry {
     userId: string;
     displayName: string;
     avatarUrl: string | null;
+    isSuspended: boolean;
   } | null;
   groupName: string | null;
   groupAvatarUrl: string | null;

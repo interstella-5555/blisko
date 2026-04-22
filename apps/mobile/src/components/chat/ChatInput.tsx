@@ -19,6 +19,8 @@ interface ChatInputProps {
   replyingTo?: ReplyingTo | null;
   onCancelReply?: () => void;
   onTyping?: () => void;
+  /** When set, renders a banner with this copy and disables the composer (text input + send). */
+  disabledReason?: string | null;
   /** Forwarded to the root container for measuring the bar height (used by MessageContextMenu). */
   onLayout?: (e: LayoutChangeEvent) => void;
 }
@@ -31,6 +33,7 @@ export function ChatInput({
   replyingTo,
   onCancelReply,
   onTyping,
+  disabledReason,
   onLayout,
 }: ChatInputProps) {
   const [text, setText] = useState("");
@@ -66,8 +69,15 @@ export function ChatInput({
     onTyping?.();
   };
 
+  const isDisabled = disabledReason !== null && disabledReason !== undefined;
+
   return (
     <View style={[styles.container, { paddingBottom: keyboardVisible ? 0 : bottom }]} onLayout={onLayout}>
+      {isDisabled && (
+        <View style={styles.disabledBanner}>
+          <Text style={styles.disabledBannerText}>{disabledReason}</Text>
+        </View>
+      )}
       {replyingTo && (
         <View style={styles.replyBar}>
           <View style={styles.replyContent}>
@@ -99,20 +109,21 @@ export function ChatInput({
           style={styles.input}
           value={text}
           onChangeText={handleChangeText}
-          placeholder="Wpisz wiadomość..."
+          placeholder={isDisabled ? "" : "Wpisz wiadomość..."}
           placeholderTextColor={colors.muted}
           spellCheck={false}
           autoCorrect={false}
           multiline
           maxLength={2000}
+          editable={!isDisabled}
           testID="chat-input"
           // @ts-expect-error -- maxNumberOfLines works on RN but isn't typed everywhere
           maxNumberOfLines={4}
         />
         <Pressable
-          style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
+          style={[styles.sendBtn, (!text.trim() || isDisabled) && styles.sendBtnDisabled]}
           onPress={handleSend}
-          disabled={!text.trim()}
+          disabled={!text.trim() || isDisabled}
           testID="chat-send-btn"
         >
           <Text style={styles.sendText}>Wyślij</Text>
@@ -127,6 +138,19 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.rule,
     backgroundColor: colors.bg,
+  },
+  disabledBanner: {
+    paddingHorizontal: spacing.section,
+    paddingVertical: spacing.tight,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+    backgroundColor: "rgba(213, 208, 196, 0.25)",
+  },
+  disabledBannerText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.muted,
+    textAlign: "center",
   },
   replyBar: {
     flexDirection: "row",

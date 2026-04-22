@@ -22,12 +22,18 @@ export function isContentModerationError(error: unknown): boolean {
   }
 }
 
+export function isRecipientSuspendedError(error: unknown): boolean {
+  const err = error as TrpcLikeError;
+  return err?.data?.code === "BAD_REQUEST" && err?.message === "RECIPIENT_SUSPENDED";
+}
+
 // Stable toast ids so bursts of the same error (user mashes a rate-limited
 // button, sends several moderated messages in a row) collapse into a single
 // toast in sonner-native instead of stacking. Same pattern as `msg-conv-*`
 // for WS notifications — see mobile-architecture.md "Toast ids and dedupe".
 const RATE_LIMIT_TOAST_ID = "rate-limit";
 const CONTENT_MODERATION_TOAST_ID = "content-moderation";
+const RECIPIENT_SUSPENDED_TOAST_ID = "recipient-suspended";
 
 function handleRateLimitError(error: unknown) {
   const err = error as TrpcLikeError;
@@ -48,6 +54,11 @@ function handleContentModeration(error: unknown) {
   showToast("error", "Treść narusza regulamin", undefined, { id: CONTENT_MODERATION_TOAST_ID });
 }
 
+function handleRecipientSuspended(error: unknown) {
+  if (!isRecipientSuspendedError(error)) return;
+  showToast("error", "Konto odbiorcy zostało zawieszone", undefined, { id: RECIPIENT_SUSPENDED_TOAST_ID });
+}
+
 // Callable from MutationCache/QueryCache onError AND from vanillaClient .catch()
 // blocks (messagesStore etc.). `onAccountDeleted` is injected because the real
 // account-deletion handler needs `signOutAndReset` + `router` from the root
@@ -56,4 +67,5 @@ export function handleGlobalError(error: unknown, onAccountDeleted?: (error: unk
   onAccountDeleted?.(error);
   handleRateLimitError(error);
   handleContentModeration(error);
+  handleRecipientSuspended(error);
 }

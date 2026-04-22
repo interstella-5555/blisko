@@ -22,7 +22,7 @@ export default function HelpScreen() {
       <Row label="Jak to działa?" onPress={() => Alert.alert("Wkrótce!")} />
       <Row
         label="Zgłoś problem"
-        onPress={() => Linking.openURL("mailto:support@blisko.app?subject=Zgłoszenie problemu")}
+        onPress={() => Linking.openURL("mailto:kontakt@blisko.app?subject=Zgłoszenie problemu")}
       />
       <Row label="Regulamin" onPress={() => Linking.openURL("https://blisko.app/terms")} />
       <Row label="Polityka prywatności" onPress={() => Linking.openURL("https://blisko.app/privacy")} />
