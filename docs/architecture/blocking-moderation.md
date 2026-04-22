@@ -1,6 +1,7 @@
 # Blocking & Content Moderation
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-22 — Image moderation on upload via `omni-moderation-latest` (BLI-268). First-line filter before anything lands in S3; pairs with the BLI-68 quarantine as the preservation layer.
 
 Source: `apps/api/src/services/moderation.ts`, `apps/api/src/trpc/procedures/waves.ts` (block/unblock/getBlocked), `apps/api/src/trpc/procedures/profiles.ts` (block filtering in nearby queries), `apps/api/src/db/schema.ts`.
 
@@ -120,6 +121,23 @@ OpenAI's Moderation API returns `categories` object with boolean flags for: `sex
 
 Flagged categories are logged to console: `[moderation] Content flagged: harassment, violence`.
 
+## Image Moderation (uploads)
+
+**What:** `moderateImage(bytes, mimeType)` scans a user-uploaded image via OpenAI's multimodal `omni-moderation-latest` model before the bytes hit S3. Called from `POST /uploads` in `apps/api/src/index.ts`; on a flag the route returns `400 { error: "CONTENT_MODERATED" }` and the image is never persisted.
+
+**Why pre-upload, not post-upload:** same logic as text moderation — blocked content never enters the system. Image moderation sits alongside the BLI-68 quarantine lifecycle: this one prevents what it can, quarantine preserves what it can't (for reports that land after the fact).
+
+**Config:**
+- Endpoint: `https://api.openai.com/v1/moderations` (shared with text moderation)
+- Model: `omni-moderation-latest` (multimodal — same endpoint, pass `model` + array `input`)
+- Input: base64 data URL (`data:<mime>;base64,...`) inside `{ type: "image_url", image_url: { url } }`
+- Auth: `OPENAI_API_KEY`
+- Return shape: `{ flagged: boolean; categories: string[] }` — **does not throw** (unlike `moderateContent`). The Hono upload route isn't tRPC, so the `TRPCError` wrapper doesn't apply; caller handles its own response shape.
+
+**Graceful degradation:** same policy as text moderation. Missing key → `{ flagged: false, categories: [] }`, skip. API non-200 → log + same skip. A moderation outage must not block users from uploading.
+
+**Flagged logging:** `console.warn("[moderation] Image flagged: sexual/minors, violence/graphic")`.
+
 ---
 
 ## Where Moderation Is Called
@@ -147,6 +165,11 @@ Complete list of every trigger point in the codebase:
 | Endpoint | What's moderated |
 |----------|-----------------|
 | `messages.send` | Text message content (skipped for image/location types) |
+
+#### index.ts (Hono routes)
+| Endpoint | What's moderated |
+|----------|-----------------|
+| `POST /uploads` | Image bytes via `moderateImage()`. Covers avatars today and any future upload consumer (chat images, group photos) — the gate sits on the endpoint, not on individual call-sites. |
 
 #### NOT moderated (gaps vs PRODUCT.md)
 | Content | Where | PRODUCT.md says |
