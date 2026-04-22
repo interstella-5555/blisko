@@ -309,13 +309,17 @@ app.post("/uploads", async (c) => {
 
     const ext = file.name.split(".").pop() || "jpg";
     const key = `uploads/${crypto.randomUUID()}.${ext}`;
+    const source = `s3://${process.env.BUCKET_NAME}/${key}`;
 
     await s3Client.write(key, buffer, { type: file.type });
 
     if (moderation.flagged) {
+      // Store the full `s3://` source, matching `profiles.avatarUrl`'s shape
+      // so admin/takedown paths can use `extractOurS3Key` and resolve imgproxy
+      // URLs the same way as any other avatar.
       await db.insert(schema.moderationResults).values({
         userId: sessionRow.userId,
-        uploadKey: key,
+        uploadKey: source,
         mimeType: file.type,
         status: "flagged_review",
         flaggedCategories: moderation.categories,
@@ -327,7 +331,6 @@ app.post("/uploads", async (c) => {
     // renders via the imgproxy helper (packages/shared/src/avatar.ts). Pre-BLI-254
     // we returned a presigned URL that expired in 7 days — which is why old uploads
     // silently 403 across the app.
-    const source = `s3://${process.env.BUCKET_NAME}/${key}`;
     return c.json({ source });
   } catch (error) {
     console.error("Upload error:", error);

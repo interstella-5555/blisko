@@ -1,7 +1,7 @@
 import { extractOurS3Key } from "@repo/shared";
 import { type Job, Queue, Worker } from "bullmq";
 import { subDays } from "date-fns";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import ms from "ms";
 import { db, schema } from "@/db";
 import { publishEvent } from "@/ws/redis-bridge";
@@ -37,12 +37,20 @@ interface AdminForceDisconnectJob {
   userId: string;
 }
 
+interface AdminRemoveFlaggedUploadJob {
+  type: "admin-remove-flagged-upload";
+  moderationResultId: string;
+  reviewedBy: string;
+  reviewNotes?: string;
+}
+
 type OpsJob =
   | HardDeleteUserJob
   | ExportUserDataJob
   | AdminSoftDeleteUserJob
   | AdminRestoreUserJob
-  | AdminForceDisconnectJob;
+  | AdminForceDisconnectJob
+  | AdminRemoveFlaggedUploadJob;
 
 // --- Queue (lazy init) ---
 
@@ -211,6 +219,57 @@ async function processHardDeleteUser(userId: string) {
   console.log(`[queue:ops] anonymize-user completed for ${userId}`);
 }
 
+// --- Admin remove flagged upload processor ---
+
+async function processAdminRemoveFlaggedUpload(moderationResultId: string, reviewedBy: string, reviewNotes?: string) {
+  const row = await db.query.moderationResults.findFirst({
+    where: eq(schema.moderationResults.id, moderationResultId),
+    columns: { userId: true, uploadKey: true, status: true },
+  });
+  if (!row) {
+    console.warn(`[queue:ops] admin-remove-flagged-upload: row ${moderationResultId} not found`);
+    return;
+  }
+  if (row.status !== "flagged_review") {
+    console.warn(`[queue:ops] admin-remove-flagged-upload: row ${moderationResultId} is ${row.status}, skipping`);
+    return;
+  }
+
+  const key = extractOurS3Key(row.uploadKey);
+  if (key) {
+    try {
+      await s3Client.delete(key);
+    } catch (err) {
+      // 404s are expected if the user already moved this avatar to quarantine
+      // via a subsequent profile update; lifecycle still cleans it up.
+      console.error(`[queue:ops] failed to delete flagged upload ${key}:`, err);
+    }
+  }
+
+  // If the flagged image is still the user's current avatar, null it out so
+  // the takedown takes effect in-app. We compare on the full `s3://` source
+  // shape — both columns now use that format post-BLI-269.
+  if (row.userId && row.uploadKey) {
+    await db
+      .update(schema.profiles)
+      .set({ avatarUrl: null, updatedAt: new Date() })
+      .where(and(eq(schema.profiles.userId, row.userId), eq(schema.profiles.avatarUrl, row.uploadKey)));
+  }
+
+  await db
+    .update(schema.moderationResults)
+    .set({
+      status: "reviewed_removed",
+      reviewedAt: new Date(),
+      reviewedBy,
+      reviewDecision: "remove",
+      reviewNotes: reviewNotes ?? null,
+    })
+    .where(eq(schema.moderationResults.id, moderationResultId));
+
+  console.log(`[queue:ops] admin-remove-flagged-upload completed for ${moderationResultId}`);
+}
+
 // --- Export user data processor ---
 
 async function processExportUserData(userId: string, email: string) {
@@ -265,6 +324,9 @@ async function processOpsJob(job: Job<OpsJob>) {
       break;
     case "admin-force-disconnect":
       publishEvent("forceDisconnect", { userId: data.userId });
+      break;
+    case "admin-remove-flagged-upload":
+      await processAdminRemoveFlaggedUpload(data.moderationResultId, data.reviewedBy, data.reviewNotes);
       break;
   }
 }

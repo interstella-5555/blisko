@@ -17,6 +17,7 @@ import { Route as DashboardWavesRouteImport } from './routes/dashboard/waves'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardQueueRouteImport } from './routes/dashboard/queue'
 import { Route as DashboardPushLogRouteImport } from './routes/dashboard/push-log'
+import { Route as DashboardModerationRouteImport } from './routes/dashboard/moderation'
 import { Route as DashboardMatchingRouteImport } from './routes/dashboard/matching'
 import { Route as DashboardGroupsRouteImport } from './routes/dashboard/groups'
 import { Route as DashboardConversationsRouteImport } from './routes/dashboard/conversations'
@@ -65,6 +66,11 @@ const DashboardQueueRoute = DashboardQueueRouteImport.update({
 const DashboardPushLogRoute = DashboardPushLogRouteImport.update({
   id: '/push-log',
   path: '/push-log',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardModerationRoute = DashboardModerationRouteImport.update({
+  id: '/moderation',
+  path: '/moderation',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardMatchingRoute = DashboardMatchingRouteImport.update({
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/moderation': typeof DashboardModerationRoute
   '/dashboard/push-log': typeof DashboardPushLogRoute
   '/dashboard/queue': typeof DashboardQueueRoute
   '/dashboard/users': typeof DashboardUsersRouteWithChildren
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/moderation': typeof DashboardModerationRoute
   '/dashboard/push-log': typeof DashboardPushLogRoute
   '/dashboard/queue': typeof DashboardQueueRoute
   '/dashboard/users': typeof DashboardUsersRouteWithChildren
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/dashboard/conversations': typeof DashboardConversationsRoute
   '/dashboard/groups': typeof DashboardGroupsRoute
   '/dashboard/matching': typeof DashboardMatchingRoute
+  '/dashboard/moderation': typeof DashboardModerationRoute
   '/dashboard/push-log': typeof DashboardPushLogRoute
   '/dashboard/queue': typeof DashboardQueueRoute
   '/dashboard/users': typeof DashboardUsersRouteWithChildren
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
+    | '/dashboard/moderation'
     | '/dashboard/push-log'
     | '/dashboard/queue'
     | '/dashboard/users'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
+    | '/dashboard/moderation'
     | '/dashboard/push-log'
     | '/dashboard/queue'
     | '/dashboard/users'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/dashboard/conversations'
     | '/dashboard/groups'
     | '/dashboard/matching'
+    | '/dashboard/moderation'
     | '/dashboard/push-log'
     | '/dashboard/queue'
     | '/dashboard/users'
@@ -295,6 +307,13 @@ declare module '@tanstack/react-router' {
       path: '/push-log'
       fullPath: '/dashboard/push-log'
       preLoaderRoute: typeof DashboardPushLogRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/moderation': {
+      id: '/dashboard/moderation'
+      path: '/moderation'
+      fullPath: '/dashboard/moderation'
+      preLoaderRoute: typeof DashboardModerationRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/matching': {
@@ -380,6 +399,7 @@ interface DashboardRouteChildren {
   DashboardConversationsRoute: typeof DashboardConversationsRoute
   DashboardGroupsRoute: typeof DashboardGroupsRoute
   DashboardMatchingRoute: typeof DashboardMatchingRoute
+  DashboardModerationRoute: typeof DashboardModerationRoute
   DashboardPushLogRoute: typeof DashboardPushLogRoute
   DashboardQueueRoute: typeof DashboardQueueRoute
   DashboardUsersRoute: typeof DashboardUsersRouteWithChildren
@@ -392,6 +412,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConversationsRoute: DashboardConversationsRoute,
   DashboardGroupsRoute: DashboardGroupsRoute,
   DashboardMatchingRoute: DashboardMatchingRoute,
+  DashboardModerationRoute: DashboardModerationRoute,
   DashboardPushLogRoute: DashboardPushLogRoute,
   DashboardQueueRoute: DashboardQueueRoute,
   DashboardUsersRoute: DashboardUsersRouteWithChildren,

@@ -68,12 +68,9 @@ const navMain = [
   },
   {
     title: "Moderacja",
-    url: "#",
+    url: "/dashboard/moderation",
     icon: <ShieldIcon />,
-    items: [
-      { title: "Zgłoszenia", url: "#" },
-      { title: "Blokady", url: "#" },
-    ],
+    items: [{ title: "Kolejka", url: "/dashboard/moderation" }],
   },
   {
     title: "Powiadomienia",
