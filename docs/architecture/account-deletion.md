@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-09 — Soft-delete logic extracted to `softDeleteUser()` service function, admin restore via BullMQ (BLI-154).
 > Updated 2026-04-22 — Anonymization purges the user's S3 quarantine prefix (`quarantine/{userId}/`) alongside the current avatar (BLI-68).
+> Updated 2026-04-22 — Suspension state (`user.suspendedAt`) is a distinct, reversible moderation state that lives alongside `deletedAt` and shares the `isAuthed` gate. It does **not** schedule anonymization — admin either unsuspends or soft-deletes separately. Details in `moderation-suspension.md` (BLI-156).
 
 Two-phase account deletion: immediate soft-delete blocks access and hides the user, then a 14-day delayed BullMQ job anonymizes all PII while preserving relational data.
 
@@ -56,7 +57,7 @@ OTP verification prevents account deletion via stolen session tokens. Deleting s
 
 #### What
 
-The `isAuthed` tRPC middleware (in `apps/api/src/trpc/trpc.ts`) checks `user.deletedAt` on every authenticated request. If set, it throws a `FORBIDDEN` error with message `"ACCOUNT_DELETED"`. This uses a prepared statement (`user_deleted_at`) for performance.
+The `isAuthed` tRPC middleware (in `apps/api/src/trpc/trpc.ts`) checks `user.deletedAt` on every authenticated request. If set, it throws a `FORBIDDEN` error with message `"ACCOUNT_DELETED"`. This uses a prepared statement (`user_deletion_state`, formerly `user_deleted_at`) that now also selects `suspendedAt` — `ACCOUNT_DELETED` takes precedence, followed by `ACCOUNT_SUSPENDED` (see `moderation-suspension.md`).
 
 #### Why
 
@@ -64,9 +65,9 @@ Even though sessions are deleted during soft-delete, a user could theoretically 
 
 #### Config
 
-- Prepared statement name: `user_deleted_at`
+- Prepared statement name: `user_deletion_state` (selects both `deletedAt` and `suspendedAt`)
 - Error code: `FORBIDDEN`
-- Error message: `"ACCOUNT_DELETED"` (mobile app checks this string to show the Polish-language error alert)
+- Error message: `"ACCOUNT_DELETED"` (mobile app checks this string to show the Polish-language error alert). `ACCOUNT_SUSPENDED` uses the same shape but a distinct copy — see `moderation-suspension.md`.
 
 ## Discovery Filtering
 

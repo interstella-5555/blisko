@@ -10,6 +10,7 @@ import { TRPCError } from "@trpc/server";
 import { and, between, eq, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
+import { userIsActive } from "@/db/filters";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
 import { featureGate } from "@/trpc/middleware/featureGate";
@@ -352,6 +353,9 @@ export const groupsRouter = router({
     .query(async ({ ctx, input }) => {
       await requireGroupParticipant(input.conversationId, ctx.userId);
 
+      // Members list keeps suspended users visible so the mobile can render a
+      // "Konto zawieszone" badge alongside the row. Soft-deleted members are
+      // still hidden (their profile data is stale / about to be anonymized).
       const members = await db
         .select({
           userId: schema.conversationParticipants.userId,
@@ -359,6 +363,7 @@ export const groupsRouter = router({
           joinedAt: schema.conversationParticipants.joinedAt,
           displayName: schema.profiles.displayName,
           avatarUrl: schema.profiles.avatarUrl,
+          suspendedAt: schema.user.suspendedAt,
         })
         .from(schema.conversationParticipants)
         .innerJoin(schema.profiles, eq(schema.conversationParticipants.userId, schema.profiles.userId))
@@ -374,7 +379,7 @@ export const groupsRouter = router({
         .limit(input.limit)
         .offset(input.cursor ?? 0);
 
-      return members;
+      return members.map(({ suspendedAt, ...rest }) => ({ ...rest, isSuspended: suspendedAt !== null }));
     }),
 
   addMember: protectedProcedure.input(groupMemberActionSchema).mutation(async ({ ctx, input }) => {
@@ -717,9 +722,7 @@ export const groupsRouter = router({
         .select({ count: sql<number>`count(*)` })
         .from(schema.conversationParticipants)
         .innerJoin(schema.user, eq(schema.conversationParticipants.userId, schema.user.id))
-        .where(
-          and(eq(schema.conversationParticipants.conversationId, input.conversationId), isNull(schema.user.deletedAt)),
-        );
+        .where(and(eq(schema.conversationParticipants.conversationId, input.conversationId), userIsActive()));
 
       // Members get full info; non-members get a preview
       if (!isMember) {
@@ -811,7 +814,7 @@ export const groupsRouter = router({
         isNotNull(schema.profiles.latitude),
         lte(distanceSql, radiusMeters),
         ne(schema.conversationParticipants.userId, ctx.userId),
-        isNull(schema.user.deletedAt),
+        userIsActive(),
       );
 
       const [countResult] = await db

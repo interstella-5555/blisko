@@ -15,6 +15,7 @@ import { and, between, eq, gte, isNotNull, isNull, lte, ne, or, placeholder, sql
 import { z } from "zod";
 import { DECLINE_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, preparedName, schema } from "@/db";
+import { userIsActive } from "@/db/filters";
 import { roundDistance, toGridCenter } from "@/lib/grid";
 import { isStatusActive, isStatusPublic } from "@/lib/status";
 import { setTargetUserId } from "@/services/metrics";
@@ -181,7 +182,7 @@ export const profilesRouter = router({
           ne(schema.profiles.visibilityMode, "ninja"),
           between(schema.profiles.latitude, input.latitude - latDelta, input.latitude + latDelta),
           between(schema.profiles.longitude, input.longitude - lonDelta, input.longitude + lonDelta),
-          isNull(schema.user.deletedAt),
+          userIsActive(),
         ),
       )
       .then((nearbyUsers) => {
@@ -261,7 +262,7 @@ export const profilesRouter = router({
             between(schema.profiles.longitude, minLon, maxLon),
             // Exact distance filter
             lte(distanceFormula, radiusMeters),
-            isNull(schema.user.deletedAt),
+            userIsActive(),
             ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
           ),
         )
@@ -356,7 +357,7 @@ export const profilesRouter = router({
                 between(schema.profiles.latitude, minLat, maxLat),
                 between(schema.profiles.longitude, minLon, maxLon),
                 lte(distanceFormula, radiusMeters),
-                isNull(schema.user.deletedAt),
+                userIsActive(),
                 ...(photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
               ),
             )
@@ -493,7 +494,7 @@ export const profilesRouter = router({
         between(schema.profiles.latitude, effectiveMinLat, effectiveMaxLat),
         between(schema.profiles.longitude, effectiveMinLon, effectiveMaxLon),
         lte(distanceFormula, radiusMeters),
-        isNull(schema.user.deletedAt),
+        userIsActive(),
         ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
       );
 
@@ -677,7 +678,7 @@ export const profilesRouter = router({
       .select({ isComplete: schema.profiles.isComplete })
       .from(schema.profiles)
       .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
-      .where(and(eq(schema.profiles.userId, input.userId), isNull(schema.user.deletedAt)));
+      .where(and(eq(schema.profiles.userId, input.userId), userIsActive()));
     if (!target?.isComplete) return { status: "ready" as const };
 
     const existing = await db.query.connectionAnalyses.findFirst({
@@ -716,7 +717,7 @@ export const profilesRouter = router({
       .select({ isComplete: schema.profiles.isComplete })
       .from(schema.profiles)
       .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
-      .where(and(eq(schema.profiles.userId, input.userId), isNull(schema.user.deletedAt)));
+      .where(and(eq(schema.profiles.userId, input.userId), userIsActive()));
     if (!target?.isComplete) return null;
 
     const analysis = await db.query.connectionAnalyses.findFirst({
@@ -759,8 +760,12 @@ export const profilesRouter = router({
       if (block) return null;
     }
 
+    // Suspended users are returned with `isSuspended: true` so the mobile UI
+    // can render the "Konto zawieszone" badge and disable composer. Soft-
+    // deleted users stay hidden (null) — their profile data is stale / about
+    // to be anonymized.
     const [result] = await db
-      .select({ profile: schema.profiles })
+      .select({ profile: schema.profiles, suspendedAt: schema.user.suspendedAt })
       .from(schema.profiles)
       .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
       .where(and(eq(schema.profiles.userId, input.userId), isNull(schema.user.deletedAt)));
@@ -776,6 +781,7 @@ export const profilesRouter = router({
       currentStatus: showStatus ? profile.currentStatus : null,
       statusSetAt: showStatus ? profile.statusSetAt : null,
       statusVisibility: isOwnProfile ? profile.statusVisibility : null,
+      isSuspended: result.suspendedAt !== null,
     };
   }),
 
@@ -872,7 +878,7 @@ export const profilesRouter = router({
       .from(schema.statusMatches)
       .innerJoin(schema.profiles, eq(schema.statusMatches.matchedUserId, schema.profiles.userId))
       .innerJoin(schema.user, eq(schema.statusMatches.matchedUserId, schema.user.id))
-      .where(and(eq(schema.statusMatches.userId, ctx.userId), isNull(schema.user.deletedAt)));
+      .where(and(eq(schema.statusMatches.userId, ctx.userId), userIsActive()));
 
     return rows.map((row) => ({
       id: row.id,

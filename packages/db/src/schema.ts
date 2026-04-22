@@ -21,17 +21,25 @@ import {
 } from "drizzle-orm/pg-core";
 
 // Better Auth tables (managed by better-auth)
-export const user = pgTable("user", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").notNull().default(false),
-  image: text("image"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  deletedAt: timestamp("deleted_at"),
-  anonymizedAt: timestamp("anonymized_at"),
-});
+export const user = pgTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("email_verified").notNull().default(false),
+    image: text("image"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at"),
+    anonymizedAt: timestamp("anonymized_at"),
+    suspendedAt: timestamp("suspended_at"),
+    suspendReason: text("suspend_reason"),
+  },
+  (table) => ({
+    suspendedAtIdx: index("user_suspended_at_idx").on(table.suspendedAt).where(sql`${table.suspendedAt} IS NOT NULL`),
+  }),
+);
 
 export const session = pgTable(
   "session",

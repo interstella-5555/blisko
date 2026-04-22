@@ -7,6 +7,7 @@
 > Updated 2026-04-18 — `profiles.portrait_shared_for_matching` default flipped to `true`; flag retained as audit-only (BLI-199).
 > Updated 2026-04-19 — `metrics.ai_calls` gains `service_tier` (default `'standard'`) + `reasoning_effort` (nullable) columns for the gpt-5-mini + Flex migration (BLI-236).
 > Updated 2026-04-19 — `metrics.ai_calls` gains `input_jsonb` + `output_jsonb` (nullable) columns for full payload debug; 24h retention on payloads alongside the existing 7d retention on metrics (BLI-239).
+> Updated 2026-04-22 — `user` gains `suspended_at` + `suspend_reason` + partial index `user_suspended_at_idx` for admin-driven account suspension (BLI-156). See `moderation-suspension.md`.
 
 PostgreSQL on Railway. ORM: Drizzle `^0.45.1` with `postgres` (postgres.js) `^3.4.0` driver. Schema source: `packages/db/src/schema.ts` (the `@repo/db` workspace package). `apps/api/src/db/schema.ts` is now a 3-line re-export wrapper (`export * from "@repo/db/schema"`) preserved so existing `@/db` / `@/db/schema` imports keep working — the real schema definitions live in `@repo/db`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`.
 
@@ -49,12 +50,16 @@ Core identity table. Better Auth creates and manages it; app code extends it wit
 | `updated_at` | timestamp | no | `now()` | |
 | `deleted_at` | timestamp | yes | -- | Soft-delete. Non-null = blocked by `isAuthed` middleware, invisible in discovery |
 | `anonymized_at` | timestamp | yes | -- | Set 14 days after soft-delete when PII is overwritten. Added in `0004`. |
+| `suspended_at` | timestamp | yes | -- | Admin moderation (BLI-156). Non-null = blocked by `isAuthed` and pre-auth gates, hidden from discovery. Reversible via admin unsuspend. |
+| `suspend_reason` | text | yes | -- | Admin-only audit trail for the suspension. Never returned to clients. |
 
-No custom indexes -- PK and unique email cover query patterns. `session` and `account` have FK indexes pointing here.
+Indexes: `user_suspended_at_idx` partial index on `(suspended_at) WHERE suspended_at IS NOT NULL` for cheap filtering of the rare suspended set. Otherwise PK and unique email cover query patterns. `session` and `account` have FK indexes pointing here.
 
 **Why `text` PK, not UUID:** Better Auth generates its own IDs. Fighting the framework on ID format would break auth internals.
 
 **Why `deleted_at` + `anonymized_at` as separate columns:** Two-phase GDPR deletion. `deleted_at` starts the 14-day grace period (reversible). `anonymized_at` records when irreversible PII overwrite happened. Both null = active user.
+
+**Why `suspended_at` is a distinct column from `deleted_at`:** Suspension is admin moderation; deletion is GDPR compliance. Suspension never triggers anonymization, preserves full profile data, and is reversible at any time. Mixing the two states onto `deleted_at` would either trigger unwanted anonymization on moderation actions or require an extra flag to suppress it — the column split is simpler. See `moderation-suspension.md`.
 
 ### `session` (Better Auth managed)
 

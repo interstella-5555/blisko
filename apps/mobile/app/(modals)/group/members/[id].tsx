@@ -20,6 +20,7 @@ type Member = {
   joinedAt: string;
   displayName: string;
   avatarUrl: string | null;
+  isSuspended: boolean;
 };
 
 export default function GroupMembersScreen() {
@@ -79,6 +80,7 @@ export default function GroupMembersScreen() {
             {item.displayName}
             {item.userId === userId ? " (Ty)" : ""}
           </Text>
+          {item.isSuspended ? <Text style={styles.memberSubtext}>Konto zawieszone</Text> : null}
         </View>
         {ROLE_LABELS[item.role] ? (
           <View style={styles.roleBadge}>
@@ -153,6 +155,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 15,
     color: colors.ink,
+  },
+  memberSubtext: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: 2,
   },
   roleBadge: {
     backgroundColor: colors.rule,

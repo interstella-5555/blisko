@@ -1,6 +1,7 @@
 # User Profiles & Visibility
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-22 — `profiles.getById` now returns `isSuspended: boolean` on the payload (soft-deleted users still return `null`). `groups.getMembers` exposes the same flag per row. `messages.getConversations` adds `participant.isSuspended` for DM peers. See `moderation-suspension.md` (BLI-156).
 > Updated 2026-04-11 — `getDetailedAnalysis` zyskał block + isComplete + soft-delete gate; `ensureAnalysis` dostał ten sam zestaw bramek z silent no-op fallbackiem; `getConnectionAnalysis` usunięty jako dead code (wszystkie jego funkcje pokrywa teraz `getDetailedAnalysis` z promocją T3) (BLI-188).
 > Updated 2026-04-18 — Portrait section removed from mobile UI (onboarding + settings review screens); portrait is now purely internal. `portraitSharedForMatching` dropped from the `applyProfilingSchema` validator and no longer touched by `applyProfile` — DB default (`true`) handles inserts, existing rows backfilled to `true`, re-profiling keeps the existing value. Column retained as audit-only (BLI-199).
 > Updated 2026-04-19 — Source path corrected to `packages/db/src/schema.ts`. Field reference row for `portraitSharedForMatching` now shows correct default (`true`). BLI-235 removed the "finish profile" CTA from the Profil tab; the only in-app entry point to re-run onboarding is Ustawienia → Profilowanie.

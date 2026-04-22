@@ -35,26 +35,43 @@ SplashScreen.preventAutoHideAsync().catch(() => {
   // Already hidden or native module unavailable (web) — nothing to do.
 });
 
-let accountDeletedAlertShown = false;
+let accountBlockedAlertShown = false;
 
-function handleAccountDeleted(error: unknown) {
+type BlockedKind = "ACCOUNT_DELETED" | "ACCOUNT_SUSPENDED";
+
+const BLOCKED_COPY: Record<BlockedKind, { title: string; message: string }> = {
+  ACCOUNT_DELETED: {
+    title: "Konto usunięte",
+    message: "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.",
+  },
+  ACCOUNT_SUSPENDED: {
+    title: "Konto zawieszone",
+    message:
+      "Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka.",
+  },
+};
+
+function handleAccountBlocked(error: unknown) {
   const err = error as { data?: { code?: string }; message?: string };
-  if (err?.data?.code === "FORBIDDEN" && err?.message === "ACCOUNT_DELETED" && !accountDeletedAlertShown) {
-    accountDeletedAlertShown = true;
-    Alert.alert("Konto usunięte", "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.", [
-      {
-        text: "OK",
-        onPress: () => {
-          accountDeletedAlertShown = false;
-          void signOutAndReset();
-        },
+  if (err?.data?.code !== "FORBIDDEN") return;
+  const kind = err.message === "ACCOUNT_DELETED" || err.message === "ACCOUNT_SUSPENDED" ? err.message : null;
+  if (!kind || accountBlockedAlertShown) return;
+
+  accountBlockedAlertShown = true;
+  const copy = BLOCKED_COPY[kind];
+  Alert.alert(copy.title, copy.message, [
+    {
+      text: "OK",
+      onPress: () => {
+        accountBlockedAlertShown = false;
+        void signOutAndReset();
       },
-    ]);
-  }
+    },
+  ]);
 }
 
 function handleGlobalError(error: unknown) {
-  runGlobalErrorHandlers(error, handleAccountDeleted);
+  runGlobalErrorHandlers(error, handleAccountBlocked);
 }
 
 export const queryClient = new QueryClient({
@@ -64,7 +81,12 @@ export const queryClient = new QueryClient({
     queries: {
       retry: (failureCount, error: unknown) => {
         const err = error as { data?: { code?: string }; message?: string };
-        if (err?.data?.code === "FORBIDDEN" && err?.message === "ACCOUNT_DELETED") return false;
+        if (
+          err?.data?.code === "FORBIDDEN" &&
+          (err?.message === "ACCOUNT_DELETED" || err?.message === "ACCOUNT_SUSPENDED")
+        ) {
+          return false;
+        }
         if (err?.data?.code === "TOO_MANY_REQUESTS") return false;
         return failureCount < 3;
       },
@@ -92,7 +114,7 @@ export async function signOutAndReset() {
   try {
     await authClient.signOut();
   } catch {
-    // Server may already consider the session invalid (e.g. ACCOUNT_DELETED). Continue cleanup.
+    // Server may already consider the session invalid (e.g. ACCOUNT_DELETED / ACCOUNT_SUSPENDED). Continue cleanup.
   }
   await SecureStore.deleteItemAsync("blisko_session_token");
 

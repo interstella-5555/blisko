@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — added Message Delete (Client Optimistic Flow) section documenting the `updateMessage` store method and the context-menu positioning constant that keeps "Usuń" visible above the chat input bar.
 > Updated 2026-04-14 — seq-based pagination, syncGaps endpoint, lifecycle-safe mutations, single source of truth architecture (BLI-224).
+> Updated 2026-04-22 — BLI-156 added `RECIPIENT_SUSPENDED` failure on `messages.send` when any peer is suspended. `messages.getConversations` exposes `participant.isSuspended` so the mobile composer can disable + render "Konto zawieszone". See `moderation-suspension.md`.
 
 Source: `apps/api/src/trpc/procedures/messages.ts`, `apps/api/src/ws/handler.ts`, `apps/api/src/ws/events.ts`, `apps/api/src/db/schema.ts`, `packages/shared/src/validators.ts`, `apps/mobile/app/chat/[id].tsx`, `apps/mobile/src/stores/messagesStore.ts`, `apps/mobile/src/components/chat/MessageContextMenu.tsx`.
 
@@ -88,12 +89,13 @@ Indexes: `messages_conv_created_idx` (conversationId, createdAt), `messages_conv
 
 **Flow:**
 1. Verify sender is participant
-2. Check idempotency key (if provided)
-3. Transaction: insert message with seq assignment via `COALESCE(MAX(seq)+1, 1)`, update `conversations.updatedAt`, update topic `lastMessageAt` + `messageCount` if topicId set
-4. Cache result in Redis for idempotency (if key provided)
-5. Fetch sender profile, participants, and conversation type in parallel
-6. Send push notifications (differs by DM vs group)
-7. Publish `newMessage` WS event
+2. Reject with `BAD_REQUEST / RECIPIENT_SUSPENDED` if any non-self participant has `user.suspendedAt IS NOT NULL` (BLI-156). Soft-deleted peers are implicitly handled because `isAuthed` has already kept them out; the suspension gate specifically covers the case where a peer is blocked from logging in but the conversation is still active for everyone else.
+3. Check idempotency key (if provided)
+4. Transaction: insert message with seq assignment via `COALESCE(MAX(seq)+1, 1)`, update `conversations.updatedAt`, update topic `lastMessageAt` + `messageCount` if topicId set
+5. Cache result in Redis for idempotency (if key provided)
+6. Fetch sender profile, participants, and conversation type in parallel
+7. Send push notifications (differs by DM vs group)
+8. Publish `newMessage` WS event
 
 #### Topic assignment
 When a message includes `topicId`, the transaction atomically increments the topic's `messageCount` and updates `lastMessageAt`. This keeps topic stats consistent without a separate counter job.

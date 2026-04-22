@@ -10,7 +10,7 @@ export const usersRouter = router({
     .input(
       z.object({
         search: z.string().optional(),
-        status: z.enum(["all", "active", "onboarding", "deleted"]).default("all"),
+        status: z.enum(["all", "active", "onboarding", "deleted", "suspended"]).default("all"),
         showSeed: z.boolean().default(true),
         limit: z.number().min(1).max(100).default(50),
         offset: z.number().min(0).default(0),
@@ -23,12 +23,16 @@ export const usersRouter = router({
 
       if (status === "active") {
         conditions.push(isNull(schema.user.deletedAt));
+        conditions.push(isNull(schema.user.suspendedAt));
         conditions.push(eq(schema.profiles.isComplete, true));
       } else if (status === "onboarding") {
         conditions.push(isNull(schema.user.deletedAt));
+        conditions.push(isNull(schema.user.suspendedAt));
         conditions.push(eq(schema.profiles.isComplete, false));
       } else if (status === "deleted") {
         conditions.push(isNotNull(schema.user.deletedAt));
+      } else if (status === "suspended") {
+        conditions.push(isNotNull(schema.user.suspendedAt));
       }
 
       if (!showSeed) {
@@ -55,6 +59,7 @@ export const usersRouter = router({
           email: schema.user.email,
           createdAt: schema.user.createdAt,
           deletedAt: schema.user.deletedAt,
+          suspendedAt: schema.user.suspendedAt,
           displayName: schema.profiles.displayName,
           avatarUrl: schema.profiles.avatarUrl,
           visibilityMode: schema.profiles.visibilityMode,
@@ -146,7 +151,13 @@ export const usersRouter = router({
           messageCount: messageCounts[row.id] ?? 0,
           groupCount: groupCounts[row.id] ?? 0,
           isSeed: /^user\d+@example\.com$/.test(row.email),
-          status: row.deletedAt ? ("deleted" as const) : row.isComplete ? ("active" as const) : ("onboarding" as const),
+          status: row.deletedAt
+            ? ("deleted" as const)
+            : row.suspendedAt
+              ? ("suspended" as const)
+              : row.isComplete
+                ? ("active" as const)
+                : ("onboarding" as const),
         })),
         total,
       };
@@ -162,6 +173,8 @@ export const usersRouter = router({
         updatedAt: schema.user.updatedAt,
         deletedAt: schema.user.deletedAt,
         anonymizedAt: schema.user.anonymizedAt,
+        suspendedAt: schema.user.suspendedAt,
+        suspendReason: schema.user.suspendReason,
         displayName: schema.profiles.displayName,
         avatarUrl: schema.profiles.avatarUrl,
         bio: schema.profiles.bio,
@@ -256,6 +269,25 @@ export const usersRouter = router({
   forceDisconnect: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
     await enqueueOpsAndWait("admin-force-disconnect", {
       type: "admin-force-disconnect",
+      userId: input.userId,
+    });
+    return { ok: true };
+  }),
+
+  suspend: protectedProcedure
+    .input(z.object({ userId: z.string(), reason: z.string().trim().min(3).max(500) }))
+    .mutation(async ({ input }) => {
+      await enqueueOpsAndWait("admin-suspend-user", {
+        type: "admin-suspend-user",
+        userId: input.userId,
+        reason: input.reason,
+      });
+      return { ok: true };
+    }),
+
+  unsuspend: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ input }) => {
+    await enqueueOpsAndWait("admin-unsuspend-user", {
+      type: "admin-unsuspend-user",
       userId: input.userId,
     });
     return { ok: true };

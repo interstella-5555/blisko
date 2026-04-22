@@ -1,6 +1,7 @@
 # Authentication & Sessions
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-22 — BLI-156 adds pre-auth suspension/deletion gates (`emailOTP.sendVerificationOTP` early-return + `databaseHooks.session.create.before` catch-all) and extends `isAuthed` to throw `ACCOUNT_SUSPENDED`. See `moderation-suspension.md`.
 
 Better Auth `^1.5.4` (self-hosted). Source: `apps/api/src/auth.ts`. Session middleware: `apps/api/src/trpc/trpc.ts`. Context: `apps/api/src/trpc/context.ts`. Validators: `packages/shared/src/validators.ts`.
 
@@ -121,10 +122,27 @@ After resolving `userId`, the context enriches the metrics `requestMeta` WeakMap
 
 **Steps:**
 1. Check `ctx.userId` exists, throw `UNAUTHORIZED` if not
-2. Execute prepared statement `user_deleted_at` to check soft-delete status
-3. If `deletedAt` is set, throw `FORBIDDEN` with message `"ACCOUNT_DELETED"` -- the mobile app catches this specific message to show the deletion notice
+2. Execute prepared statement `user_deletion_state` to load both `deletedAt` and `suspendedAt`
+3. If `deletedAt` is set, throw `FORBIDDEN` with message `"ACCOUNT_DELETED"` (mobile app dispatches on this string)
+4. Else if `suspendedAt` is set, throw `FORBIDDEN` with message `"ACCOUNT_SUSPENDED"` (BLI-156) — same shape, distinct copy. See `moderation-suspension.md`.
 
-**Why a separate DB query for `deletedAt`:** The session resolution in `createContext` only verifies the session token exists and hasn't expired. It doesn't check user state. The `isAuthed` middleware adds the business logic layer -- even if a session is technically valid, a soft-deleted user must be blocked. This is a prepared statement, so the overhead is minimal.
+**Why a separate DB query for moderation state:** The session resolution in `createContext` only verifies the session token exists and hasn't expired. It doesn't check user state. The `isAuthed` middleware adds the business logic layer — even if a session is technically valid, a soft-deleted or suspended user must be blocked. Both columns live on the already-hot `user` row, so the prepared statement keeps overhead minimal.
+
+### Pre-Auth Suspension/Deletion Gates
+
+Two hooks in `apps/api/src/auth.ts` close the "suspended user still burns Resend quota / completes OAuth" gap that `isAuthed` alone doesn't cover (BLI-156).
+
+#### `emailOTP.sendVerificationOTP` early-return
+
+On the `sign-in` path (not `change-email` — that requires a vetted session), look up the target user by email before sending. If `deletedAt` or `suspendedAt` is set, throw `APIError("FORBIDDEN", { message: "ACCOUNT_DELETED" | "ACCOUNT_SUSPENDED" })`. No email is sent, no Resend quota is burned, sign-in screen renders the same Polish alert as the post-login handler.
+
+#### `databaseHooks.session.create.before` catch-all
+
+Runs for every session-creation path — OAuth callbacks (Apple, Google, Facebook, LinkedIn), email-OTP verify, dev auto-login. Loads the target user; throws `ACCOUNT_DELETED` or `ACCOUNT_SUSPENDED` if the corresponding column is set. No session row is created.
+
+**Account linking note:** `accountLinking.enabled: true` + `allowDifferentEmails: true` means a suspended user who signs in with a previously-unlinked OAuth provider will have the new `account` row linked to their existing `user`. The `session.create.before` hook still fires — no session is issued. The stranded `account` is harmless and becomes usable the moment admin unsuspends.
+
+**Not covered (out of scope for v1):** a suspended user who signs up wholly fresh (new email, unlinked OAuth provider) gets a new `user` row with a new `id` that is not subject to the existing suspension. Mitigation (phone verification, device fingerprint, reCAPTCHA on signup) is a separate ticket.
 
 ### Global Rate Limit
 

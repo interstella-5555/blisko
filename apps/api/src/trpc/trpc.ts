@@ -12,11 +12,11 @@ export const router = t.router;
 export const middleware = t.middleware;
 export const publicProcedure = t.procedure;
 
-const userDeletedAt = db
-  .select({ deletedAt: schema.user.deletedAt })
+const userDeletionState = db
+  .select({ deletedAt: schema.user.deletedAt, suspendedAt: schema.user.suspendedAt })
   .from(schema.user)
   .where(eq(schema.user.id, placeholder("userId")))
-  .prepare(preparedName("user_deleted_at"));
+  .prepare(preparedName("user_deletion_state"));
 
 // Middleware that requires authentication
 const isAuthed = t.middleware(async ({ ctx, next }) => {
@@ -27,13 +27,21 @@ const isAuthed = t.middleware(async ({ ctx, next }) => {
     });
   }
 
-  // Check if user is soft-deleted
-  const [userData] = await userDeletedAt.execute({ userId: ctx.userId });
+  // Check moderation state (soft-delete takes precedence — a deleted account
+  // is in the anonymization grace period, not under active moderation).
+  const [userData] = await userDeletionState.execute({ userId: ctx.userId });
 
   if (userData?.deletedAt) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "ACCOUNT_DELETED",
+    });
+  }
+
+  if (userData?.suspendedAt) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "ACCOUNT_SUSPENDED",
     });
   }
 

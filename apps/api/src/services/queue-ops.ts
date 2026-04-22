@@ -7,7 +7,7 @@ import { db, schema } from "@/db";
 import { publishEvent } from "@/ws/redis-bridge";
 import { attachWorkerLogger, getConnectionConfig, QUEUE_NAMES } from "./queue-shared";
 import { purgeUserQuarantine, s3Client } from "./s3";
-import { restoreUser, softDeleteUser } from "./user-actions";
+import { restoreUser, softDeleteUser, suspendUser, unsuspendUser } from "./user-actions";
 
 // --- Job types ---
 
@@ -44,13 +44,26 @@ interface AdminRemoveFlaggedUploadJob {
   reviewNotes?: string;
 }
 
+interface AdminSuspendUserJob {
+  type: "admin-suspend-user";
+  userId: string;
+  reason: string;
+}
+
+interface AdminUnsuspendUserJob {
+  type: "admin-unsuspend-user";
+  userId: string;
+}
+
 type OpsJob =
   | HardDeleteUserJob
   | ExportUserDataJob
   | AdminSoftDeleteUserJob
   | AdminRestoreUserJob
   | AdminForceDisconnectJob
-  | AdminRemoveFlaggedUploadJob;
+  | AdminRemoveFlaggedUploadJob
+  | AdminSuspendUserJob
+  | AdminUnsuspendUserJob;
 
 // --- Queue (lazy init) ---
 
@@ -327,6 +340,12 @@ async function processOpsJob(job: Job<OpsJob>) {
       break;
     case "admin-remove-flagged-upload":
       await processAdminRemoveFlaggedUpload(data.moderationResultId, data.reviewedBy, data.reviewNotes);
+      break;
+    case "admin-suspend-user":
+      await suspendUser(data.userId, data.reason);
+      break;
+    case "admin-unsuspend-user":
+      await unsuspendUser(data.userId);
       break;
   }
 }

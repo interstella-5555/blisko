@@ -316,6 +316,7 @@ export default function UserProfileScreen() {
             userId,
             displayName: cached?.displayName || params.displayName,
             avatarUrl: cached?.avatarUrl ?? avatarUrl,
+            isSuspended: false,
           },
           groupName: null,
           groupAvatarUrl: null,

@@ -12,6 +12,9 @@ import { colors, fonts, spacing, type as typ } from "@/theme";
 
 const authErrorMessages: Record<string, string> = {
   "Too many requests. Please try again later.": "Za dużo prób logowania. Spróbuj ponownie za kilka minut.",
+  ACCOUNT_SUSPENDED:
+    "Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka.",
+  ACCOUNT_DELETED: "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.",
 };
 
 function translateAuthError(message?: string): string {

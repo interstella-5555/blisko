@@ -1,7 +1,7 @@
 import { deleteMessageSchema, reactToMessageSchema, searchMessagesSchema, sendMessageSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
 import { RedisClient } from "bun";
-import { and, asc, desc, eq, gt, ilike, inArray, isNull, lt, max, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, inArray, isNotNull, isNull, lt, max, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
@@ -146,16 +146,21 @@ export const messagesRouter = router({
       }
     }
 
+    // DM peer batch-fetch. We include suspended users here (and flag them via
+    // `isSuspended`) so the mobile client can render the "Konto zawieszone"
+    // banner and disable the composer; filter stays on soft-deleted only.
     const dmProfiles =
       dmOtherUserIds.length > 0
         ? await db
-            .select({ profile: schema.profiles })
+            .select({ profile: schema.profiles, suspendedAt: schema.user.suspendedAt })
             .from(schema.profiles)
             .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
             .where(and(inArray(schema.profiles.userId, dmOtherUserIds), isNull(schema.user.deletedAt)))
         : [];
 
-    const profileMap = new Map(dmProfiles.map((p) => [p.profile.userId, p.profile]));
+    const profileMap = new Map(
+      dmProfiles.map((row) => [row.profile.userId, { ...row.profile, isSuspended: row.suspendedAt !== null }]),
+    );
 
     // For groups: batch-fetch sender names for last messages
     const groupLastMsgSenderIds: string[] = [];
@@ -531,6 +536,31 @@ export const messagesRouter = router({
           code: "FORBIDDEN",
           message: "You are not a participant in this conversation",
         });
+      }
+
+      // Block sends to a suspended peer. The conversation itself remains
+      // readable (history stays) but nothing new can land — the mobile
+      // composer renders disabled above the same check; this is the server
+      // backstop. Soft-deleted peers are skipped implicitly: isAuthed already
+      // blocks them from reaching this endpoint, so their messages never
+      // arrive; the outbound side stays open because it mirrors the existing
+      // soft-delete behavior where we keep the conversation visible until
+      // anonymization lands.
+      const suspendedPeer = await db
+        .select({ id: schema.user.id })
+        .from(schema.conversationParticipants)
+        .innerJoin(schema.user, eq(schema.conversationParticipants.userId, schema.user.id))
+        .where(
+          and(
+            eq(schema.conversationParticipants.conversationId, input.conversationId),
+            ne(schema.conversationParticipants.userId, ctx.userId),
+            isNotNull(schema.user.suspendedAt),
+          ),
+        )
+        .limit(1);
+
+      if (suspendedPeer.length > 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "RECIPIENT_SUSPENDED" });
       }
 
       // Idempotency check — prevent duplicate messages on retry

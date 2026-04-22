@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-22 — Image moderation on upload via `omni-moderation-latest` (BLI-268). First-line filter before anything lands in S3; pairs with the BLI-68 quarantine as the preservation layer.
+> Updated 2026-04-22 — BLI-156 introduces admin-driven account suspension as a parallel (but distinct) mechanism from user-to-user blocks. `messages.send` now rejects with `RECIPIENT_SUSPENDED` when any peer is suspended — the pre-existing "no block-check in messages.send" gap remains separate. Cross-reference: `moderation-suspension.md`.
 
 Source: `apps/api/src/services/moderation.ts`, `apps/api/src/trpc/procedures/waves.ts` (block/unblock/getBlocked), `apps/api/src/trpc/procedures/profiles.ts` (block filtering in nearby queries), `apps/api/src/db/schema.ts`.
 
@@ -92,7 +93,7 @@ Every query that surfaces users to other users checks the blocks table. Here is 
 
 | Feature | File | Status |
 |---------|------|--------|
-| Messages (send, getMessages) | `messages.ts` | No block check. Blocked users in the same DM can still send messages. The DM was created before the block, and no send-time verification exists. |
+| Messages (send, getMessages) | `messages.ts` | No user-to-user block check. BLI-156 added an admin-suspension check (`RECIPIENT_SUSPENDED`) on the same endpoint, but blocked-peer sends still go through. |
 | Group member operations | `groups.ts` | No block check. Blocked users can be in the same group, see each other in group member lists, and exchange messages in group chat. |
 | Group discovery | `groups.ts` getDiscoverable | No block check. Blocked users' groups appear in discovery results. |
 | Status matching | Queue workers | Not verified — status matching may surface blocked users as matches. |
@@ -219,6 +220,14 @@ Blocking and moderation are independent systems with no interaction:
 - A blocked user's existing content is not moderated or hidden
 - Moderation does not trigger blocks
 - There is no "n blocks from different users = auto-ban" logic
+
+## Admin Suspension (BLI-156)
+
+Distinct from user-to-user blocks: admin-initiated, reversible, globally applied. See `moderation-suspension.md` for the full model — schema (`user.suspendedAt`, `user.suspendReason`), pre-auth gates, `isAuthed` behavior, `userIsActive()` discovery filter, `messages.send` peer check, admin UI, mobile surfaces. The short version:
+
+- Admin enqueues `admin-suspend-user` / `admin-unsuspend-user` via the admin panel; BullMQ worker calls `suspendUser()` / `unsuspendUser()` service functions.
+- Suspended users are blocked at sign-in (before Resend send + on session creation), at every tRPC call (`isAuthed`), and filtered out of discovery (`userIsActive()` helper replaces raw `isNull(user.deletedAt)` in all affected queries).
+- Conversations with a suspended peer are preserved — the mobile composer renders "Konto zawieszone" and is disabled; group members list renders a subtext badge on suspended rows.
 
 ---
 

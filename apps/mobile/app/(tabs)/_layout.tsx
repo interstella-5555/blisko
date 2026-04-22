@@ -113,6 +113,7 @@ export default function TabsLayout() {
               userId: responderId,
               displayName: msg.responderProfile.displayName,
               avatarUrl: msg.responderProfile.avatarUrl,
+              isSuspended: false,
             }
           : null,
         groupName: null,
@@ -272,6 +273,7 @@ export default function TabsLayout() {
                 userId: c.participant.userId,
                 displayName: c.participant.displayName,
                 avatarUrl: c.participant.avatarUrl,
+                isSuspended: c.participant.isSuspended ?? false,
               }
             : null,
           groupName: c.conversation.name ?? null,
