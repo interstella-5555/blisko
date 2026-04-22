@@ -87,6 +87,8 @@ Top-level categories in `apps/admin/src/components/app-sidebar.tsx`:
 - **Kolejki** → queue live feed (ai, ops, maintenance — separate from AI Matching because ops/maintenance aren't AI-related)
 - **Moderacja**, **Powiadomienia**, **Ustawienia** — most items placeholder
 
+Separate **External** group (below "Panel") with flat `SidebarMenuButton` links opening in new tab: Bugsink, Railway, GitHub, Play Console, App Store Connect. Brand icons via `@icons-pack/react-simple-icons` — lucide 1.8 no longer ships brand icons.
+
 ## URL State Pattern
 
 `/dashboard/queue` is the first admin route to use TanStack Router's `validateSearch` for URL-persisted filter state. Pattern:
