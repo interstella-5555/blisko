@@ -6,6 +6,7 @@
 > Updated 2026-04-19 — Added `/child-safety` as third legal surface alongside `/privacy` and `/terms`.
 > Updated 2026-04-19 — `metrics.ai_calls.input_jsonb` + `output_jsonb` (PII-heavy payloads) are nulled on hard-delete alongside `userId` / `targetUserId`. 24h retention on these fields via `prune-ai-call-payloads` also bounds PII exposure for non-deleted users (BLI-239).
 > Updated 2026-04-22 — Added public breach notification procedure at `/breach-notification`; Art. 33-34 coverage is now documented rather than placeholder contact (BLI-267).
+> Updated 2026-04-22 — Avatar swap flow moves the old S3 object to a user-scoped quarantine prefix (`quarantine/{userId}/`); anonymization purges the whole prefix so erasure still covers previously-uploaded avatars (BLI-68).
 
 Blisko processes personal data under RODO (Polish implementation of GDPR). Polish-market focus, single data controller (individual developer). This is the umbrella doc linking the three subsystems that implement GDPR rights: account deletion, data export, and privacy/terms disclosure.
 
@@ -25,7 +26,7 @@ Blisko processes personal data under RODO (Polish implementation of GDPR). Polis
 **What:** Account deletion uses a soft-delete-then-anonymize approach, not hard delete.
 
 1. **Phase 1 — Soft-delete (immediate):** `user.deletedAt` set. `isAuthed` middleware blocks all API calls. Sessions, push tokens deleted. WebSocket force-disconnected. User invisible in discovery.
-2. **Phase 2 — Anonymization (14 days later):** BullMQ delayed job fires. PII overwritten with generic values in `user` and `profiles` tables (including nullifying `profiles.portrait`, the AI-generated personality text). Profiling Q&A answers nullified. S3 avatar file deleted. Metrics anonymized. `user.anonymizedAt` set.
+2. **Phase 2 — Anonymization (14 days later):** BullMQ delayed job fires. PII overwritten with generic values in `user` and `profiles` tables (including nullifying `profiles.portrait`, the AI-generated personality text). Profiling Q&A answers nullified. S3 current avatar deleted, and the whole `quarantine/{userId}/` prefix purged (previously-uploaded avatars replaced during the account's lifetime). Metrics anonymized. `user.anonymizedAt` set.
 
 **Why not hard delete:** Deleting user rows would cascade-delete or orphan relational data (messages, waves, conversations). Other users would lose conversation history. Anonymization preserves relational integrity while removing all PII. The deleted user appears as "Usunięty użytkownik" via FK references to `user.name`.
 

@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-09 — Soft-delete logic extracted to `softDeleteUser()` service function, admin restore via BullMQ (BLI-154).
+> Updated 2026-04-22 — Anonymization purges the user's S3 quarantine prefix (`quarantine/{userId}/`) alongside the current avatar (BLI-68).
 
 Two-phase account deletion: immediate soft-delete blocks access and hides the user, then a 14-day delayed BullMQ job anonymizes all PII while preserving relational data.
 
@@ -97,7 +98,9 @@ The `processHardDeleteUser()` function in `apps/api/src/services/queue-ops.ts` r
 
 ### Step 1: S3 File Deletion
 
-Reads `profiles.avatarUrl` and `profiles.portrait` before overwriting profile data. Extracts S3 keys via shared `extractOurS3Key()` helper from `@repo/shared` — only `s3://bucket/key` URLs resolve to a key, everything else (OAuth, seed HTTPS) returns `null` and is intentionally skipped (those objects aren't ours to delete). Errors are logged but do not abort the job. See `images.md` for the source scheme.
+Reads `profiles.avatarUrl` and `profiles.portrait` before overwriting profile data. Extracts S3 keys via shared `extractOurS3Key()` helper from `@repo/shared` — only `s3://bucket/key` URLs resolve to a key, everything else (OAuth, seed HTTPS) returns `null` and is intentionally skipped (those objects aren't ours to delete). `portrait` is a text column (AI-generated personality description), not a URL — the helper correctly yields `null` for it, so the loop is no-op on that field. Errors are logged but do not abort the job. See `images.md` for the source scheme.
+
+After the current avatar is deleted, `purgeUserQuarantine(userId)` removes every object under `quarantine/{userId}/` — previously-uploaded avatars that the user replaced before requesting deletion. Tigris' lifecycle policy normally expires quarantine objects after 90 days; anonymization forces immediate erasure so GDPR Art. 17 holds even if deletion happens one day after an avatar swap. Failures are logged but do not abort the job.
 
 ### Step 2: Anonymize User and Profile (Transaction)
 

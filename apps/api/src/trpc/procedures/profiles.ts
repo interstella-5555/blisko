@@ -1,6 +1,7 @@
 import {
   cosineSimilarity,
   createProfileSchema,
+  extractOurS3Key,
   getNearbyMapMarkersSchema,
   getNearbyUsersForMapSchema,
   getNearbyUsersSchema,
@@ -27,6 +28,7 @@ import {
   enqueueUserPairAnalysis,
   promotePairAnalysis,
 } from "@/services/queue";
+import { quarantineAvatarKey } from "@/services/s3";
 import { rateLimit } from "@/trpc/middleware/rateLimit";
 import { protectedProcedure, router } from "@/trpc/trpc";
 import { publishEvent } from "@/ws/redis-bridge";
@@ -89,13 +91,19 @@ export const profilesRouter = router({
     .use(rateLimit("profiles.update"))
     .input(updateProfileSchema)
     .mutation(async ({ ctx, input }) => {
+      // Fetch the current row once and reuse it for the displayName lock and the
+      // avatar quarantine. Skipped entirely when neither field is being touched.
+      const needsExisting = input.displayName !== undefined || input.avatarUrl !== undefined;
+      const existing = needsExisting
+        ? await db.query.profiles.findFirst({
+            where: eq(schema.profiles.userId, ctx.userId),
+            columns: { displayName: true, createdAt: true, avatarUrl: true },
+          })
+        : null;
+
       // Lock displayName after initial setup (5 min grace period)
-      if (input.displayName) {
-        const existing = await db.query.profiles.findFirst({
-          where: eq(schema.profiles.userId, ctx.userId),
-          columns: { displayName: true, createdAt: true },
-        });
-        const graceExpired = existing && differenceInMinutes(new Date(), existing.createdAt) > 5;
+      if (input.displayName && existing) {
+        const graceExpired = differenceInMinutes(new Date(), existing.createdAt) > 5;
         if (graceExpired && existing.displayName !== input.displayName) {
           throw new TRPCError({ code: "FORBIDDEN", message: "display_name_locked" });
         }
@@ -104,6 +112,17 @@ export const profilesRouter = router({
       const fieldsToModerate = [input.displayName, input.bio, input.lookingFor].filter(Boolean);
       if (fieldsToModerate.length > 0) {
         await moderateContent(fieldsToModerate.join("\n\n"));
+      }
+
+      // Quarantine the previous avatar (only when it's our upload). Fire-and-
+      // forget: a quarantine error must not fail the user's profile update.
+      if (input.avatarUrl !== undefined && existing && existing.avatarUrl !== input.avatarUrl) {
+        const oldKey = extractOurS3Key(existing.avatarUrl);
+        if (oldKey) {
+          quarantineAvatarKey(oldKey, ctx.userId).catch((err) => {
+            console.error(`[s3:quarantine] profiles.update failed for user ${ctx.userId}, key ${oldKey}:`, err);
+          });
+        }
       }
 
       const [profile] = await db

@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { extractOurS3Key } from "@repo/shared";
-import { S3Client } from "bun";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { dataExportReady, sendEmail } from "@/services/email";
+import { s3Client } from "@/services/s3";
 
 interface ExportData {
   exportedAt: string;
@@ -100,11 +100,11 @@ function shortHash(id: string): string {
 // Resolve a stored avatar/portrait source pointer into something the user can actually
 // open in a browser. For our s3:// scheme we presign a 7-day download URL (matches the
 // export email link TTL). OAuth / seed HTTPS URLs pass through untouched.
-function resolveExportableUrl(url: string | null | undefined, s3: S3Client): string | null {
+function resolveExportableUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   const key = extractOurS3Key(url);
   if (!key) return url;
-  return s3.file(key).presign({ expiresIn: 7 * 24 * 60 * 60 });
+  return s3Client.file(key).presign({ expiresIn: 7 * 24 * 60 * 60 });
 }
 
 function buildUserLabelMap(userIds: string[]): Map<string, string> {
@@ -116,13 +116,6 @@ function buildUserLabelMap(userIds: string[]): Map<string, string> {
 }
 
 export async function collectAndExportUserData(userId: string, email: string) {
-  const s3 = new S3Client({
-    accessKeyId: process.env.BUCKET_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.BUCKET_SECRET_ACCESS_KEY!,
-    endpoint: process.env.BUCKET_ENDPOINT!,
-    bucket: process.env.BUCKET_NAME!,
-  });
-
   // 1. User
   const userData = await db.query.user.findFirst({
     where: eq(schema.user.id, userId),
@@ -305,13 +298,13 @@ export async function collectAndExportUserData(userId: string, email: string) {
     profile: profile
       ? {
           displayName: profile.displayName,
-          avatarUrl: resolveExportableUrl(profile.avatarUrl, s3),
+          avatarUrl: resolveExportableUrl(profile.avatarUrl),
           bio: profile.bio,
           lookingFor: profile.lookingFor,
           interests: profile.interests,
           socialLinks: profile.socialLinks,
           visibilityMode: profile.visibilityMode,
-          portraitUrl: resolveExportableUrl(profile.portrait, s3),
+          portraitUrl: resolveExportableUrl(profile.portrait),
           status: profile.currentStatus,
           statusCategories: profile.statusCategories,
           statusVisibility: profile.statusVisibility,
@@ -388,9 +381,9 @@ export async function collectAndExportUserData(userId: string, email: string) {
   // Upload to S3
   const key = `exports/${userId}/${Date.now()}.json`;
   const json = JSON.stringify(exportData, null, 2);
-  await s3.write(key, json, { type: "application/json" });
+  await s3Client.write(key, json, { type: "application/json" });
 
-  const downloadUrl = s3.file(key).presign({ expiresIn: 7 * 24 * 60 * 60 });
+  const downloadUrl = s3Client.file(key).presign({ expiresIn: 7 * 24 * 60 * 60 });
 
   // Send email notification
   await sendEmail(email, dataExportReady(downloadUrl));

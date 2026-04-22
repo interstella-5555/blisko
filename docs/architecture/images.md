@@ -1,6 +1,7 @@
 # Image Pipeline (Avatars + Portraits)
 
 > v1 — BLI-254, 2026-04-22. Replaces earlier "presigned URL straight into `profiles.avatarUrl`" scheme.
+> Updated 2026-04-22 — Quarantine prefix for replaced avatars (BLI-68). Old avatars move to `quarantine/{userId}/` on `profiles.update` instead of being orphaned or hard-deleted.
 
 All user-facing image rendering goes through **imgproxy**, a self-hosted resize/transcode sidecar running on Railway. Mobile and admin never pull the original bytes — they build an imgproxy URL sized for the current device's pixel ratio, and imgproxy handles the rest (resize, WebP transcode, cache).
 
@@ -100,6 +101,59 @@ CNAME `img.blisko.app` → Railway-generated domain. Cloudflare proxies (orange 
 
 `/health` — always returns 200. Wired in Railway service settings.
 
+## Quarantine (replaced avatars)
+
+When a user swaps their avatar via `profiles.update`, the previous `s3://` object is moved to `quarantine/{userId}/{basename}` before the DB row is overwritten. OAuth / seed URLs are skipped — `extractOurS3Key()` returns `null` for anything that isn't ours.
+
+The move is **fire-and-forget**: `profiles.update` does not await it and does not fail the user's request on a quarantine error. Orphans log to stderr but can't happen silently.
+
+### Why quarantine, not hard-delete
+
+A hard-delete-on-swap approach destroys evidence. A user uploads something abusive, gets reported, then swaps the avatar before an admin looks — the S3 object is gone and there's nothing to forward to an abuse authority. Quarantine gives moderation a 90-day window. See `blocking-moderation.md` for the (unimplemented) report system that will eventually pin specific keys past the lifecycle expiry.
+
+### Lifecycle
+
+Tigris runs an S3-compatible lifecycle policy on the `quarantine/` prefix with an `Expiration` rule of 90 days from the object's `LastModified`. Configured via `PutBucketLifecycleConfiguration` (one-time setup, not in application code). The rule lives outside the app so adding a new quarantine consumer doesn't require code changes, just routing to the same prefix.
+
+One-time setup against the prod bucket (Tigris is S3-compatible — works via aws CLI with Tigris endpoint + credentials):
+
+```bash
+# config.json
+{
+  "Rules": [{
+    "ID": "quarantine-90d",
+    "Status": "Enabled",
+    "Filter": { "Prefix": "quarantine/" },
+    "Expiration": { "Days": 90 }
+  }]
+}
+
+AWS_ACCESS_KEY_ID=$BUCKET_ACCESS_KEY_ID \
+AWS_SECRET_ACCESS_KEY=$BUCKET_SECRET_ACCESS_KEY \
+aws s3api put-bucket-lifecycle-configuration \
+  --endpoint-url $BUCKET_ENDPOINT \
+  --bucket $BUCKET_NAME \
+  --lifecycle-configuration file://config.json
+```
+
+Verify with `aws s3api get-bucket-lifecycle-configuration --endpoint-url $BUCKET_ENDPOINT --bucket $BUCKET_NAME`.
+
+### GDPR erasure
+
+`processHardDeleteUser()` calls `purgeUserQuarantine(userId)` alongside the current-avatar delete. Anonymization must forget the user immediately — we cannot wait up to 90 days for lifecycle to catch up. Purge paginates `ListObjectsV2` with `prefix=quarantine/{userId}/` and deletes each key.
+
+### Helpers
+
+`apps/api/src/services/s3.ts` exports the shared `s3Client` plus:
+
+| Function | Purpose |
+|---|---|
+| `quarantineKeyForUpload(uploadKey, userId)` | Derive `quarantine/{userId}/{basename}` from an `uploads/` key |
+| `quarantineAvatarKey(uploadKey, userId)` | Move the object. Called fire-and-forget from `profiles.update` |
+| `purgeUserQuarantine(userId)` | List + delete the user's whole quarantine prefix. Called from `processHardDeleteUser` |
+
+The `s3Client` export replaces three previous inline `new S3Client(...)` calls (`index.ts` `POST /uploads`, `queue-ops.ts` anonymization, `data-export.ts` presign) so credentials live in one place.
+
 ## Upload flow
 
 `POST /uploads` (`apps/api/src/index.ts`):
@@ -137,6 +191,7 @@ If you change this system, also check:
 - `docs/architecture/mobile-architecture.md` — Avatar component section, map markers
 - `docs/architecture/infrastructure.md` — imgproxy as a Railway service, env vars
 - `docs/architecture/gdpr-compliance.md` — data-export presigns `s3://` sources
-- `docs/architecture/account-deletion.md` — anonymization uses `extractOurS3Key`
+- `docs/architecture/account-deletion.md` — anonymization uses `extractOurS3Key` and calls `purgeUserQuarantine()`
+- `docs/architecture/blocking-moderation.md` — quarantine is the evidence-preservation leg; image moderation on upload is the prevention leg (BLI-268)
 - `packages/shared/src/avatar.ts` — helper source of truth
 - Railway env var `IMGPROXY_ALLOWED_SOURCES` must stay in sync with `IMGPROXY_SOURCES` in the shared helper
