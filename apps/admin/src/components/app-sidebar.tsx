@@ -70,11 +70,7 @@ const navMain = [
     title: "Moderacja",
     url: "/dashboard/moderation",
     icon: <ShieldIcon />,
-    items: [
-      { title: "Do przeglądu", url: "/dashboard/moderation" },
-      { title: "Historia", url: "/dashboard/moderation?tab=history" },
-      { title: "CSAM", url: "/dashboard/moderation?tab=csam" },
-    ],
+    items: [{ title: "Kolejka", url: "/dashboard/moderation" }],
   },
   {
     title: "Powiadomienia",
