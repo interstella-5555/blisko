@@ -14,6 +14,7 @@ import { Route as ProductRouteImport } from './routes/product'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PitchRouteImport } from './routes/pitch'
 import { Route as ChildSafetyRouteImport } from './routes/child-safety'
+import { Route as BreachNotificationRouteImport } from './routes/breach-notification'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as JoinCodeRouteImport } from './routes/join.$code'
 
@@ -42,6 +43,11 @@ const ChildSafetyRoute = ChildSafetyRouteImport.update({
   path: '/child-safety',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BreachNotificationRoute = BreachNotificationRouteImport.update({
+  id: '/breach-notification',
+  path: '/breach-notification',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -55,6 +61,7 @@ const JoinCodeRoute = JoinCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/breach-notification': typeof BreachNotificationRoute
   '/child-safety': typeof ChildSafetyRoute
   '/pitch': typeof PitchRoute
   '/privacy': typeof PrivacyRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/breach-notification': typeof BreachNotificationRoute
   '/child-safety': typeof ChildSafetyRoute
   '/pitch': typeof PitchRoute
   '/privacy': typeof PrivacyRoute
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/breach-notification': typeof BreachNotificationRoute
   '/child-safety': typeof ChildSafetyRoute
   '/pitch': typeof PitchRoute
   '/privacy': typeof PrivacyRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/breach-notification'
     | '/child-safety'
     | '/pitch'
     | '/privacy'
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/breach-notification'
     | '/child-safety'
     | '/pitch'
     | '/privacy'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/breach-notification'
     | '/child-safety'
     | '/pitch'
     | '/privacy'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BreachNotificationRoute: typeof BreachNotificationRoute
   ChildSafetyRoute: typeof ChildSafetyRoute
   PitchRoute: typeof PitchRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -158,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChildSafetyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/breach-notification': {
+      id: '/breach-notification'
+      path: '/breach-notification'
+      fullPath: '/breach-notification'
+      preLoaderRoute: typeof BreachNotificationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -177,6 +197,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BreachNotificationRoute: BreachNotificationRoute,
   ChildSafetyRoute: ChildSafetyRoute,
   PitchRoute: PitchRoute,
   PrivacyRoute: PrivacyRoute,

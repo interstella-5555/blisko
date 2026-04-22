@@ -5,6 +5,7 @@
 > Updated 2026-04-18 — Clarified that `portrait` is a DB text column, not an S3 file. Privacy policy and child-safety page updated accordingly (BLI-199).
 > Updated 2026-04-19 — Added `/child-safety` as third legal surface alongside `/privacy` and `/terms`.
 > Updated 2026-04-19 — `metrics.ai_calls.input_jsonb` + `output_jsonb` (PII-heavy payloads) are nulled on hard-delete alongside `userId` / `targetUserId`. 24h retention on these fields via `prune-ai-call-payloads` also bounds PII exposure for non-deleted users (BLI-239).
+> Updated 2026-04-22 — Added public breach notification procedure at `/breach-notification`; Art. 33-34 coverage is now documented rather than placeholder contact (BLI-267).
 
 Blisko processes personal data under RODO (Polish implementation of GDPR). Polish-market focus, single data controller (individual developer). This is the umbrella doc linking the three subsystems that implement GDPR rights: account deletion, data export, and privacy/terms disclosure.
 
@@ -91,7 +92,7 @@ AI processing involves:
 
 ## Privacy Policy & Terms
 
-Served at `blisko.app/privacy`, `blisko.app/terms`, and `blisko.app/child-safety` (TanStack Start routes in `apps/website/src/routes/`). Written in Polish. Privacy and Terms are linked from the mobile login screen (acceptance text below OAuth buttons) and the help screen in settings. `/child-safety` is reachable via the Play Console listing but not yet linked from the mobile app — see `privacy-terms.md` for the gap note and the unimplemented-features caveat (report system, image moderation, 24h SLA).
+Served at `blisko.app/privacy`, `blisko.app/terms`, `blisko.app/child-safety`, and `blisko.app/breach-notification` (TanStack Start routes in `apps/website/src/routes/`). Written in Polish. Privacy and Terms are linked from the mobile login screen (acceptance text below OAuth buttons) and the help screen in settings. `/child-safety` is reachable via the Play Console listing but not yet linked from the mobile app — see `privacy-terms.md` for the gap note and the unimplemented-features caveat (report system, image moderation, 24h SLA). `/breach-notification` is linked from `/privacy` section 10 and is the canonical location of the Art. 33-34 procedure — see the Breach Notification section below.
 
 **Details:** `docs/architecture/privacy-terms.md`
 
@@ -107,6 +108,28 @@ Applied to:
 - All user-facing search and list endpoints
 
 The `isAuthed` tRPC middleware blocks soft-deleted users from making any API calls. After anonymization, filtering is redundant (profile data is generic and `visibilityMode` is set to `"ninja"`) but stays as a safety net.
+
+## Breach Notification (Art. 33-34)
+
+**What:** Procedure for responding to personal data breaches. Full operational procedure is published as a public page at `blisko.app/breach-notification` (TanStack Start route in `apps/website/src/routes/breach-notification.tsx`), same pattern as `/privacy`, `/terms`, `/child-safety`.
+
+**Why public:** The procedure will need to be shared with external stakeholders (B2B partners in DPA review, cyber insurance underwriters, UODO during potential audits). A stable public URL avoids PDF export / Linear access ceremony when someone asks "do you have a breach procedure?". Peer pattern: GitLab handbook, Vercel Trust Center, Stripe Security — full procedures public, treated as trust signal. Nothing in the procedure is genuinely sensitive; specific credentials and personal escalation contacts stay in secret managers and do not belong in the runbook.
+
+**Key commitments documented on the public page:**
+
+- 72-hour UODO notification clock from the Data Controller's awareness (Art. 33(1))
+- Phased checklist: detect/contain (0h) → triage/classify (0-24h) → UODO submission via `https://uodo.gov.pl/pl/p/naruszenia` (24-72h) → user notification via Resend from `kontakt@blisko.app` if high-risk (Art. 34) → post-incident post-mortem
+- Risk classification (high / medium / low) driving whether Art. 34 user notification is required
+- Processor escalation contacts: OpenAI, Railway, Resend, Tigris `security@` addresses
+- User/researcher incident reporting channel: `kontakt@blisko.app`, 24h acknowledgement SLA
+
+**Linked from:** `/privacy` section 10 (Kontakt i skargi).
+
+**When to update the page:**
+
+- New data processor added → update processor escalation list
+- New sensitive data category → revisit risk classification examples
+- Annual privacy-policy review → bump "Ostatnia aktualizacja" even if content unchanged (demonstrates active maintenance)
 
 ## Data Controller
 
@@ -141,7 +164,7 @@ When adding tables or queries that reference users, check all four:
 | Art. 22 | Automated decision-making | AI is advisory only, disclosed in policy |
 | Art. 25 | Data protection by design | Anonymization (not deletion), no data sales, no tracking cookies |
 | Art. 28 | Processor agreements | DPA/SCC with OpenAI, Resend |
-| Art. 33-34 | Breach notification | Contact: kontakt@blisko.app |
+| Art. 33-34 | Breach notification | See Breach Notification section below; public procedure at `blisko.app/breach-notification` |
 | Art. 44-46 | International transfers | SCC for US processors (OpenAI, Resend) |
 | Art. 77 | Right to lodge complaint | UODO reference in privacy policy |
 | Recital 26 | Anonymization scope | Anonymized data outside GDPR (plain overwrite, not pseudonymization) |
