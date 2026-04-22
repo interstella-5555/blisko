@@ -76,6 +76,8 @@ echo -e '# API (local dev server)\nEXPO_PUBLIC_API_URL=http://192.168.50.120:300
 <!-- arch-ref: instrumentation.md -->
 **Monitoring:** `GET /api/metrics/summary?window=24` (JSON overview), `GET /metrics` (Prometheus). SLO: p95 < 500ms, error_rate < 5%. Design doc: `docs/architecture/instrumentation.md`.
 
+**Error tracking:** Bugsink (self-hosted, Sentry-compatible) at `https://bugsink.up.railway.app/`. Use the `bugsink` skill to query issues/events via REST API.
+
 **Schema inspection:** `npx drizzle-kit export --sql`
 
 ---
