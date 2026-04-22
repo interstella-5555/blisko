@@ -1,9 +1,8 @@
 import { TRPCError } from "@trpc/server";
+import OpenAI from "openai";
 
-const MODERATION_ENDPOINT = "https://api.openai.com/v1/moderations";
-// Multimodal model — supports text + images in a single `input` array. Text-only
-// moderation still works against this model too, but we leave `moderateContent`
-// on the server default to minimize diff in places that don't need image support.
+// Multimodal model — handles text + images on the same endpoint. Text-only
+// callers stay on the server default so `moderateContent` doesn't change.
 const IMAGE_MODEL = "omni-moderation-latest";
 
 export interface ModerationResult {
@@ -16,32 +15,39 @@ export interface ModerationResult {
   scores: Record<string, number>;
 }
 
+const EMPTY_RESULT: ModerationResult = { flagged: false, categories: [], scores: {} };
+
+// Lazy singleton — the API key only needs to be in the environment when a
+// moderation call actually happens, so modules that import this file purely
+// for types don't crash at load time if the key isn't configured.
+let _client: OpenAI | null = null;
+function getClient(): OpenAI | null {
+  if (!process.env.OPENAI_API_KEY) return null;
+  if (!_client) _client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return _client;
+}
+
+function listFlaggedCategories(categories: Record<string, boolean>): string[] {
+  return Object.entries(categories)
+    .filter(([, v]) => v)
+    .map(([k]) => k);
+}
+
 export async function moderateContent(text: string): Promise<void> {
-  if (!process.env.OPENAI_API_KEY) return;
+  const client = getClient();
+  if (!client) return;
 
-  const response = await fetch(MODERATION_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({ input: text }),
-  });
-
-  if (!response.ok) {
-    console.error("[moderation] API error:", response.status, await response.text());
+  let result: OpenAI.Moderations.Moderation | undefined;
+  try {
+    const response = await client.moderations.create({ input: text });
+    result = response.results[0];
+  } catch (err) {
+    console.error("[moderation] API error:", err);
     return; // graceful degradation
   }
 
-  const data = (await response.json()) as {
-    results: Array<{ flagged: boolean; categories: Record<string, boolean> }>;
-  };
-
-  const result = data.results[0];
   if (result?.flagged) {
-    const flaggedCategories = Object.entries(result.categories)
-      .filter(([, v]) => v)
-      .map(([k]) => k);
+    const flaggedCategories = listFlaggedCategories(result.categories as unknown as Record<string, boolean>);
     console.warn("[moderation] Content flagged:", flaggedCategories.join(", "));
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -59,49 +65,36 @@ export async function moderateContent(text: string): Promise<void> {
  * Graceful degradation matches `moderateContent`: missing key → skip, API
  * error / timeout → skip. The caller treats `flagged: false` as "allow".
  */
-const EMPTY_RESULT: ModerationResult = { flagged: false, categories: [], scores: {} };
-
 export async function moderateImage(bytes: ArrayBuffer, mimeType: string): Promise<ModerationResult> {
-  if (!process.env.OPENAI_API_KEY) return EMPTY_RESULT;
+  const client = getClient();
+  if (!client) return EMPTY_RESULT;
 
   const base64 = Buffer.from(bytes).toString("base64");
   const dataUrl = `data:${mimeType};base64,${base64}`;
 
-  const response = await fetch(MODERATION_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
+  let result: OpenAI.Moderations.Moderation | undefined;
+  try {
+    const response = await client.moderations.create({
       model: IMAGE_MODEL,
       input: [{ type: "image_url", image_url: { url: dataUrl } }],
-    }),
-  });
-
-  if (!response.ok) {
-    console.error("[moderation] image API error:", response.status, await response.text());
+    });
+    result = response.results[0];
+  } catch (err) {
+    console.error("[moderation] image API error:", err);
     return EMPTY_RESULT;
   }
 
-  const data = (await response.json()) as {
-    results: Array<{
-      flagged: boolean;
-      categories: Record<string, boolean>;
-      category_scores: Record<string, number>;
-    }>;
-  };
-
-  const result = data.results[0];
   if (!result) return EMPTY_RESULT;
 
-  const categories = Object.entries(result.categories)
-    .filter(([, v]) => v)
-    .map(([k]) => k);
+  const categories = listFlaggedCategories(result.categories as unknown as Record<string, boolean>);
   if (result.flagged) {
     console.warn("[moderation] Image flagged:", categories.join(", "));
   }
-  return { flagged: result.flagged, categories, scores: result.category_scores ?? {} };
+  return {
+    flagged: result.flagged,
+    categories,
+    scores: (result.category_scores as unknown as Record<string, number>) ?? {},
+  };
 }
 
 /**
