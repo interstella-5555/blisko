@@ -6,6 +6,7 @@ import ms from "ms";
 import { db, schema } from "@/db";
 import { publishEvent } from "@/ws/redis-bridge";
 import { attachWorkerLogger, getConnectionConfig, QUEUE_NAMES } from "./queue-shared";
+import { purgeUserQuarantine, s3Client } from "./s3";
 import { restoreUser, softDeleteUser } from "./user-actions";
 
 // --- Job types ---
@@ -87,31 +88,32 @@ async function processHardDeleteUser(userId: string) {
     columns: { avatarUrl: true, portrait: true },
   });
 
-  // 2. Delete S3 files (avatar, portrait). Only our s3:// sources — OAuth / seed URLs
-  // are never ours to delete (extractOurS3Key returns null for any non-s3:// scheme).
+  // 2. Delete S3 files (current avatar + any quarantined prior avatars). Only our
+  // s3:// sources — OAuth / seed URLs are never ours to delete (extractOurS3Key
+  // returns null for any non-s3:// scheme). `portrait` is a text column (not a
+  // URL) so extractOurS3Key also yields null for it — the loop stays tolerant.
   if (profile) {
     const keysToDelete: string[] = [];
     for (const url of [profile.avatarUrl, profile.portrait]) {
       const key = extractOurS3Key(url);
       if (key) keysToDelete.push(key);
     }
-    if (keysToDelete.length > 0) {
-      const { S3Client } = await import("bun");
-      const s3 = new S3Client({
-        accessKeyId: process.env.BUCKET_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.BUCKET_SECRET_ACCESS_KEY!,
-        endpoint: process.env.BUCKET_ENDPOINT!,
-        bucket: process.env.BUCKET_NAME!,
-      });
-      for (const key of keysToDelete) {
-        try {
-          await s3.delete(key);
-          console.log(`[queue:ops] deleted S3 key: ${key}`);
-        } catch (err) {
-          console.error(`[queue:ops] failed to delete S3 key ${key}:`, err);
-        }
+    for (const key of keysToDelete) {
+      try {
+        await s3Client.delete(key);
+        console.log(`[queue:ops] deleted S3 key: ${key}`);
+      } catch (err) {
+        console.error(`[queue:ops] failed to delete S3 key ${key}:`, err);
       }
     }
+  }
+
+  // 2b. Purge the user's quarantine prefix. Tigris lifecycle purges after 90
+  // days under normal operation; GDPR erasure must happen immediately.
+  try {
+    await purgeUserQuarantine(userId);
+  } catch (err) {
+    console.error(`[s3:quarantine] purge failed for ${userId}:`, err);
   }
 
   const now = new Date();

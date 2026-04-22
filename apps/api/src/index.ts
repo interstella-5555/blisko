@@ -221,18 +221,11 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
 }
 
 // File uploads — S3-compatible object storage (Bun built-in S3Client)
-import { S3Client } from "bun";
 import { and, eq, gt } from "drizzle-orm";
 import { DEFAULT_RATE_LIMIT_MESSAGE, rateLimitMessages, rateLimits } from "./config/rateLimits";
 import { db, schema } from "./db";
 import { checkRateLimit } from "./services/rate-limiter";
-
-const s3 = new S3Client({
-  accessKeyId: process.env.BUCKET_ACCESS_KEY_ID!,
-  secretAccessKey: process.env.BUCKET_SECRET_ACCESS_KEY!,
-  endpoint: process.env.BUCKET_ENDPOINT!,
-  bucket: process.env.BUCKET_NAME!,
-});
+import { s3Client } from "./services/s3";
 
 app.post("/uploads", async (c) => {
   try {
@@ -293,7 +286,7 @@ app.post("/uploads", async (c) => {
     const key = `uploads/${crypto.randomUUID()}.${ext}`;
 
     const buffer = await file.arrayBuffer();
-    await s3.write(key, buffer, { type: file.type });
+    await s3Client.write(key, buffer, { type: file.type });
 
     // Return a stable source pointer. Mobile stores this in profiles.avatarUrl and
     // renders via the imgproxy helper (packages/shared/src/avatar.ts). Pre-BLI-254
