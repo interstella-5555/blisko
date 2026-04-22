@@ -183,6 +183,13 @@
       "when": 1776598525039,
       "tag": "0025_add_ai_call_payloads",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1776820678570,
+      "tag": "0026_add_moderation_results",
+      "breakpoints": true
     }
   ]
 }

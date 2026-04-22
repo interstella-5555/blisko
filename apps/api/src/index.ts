@@ -224,7 +224,7 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
 import { and, eq, gt } from "drizzle-orm";
 import { DEFAULT_RATE_LIMIT_MESSAGE, rateLimitMessages, rateLimits } from "./config/rateLimits";
 import { db, schema } from "./db";
-import { moderateImage } from "./services/moderation";
+import { moderateImage, shouldHardBlock } from "./services/moderation";
 import { checkRateLimit } from "./services/rate-limiter";
 import { s3Client } from "./services/s3";
 
@@ -285,11 +285,25 @@ app.post("/uploads", async (c) => {
 
     const buffer = await file.arrayBuffer();
 
-    // First-line visual filter. BLI-68 quarantine preserves evidence for what
-    // slips through; this rejects the obvious cases (CSAM, graphic violence,
-    // nudity) before anything hits S3.
+    // Hybrid moderation. CSAM (sexual/minors) is blocked synchronously —
+    // bytes never hit S3 and the uploader sees 400 CONTENT_MODERATED. Other
+    // flagged categories (nudity, violence, harassment…) let the upload
+    // through so legit edge cases aren't false-blocked, but land in
+    // moderation_results for admin review (BLI-269). Clean uploads produce
+    // no row. BLI-68 quarantine is the preservation layer for anything that
+    // gets reported manually after the fact.
     const moderation = await moderateImage(buffer, file.type);
-    if (moderation.flagged) {
+
+    if (shouldHardBlock(moderation)) {
+      // Bytes are discarded — no `upload_key` because nothing was written to S3.
+      await db.insert(schema.moderationResults).values({
+        userId: sessionRow.userId,
+        uploadKey: null,
+        mimeType: file.type,
+        status: "blocked_csam",
+        flaggedCategories: moderation.categories,
+        categoryScores: moderation.scores,
+      });
       return c.json({ error: "CONTENT_MODERATED" }, 400);
     }
 
@@ -297,6 +311,17 @@ app.post("/uploads", async (c) => {
     const key = `uploads/${crypto.randomUUID()}.${ext}`;
 
     await s3Client.write(key, buffer, { type: file.type });
+
+    if (moderation.flagged) {
+      await db.insert(schema.moderationResults).values({
+        userId: sessionRow.userId,
+        uploadKey: key,
+        mimeType: file.type,
+        status: "flagged_review",
+        flaggedCategories: moderation.categories,
+        categoryScores: moderation.scores,
+      });
+    }
 
     // Return a stable source pointer. Mobile stores this in profiles.avatarUrl and
     // renders via the imgproxy helper (packages/shared/src/avatar.ts). Pre-BLI-254

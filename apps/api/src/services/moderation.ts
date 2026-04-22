@@ -8,7 +8,12 @@ const IMAGE_MODEL = "omni-moderation-latest";
 
 export interface ModerationResult {
   flagged: boolean;
+  // Names of categories OpenAI marked `true`. Subset of `scores`' keys.
   categories: string[];
+  // Full float confidence map (0-1 per category). Persisted to moderation_results
+  // so admins can see why a row landed in the review queue even for categories
+  // that didn't cross the flag threshold.
+  scores: Record<string, number>;
 }
 
 export async function moderateContent(text: string): Promise<void> {
@@ -54,8 +59,10 @@ export async function moderateContent(text: string): Promise<void> {
  * Graceful degradation matches `moderateContent`: missing key → skip, API
  * error / timeout → skip. The caller treats `flagged: false` as "allow".
  */
+const EMPTY_RESULT: ModerationResult = { flagged: false, categories: [], scores: {} };
+
 export async function moderateImage(bytes: ArrayBuffer, mimeType: string): Promise<ModerationResult> {
-  if (!process.env.OPENAI_API_KEY) return { flagged: false, categories: [] };
+  if (!process.env.OPENAI_API_KEY) return EMPTY_RESULT;
 
   const base64 = Buffer.from(bytes).toString("base64");
   const dataUrl = `data:${mimeType};base64,${base64}`;
@@ -74,15 +81,19 @@ export async function moderateImage(bytes: ArrayBuffer, mimeType: string): Promi
 
   if (!response.ok) {
     console.error("[moderation] image API error:", response.status, await response.text());
-    return { flagged: false, categories: [] };
+    return EMPTY_RESULT;
   }
 
   const data = (await response.json()) as {
-    results: Array<{ flagged: boolean; categories: Record<string, boolean> }>;
+    results: Array<{
+      flagged: boolean;
+      categories: Record<string, boolean>;
+      category_scores: Record<string, number>;
+    }>;
   };
 
   const result = data.results[0];
-  if (!result) return { flagged: false, categories: [] };
+  if (!result) return EMPTY_RESULT;
 
   const categories = Object.entries(result.categories)
     .filter(([, v]) => v)
@@ -90,5 +101,17 @@ export async function moderateImage(bytes: ArrayBuffer, mimeType: string): Promi
   if (result.flagged) {
     console.warn("[moderation] Image flagged:", categories.join(", "));
   }
-  return { flagged: result.flagged, categories };
+  return { flagged: result.flagged, categories, scores: result.category_scores ?? {} };
+}
+
+/**
+ * OpenAI categories that must trigger a synchronous hard block at `POST /uploads`.
+ * Anything else gets queued for admin review. Keep this list narrow — content
+ * blocked here never reaches the queue, which means no admin has the chance
+ * to overturn a false positive.
+ */
+export const SYNC_BLOCK_CATEGORIES = ["sexual/minors"] as const;
+
+export function shouldHardBlock(result: ModerationResult): boolean {
+  return SYNC_BLOCK_CATEGORIES.some((cat) => result.categories.includes(cat));
 }

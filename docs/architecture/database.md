@@ -318,6 +318,27 @@ Bidirectional blocking. Filtered in: nearby queries, wave sends, message sends, 
 
 **Indexes:** `blocks_blocker_idx`, `blocks_blocked_idx`. Both needed because block checks query in both directions.
 
+### `moderation_results`
+
+Image moderation audit trail. Written by `POST /uploads` whenever OpenAI's `omni-moderation-latest` flags an upload. Clean uploads produce no row. See `blocking-moderation.md` for the hybrid sync-block + async-review decision logic.
+
+| Column | Type | Nullable | Default | Purpose |
+|--------|------|----------|---------|---------|
+| `id` | uuid PK | no | `gen_random_uuid()` | |
+| `user_id` | text FK -> user, `ON DELETE SET NULL` | yes | -- | Uploader. Nulled on account anonymization so the audit row outlives the user. |
+| `upload_key` | text | yes | -- | S3 object key for `flagged_review` rows. Null for `blocked_csam` — bytes were never written. |
+| `mime_type` | text | no | -- | `image/jpeg` etc. |
+| `status` | text | no | -- | `blocked_csam` / `flagged_review` / `reviewed_ok` / `reviewed_removed` |
+| `flagged_categories` | text[] | no | -- | Category names OpenAI returned as `true` (e.g. `sexual`, `violence/graphic`) |
+| `category_scores` | jsonb | no | -- | Full `{ category: score }` map (0-1 floats). Kept for admin context even on categories that didn't trip. |
+| `created_at` | timestamp | no | `now()` | |
+| `reviewed_at` | timestamp | yes | -- | Admin verdict time |
+| `reviewed_by` | text | yes | -- | Admin user id (admin panel has its own auth, no FK to `user`) |
+| `review_decision` | text | yes | -- | `ok` / `remove` |
+| `review_notes` | text | yes | -- | Free-form admin note |
+
+**Indexes:** `moderation_results_status_created_idx` (composite — admin queue lists pending by status then age), `moderation_results_user_idx` (per-user history).
+
 ### `push_tokens`
 
 Expo push notification tokens.
