@@ -3,7 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-10 — added Message Delete (Client Optimistic Flow) section documenting the `updateMessage` store method and the context-menu positioning constant that keeps "Usuń" visible above the chat input bar.
 > Updated 2026-04-14 — seq-based pagination, syncGaps endpoint, lifecycle-safe mutations, single source of truth architecture (BLI-224).
-> Updated 2026-04-22 — BLI-156 added `RECIPIENT_SUSPENDED` failure on `messages.send` when any peer is suspended. `messages.getConversations` exposes `participant.isSuspended` so the mobile composer can disable + render "Konto zawieszone". See `moderation-suspension.md`.
+> Updated 2026-04-22 — BLI-156 added `RECIPIENT_SUSPENDED` failure on `messages.send` when the DM peer is suspended (groups stay writable so remaining active members can still talk). `messages.getConversations` exposes `participant.isSuspended` so the mobile composer can disable + render "Konto zawieszone". See `moderation-suspension.md`.
 
 Source: `apps/api/src/trpc/procedures/messages.ts`, `apps/api/src/ws/handler.ts`, `apps/api/src/ws/events.ts`, `apps/api/src/db/schema.ts`, `packages/shared/src/validators.ts`, `apps/mobile/app/chat/[id].tsx`, `apps/mobile/src/stores/messagesStore.ts`, `apps/mobile/src/components/chat/MessageContextMenu.tsx`.
 
@@ -89,7 +89,7 @@ Indexes: `messages_conv_created_idx` (conversationId, createdAt), `messages_conv
 
 **Flow:**
 1. Verify sender is participant
-2. Reject with `BAD_REQUEST / RECIPIENT_SUSPENDED` if any non-self participant has `user.suspendedAt IS NOT NULL` (BLI-156). Soft-deleted peers are implicitly handled because `isAuthed` has already kept them out; the suspension gate specifically covers the case where a peer is blocked from logging in but the conversation is still active for everyone else.
+2. Reject with `BAD_REQUEST / RECIPIENT_SUSPENDED` if the conversation is a **DM** and the peer has `user.suspendedAt IS NOT NULL` (BLI-156). Group chats skip this check — they stay writable so remaining active members can still talk; the suspended member simply doesn't receive anything. Soft-deleted peers are implicitly handled because `isAuthed` has already kept them out.
 3. Check idempotency key (if provided)
 4. Transaction: insert message with seq assignment via `COALESCE(MAX(seq)+1, 1)`, update `conversations.updatedAt`, update topic `lastMessageAt` + `messageCount` if topicId set
 5. Cache result in Redis for idempotency (if key provided)

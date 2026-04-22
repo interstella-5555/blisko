@@ -538,21 +538,23 @@ export const messagesRouter = router({
         });
       }
 
-      // Block sends to a suspended peer. The conversation itself remains
-      // readable (history stays) but nothing new can land — the mobile
-      // composer renders disabled above the same check; this is the server
-      // backstop. Soft-deleted peers are skipped implicitly: isAuthed already
-      // blocks them from reaching this endpoint, so their messages never
-      // arrive; the outbound side stays open because it mirrors the existing
-      // soft-delete behavior where we keep the conversation visible until
-      // anonymization lands.
+      // Block sends to a suspended peer in DMs only. The conversation itself
+      // remains readable (history stays) but nothing new can land — the mobile
+      // composer renders disabled via the same `isSuspended` flag on the DM
+      // participant; this is the server backstop. Group chats stay writable
+      // even when a single member is suspended: the other active members must
+      // still be able to talk, and the suspended member simply won't receive
+      // anything (soft-deleted peers are hidden server-side anyway by
+      // `isAuthed`, so their absence from sends is automatic).
       const suspendedPeer = await db
         .select({ id: schema.user.id })
         .from(schema.conversationParticipants)
         .innerJoin(schema.user, eq(schema.conversationParticipants.userId, schema.user.id))
+        .innerJoin(schema.conversations, eq(schema.conversationParticipants.conversationId, schema.conversations.id))
         .where(
           and(
             eq(schema.conversationParticipants.conversationId, input.conversationId),
+            eq(schema.conversations.type, "dm"),
             ne(schema.conversationParticipants.userId, ctx.userId),
             isNotNull(schema.user.suspendedAt),
           ),
