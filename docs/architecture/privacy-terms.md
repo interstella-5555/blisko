@@ -3,6 +3,7 @@
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-18 — Corrected portrait storage (text in DB, not S3 file). Added explicit privacy disclosure that AI generates an internal personality description visible only via data-export (BLI-199).
 > Updated 2026-04-19 — Added `/child-safety` as third legal route (PR #166). Flagged that the page promises unimplemented features (report system, image moderation, 24h SLA) and is not yet linked from the mobile app.
+> Updated 2026-04-22 — Added `/breach-notification` as fourth legal route, covering RODO Art. 33-34 procedure. Linked from `/privacy` section 10. Full Breach Notification procedure documented in `gdpr-compliance.md` (BLI-267).
 
 Polish-language privacy policy and terms of service, served as web pages from the website app, linked from the mobile app. Required for RODO/GDPR compliance before public release.
 
@@ -15,6 +16,7 @@ Parent doc: `docs/architecture/gdpr-compliance.md`
 | Prywatnosc | `/privacy` route in `apps/website/src/routes/privacy.tsx` | "Polityka Prywatnosci" |
 | Regulamin | `/terms` route in `apps/website/src/routes/terms.tsx` | "Regulamin" |
 | Standardy bezpieczeństwa dzieci | `/child-safety` route in `apps/website/src/routes/child-safety.tsx` | "Standardy Bezpieczeństwa Dzieci" |
+| Procedura breach notification | `/breach-notification` route in `apps/website/src/routes/breach-notification.tsx` | "Procedura powiadamiania o naruszeniu ochrony danych" |
 | Wave / ping | `waves` table | "Wave" (terms: "zaproszenie do kontaktu") |
 | Status | `profiles.currentStatus` | "Status" (terms: "intencja") |
 | Grupy | `conversations` (type=group) | "Grupy" |
@@ -28,6 +30,7 @@ Both documents are TanStack Start routes in the website app (`apps/website/`), r
 - Privacy policy: `https://blisko.app/privacy`
 - Terms of service: `https://blisko.app/terms`
 - Child safety standards: `https://blisko.app/child-safety` (added 2026-04-18 by PR #166; required by Google Play for apps with under-13 reach, linked from Play Console listing)
+- Breach notification procedure: `https://blisko.app/breach-notification` (added 2026-04-22, BLI-267; RODO Art. 33-34 procedure, linked from `/privacy` section 10, intended for ad-hoc sharing with B2B partners / UODO / cyber insurance underwriters)
 
 > **Caveat:** The child-safety page promises a report system (zgłoszenie profilu / wiadomości), image moderation for avatars, and a 24h response SLA. None of these are implemented in code as of 2026-04-19 (see `blocking-moderation.md` — text moderation only, no report storage). Either the page copy needs tightening or these features need tickets before we rely on the page as a compliance artefact.
 
@@ -39,10 +42,12 @@ Both pages set `<html lang="pl">`, have proper meta tags (title, viewport), disp
   - `privacy.tsx` → "Ostatnia aktualizacja: 8 kwietnia 2026"
   - `terms.tsx` → "Ostatnia aktualizacja: 7 marca 2026"
   - `child-safety.tsx` → "Ostatnia aktualizacja: 18 kwietnia 2026"
+  - `breach-notification.tsx` → "Ostatnia aktualizacja: 22 kwietnia 2026"
   Each document ships its own date because the Privacy Policy gets amended more often than Terms (RODO/schema changes vs. commercial terms). Update the relevant route whenever you change the corresponding legal content.
 - Privacy title meta: "Polityka Prywatnosci -- Blisko"
 - Terms title meta: "Regulamin -- Blisko"
 - Child safety title meta: "Standardy Bezpieczeństwa Dzieci -- Blisko"
+- Breach notification title meta: "Procedura powiadamiania o naruszeniu ochrony danych — Blisko"
 
 ## Mobile Integration
 

@@ -158,6 +158,10 @@ function PrivacyPage() {
         <P>
           Masz prawo wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych (UODO), ul. Stawki 2, 00-193 Warszawa.
         </P>
+        <P>
+          W przypadku wykrycia naruszenia ochrony danych osobowych stosujemy procedurę zgodną z Art. 33 i 34 RODO —
+          szczegóły opisuje <A href="/breach-notification">Procedura powiadamiania o naruszeniu ochrony danych</A>.
+        </P>
       </Section>
 
       <Section title="11. Zmiany polityki prywatności">
