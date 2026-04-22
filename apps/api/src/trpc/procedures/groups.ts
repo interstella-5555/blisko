@@ -718,11 +718,16 @@ export const groupsRouter = router({
         });
       }
 
+      // Count must match what `getMembers` returns (soft-deleted hidden, suspended
+      // still listed with a badge). Using `userIsActive()` here would produce
+      // "9 members" in the header while the list shows 10 rows.
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.conversationParticipants)
         .innerJoin(schema.user, eq(schema.conversationParticipants.userId, schema.user.id))
-        .where(and(eq(schema.conversationParticipants.conversationId, input.conversationId), userIsActive()));
+        .where(
+          and(eq(schema.conversationParticipants.conversationId, input.conversationId), isNull(schema.user.deletedAt)),
+        );
 
       // Members get full info; non-members get a preview
       if (!isMember) {

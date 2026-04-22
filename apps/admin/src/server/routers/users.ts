@@ -32,7 +32,10 @@ export const usersRouter = router({
       } else if (status === "deleted") {
         conditions.push(isNotNull(schema.user.deletedAt));
       } else if (status === "suspended") {
+        // Exclude rows that are also soft-deleted — the list's status ternary
+        // resolves those to "Usunięty", so they don't belong in this filter.
         conditions.push(isNotNull(schema.user.suspendedAt));
+        conditions.push(isNull(schema.user.deletedAt));
       }
 
       if (!showSeed) {
@@ -311,13 +314,27 @@ export const usersRouter = router({
       .select({ count: count() })
       .from(schema.user)
       .innerJoin(schema.profiles, eq(schema.user.id, schema.profiles.userId))
-      .where(and(isNull(schema.user.deletedAt), eq(schema.profiles.isComplete, true), seedFilter));
+      .where(
+        and(
+          isNull(schema.user.deletedAt),
+          isNull(schema.user.suspendedAt),
+          eq(schema.profiles.isComplete, true),
+          seedFilter,
+        ),
+      );
 
     const [onboardingUsers] = await db
       .select({ count: count() })
       .from(schema.user)
       .innerJoin(schema.profiles, eq(schema.user.id, schema.profiles.userId))
-      .where(and(isNull(schema.user.deletedAt), eq(schema.profiles.isComplete, false), seedFilter));
+      .where(
+        and(
+          isNull(schema.user.deletedAt),
+          isNull(schema.user.suspendedAt),
+          eq(schema.profiles.isComplete, false),
+          seedFilter,
+        ),
+      );
 
     return {
       real: realUsers.count,

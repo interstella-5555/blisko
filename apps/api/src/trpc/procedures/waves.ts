@@ -126,7 +126,7 @@ export const wavesRouter = router({
       setTargetUserId(ctx.req, input.toUserId);
       console.log(`[waves.send] from=${ctx.userId} to=${input.toUserId}`);
 
-      // Check if target user exists and is not soft-deleted
+      // Check if target user exists and is active (not soft-deleted or suspended)
       const [targetResult] = await db
         .select({ userId: schema.profiles.userId })
         .from(schema.profiles)

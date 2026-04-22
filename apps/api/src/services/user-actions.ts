@@ -28,13 +28,17 @@ export async function restoreUser(userId: string) {
 }
 
 export async function suspendUser(userId: string, reason: string) {
-  // Guard: re-suspending is a no-op so we don't overwrite the existing reason or re-decline
-  // waves that a previous suspension already closed out.
+  // Guard: skip if the row is already either suspended or soft-deleted.
+  // - already suspended → don't overwrite the reason or re-decline waves
+  // - already soft-deleted → the account is in the 14-day grace period; stacking
+  //   suspension on top creates a hybrid state that the admin UI surfaces in two
+  //   filter buckets at once. If moderation still wants to intervene mid-grace,
+  //   that's a separate workflow (not supported in v1).
   const user = await db.query.user.findFirst({
     where: eq(schema.user.id, userId),
-    columns: { suspendedAt: true },
+    columns: { suspendedAt: true, deletedAt: true },
   });
-  if (user?.suspendedAt) return;
+  if (user?.suspendedAt || user?.deletedAt) return;
 
   await db.transaction(async (tx) => {
     await tx

@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-09 — Added 3 admin job types (BLI-154): admin-soft-delete-user, admin-restore-user, admin-force-disconnect.
+> Updated 2026-04-22 — Added 2 admin job types (BLI-156): admin-suspend-user, admin-unsuspend-user.
 > Updated 2026-04-10 — Self-healing AI queue: `analysisFailed` event, quick-score BullMQ deduplication (BLI-158).
 > Updated 2026-04-10 — Push log: `flush-push-log` (15s batch flush) and `prune-push-log` (hourly cleanup) repeatable jobs, Redis buffer entry.
 > Updated 2026-04-10 — Self-healing profiling: `questionFailed` event, profiling question BullMQ deduplication (BLI-161).
@@ -67,7 +68,7 @@ All three workers start at server startup from `src/index.ts`: `startAiWorker()`
 
 On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jobs` Redis queue: it first rescues any delayed `hard-delete-user` jobs by re-adding them to `ops` with preserved remaining delay and job ID, then calls `legacyQueue.obliterate({ force: true })` to remove everything else that stuck around — stale failed `analyze-pair` entries, old completed jobs, and the `flush-push-log`/`prune-push-log` repeatable schedulers that no worker consumes anymore. Both steps no-op gracefully on an empty queue; failures are logged but non-fatal (BLI-204).
 
-## Job Types (19 total)
+## Job Types (21 total)
 
 ### AI Queue (9 types) — `queue.ts`
 
@@ -234,7 +235,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **`removeOnComplete`:** default
 
-### Ops Queue (5 types) — `queue-ops.ts`
+### Ops Queue (7 types) — `queue-ops.ts`
 
 ### 10. `hard-delete-user` — GDPR Anonymization
 
@@ -302,9 +303,29 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **`removeOnComplete`:** true (via admin enqueue options)
 
+### 15. `admin-suspend-user` — Admin Suspend User (BLI-156)
+
+**What:** Marks a user account as suspended — blocks login, hides from discovery, declines pending waves, closes live sessions. Admin-driven moderation state parallel to (but distinct from) soft-delete. See `moderation-suspension.md`.
+
+**Trigger:** Admin panel "Zawieś konto" dialog → `enqueueOpsAndWait()` from admin app with `{ userId, reason }`.
+
+**Processor logic:** Calls `suspendUser(userId, reason)` in `apps/api/src/services/user-actions.ts`. Transaction: set `suspendedAt` + `suspendReason`, delete sessions + push tokens, auto-decline pending waves in both directions. Post-transaction: `publishEvent("forceDisconnect", { userId })`.
+
+**`removeOnComplete`:** true (via admin enqueue options)
+
+### 16. `admin-unsuspend-user` — Admin Unsuspend User (BLI-156)
+
+**What:** Clears the suspension — restores login capability. Does not re-open the auto-declined waves (by design, per `infra/waves-irreversible`).
+
+**Trigger:** Admin panel "Odwieś konto" action → `enqueueOpsAndWait()` from admin app with `{ userId }`.
+
+**Processor logic:** Calls `unsuspendUser(userId)`: clears `suspendedAt` and `suspendReason`.
+
+**`removeOnComplete`:** true (via admin enqueue options)
+
 ### Maintenance Queue (5 types) — `queue-maintenance.ts`
 
-### 15. `flush-push-log` — Push Log Batch Flush
+### 17. `flush-push-log` — Push Log Batch Flush
 
 **What:** Drains the `blisko:push-log` Redis list and batch-inserts all buffered push notification events into the `push_sends` database table.
 
@@ -320,7 +341,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **Infrastructure:** Uses `createBatchBuffer` — a generic reusable Redis-buffered batch writer in `apps/api/src/services/batch-buffer.ts`.
 
-### 16. `prune-push-log` — Push Log Cleanup
+### 18. `prune-push-log` — Push Log Cleanup
 
 **What:** Deletes push log entries older than 7 days from the `push_sends` table.
 
@@ -328,7 +349,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **Processor logic:** `DELETE FROM push_sends WHERE created_at < NOW() - 7 days`.
 
-### 17. `flush-ai-calls` — AI Call Log Batch Flush
+### 19. `flush-ai-calls` — AI Call Log Batch Flush
 
 **What:** Drains the `blisko:ai-calls` Redis list and batch-inserts all buffered AI call events into the `metrics.ai_calls` database table.
 
@@ -342,7 +363,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 See `ai-cost-tracking.md` for the wrapper design and admin dashboard.
 
-### 18. `prune-ai-calls` — AI Call Log Cleanup
+### 20. `prune-ai-calls` — AI Call Log Cleanup
 
 **What:** Deletes AI call log entries older than 7 days from the `metrics.ai_calls` table.
 
@@ -350,7 +371,7 @@ See `ai-cost-tracking.md` for the wrapper design and admin dashboard.
 
 **Processor logic:** `DELETE FROM metrics.ai_calls WHERE timestamp < NOW() - INTERVAL '7 days'` via `pruneAiCalls(SEVEN_DAYS_MS)`.
 
-### 19. `consistency-sweep` — Nightly Consistency Sweep
+### 21. `consistency-sweep` — Nightly Consistency Sweep
 
 **What:** Scans for stuck state left by failed queue jobs and repairs it. Three checks: zombie profiles (bio exists but portrait/embedding missing), stuck profiling sessions (all Q&A answered but no generated profile), abandoned sessions (active >24h).
 

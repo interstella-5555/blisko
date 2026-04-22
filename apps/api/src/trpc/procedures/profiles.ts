@@ -658,7 +658,8 @@ export const profilesRouter = router({
 
   // Ensure T3 analysis exists — lightweight "poke" to re-enqueue if stuck/failed.
   // A T2 row is NOT "ready" — still promote to T3. Silent no-op for blocked/incomplete/
-  // soft-deleted target (returns "ready") so mobile self-heal stops without revealing state.
+  // inactive target (soft-deleted or suspended — returns "ready" so mobile self-heal
+  // stops without revealing state).
   ensureAnalysis: protectedProcedure.input(z.object({ userId: z.string() })).mutation(async ({ ctx, input }) => {
     const block = await db.query.blocks.findFirst({
       where: or(
@@ -711,8 +712,9 @@ export const profilesRouter = router({
     });
     if (!myProfile?.isComplete) return null;
 
-    // Soft-delete filter: inner-join user so a soft-deleted target disappears even if
-    // the map query raced and handed the userId to mobile before the deletion landed.
+    // Active-user filter: inner-join user so a soft-deleted or suspended target
+    // disappears even if the map query raced and handed the userId to mobile
+    // before the state landed.
     const [target] = await db
       .select({ isComplete: schema.profiles.isComplete })
       .from(schema.profiles)
