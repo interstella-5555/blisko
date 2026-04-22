@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { isRateLimitError } from "@/lib/globalErrorHandler";
 import { trpc } from "@/lib/trpc";
+import { showModerationToastIfApplicable, uploadImage } from "@/lib/uploadImage";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
@@ -36,38 +37,21 @@ export default function EditProfileScreen() {
   });
 
   const handlePickAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+
+    setUploading(true);
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        quality: 0.8,
-        allowsEditing: true,
-        aspect: [1, 1],
-      });
-
-      if (result.canceled || !result.assets?.[0]) return;
-
-      setUploading(true);
-      const asset = result.assets[0];
-      const formData = new FormData();
-      formData.append("file", {
-        uri: asset.uri,
-        name: asset.fileName || "avatar.jpg",
-        type: asset.mimeType || "image/jpeg",
-      } as unknown as Blob);
-
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
-      const response = await fetch(`${apiUrl}/uploads`, {
-        method: "POST",
-        body: formData,
-        headers: {
-          authorization: `Bearer ${useAuthStore.getState().session?.token || ""}`,
-        },
-      });
-
-      if (!response.ok) throw new Error("Upload failed");
-      const { source } = await response.json();
+      const { source } = await uploadImage(result.assets[0]);
       setAvatarUrl(source);
-    } catch (_error) {
+    } catch (error) {
+      if (showModerationToastIfApplicable(error)) return;
       Alert.alert("Błąd", "Nie udało się przesłać zdjęcia");
     } finally {
       setUploading(false);

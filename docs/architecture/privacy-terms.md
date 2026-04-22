@@ -4,6 +4,7 @@
 > Updated 2026-04-18 — Corrected portrait storage (text in DB, not S3 file). Added explicit privacy disclosure that AI generates an internal personality description visible only via data-export (BLI-199).
 > Updated 2026-04-19 — Added `/child-safety` as third legal route (PR #166). Flagged that the page promises unimplemented features (report system, image moderation, 24h SLA) and is not yet linked from the mobile app.
 > Updated 2026-04-22 — Added `/breach-notification` as fourth legal route, covering RODO Art. 33-34 procedure. Linked from `/privacy` section 10. Full Breach Notification procedure documented in `gdpr-compliance.md` (BLI-267).
+> Updated 2026-04-22 — Image moderation on upload implemented (`moderateImage` via `omni-moderation-latest`, BLI-268). Child-safety caveat narrowed to the still-missing report system + 24h SLA.
 
 Polish-language privacy policy and terms of service, served as web pages from the website app, linked from the mobile app. Required for RODO/GDPR compliance before public release.
 
@@ -32,7 +33,7 @@ Both documents are TanStack Start routes in the website app (`apps/website/`), r
 - Child safety standards: `https://blisko.app/child-safety` (added 2026-04-18 by PR #166; required by Google Play for apps with under-13 reach, linked from Play Console listing)
 - Breach notification procedure: `https://blisko.app/breach-notification` (added 2026-04-22, BLI-267; RODO Art. 33-34 procedure, linked from `/privacy` section 10, intended for ad-hoc sharing with B2B partners / UODO / cyber insurance underwriters)
 
-> **Caveat:** The child-safety page promises a report system (zgłoszenie profilu / wiadomości), image moderation for avatars, and a 24h response SLA. None of these are implemented in code as of 2026-04-19 (see `blocking-moderation.md` — text moderation only, no report storage). Either the page copy needs tightening or these features need tickets before we rely on the page as a compliance artefact.
+> **Caveat:** The child-safety page still promises a report system (zgłoszenie profilu / wiadomości) and a 24h response SLA that aren't implemented. Image moderation on upload is covered as of 2026-04-22 (BLI-268 — `moderateImage` in `moderation.ts`). Either the remaining page copy needs tightening or the report + SLA features need tickets before we lean on the page as a compliance artefact.
 
 Both pages set `<html lang="pl">`, have proper meta tags (title, viewport), display a last-updated date, and use a clean, mobile-friendly layout.
 

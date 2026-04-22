@@ -161,8 +161,9 @@ The `s3Client` export replaces three previous inline `new S3Client(...)` calls (
 1. Auth check → bearer token from session.
 2. Rate limit check → `uploads` key, per user.
 3. File validation (`image/*`, ≤5 MB).
-4. Write raw bytes to `s3://${BUCKET_NAME}/uploads/{uuid}.{ext}` via Bun S3Client.
-5. Return `{ source: "s3://blisko-bucket/uploads/{uuid}.{ext}" }`.
+4. **AI moderation** → `moderateImage(buffer, file.type)` (`moderation.ts`, `omni-moderation-latest`). Flagged → `400 { error: "CONTENT_MODERATED" }`, bytes never hit S3. See `blocking-moderation.md`.
+5. Write raw bytes to `s3://${BUCKET_NAME}/uploads/{uuid}.{ext}` via Bun S3Client.
+6. Return `{ source: "s3://blisko-bucket/uploads/{uuid}.{ext}" }`.
 
 Mobile's `edit-profile.tsx` stores `source` straight into `profiles.avatarUrl` via `profiles.update` mutation. No client-side transformation.
 

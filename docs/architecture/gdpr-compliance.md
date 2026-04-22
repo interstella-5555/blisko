@@ -68,6 +68,7 @@ Blisko processes personal data under RODO (Polish implementation of GDPR). Polis
 | Blocks | `blocks` | Legitimate interest | Preserved after deletion |
 | Status matches | `statusMatches` | Contract | Preserved after deletion |
 | Conversation ratings | `conversationRatings` | Contract | Preserved after deletion |
+| Image moderation audit | `moderationResults` | Legitimate interest (abuse prevention, CSAM audit) | Preserved after anonymization (FK points to "Usunięty użytkownik", same pattern as blocks). Excluded from data export. `ON DELETE SET NULL` is defensive for future hard-delete paths only. |
 
 ## User Rights Implementation
 

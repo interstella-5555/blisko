@@ -1,6 +1,7 @@
 # Blocking & Content Moderation
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-04-22 — Image moderation on upload via `omni-moderation-latest` (BLI-268). First-line filter before anything lands in S3; pairs with the BLI-68 quarantine as the preservation layer.
 
 Source: `apps/api/src/services/moderation.ts`, `apps/api/src/trpc/procedures/waves.ts` (block/unblock/getBlocked), `apps/api/src/trpc/procedures/profiles.ts` (block filtering in nearby queries), `apps/api/src/db/schema.ts`.
 
@@ -120,6 +121,30 @@ OpenAI's Moderation API returns `categories` object with boolean flags for: `sex
 
 Flagged categories are logged to console: `[moderation] Content flagged: harassment, violence`.
 
+## Image Moderation (uploads)
+
+**What:** `moderateImage(bytes, mimeType)` in `apps/api/src/services/moderation.ts` scans every uploaded image via OpenAI's `omni-moderation-latest` and returns `{ flagged, categories, scores }`. `POST /uploads` then decides how to react based on which categories tripped.
+
+**Why hybrid (sync block + async review):** blocking every flag synchronously would reject false positives (art, fitness photos, stylized graphics) with no appeal path — bad UX and nothing for an admin to overturn. Allowing everything and relying on post-hoc reports lets CSAM sit live for minutes — legally unacceptable. The split:
+
+1. **CSAM → synchronous hard block.** If `sexual/minors` is tripped, the bytes are discarded, the uploader sees `400 { error: "CONTENT_MODERATED" }`, and a metadata-only row is written to `moderation_results` (no `upload_key` — no image in S3). `shouldHardBlock()` owns the category list; today that's just `sexual/minors`.
+2. **Other flags → allow + queue.** Nudity, violence, harassment, hate etc. allow the upload to proceed normally but write a row to `moderation_results` with the S3 key, scores, and `status: "flagged_review"`. Admin reviews via BLI-269 UI and decides OK / remove.
+3. **Clean → no row.** Clean uploads produce no DB write; the table is admin-review + legal audit only.
+
+**Why BLI-68 quarantine is still the right preservation layer for what slips through:** OpenAI has false negatives. If content passes moderation but a user later reports it, the uploader may have already swapped the avatar — that's when the `quarantine/` lifecycle saves the evidence.
+
+**Config:**
+- Endpoint: `https://api.openai.com/v1/moderations` (shared with text moderation)
+- Model: `omni-moderation-latest` (multimodal — pass `model` + array `input`)
+- Input: base64 data URL (`data:<mime>;base64,...`) inside `{ type: "image_url", image_url: { url } }`
+- Return shape: `{ flagged: boolean; categories: string[]; scores: Record<string, number> }` — plain object, **does not throw** (the Hono upload route owns its response shape)
+
+**Graceful degradation:** same policy as text moderation. Missing key → empty result, skip. API non-200 → log + skip. A moderation outage must not block uploads.
+
+**Flagged logging:** `console.warn("[moderation] Image flagged: sexual/minors, violence/graphic")`.
+
+**moderation_results table:** see `database.md`. Preserved on account anonymization with `user_id` nulled out — legal audit trail outlives the user, same pattern as `blocks`.
+
 ---
 
 ## Where Moderation Is Called
@@ -147,6 +172,11 @@ Complete list of every trigger point in the codebase:
 | Endpoint | What's moderated |
 |----------|-----------------|
 | `messages.send` | Text message content (skipped for image/location types) |
+
+#### index.ts (Hono routes)
+| Endpoint | What's moderated |
+|----------|-----------------|
+| `POST /uploads` | Image bytes via `moderateImage()`. Covers avatars today and any future upload consumer (chat images, group photos) — the gate sits on the endpoint, not on individual call-sites. |
 
 #### NOT moderated (gaps vs PRODUCT.md)
 | Content | Where | PRODUCT.md says |

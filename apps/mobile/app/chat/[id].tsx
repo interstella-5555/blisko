@@ -25,6 +25,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { IconBell, IconBellOff, IconChevronLeft } from "@/components/ui/icons";
 import { useIsGhost } from "@/hooks/useIsGhost";
 import { trpc } from "@/lib/trpc";
+import { showModerationToastIfApplicable, uploadImage } from "@/lib/uploadImage";
 import { useTypingIndicator } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationsStore } from "@/stores/conversationsStore";
@@ -227,41 +228,24 @@ export default function ChatScreen() {
 
   const handleSendImage = async () => {
     if (!conversationId || !userId) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.8,
+      allowsEditing: true,
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        quality: 0.8,
-        allowsEditing: true,
-      });
-
-      if (result.canceled || !result.assets?.[0]) return;
-
-      const asset = result.assets[0];
-      const formData = new FormData();
-      formData.append("file", {
-        uri: asset.uri,
-        name: asset.fileName || "photo.jpg",
-        type: asset.mimeType || "image/jpeg",
-      } as unknown as Blob);
-
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
-      const response = await fetch(`${apiUrl}/uploads`, {
-        method: "POST",
-        body: formData,
-        headers: {
-          authorization: `Bearer ${useAuthStore.getState().session?.token || ""}`,
-        },
-      });
-
-      if (!response.ok) throw new Error("Upload failed");
-      const { url } = await response.json();
-
+      const { source } = await uploadImage(asset);
       useMessagesStore.getState().send(conversationId, "[Zdjęcie]", {
         userId,
         type: "image",
-        metadata: { imageUrl: url, width: asset.width, height: asset.height },
+        metadata: { imageUrl: source, width: asset.width, height: asset.height },
       });
-    } catch {
+    } catch (error) {
+      if (showModerationToastIfApplicable(error)) return;
       Alert.alert("Błąd", "Nie udało się wysłać zdjęcia");
     }
   };

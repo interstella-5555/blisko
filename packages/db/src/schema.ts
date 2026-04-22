@@ -729,3 +729,45 @@ export const profilingQARelations = relations(profilingQA, ({ one }) => ({
     references: [profilingSessions.id],
   }),
 }));
+
+// AI moderation audit trail. Written by `POST /uploads` whenever OpenAI returns
+// flagged=true. Three statuses:
+// - `blocked_csam`: sync hard block (sexual/minors category). Bytes never
+//   reached S3, so `uploadKey` is null. User saw a 400.
+// - `flagged_review`: upload went through (bytes live at `uploadKey`), but
+//   OpenAI flagged something sub-CSAM (nudity, violence, harassment).
+//   Waiting for admin verdict via BLI-269 UI.
+// - `reviewed_ok` / `reviewed_removed`: admin has verdicted, `reviewedBy`/
+//   `reviewedAt`/`reviewDecision` are filled.
+// Clean uploads produce no row — the table is admin-review + legal audit only.
+// `userId` is nullable + `ON DELETE SET NULL` as a defensive cascade for
+// future hard-delete paths; account anonymization (today's flow) keeps the FK
+// pointing at the "Usunięty użytkownik" row, same pattern as `blocks`.
+export const moderationResults = pgTable(
+  "moderation_results",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    uploadKey: text("upload_key"),
+    mimeType: text("mime_type").notNull(),
+    status: text("status").notNull(),
+    flaggedCategories: text("flagged_categories").array().notNull(),
+    categoryScores: jsonb("category_scores").$type<Record<string, number>>().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewed_at"),
+    reviewedBy: text("reviewed_by"),
+    reviewDecision: text("review_decision"),
+    reviewNotes: text("review_notes"),
+  },
+  (table) => ({
+    statusCreatedIdx: index("moderation_results_status_created_idx").on(table.status, table.createdAt),
+    userIdx: index("moderation_results_user_idx").on(table.userId),
+  }),
+);
+
+export const moderationResultsRelations = relations(moderationResults, ({ one }) => ({
+  user: one(user, {
+    fields: [moderationResults.userId],
+    references: [user.id],
+  }),
+}));
