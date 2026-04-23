@@ -1,4 +1,7 @@
-import { USER_TYPES, type UserType } from "@repo/db";
+// Import from `@repo/db/schema` (not `@repo/db`) — the root entry pulls in
+// `postgres`/`createDb` which uses `perf_hooks` (Node-only) and Vite can't
+// bundle that into the client build. Schema barrel is pure schema + types.
+import { USER_TYPES, type UserType } from "@repo/db/schema";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   BotIcon,
