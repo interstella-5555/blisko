@@ -164,6 +164,9 @@ export function startMaintenanceWorker() {
     {
       name: "cleanup-test-users",
       data: { type: "cleanup-test-users" },
+      // Destructive DB writes — one attempt only, no retry storm on failure.
+      // Keep ~month of run history (default `count: 10` is too short to spot
+      // a silently-failing scheduler during routine admin queue-page review).
       opts: {
         attempts: 1,
         removeOnComplete: { count: 30 },

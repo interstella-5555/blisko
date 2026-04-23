@@ -394,7 +394,7 @@ See `ai-cost-tracking.md` for the wrapper design and admin dashboard.
 
 **Processor logic:**
 1. Select up to 500 users matching `email LIKE '%@example.com' AND email NOT LIKE 'user%@example.com' AND created_at < now() - 1h`
-2. In a single `db.transaction`, delete from 15 dependent tables in dependency order (statusMatches ×2, messageReactions, messages, conversationParticipants, conversationRatings, conversations, connectionAnalyses ×2, waves ×2, blocks ×2, pushTokens, topics)
+2. In a single `db.transaction`, delete from 11 dependent tables in dependency order (statusMatches, messageReactions, messages, conversationParticipants, conversationRatings, conversations, connectionAnalyses, waves, blocks, pushTokens, topics — 4 of these are dual-FK tables deleted with `or(inArray(colA, ids), inArray(colB, ids))`)
 3. Delete the user row — `ON DELETE CASCADE` on profiles, sessions, account, profilingSessions, profilingQA handles the rest
 
 **Why physical delete (not anonymization):** `processHardDeleteUser` preserves the user row with a "Usunięty użytkownik" placeholder so other users' conversation history stays intact — this is the GDPR-compliant path for real users. Test users are pure CI cruft; preserving placeholders would just bloat the DB.

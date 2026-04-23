@@ -1,4 +1,4 @@
-import { and, inArray, like, lt, notLike } from "drizzle-orm";
+import { and, inArray, like, lt, notLike, or } from "drizzle-orm";
 import ms from "ms";
 import { db, schema } from "@/db";
 
@@ -69,23 +69,26 @@ export async function cleanupTestUsers(opts?: { limit?: number; minAgeMs?: numbe
 
   const ids = candidates.map((u) => u.id);
 
-  // Single transaction, 16 deletes in dependency order. Mirrors
-  // packages/dev-cli/src/cli.ts `cleanup-e2e` (BLI-178). When adding a new
-  // table with a `user` FK, update both lists AND `processHardDeleteUser`.
+  // Single transaction, dependency-ordered deletes. Mirrors
+  // packages/dev-cli/src/cli.ts `cleanup-e2e` (BLI-178) in the SET of tables
+  // it touches — when adding a new table with a `user` FK, update both lists
+  // AND `processHardDeleteUser`.
   await db.transaction(async (tx) => {
-    await tx.delete(schema.statusMatches).where(inArray(schema.statusMatches.userId, ids));
-    await tx.delete(schema.statusMatches).where(inArray(schema.statusMatches.matchedUserId, ids));
+    await tx
+      .delete(schema.statusMatches)
+      .where(or(inArray(schema.statusMatches.userId, ids), inArray(schema.statusMatches.matchedUserId, ids)));
     await tx.delete(schema.messageReactions).where(inArray(schema.messageReactions.userId, ids));
     await tx.delete(schema.messages).where(inArray(schema.messages.senderId, ids));
     await tx.delete(schema.conversationParticipants).where(inArray(schema.conversationParticipants.userId, ids));
     await tx.delete(schema.conversationRatings).where(inArray(schema.conversationRatings.userId, ids));
     await tx.delete(schema.conversations).where(inArray(schema.conversations.creatorId, ids));
-    await tx.delete(schema.connectionAnalyses).where(inArray(schema.connectionAnalyses.fromUserId, ids));
-    await tx.delete(schema.connectionAnalyses).where(inArray(schema.connectionAnalyses.toUserId, ids));
-    await tx.delete(schema.waves).where(inArray(schema.waves.fromUserId, ids));
-    await tx.delete(schema.waves).where(inArray(schema.waves.toUserId, ids));
-    await tx.delete(schema.blocks).where(inArray(schema.blocks.blockerId, ids));
-    await tx.delete(schema.blocks).where(inArray(schema.blocks.blockedId, ids));
+    await tx
+      .delete(schema.connectionAnalyses)
+      .where(or(inArray(schema.connectionAnalyses.fromUserId, ids), inArray(schema.connectionAnalyses.toUserId, ids)));
+    await tx.delete(schema.waves).where(or(inArray(schema.waves.fromUserId, ids), inArray(schema.waves.toUserId, ids)));
+    await tx
+      .delete(schema.blocks)
+      .where(or(inArray(schema.blocks.blockerId, ids), inArray(schema.blocks.blockedId, ids)));
     await tx.delete(schema.pushTokens).where(inArray(schema.pushTokens.userId, ids));
     await tx.delete(schema.topics).where(inArray(schema.topics.creatorId, ids));
     // CASCADE handles: profiles, sessions, account, profilingSessions, profilingQA
