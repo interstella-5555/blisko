@@ -1,3 +1,4 @@
+import type { UserType } from "@repo/db";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { and, eq, gt, placeholder } from "drizzle-orm";
 import { auth } from "@/auth";
@@ -11,8 +12,6 @@ export const sessionByToken = db
   .where(and(eq(schema.session.token, placeholder("token")), gt(schema.session.expiresAt, placeholder("now"))))
   .limit(1)
   .prepare(preparedName("session_by_token"));
-
-export type UserType = "regular" | "demo" | "test" | "review";
 
 export interface TRPCContext {
   userId: string | null;

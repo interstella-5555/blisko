@@ -1,14 +1,14 @@
-import { schema } from "@repo/db";
+import { schema, USER_TYPES } from "@repo/db";
 import { and, count, eq, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
 import { enqueueAiAndWait, enqueueOpsAndWait } from "~/lib/queue";
 import { protectedProcedure, router } from "../trpc";
 
-// User type enum mirrored from packages/db schema. BLI-271 replaced the
-// previous email-LIKE detection — admin now filters and labels by column.
-const userTypeEnum = z.enum(["regular", "demo", "test", "review"]);
-const userTypeFilter = z.enum(["all", "regular", "demo", "test", "review"]);
+// BLI-271 replaced email-LIKE detection with a column — admin filters and
+// labels by `user.type`. Enum values sourced from `@repo/db` (single truth).
+const userTypeEnum = z.enum(USER_TYPES);
+const userTypeFilter = z.enum(["all", ...USER_TYPES]);
 
 export const usersRouter = router({
   list: protectedProcedure
@@ -310,16 +310,16 @@ export const usersRouter = router({
     }),
 
   stats: protectedProcedure.query(async () => {
-    // Per-type counts (4 categories) — BLI-271 replaced the prior email-LIKE
-    // real/seed split. Active/onboarding still scoped to regular users only.
+    // Per-type counts — BLI-271 replaced the prior email-LIKE real/seed split.
+    // Active/onboarding still scoped to regular users only.
     const perType = await db
       .select({ type: schema.user.type, count: count() })
       .from(schema.user)
       .groupBy(schema.user.type);
 
-    const byType = { regular: 0, demo: 0, test: 0, review: 0 };
+    const byType = Object.fromEntries(USER_TYPES.map((t) => [t, 0])) as Record<(typeof USER_TYPES)[number], number>;
     for (const row of perType) {
-      if (row.type in byType) byType[row.type as keyof typeof byType] = row.count;
+      if (row.type in byType) byType[row.type] = row.count;
     }
 
     const regularFilter = eq(schema.user.type, "regular");
@@ -351,10 +351,7 @@ export const usersRouter = router({
       );
 
     return {
-      regular: byType.regular,
-      demo: byType.demo,
-      test: byType.test,
-      review: byType.review,
+      ...byType,
       active: activeUsers.count,
       onboarding: onboardingUsers.count,
     };

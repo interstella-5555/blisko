@@ -1,6 +1,6 @@
+import type { UserType } from "@repo/db";
 import { and, eq, isNull, ne } from "drizzle-orm";
 import { schema } from "@/db";
-import type { UserType } from "@/trpc/context";
 
 // System-level "is this user a real, addressable account?" — soft-delete +
 // suspension only. Subject-agnostic. Use in cron jobs, system maintenance,

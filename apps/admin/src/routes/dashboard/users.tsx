@@ -1,3 +1,4 @@
+import { USER_TYPES, type UserType } from "@repo/db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   BotIcon,
@@ -52,7 +53,6 @@ export const Route = createFileRoute("/dashboard/users")({
 });
 
 type UserStatus = "active" | "onboarding" | "deleted" | "suspended";
-type UserType = "regular" | "demo" | "test" | "review";
 type UserTypeFilter = UserType | "all";
 
 const TYPE_LABELS: Record<UserType, string> = {
@@ -193,10 +193,9 @@ function UsersPage() {
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4">
-          <StatCard label="Real" value={stats.data?.regular} />
-          <StatCard label="Demo" value={stats.data?.demo} />
-          <StatCard label="Test" value={stats.data?.test} />
-          <StatCard label="Review" value={stats.data?.review} />
+          {USER_TYPES.map((t) => (
+            <StatCard key={t} label={TYPE_LABELS[t]} value={stats.data?.[t]} />
+          ))}
         </div>
 
         {/* Filters */}
@@ -236,10 +235,11 @@ function UsersPage() {
             }}
             className="rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
-            <option value="regular">Real</option>
-            <option value="demo">Demo</option>
-            <option value="test">Test</option>
-            <option value="review">Review</option>
+            {USER_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {TYPE_LABELS[t]}
+              </option>
+            ))}
             <option value="all">Wszystkie typy</option>
           </select>
           <span className="ml-auto text-sm text-muted-foreground">
@@ -372,7 +372,7 @@ function UsersPage() {
                               Zmień typ: {TYPE_LABELS[user.type]}
                             </DropdownMenuSubTrigger>
                             <DropdownMenuSubContent>
-                              {(["regular", "demo", "test", "review"] as const).map((t) => (
+                              {USER_TYPES.map((t) => (
                                 <DropdownMenuItem
                                   key={t}
                                   disabled={updateTypeMutation.isPending || user.type === t}
