@@ -30,13 +30,18 @@ interface PruneAiCallPayloadsJob {
   type: "prune-ai-call-payloads";
 }
 
+interface CleanupTestUsersJob {
+  type: "cleanup-test-users";
+}
+
 type MaintenanceJob =
   | FlushPushLogJob
   | PrunePushLogJob
   | ConsistencySweepJob
   | FlushAiCallsJob
   | PruneAiCallsJob
-  | PruneAiCallPayloadsJob;
+  | PruneAiCallPayloadsJob
+  | CleanupTestUsersJob;
 
 // --- Queue (lazy init) ---
 
@@ -92,6 +97,16 @@ async function processMaintenanceJob(job: Job<MaintenanceJob>) {
       console.log("[queue:maintenance] nulled ai call payloads older than 24h");
       break;
     }
+    case "cleanup-test-users": {
+      const { cleanupTestUsers } = await import("./test-users-cleanup");
+      const result = await cleanupTestUsers();
+      if (result.deleted > 0) {
+        console.log(
+          `[queue:maintenance] cleaned ${result.deleted} test users (sample: ${result.sampledIds.join(", ")})`,
+        );
+      }
+      return result;
+    }
   }
 }
 
@@ -142,6 +157,22 @@ export function startMaintenanceWorker() {
     "prune-ai-call-payloads",
     { every: ms("1 hour") },
     { name: "prune-ai-call-payloads", data: { type: "prune-ai-call-payloads" } },
+  );
+  void queue.upsertJobScheduler(
+    "cleanup-test-users",
+    { pattern: "0 4 * * *" },
+    {
+      name: "cleanup-test-users",
+      data: { type: "cleanup-test-users" },
+      // Destructive DB writes — one attempt only, no retry storm on failure.
+      // Keep ~month of run history (default `count: 10` is too short to spot
+      // a silently-failing scheduler during routine admin queue-page review).
+      opts: {
+        attempts: 1,
+        removeOnComplete: { count: 30 },
+        removeOnFail: { count: 30 },
+      },
+    },
   );
 
   console.log("[queue:maintenance] Maintenance worker started");
