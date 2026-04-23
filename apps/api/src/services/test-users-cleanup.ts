@@ -1,26 +1,9 @@
-import { and, inArray, like, lt, notLike, or } from "drizzle-orm";
+import { and, eq, inArray, lt, or } from "drizzle-orm";
 import ms from "ms";
 import { db, schema } from "@/db";
 
 const DEFAULT_LIMIT = 500;
 const DEFAULT_MIN_AGE_MS = ms("1 hour");
-
-/**
- * Test user email classifier — mirrors the SQL filter used by `cleanupTestUsers`:
- *   email LIKE '%@example.com' AND email NOT LIKE 'user%@example.com'
- *
- * Used:
- *   1. by tests, to lock the predicate down
- *   2. (future, BLI-271) by /dev/auto-login to set user.isTestUser on insert
- *
- * The chatbot demo users (user0..user249@example.com) are protected by the
- * `LIKE 'user%@example.com'` exclusion. This is intentionally conservative —
- * any `user*@example.com` is preserved, even non-numeric suffixes that could
- * plausibly be test users.
- */
-export function isTestUserEmail(email: string): boolean {
-  return email.endsWith("@example.com") && !email.startsWith("user");
-}
 
 export interface CleanupTestUsersResult {
   found: number;
@@ -41,26 +24,14 @@ export async function cleanupTestUsers(opts?: { limit?: number; minAgeMs?: numbe
   const minAgeMs = opts?.minAgeMs ?? DEFAULT_MIN_AGE_MS;
   const cutoff = new Date(Date.now() - minAgeMs);
 
-  // === "What is a test user" — single source of truth for the predicate ===
-  // Today: email pattern. The chatbot demo users `user[0-249]@example.com`
-  // are protected by the NOT LIKE exclusion. The 1h `createdAt` margin
+  // "What is a test user" is now a column value (BLI-271). The flag is set at
+  // creation time by /dev/auto-login (defaulting to `test`; seed-users.ts
+  // overrides to `demo` for the chatbot seed). The 1h `createdAt` margin
   // protects an actively running CI suite from having its user yanked.
-  //
-  // BLI-271 will replace this WHERE with `isTestUser = true AND createdAt < cutoff`
-  // once the marker column lands. When you change this definition, also check:
-  //   - apps/admin/src/server/routers/users.ts — `seedFilter`
-  //   - packages/dev-cli/src/cli.ts — `cleanup-e2e` command
-  //   - apps/api/src/index.ts — `/dev/auto-login` (where the flag will be set)
   const candidates = await db
     .select({ id: schema.user.id, email: schema.user.email })
     .from(schema.user)
-    .where(
-      and(
-        like(schema.user.email, "%@example.com"),
-        notLike(schema.user.email, "user%@example.com"),
-        lt(schema.user.createdAt, cutoff),
-      ),
-    )
+    .where(and(eq(schema.user.type, "test"), lt(schema.user.createdAt, cutoff)))
     .limit(limit);
 
   if (candidates.length === 0) {
