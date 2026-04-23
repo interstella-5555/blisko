@@ -637,10 +637,12 @@ async function generateInterestsFromBio(bio: string, lookingFor: string): Promis
 // --- API calls ---
 
 async function autoLogin(email: string): Promise<string> {
+  // Seeded chatbot users get `type: "demo"` so they're distinguished from
+  // E2E test fixtures (which default to "test" at /dev/auto-login). BLI-271.
   const res = await fetch(`${API}/dev/auto-login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, type: "demo" }),
   });
   if (!res.ok) throw new Error(`auto-login failed: ${res.status}`);
   const data = await res.json();

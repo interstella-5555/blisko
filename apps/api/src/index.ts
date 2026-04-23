@@ -116,11 +116,18 @@ app.on(["POST", "GET"], "/api/auth/*", (c) => {
 if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "true") {
   app.post("/dev/auto-login", async (c) => {
     try {
-      const { email } = await c.req.json();
+      const body = (await c.req.json()) as { email?: string; type?: "demo" | "test" };
+      const { email } = body;
 
       if (!email?.endsWith("@example.com")) {
         return c.json({ error: "Only @example.com emails allowed" }, 400);
       }
+
+      // /dev/auto-login is dev/CI-only (gated by ENABLE_DEV_LOGIN / NODE_ENV above).
+      // Every account created here is a fixture by definition, never a real user.
+      // Seed script (apps/api/scripts/seed-users.ts) passes `type: "demo"` for the
+      // 250 chatbot demos; everything else (E2E, manual QA logins) gets `"test"`.
+      const type: "demo" | "test" = body.type === "demo" ? "demo" : "test";
 
       const { db } = await import("./db");
       const { user, session } = await import("./db/schema");
@@ -138,6 +145,7 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_LOGIN === "t
             email,
             name: email.split("@")[0],
             emailVerified: true,
+            type,
             createdAt: new Date(),
             updatedAt: new Date(),
           })
