@@ -12,8 +12,13 @@ export const sessionByToken = db
   .limit(1)
   .prepare(preparedName("session_by_token"));
 
+export type UserType = "regular" | "demo" | "test" | "review";
+
 export interface TRPCContext {
   userId: string | null;
+  // Set by `isAuthed` middleware after fetching the user row. Null on public
+  // endpoints (no auth) and during the brief window before isAuthed runs.
+  userType: UserType | null;
   db: typeof db;
   req: Request;
   [key: string]: unknown;
@@ -62,6 +67,7 @@ export async function createContext(opts: FetchCreateContextFnOptions): Promise<
 
   return {
     userId,
+    userType: null,
     db,
     req: opts.req,
   };

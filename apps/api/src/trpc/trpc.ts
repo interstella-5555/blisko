@@ -13,7 +13,7 @@ export const middleware = t.middleware;
 export const publicProcedure = t.procedure;
 
 const userDeletionState = db
-  .select({ deletedAt: schema.user.deletedAt, suspendedAt: schema.user.suspendedAt })
+  .select({ deletedAt: schema.user.deletedAt, suspendedAt: schema.user.suspendedAt, type: schema.user.type })
   .from(schema.user)
   .where(eq(schema.user.id, placeholder("userId")))
   .prepare(preparedName("user_deletion_state"));
@@ -49,6 +49,7 @@ const isAuthed = t.middleware(async ({ ctx, next }) => {
     ctx: {
       ...ctx,
       userId: ctx.userId,
+      userType: userData.type,
     },
   });
 });
