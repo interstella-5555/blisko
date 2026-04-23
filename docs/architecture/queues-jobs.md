@@ -44,7 +44,7 @@ Three queues backed by Redis (`REDIS_URL`). BullMQ uses ioredis internally; all 
 |---|---|---|---|---|---|
 | **AI** | `ai` | `queue.ts` | 50 | 9 (OpenAI-calling jobs) | OpenAI RPM/TPM |
 | **Ops** | `ops` | `queue-ops.ts` | 10 | 5 (GDPR, admin actions) | DB/S3/email |
-| **Maintenance** | `maintenance` | `queue-maintenance.ts` | 2 | 5 (periodic flush/prune + nightly sweep) | None |
+| **Maintenance** | `maintenance` | `queue-maintenance.ts` | 2 | 7 (periodic flush/prune + nightly sweep + daily test-user cleanup) | None |
 
 **Why 3 queues:** Jobs grouped by shared bottleneck. AI jobs all compete for OpenAI API capacity and benefit from cross-type priority (`promotePairAnalysis`). Ops jobs are rare but critical — admin clicking "delete account" shouldn't wait behind 200 AI analysis jobs. Maintenance is fire-and-forget and needs no concurrency with either.
 
@@ -323,7 +323,7 @@ On startup, `startOpsWorker()` runs a one-time cleanup of the pre-BLI-171 `ai-jo
 
 **`removeOnComplete`:** true (via admin enqueue options)
 
-### Maintenance Queue (5 types) — `queue-maintenance.ts`
+### Maintenance Queue (7 types) — `queue-maintenance.ts`
 
 ### 17. `flush-push-log` — Push Log Batch Flush
 
@@ -385,6 +385,35 @@ See `ai-cost-tracking.md` for the wrapper design and admin dashboard.
 **Source:** `apps/api/src/services/consistency-sweep.ts` — `runConsistencySweep()` function shared between scheduler and admin trigger.
 
 **Returns:** `SweepResult` with counts for each category (found/enqueued/cleaned).
+
+### 22. `cleanup-test-users` — Test User Cleanup
+
+**What:** Physically deletes test users (`@example.com` emails, excluding chatbot demos `user[0-249]@example.com`) and all their relational data. Production accumulates these from CI runs.
+
+**Trigger:** BullMQ repeatable job scheduler, daily at 4:00 UTC (`pattern: "0 4 * * *"`).
+
+**Processor logic:**
+1. Select up to 500 users matching `email LIKE '%@example.com' AND email NOT LIKE 'user%@example.com' AND created_at < now() - 1h`
+2. In a single `db.transaction`, delete from 15 dependent tables in dependency order (statusMatches ×2, messageReactions, messages, conversationParticipants, conversationRatings, conversations, connectionAnalyses ×2, waves ×2, blocks ×2, pushTokens, topics)
+3. Delete the user row — `ON DELETE CASCADE` on profiles, sessions, account, profilingSessions, profilingQA handles the rest
+
+**Why physical delete (not anonymization):** `processHardDeleteUser` preserves the user row with a "Usunięty użytkownik" placeholder so other users' conversation history stays intact — this is the GDPR-compliant path for real users. Test users are pure CI cruft; preserving placeholders would just bloat the DB.
+
+**Why 1h `createdAt` margin:** Protects an active CI run from having its test user yanked mid-flow. E2E suite completes in ~45 min; 1h is a safe buffer.
+
+**Why `LIMIT 500`:** Caps a single transaction at a manageable size. If accumulation exceeds 500/day, subsequent runs catch up.
+
+**Job options override:** `attempts: 1` (no retry storm — wait 24h on failure), `removeOnComplete: { count: 30 }`, `removeOnFail: { count: 30 }` (~month of history).
+
+**Source:** `apps/api/src/services/test-users-cleanup.ts` — `cleanupTestUsers()` + `isTestUserEmail()` helper.
+
+**Returns:** `{ found, deleted, sampledIds }`.
+
+**Definition of "test user" lives in 4 places** (BLI-271 will consolidate via a `user.isTestUser` column):
+1. `cleanupTestUsers()` SQL filter — `apps/api/src/services/test-users-cleanup.ts`
+2. `isTestUserEmail()` helper (mirrors filter, used by tests; future use: `/dev/auto-login` to set the flag) — same file
+3. Admin `seedFilter` — `apps/admin/src/server/routers/users.ts`
+4. Manual escape hatch dev-cli `cleanup-e2e` (narrower `seed%@example.com` filter) — `packages/dev-cli/src/cli.ts`
 
 ## Deduplication: `safeEnqueuePairJob`
 
@@ -495,3 +524,5 @@ If you change this system, also check:
 - **`analysis:ready` Redis channel:** Chatbot subscribes to this — changing format breaks bot wave acceptance
 - **`connectionAnalyses` table:** Both `analyze-pair` and `quick-score` write to it — schema changes affect both
 - **Queue name constants:** `QUEUE_NAMES` in `queue-shared.ts`. Admin app has matching local constants — keep in sync
+- **Changing the "test user" definition** (BLI-271 migration to `user.isTestUser` column): Update the WHERE clause in `cleanupTestUsers()` (`apps/api/src/services/test-users-cleanup.ts`), the admin `seedFilter` (`apps/admin/src/server/routers/users.ts`), and the dev-cli `cleanup-e2e` command (`packages/dev-cli/src/cli.ts`). The `isTestUserEmail()` helper stays — moves from "predicate mirror" role to "decide flag at user-creation time" role inside `/dev/auto-login`.
+- **New table with `user` FK:** Update the delete order in `cleanupTestUsers()` (`apps/api/src/services/test-users-cleanup.ts`), the parallel list in `packages/dev-cli/src/cli.ts` `cleanup-e2e`, and the anonymization or preservation decision in `processHardDeleteUser` (`queue-ops.ts`). All three touch the same FK graph from different angles.
