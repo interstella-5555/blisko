@@ -5,19 +5,24 @@ import { db } from "~/lib/db";
 import { enqueueAiAndWait, enqueueOpsAndWait } from "~/lib/queue";
 import { protectedProcedure, router } from "../trpc";
 
+// User type enum mirrored from packages/db schema. BLI-271 replaced the
+// previous email-LIKE detection — admin now filters and labels by column.
+const userTypeEnum = z.enum(["regular", "demo", "test", "review"]);
+const userTypeFilter = z.enum(["all", "regular", "demo", "test", "review"]);
+
 export const usersRouter = router({
   list: protectedProcedure
     .input(
       z.object({
         search: z.string().optional(),
         status: z.enum(["all", "active", "onboarding", "deleted", "suspended"]).default("all"),
-        showSeed: z.boolean().default(true),
+        type: userTypeFilter.default("regular"),
         limit: z.number().min(1).max(100).default(50),
         offset: z.number().min(0).default(0),
       }),
     )
     .query(async ({ input }) => {
-      const { search, status, showSeed, limit, offset } = input;
+      const { search, status, type, limit, offset } = input;
 
       const conditions = [];
 
@@ -38,8 +43,8 @@ export const usersRouter = router({
         conditions.push(isNull(schema.user.deletedAt));
       }
 
-      if (!showSeed) {
-        conditions.push(sql`${schema.user.email} NOT LIKE 'user%@example.com'`);
+      if (type !== "all") {
+        conditions.push(eq(schema.user.type, type));
       }
 
       if (search) {
@@ -54,12 +59,12 @@ export const usersRouter = router({
 
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-      // Basic user + profile query
       const rows = await db
         .select({
           id: schema.user.id,
           name: schema.user.name,
           email: schema.user.email,
+          type: schema.user.type,
           createdAt: schema.user.createdAt,
           deletedAt: schema.user.deletedAt,
           suspendedAt: schema.user.suspendedAt,
@@ -82,7 +87,6 @@ export const usersRouter = router({
         .innerJoin(schema.profiles, eq(schema.user.id, schema.profiles.userId))
         .where(where);
 
-      // Batch fetch counts for the page of users
       const userIds = rows.map((r) => r.id);
 
       const waveCounts: Record<string, { sent: number; received: number }> = {};
@@ -153,7 +157,6 @@ export const usersRouter = router({
           wavesReceived: waveCounts[row.id]?.received ?? 0,
           messageCount: messageCounts[row.id] ?? 0,
           groupCount: groupCounts[row.id] ?? 0,
-          isSeed: /^user\d+@example\.com$/.test(row.email),
           status: row.deletedAt
             ? ("deleted" as const)
             : row.suspendedAt
@@ -172,6 +175,7 @@ export const usersRouter = router({
         id: schema.user.id,
         name: schema.user.name,
         email: schema.user.email,
+        type: schema.user.type,
         createdAt: schema.user.createdAt,
         updatedAt: schema.user.updatedAt,
         deletedAt: schema.user.deletedAt,
@@ -255,7 +259,6 @@ export const usersRouter = router({
       lookingFor: profile.lookingFor ?? "",
     });
 
-    // Re-analyze nearby pairs if user has location
     if (profile.latitude && profile.longitude) {
       await enqueueAiAndWait("analyze-user-pairs", {
         type: "analyze-user-pairs",
@@ -296,19 +299,30 @@ export const usersRouter = router({
     return { ok: true };
   }),
 
+  // Change user.type (BLI-271). Primary use: provision Apple/Google store review
+  // accounts (flip from 'regular' to 'review') without SQL. Also used to demote
+  // accidentally-created fixtures back to regular during manual debugging.
+  updateType: protectedProcedure
+    .input(z.object({ userId: z.string(), type: userTypeEnum }))
+    .mutation(async ({ input }) => {
+      await db.update(schema.user).set({ type: input.type }).where(eq(schema.user.id, input.userId));
+      return { ok: true };
+    }),
+
   stats: protectedProcedure.query(async () => {
-    const seedFilter = sql`${schema.user.email} NOT LIKE 'user%@example.com'`;
-
-    const [realUsers] = await db
-      .select({ count: count() })
+    // Per-type counts (4 categories) — BLI-271 replaced the prior email-LIKE
+    // real/seed split. Active/onboarding still scoped to regular users only.
+    const perType = await db
+      .select({ type: schema.user.type, count: count() })
       .from(schema.user)
-      .innerJoin(schema.profiles, eq(schema.user.id, schema.profiles.userId))
-      .where(seedFilter);
+      .groupBy(schema.user.type);
 
-    const [seedUsers] = await db
-      .select({ count: count() })
-      .from(schema.user)
-      .where(sql`${schema.user.email} LIKE 'user%@example.com'`);
+    const byType = { regular: 0, demo: 0, test: 0, review: 0 };
+    for (const row of perType) {
+      if (row.type in byType) byType[row.type as keyof typeof byType] = row.count;
+    }
+
+    const regularFilter = eq(schema.user.type, "regular");
 
     const [activeUsers] = await db
       .select({ count: count() })
@@ -319,7 +333,7 @@ export const usersRouter = router({
           isNull(schema.user.deletedAt),
           isNull(schema.user.suspendedAt),
           eq(schema.profiles.isComplete, true),
-          seedFilter,
+          regularFilter,
         ),
       );
 
@@ -332,13 +346,15 @@ export const usersRouter = router({
           isNull(schema.user.deletedAt),
           isNull(schema.user.suspendedAt),
           eq(schema.profiles.isComplete, false),
-          seedFilter,
+          regularFilter,
         ),
       );
 
     return {
-      real: realUsers.count,
-      seed: seedUsers.count,
+      regular: byType.regular,
+      demo: byType.demo,
+      test: byType.test,
+      review: byType.review,
       active: activeUsers.count,
       onboarding: onboardingUsers.count,
     };
