@@ -170,14 +170,16 @@ Applied as Hono middleware (by IP, before Better Auth handler):
 
 Available when `NODE_ENV !== "production"` OR `ENABLE_DEV_LOGIN=true`.
 
-**`POST /dev/auto-login`** -- accepts `{ email }`. Only `@example.com` emails allowed.
+**`POST /dev/auto-login`** -- accepts `{ email, type?: "demo" | "test" }`. Only `@example.com` emails allowed.
 
 Flow:
-1. Find existing user by email, or create one (`emailVerified: true`, name from email prefix)
+1. Find existing user by email, or create one (`emailVerified: true`, name from email prefix, `type` from body or defaulted)
 2. Create a new session with 30-day expiry
 3. Return `{ user, session, token }`
 
-Used by seed users (user0@example.com through user249@example.com), dev-cli, and chatbot.
+**`type` on insert (BLI-271):** defaults to `"test"` (every account created through this dev-only endpoint is a fixture by design). `apps/api/scripts/seed-users.ts` passes `"demo"` for the 250 chatbot accounts. `"review"` is set later by an admin via `users.updateType` mutation — reviewers signup normally, then an admin flips them. See `database.md` `user.type` column.
+
+Used by seed users (`user0..249@example.com`, type `"demo"`), dev-cli + CI E2E (type `"test"`), and the chatbot (reads existing demo accounts, doesn't create).
 
 **`GET /dev/verifications`** -- returns last 5 verification records. Used to manually grab OTP codes during development without checking email.
 

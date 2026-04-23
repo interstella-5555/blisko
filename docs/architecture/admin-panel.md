@@ -68,7 +68,7 @@ Schema + connection factory shared between API and admin.
 |-------|------|-------------|
 | `/dashboard` | — | Layout with sidebar, renders child routes |
 | `/dashboard/` | — | Home (placeholder cards) |
-| `/dashboard/users` | users + profiles + wave/msg/group counts | User list with search (status filter includes `suspended`, BLI-156), seed toggle, profile detail panel; dropdown actions include "Zawieś konto" / "Odwieś konto" alongside soft-delete |
+| `/dashboard/users` | users + profiles + wave/msg/group counts | User list with search, status filter (includes `suspended`, BLI-156), per-type filter (Real/Demo/Test/Review, BLI-271 — default `regular`), profile detail panel; dropdown actions include "Zawieś konto" / "Odwieś konto" alongside soft-delete, plus a "Zmień typ" submenu for flipping `user.type` (used primarily to provision store-review accounts) |
 | `/dashboard/users/{userId}` | connectionAnalyses + profiles (nearby query) | Per-user diagnostic: T2/T3 analyses list + full nearby list (read-only, no AI side-effects, no privacy filters). Nearby rows synthesize a `t1` tier client-side for pairs without a persisted analysis row. Backed by `user-analyses.ts` router — split out from `users.ts` because the analysis-browsing queries share no shape with the user listing endpoints. |
 | `/dashboard/waves` | waves + from/to user profiles | Wave list with status filter, accept rate stats |
 | `/dashboard/conversations` | conversations (type=dm) + participants | DM list with participant info, message counts |
@@ -118,6 +118,7 @@ Implemented via BLI-154. Admin tRPC mutations enqueue BullMQ jobs, wait for API 
 | Regenerate profile | `users.regenerateProfile` | `generate-profile-ai` (existing) + `analyze-user-pairs` | — (reads bio/lookingFor from DB) |
 | Force disconnect | `users.forceDisconnect` | `admin-force-disconnect` | `publishEvent("forceDisconnect")` |
 | Remove flagged upload | `moderation.enqueueRemove` | `admin-remove-flagged-upload` | Inline in `queue-ops.ts` — s3.delete + null avatarUrl if still current + update `moderation_results` to `reviewed_removed` |
+| Change user type | `users.updateType` | *(direct write)* | BLI-271 — pure column flip on `user.type`. Bypasses the BullMQ-only convention because there are no side effects (no sessions invalidated, no WS events, no cross-replica coordination). Used mainly for provisioning store-review accounts. |
 
 **BullMQ setup in admin** (`apps/admin/src/lib/queue.ts`): three lazy `Queue` singletons (`getAiQueue`, `getOpsQueue`, `getMaintenanceQueue`) matching the BLI-171 queue split. Three enqueue-and-wait wrappers route to the correct queue:
 
