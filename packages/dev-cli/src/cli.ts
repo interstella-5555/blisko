@@ -1,6 +1,6 @@
 import { createDb, schema } from "@repo/db";
 import { Command } from "commander";
-import { inArray, like } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 const API = process.env.API_URL || "http://localhost:3000";
 
@@ -227,7 +227,7 @@ function connectDb() {
 
 program
   .command("cleanup-e2e")
-  .description("Delete E2E seed users (email LIKE 'seed%@example.com') from database")
+  .description("Delete test users (user.type = 'test') from database — BLI-271 widened from seed%@example.com")
   .option("--dry-run", "Show what would be deleted without deleting")
   .action(async (opts: { dryRun?: boolean }) => {
     const db = connectDb();
@@ -235,14 +235,14 @@ program
     const users = await db
       .select({ id: schema.user.id, email: schema.user.email })
       .from(schema.user)
-      .where(like(schema.user.email, "seed%@example.com"));
+      .where(eq(schema.user.type, "test"));
 
     if (users.length === 0) {
-      console.log("  No seed users found.");
+      console.log("  No test users found.");
       process.exit(0);
     }
 
-    console.log(`  Found ${users.length} seed users`);
+    console.log(`  Found ${users.length} test users`);
 
     if (opts.dryRun) {
       for (const u of users) console.log(`    ${u.email} (${u.id})`);
@@ -275,20 +275,17 @@ program
       await tx.delete(schema.user).where(inArray(schema.user.id, ids));
     });
 
-    console.log(`  ✓ Deleted ${users.length} seed users + all related data`);
+    console.log(`  ✓ Deleted ${users.length} test users + all related data`);
     process.exit(0);
   });
 
 program
   .command("count-e2e")
-  .description("Count E2E seed users in database")
+  .description("Count test users (user.type = 'test') in database")
   .action(async () => {
     const db = connectDb();
-    const users = await db
-      .select({ id: schema.user.id })
-      .from(schema.user)
-      .where(like(schema.user.email, "seed%@example.com"));
-    console.log(`  Seed users: ${users.length}`);
+    const users = await db.select({ id: schema.user.id }).from(schema.user).where(eq(schema.user.type, "test"));
+    console.log(`  Test users: ${users.length}`);
     process.exit(0);
   });
 

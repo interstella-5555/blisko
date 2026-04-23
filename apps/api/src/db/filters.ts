@@ -1,13 +1,22 @@
-import { and, isNull } from "drizzle-orm";
+import type { UserType } from "@repo/db";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { schema } from "@/db";
 
-// Reusable gate for "is this user a live, interactable account?". Combines
-// soft-delete (deletion grace period) and suspension (admin moderation) into a
-// single predicate. Every discovery / matching / messaging query that joins
-// `schema.user` should use this instead of `isNull(schema.user.deletedAt)` —
-// forgetting the suspension side would leak suspended users back into nearby,
-// matching, wave send pickers, etc.
+// System-level "is this user a real, addressable account?" — soft-delete +
+// suspension only. Subject-agnostic. Use in cron jobs, system maintenance,
+// and any path that must process all live users regardless of category.
+export const userIsLive = () => and(isNull(schema.user.deletedAt), isNull(schema.user.suspendedAt));
+
+// Discovery / matching visibility filter. Adds a partition on top of liveness:
+//   - subject is `test` → sees ONLY other test users (E2E bubble — keeps CI
+//     fixtures self-contained, prevents production noise leaking into tests)
+//   - everyone else → sees regular/demo/review (test fixtures hidden)
 //
-// Scope note: this is pre-join by design. It must be composed with the rest of
-// the WHERE via drizzle's `and(...)`. It is *not* a standalone `where` clause.
-export const userIsActive = () => and(isNull(schema.user.deletedAt), isNull(schema.user.suspendedAt));
+// Pass `ctx.userType` from any tRPC procedure that joins `schema.user` for a
+// user-facing surface (nearby map, status match, wave send, group discovery,
+// messaging participant lookup, etc).
+//
+// Future-proof: hiding `demo` from discovery at launch is a 1-line change —
+// add `ne(schema.user.type, "demo")` to the non-test branch.
+export const userIsVisibleTo = (subjectType: UserType | null) =>
+  and(userIsLive(), subjectType === "test" ? eq(schema.user.type, "test") : ne(schema.user.type, "test"));

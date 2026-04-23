@@ -20,6 +20,11 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
+// User category marker (BLI-271). Single source of truth — imported by
+// the API tRPC context, admin router, admin UI, and db filters.
+export const USER_TYPES = ["regular", "demo", "test", "review"] as const;
+export type UserType = (typeof USER_TYPES)[number];
+
 // Better Auth tables (managed by better-auth)
 export const user = pgTable(
   "user",
@@ -35,9 +40,11 @@ export const user = pgTable(
     anonymizedAt: timestamp("anonymized_at"),
     suspendedAt: timestamp("suspended_at"),
     suspendReason: text("suspend_reason"),
+    type: text("type").$type<UserType>().notNull().default("regular"),
   },
   (table) => ({
     suspendedAtIdx: index("user_suspended_at_idx").on(table.suspendedAt).where(sql`${table.suspendedAt} IS NOT NULL`),
+    typeNonRegularIdx: index("user_type_non_regular_idx").on(table.type).where(sql`${table.type} <> 'regular'`),
   }),
 );
 

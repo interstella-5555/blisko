@@ -1,3 +1,4 @@
+import type { UserType } from "@repo/db";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import { and, eq, gt, placeholder } from "drizzle-orm";
 import { auth } from "@/auth";
@@ -14,6 +15,9 @@ export const sessionByToken = db
 
 export interface TRPCContext {
   userId: string | null;
+  // Set by `isAuthed` middleware after fetching the user row. Null on public
+  // endpoints (no auth) and during the brief window before isAuthed runs.
+  userType: UserType | null;
   db: typeof db;
   req: Request;
   [key: string]: unknown;
@@ -62,6 +66,7 @@ export async function createContext(opts: FetchCreateContextFnOptions): Promise<
 
   return {
     userId,
+    userType: null,
     db,
     req: opts.req,
   };

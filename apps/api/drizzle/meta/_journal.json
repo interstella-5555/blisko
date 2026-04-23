@@ -197,6 +197,20 @@
       "when": 1776822392810,
       "tag": "0027_add_user_suspension",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1776977291352,
+      "tag": "0028_add_user_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1776977305199,
+      "tag": "0029_backfill_user_type",
+      "breakpoints": true
     }
   ]
 }

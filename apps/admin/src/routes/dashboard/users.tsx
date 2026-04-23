@@ -1,3 +1,4 @@
+import { USER_TYPES, type UserType } from "@repo/db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   BotIcon,
@@ -39,6 +40,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
@@ -49,6 +53,21 @@ export const Route = createFileRoute("/dashboard/users")({
 });
 
 type UserStatus = "active" | "onboarding" | "deleted" | "suspended";
+type UserTypeFilter = UserType | "all";
+
+const TYPE_LABELS: Record<UserType, string> = {
+  regular: "Real",
+  demo: "Demo",
+  test: "Test",
+  review: "Review",
+};
+
+const TYPE_BADGE_VARIANT: Record<UserType, "default" | "secondary" | "destructive" | "outline"> = {
+  regular: "default",
+  demo: "secondary",
+  test: "outline",
+  review: "outline",
+};
 
 const STATUS_COLORS: Record<UserStatus, "default" | "secondary" | "destructive" | "outline"> = {
   active: "default",
@@ -78,7 +97,7 @@ function UsersPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<UserStatus | "all">("all");
-  const [showSeed, setShowSeed] = useState(true);
+  const [typeFilter, setTypeFilter] = useState<UserTypeFilter>("regular");
   const [page, setPage] = useState(0);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
@@ -86,7 +105,7 @@ function UsersPage() {
   const users = trpc.users.list.useQuery({
     search: search || undefined,
     status: statusFilter,
-    showSeed,
+    type: typeFilter,
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
   });
@@ -135,6 +154,16 @@ function UsersPage() {
     onError: (err) => toast.error(`Błąd: ${err.message}`),
   });
 
+  const updateTypeMutation = trpc.users.updateType.useMutation({
+    onSuccess: () => {
+      toast.success("Typ użytkownika zaktualizowany");
+      utils.users.list.invalidate();
+      utils.users.stats.invalidate();
+      if (selectedUserId) utils.users.getById.invalidate({ id: selectedUserId });
+    },
+    onError: (err) => toast.error(`Błąd: ${err.message}`),
+  });
+
   const suspendMutation = trpc.users.suspend.useMutation({
     onSuccess: () => {
       toast.success("Konto zostało zawieszone");
@@ -164,10 +193,9 @@ function UsersPage() {
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         {/* Stats */}
         <div className="grid grid-cols-4 gap-4">
-          <StatCard label="Użytkownicy" value={stats.data?.real} />
-          <StatCard label="Seed / Bot" value={stats.data?.seed} />
-          <StatCard label="Aktywni" value={stats.data?.active} />
-          <StatCard label="Onboarding" value={stats.data?.onboarding} />
+          {USER_TYPES.map((t) => (
+            <StatCard key={t} label={TYPE_LABELS[t]} value={stats.data?.[t]} />
+          ))}
         </div>
 
         {/* Filters */}
@@ -199,18 +227,21 @@ function UsersPage() {
             <option value="suspended">Zawieszeni</option>
             <option value="deleted">Usunięci</option>
           </select>
-          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showSeed}
-              onChange={(e) => {
-                setShowSeed(e.target.checked);
-                resetPage();
-              }}
-              className="rounded"
-            />
-            Pokaż seed
-          </label>
+          <select
+            value={typeFilter}
+            onChange={(e) => {
+              setTypeFilter(e.target.value as UserTypeFilter);
+              resetPage();
+            }}
+            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            {USER_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {TYPE_LABELS[t]}
+              </option>
+            ))}
+            <option value="all">Wszystkie typy</option>
+          </select>
           <span className="ml-auto text-sm text-muted-foreground">
             {users.data ? `${users.data.total} wyników` : ""}
           </span>
@@ -255,10 +286,10 @@ function UsersPage() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span className="truncate font-medium text-sm">{user.displayName}</span>
-                            {user.isSeed && (
-                              <Badge variant="outline" className="gap-1 text-[10px] px-1.5 py-0">
-                                <BotIcon className="size-3" />
-                                seed
+                            {user.type !== "regular" && (
+                              <Badge variant={TYPE_BADGE_VARIANT[user.type]} className="gap-1 text-[10px] px-1.5 py-0">
+                                {user.type === "demo" && <BotIcon className="size-3" />}
+                                {TYPE_LABELS[user.type]}
                               </Badge>
                             )}
                             {!user.isComplete && <ShieldAlertIcon className="size-3.5 text-amber-500" />}
@@ -335,6 +366,23 @@ function UsersPage() {
                             <UnplugIcon className="text-muted-foreground" />
                             Rozłącz
                           </DropdownMenuItem>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <BotIcon className="text-muted-foreground" />
+                              Zmień typ: {TYPE_LABELS[user.type]}
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              {USER_TYPES.map((t) => (
+                                <DropdownMenuItem
+                                  key={t}
+                                  disabled={updateTypeMutation.isPending || user.type === t}
+                                  onSelect={() => updateTypeMutation.mutate({ userId: user.id, type: t })}
+                                >
+                                  {TYPE_LABELS[t]}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
                           <DropdownMenuSeparator />
                           {user.status === "suspended" ? (
                             <DropdownMenuItem

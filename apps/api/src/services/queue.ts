@@ -4,7 +4,7 @@ import { type Job, Queue, Worker } from "bullmq";
 import { and, between, eq, gte, inArray, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
 import ms from "ms";
 import { db, schema } from "@/db";
-import { userIsActive } from "@/db/filters";
+import { userIsLive } from "@/db/filters";
 import { isStatusActive } from "@/lib/status";
 import { publishEvent } from "@/ws/redis-bridge";
 import {
@@ -532,7 +532,7 @@ async function processAnalyzeUserPairs(userId: string, latitude: number, longitu
         between(schema.profiles.latitude, minLat, maxLat),
         between(schema.profiles.longitude, minLon, maxLon),
         lte(distanceFormula, radiusMeters),
-        userIsActive(),
+        userIsLive(),
       ),
     )
     .limit(100);
@@ -710,7 +710,7 @@ async function processStatusMatching(userId: string) {
         lte(schema.profiles.latitude, user.latitude + NEARBY_RADIUS_DEG),
         gte(schema.profiles.longitude, user.longitude - NEARBY_RADIUS_DEG),
         lte(schema.profiles.longitude, user.longitude + NEARBY_RADIUS_DEG),
-        userIsActive(),
+        userIsLive(),
       ),
     );
 
@@ -839,7 +839,7 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
         lte(schema.profiles.latitude, latitude + NEARBY_RADIUS_DEG),
         gte(schema.profiles.longitude, longitude - NEARBY_RADIUS_DEG),
         lte(schema.profiles.longitude, longitude + NEARBY_RADIUS_DEG),
-        userIsActive(),
+        userIsLive(),
       ),
     )
     .limit(100);

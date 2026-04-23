@@ -8,6 +8,7 @@
 > Updated 2026-04-19 — `metrics.ai_calls` gains `service_tier` (default `'standard'`) + `reasoning_effort` (nullable) columns for the gpt-5-mini + Flex migration (BLI-236).
 > Updated 2026-04-19 — `metrics.ai_calls` gains `input_jsonb` + `output_jsonb` (nullable) columns for full payload debug; 24h retention on payloads alongside the existing 7d retention on metrics (BLI-239).
 > Updated 2026-04-22 — `user` gains `suspended_at` + `suspend_reason` + partial index `user_suspended_at_idx` for admin-driven account suspension (BLI-156). See `moderation-suspension.md`.
+> Updated 2026-04-23 — `user` gains `type` enum (`regular` | `demo` | `test` | `review`) + partial index `user_type_non_regular_idx`. Set at `/dev/auto-login` creation time; drives the visibility partition in `userIsVisibleTo()` and the cleanup-test-users cron filter. Replaces email-LIKE test-user detection (BLI-271).
 
 PostgreSQL on Railway. ORM: Drizzle `^0.45.1` with `postgres` (postgres.js) `^3.4.0` driver. Schema source: `packages/db/src/schema.ts` (the `@repo/db` workspace package). `apps/api/src/db/schema.ts` is now a 3-line re-export wrapper (`export * from "@repo/db/schema"`) preserved so existing `@/db` / `@/db/schema` imports keep working — the real schema definitions live in `@repo/db`. Migrations: `apps/api/drizzle/`. Config: `apps/api/drizzle.config.ts`.
 
@@ -52,8 +53,9 @@ Core identity table. Better Auth creates and manages it; app code extends it wit
 | `anonymized_at` | timestamp | yes | -- | Set 14 days after soft-delete when PII is overwritten. Added in `0004`. |
 | `suspended_at` | timestamp | yes | -- | Admin moderation (BLI-156). Non-null = blocked by `isAuthed` and pre-auth gates, hidden from discovery. Reversible via admin unsuspend. |
 | `suspend_reason` | text | yes | -- | Admin-only audit trail for the suspension. Never returned to clients. |
+| `type` | text enum | no | `'regular'` | Category marker (BLI-271): `regular` (real users, default), `demo` (chatbot seed `user[0-249]@example.com`), `test` (E2E fixtures — deleted daily by cleanup-test-users cron), `review` (Apple/Google store reviewers — location pin blocked). Drives `userIsVisibleTo()` partition — test users only see other test users; everyone else sees non-test. Set at creation time by `/dev/auto-login` (CI passes `type: "test"`, seed script passes `"demo"`). |
 
-Indexes: `user_suspended_at_idx` partial index on `(suspended_at) WHERE suspended_at IS NOT NULL` for cheap filtering of the rare suspended set. Otherwise PK and unique email cover query patterns. `session` and `account` have FK indexes pointing here.
+Indexes: `user_suspended_at_idx` partial index on `(suspended_at) WHERE suspended_at IS NOT NULL` for cheap filtering of the rare suspended set. `user_type_non_regular_idx` partial index on `(type) WHERE type <> 'regular'` — rare-row set used by admin per-type tabs and the cleanup cron. Otherwise PK and unique email cover query patterns. `session` and `account` have FK indexes pointing here.
 
 **Why `text` PK, not UUID:** Better Auth generates its own IDs. Fighting the framework on ID format would break auth internals.
 

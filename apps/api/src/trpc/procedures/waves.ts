@@ -4,7 +4,7 @@ import { subHours } from "date-fns";
 import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { DAILY_PING_LIMIT_BASIC, DECLINE_COOLDOWN_HOURS, PER_PERSON_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, schema } from "@/db";
-import { userIsActive } from "@/db/filters";
+import { userIsVisibleTo } from "@/db/filters";
 import { setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
 import { promotePairAnalysis } from "@/services/queue";
@@ -131,7 +131,7 @@ export const wavesRouter = router({
         .select({ userId: schema.profiles.userId })
         .from(schema.profiles)
         .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
-        .where(and(eq(schema.profiles.userId, input.toUserId), userIsActive()))
+        .where(and(eq(schema.profiles.userId, input.toUserId), userIsVisibleTo(ctx.userType)))
         .limit(1);
       const targetProfile = targetResult ?? null;
 
@@ -363,7 +363,7 @@ export const wavesRouter = router({
         and(
           eq(schema.waves.toUserId, ctx.userId),
           inArray(schema.waves.status, ["pending", "accepted"]),
-          userIsActive(),
+          userIsVisibleTo(ctx.userType),
         ),
       )
       .orderBy(desc(schema.waves.createdAt));
@@ -386,7 +386,7 @@ export const wavesRouter = router({
       .from(schema.waves)
       .innerJoin(schema.profiles, eq(schema.waves.toUserId, schema.profiles.userId))
       .innerJoin(schema.user, eq(schema.waves.toUserId, schema.user.id))
-      .where(and(eq(schema.waves.fromUserId, ctx.userId), userIsActive()))
+      .where(and(eq(schema.waves.fromUserId, ctx.userId), userIsVisibleTo(ctx.userType)))
       .orderBy(desc(schema.waves.createdAt));
 
     return sentWaves;
@@ -551,7 +551,7 @@ export const wavesRouter = router({
       .from(schema.blocks)
       .innerJoin(schema.profiles, eq(schema.blocks.blockedId, schema.profiles.userId))
       .innerJoin(schema.user, eq(schema.blocks.blockedId, schema.user.id))
-      .where(and(eq(schema.blocks.blockerId, ctx.userId), userIsActive()));
+      .where(and(eq(schema.blocks.blockerId, ctx.userId), userIsVisibleTo(ctx.userType)));
 
     return blockedUsers;
   }),
