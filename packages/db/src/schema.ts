@@ -20,10 +20,11 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-// User category marker (BLI-271). Single source of truth — imported by
-// the API tRPC context, admin router, admin UI, and db filters.
-export const USER_TYPES = ["regular", "demo", "test", "review"] as const;
-export type UserType = (typeof USER_TYPES)[number];
+// User category enum — defined in `./types.ts` (client-safe, zero runtime
+// deps). Re-exported here so consumers reading `@repo/db/schema` still get it.
+export { USER_TYPES, type UserType } from "./types";
+
+import type { UserType } from "./types";
 
 // Better Auth tables (managed by better-auth)
 export const user = pgTable(

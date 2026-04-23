@@ -14,6 +14,10 @@
     "./schema": {
       "types": "./src/schema.ts",
       "import": "./src/schema.ts"
+    },
+    "./types": {
+      "types": "./src/types.ts",
+      "import": "./src/types.ts"
     }
   },
   "scripts": {

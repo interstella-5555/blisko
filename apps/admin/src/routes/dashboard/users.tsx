@@ -1,4 +1,7 @@
-import { USER_TYPES, type UserType } from "@repo/db";
+// Import from `@repo/db/types` — the only client-safe entry point. `@repo/db`
+// pulls in `postgres` (Node-only `perf_hooks`), `@repo/db/schema` pulls in
+// drizzle table definitions. `types` is pure consts + TS types, zero runtime.
+import { USER_TYPES, type UserType } from "@repo/db/types";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   BotIcon,
