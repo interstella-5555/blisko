@@ -73,7 +73,37 @@ export async function cleanupTestUsers(opts?: { limit?: number; minAgeMs?: numbe
   // packages/dev-cli/src/cli.ts `cleanup-e2e` (BLI-178) in the SET of tables
   // it touches — when adding a new table with a `user` FK, update both lists
   // AND `processHardDeleteUser`.
+  //
+  // Two phases:
+  //   A) Nuke conversations OWNED by test users — with ALL their participants
+  //      and ratings regardless of author. Needed because a test user may have
+  //      created a group a chatbot demo (`user0..249`) joined, and
+  //      `conversation_participants`/`conversation_ratings` have NO ACTION FKs
+  //      to `conversations` → deleting the conversation would fail on the
+  //      non-test participant's row and roll back the whole tx.
+  //      `messages`/`topics`/`message_reactions` cascade via `conversations`.
+  //   B) Remaining test-user rows in OTHER conversations (owned by non-test
+  //      users, e.g. chatbots) + everything else keyed on user.id.
   await db.transaction(async (tx) => {
+    // --- Phase A: conversations the test users created ---
+    const ownedConvRows = await tx
+      .select({ id: schema.conversations.id })
+      .from(schema.conversations)
+      .where(inArray(schema.conversations.creatorId, ids));
+    const ownedConvIds = ownedConvRows.map((c) => c.id);
+
+    if (ownedConvIds.length > 0) {
+      await tx
+        .delete(schema.conversationParticipants)
+        .where(inArray(schema.conversationParticipants.conversationId, ownedConvIds));
+      await tx
+        .delete(schema.conversationRatings)
+        .where(inArray(schema.conversationRatings.conversationId, ownedConvIds));
+      // messages, message_reactions, topics cascade via conversations.
+      await tx.delete(schema.conversations).where(inArray(schema.conversations.id, ownedConvIds));
+    }
+
+    // --- Phase B: test-user rows everywhere else ---
     await tx
       .delete(schema.statusMatches)
       .where(or(inArray(schema.statusMatches.userId, ids), inArray(schema.statusMatches.matchedUserId, ids)));
@@ -81,7 +111,6 @@ export async function cleanupTestUsers(opts?: { limit?: number; minAgeMs?: numbe
     await tx.delete(schema.messages).where(inArray(schema.messages.senderId, ids));
     await tx.delete(schema.conversationParticipants).where(inArray(schema.conversationParticipants.userId, ids));
     await tx.delete(schema.conversationRatings).where(inArray(schema.conversationRatings.userId, ids));
-    await tx.delete(schema.conversations).where(inArray(schema.conversations.creatorId, ids));
     await tx
       .delete(schema.connectionAnalyses)
       .where(or(inArray(schema.connectionAnalyses.fromUserId, ids), inArray(schema.connectionAnalyses.toUserId, ids)));

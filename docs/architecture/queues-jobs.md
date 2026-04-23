@@ -395,8 +395,10 @@ See `ai-cost-tracking.md` for the wrapper design and admin dashboard.
 
 **Processor logic:**
 1. Select up to 500 users matching `email LIKE '%@example.com' AND email NOT LIKE 'user%@example.com' AND created_at < now() - 1h`
-2. In a single `db.transaction`, delete from 11 dependent tables in dependency order (statusMatches, messageReactions, messages, conversationParticipants, conversationRatings, conversations, connectionAnalyses, waves, blocks, pushTokens, topics — 4 of these are dual-FK tables deleted with `or(inArray(colA, ids), inArray(colB, ids))`)
-3. Delete the user row — `ON DELETE CASCADE` on profiles, sessions, account, profilingSessions, profilingQA handles the rest
+2. In a single `db.transaction`, two-phase delete:
+   - **Phase A** — look up conversations owned by test users; delete ALL their participants + ratings (regardless of author), then the conversations themselves. `messages`/`message_reactions`/`topics` cascade via `conversations`. Needed because `conversation_participants` and `conversation_ratings` have NO ACTION FKs to `conversations`, so a chatbot demo participating in a test-owned group would block the delete and roll back the whole tx.
+   - **Phase B** — delete remaining test-user rows everywhere else: `statusMatches`, `messageReactions`, `messages`, `conversationParticipants`, `conversationRatings`, `connectionAnalyses`, `waves`, `blocks`, `pushTokens`, `topics`. Four of these are dual-FK tables deleted with `or(inArray(colA, ids), inArray(colB, ids))`.
+3. Delete the user row — `ON DELETE CASCADE` on profiles, sessions, account, profilingSessions, profilingQA handles the rest.
 
 **Why physical delete (not anonymization):** `processHardDeleteUser` preserves the user row with a "Usunięty użytkownik" placeholder so other users' conversation history stays intact — this is the GDPR-compliant path for real users. Test users are pure CI cruft; preserving placeholders would just bloat the DB.
 
