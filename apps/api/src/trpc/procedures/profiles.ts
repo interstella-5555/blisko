@@ -152,6 +152,16 @@ export const profilesRouter = router({
 
   // Update location
   updateLocation: protectedProcedure.input(updateLocationSchema).mutation(async ({ ctx, input }) => {
+    // Review accounts (Apple/Google store) are pinned to a fixed location set
+    // during admin provisioning so reviewers see a consistent Warsaw-center
+    // experience across test sessions. BLI-271.
+    if (ctx.userType === "review") {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Review accounts have a fixed location for App Store testing.",
+      });
+    }
+
     const [profile] = await db
       .update(schema.profiles)
       .set({
