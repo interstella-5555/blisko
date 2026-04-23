@@ -35,9 +35,11 @@ export const user = pgTable(
     anonymizedAt: timestamp("anonymized_at"),
     suspendedAt: timestamp("suspended_at"),
     suspendReason: text("suspend_reason"),
+    type: text("type").$type<"regular" | "demo" | "test" | "review">().notNull().default("regular"),
   },
   (table) => ({
     suspendedAtIdx: index("user_suspended_at_idx").on(table.suspendedAt).where(sql`${table.suspendedAt} IS NOT NULL`),
+    typeNonRegularIdx: index("user_type_non_regular_idx").on(table.type).where(sql`${table.type} <> 'regular'`),
   }),
 );
 
