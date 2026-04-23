@@ -15,7 +15,7 @@ import { and, between, eq, gte, isNotNull, isNull, lte, ne, or, placeholder, sql
 import { z } from "zod";
 import { DECLINE_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, preparedName, schema } from "@/db";
-import { userIsActive } from "@/db/filters";
+import { userIsVisibleTo } from "@/db/filters";
 import { roundDistance, toGridCenter } from "@/lib/grid";
 import { isStatusActive, isStatusPublic } from "@/lib/status";
 import { setTargetUserId } from "@/services/metrics";
@@ -182,7 +182,7 @@ export const profilesRouter = router({
           ne(schema.profiles.visibilityMode, "ninja"),
           between(schema.profiles.latitude, input.latitude - latDelta, input.latitude + latDelta),
           between(schema.profiles.longitude, input.longitude - lonDelta, input.longitude + lonDelta),
-          userIsActive(),
+          userIsVisibleTo(ctx.userType),
         ),
       )
       .then((nearbyUsers) => {
@@ -262,7 +262,7 @@ export const profilesRouter = router({
             between(schema.profiles.longitude, minLon, maxLon),
             // Exact distance filter
             lte(distanceFormula, radiusMeters),
-            userIsActive(),
+            userIsVisibleTo(ctx.userType),
             ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
           ),
         )
@@ -357,7 +357,7 @@ export const profilesRouter = router({
                 between(schema.profiles.latitude, minLat, maxLat),
                 between(schema.profiles.longitude, minLon, maxLon),
                 lte(distanceFormula, radiusMeters),
-                userIsActive(),
+                userIsVisibleTo(ctx.userType),
                 ...(photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
               ),
             )
@@ -494,7 +494,7 @@ export const profilesRouter = router({
         between(schema.profiles.latitude, effectiveMinLat, effectiveMaxLat),
         between(schema.profiles.longitude, effectiveMinLon, effectiveMaxLon),
         lte(distanceFormula, radiusMeters),
-        userIsActive(),
+        userIsVisibleTo(ctx.userType),
         ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
       );
 
@@ -679,7 +679,7 @@ export const profilesRouter = router({
       .select({ isComplete: schema.profiles.isComplete })
       .from(schema.profiles)
       .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
-      .where(and(eq(schema.profiles.userId, input.userId), userIsActive()));
+      .where(and(eq(schema.profiles.userId, input.userId), userIsVisibleTo(ctx.userType)));
     if (!target?.isComplete) return { status: "ready" as const };
 
     const existing = await db.query.connectionAnalyses.findFirst({
@@ -719,7 +719,7 @@ export const profilesRouter = router({
       .select({ isComplete: schema.profiles.isComplete })
       .from(schema.profiles)
       .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
-      .where(and(eq(schema.profiles.userId, input.userId), userIsActive()));
+      .where(and(eq(schema.profiles.userId, input.userId), userIsVisibleTo(ctx.userType)));
     if (!target?.isComplete) return null;
 
     const analysis = await db.query.connectionAnalyses.findFirst({
@@ -880,7 +880,7 @@ export const profilesRouter = router({
       .from(schema.statusMatches)
       .innerJoin(schema.profiles, eq(schema.statusMatches.matchedUserId, schema.profiles.userId))
       .innerJoin(schema.user, eq(schema.statusMatches.matchedUserId, schema.user.id))
-      .where(and(eq(schema.statusMatches.userId, ctx.userId), userIsActive()));
+      .where(and(eq(schema.statusMatches.userId, ctx.userId), userIsVisibleTo(ctx.userType)));
 
     return rows.map((row) => ({
       id: row.id,

@@ -10,7 +10,7 @@ import { TRPCError } from "@trpc/server";
 import { and, between, eq, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
-import { userIsActive } from "@/db/filters";
+import { userIsVisibleTo } from "@/db/filters";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
 import { featureGate } from "@/trpc/middleware/featureGate";
@@ -719,8 +719,8 @@ export const groupsRouter = router({
       }
 
       // Count must match what `getMembers` returns (soft-deleted hidden, suspended
-      // still listed with a badge). Using `userIsActive()` here would produce
-      // "9 members" in the header while the list shows 10 rows.
+      // still listed with a badge). Using `userIsLive()` / `userIsVisibleTo()` here
+      // would produce "9 members" in the header while the list shows 10 rows.
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(schema.conversationParticipants)
@@ -819,7 +819,7 @@ export const groupsRouter = router({
         isNotNull(schema.profiles.latitude),
         lte(distanceSql, radiusMeters),
         ne(schema.conversationParticipants.userId, ctx.userId),
-        userIsActive(),
+        userIsVisibleTo(ctx.userType),
       );
 
       const [countResult] = await db
