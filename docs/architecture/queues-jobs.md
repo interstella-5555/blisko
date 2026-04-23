@@ -17,6 +17,7 @@
 > Updated 2026-04-19 — Split status matching LLM fan-out into per-pair `evaluate-status-match` child jobs. Parents (`status-matching`, `proximity-status-matching`) now handle pre-work + fan-out via `queue.addBulk`; each child runs one `evaluateStatusMatch` call + insert + WS event + push. Retry isolation per pair. AI queue now has 9 job types (BLI-167).
 > Updated 2026-04-22 — Admin queue page reclassifies Job Scheduler delayed markers as a `scheduled` pseudo-state ("Harmonogram" tab) via `queue.getJobSchedulers()`. Each scheduler keeps one permanent delayed job (per BullMQ design) for the next run — surfacing them separately keeps the "Opóźnione" count honest (retries only) and shows interval/cron + countdown to next run.
 > Updated 2026-04-23 — Added `cleanup-test-users` maintenance job (daily 4 UTC). Physically deletes `@example.com` test users (excluding chatbot demos `user[0-249]@example.com`), 1h `createdAt` margin, 500/run cap, `attempts: 1`. `isTestUserEmail()` helper scoped for future reuse by `/dev/auto-login` when BLI-271 lands the `isTestUser` column (BLI-272).
+> Updated 2026-04-23 — `cleanup-test-users` filter swapped from email LIKE pattern to `user.type = 'test'` (BLI-271). `isTestUserEmail()` helper removed; type is set at `/dev/auto-login` creation time instead. Admin `seedFilter` + dev-cli `cleanup-e2e` also migrated to the column.
 
 Three BullMQ queues grouped by bottleneck: AI (OpenAI-bound), Ops (DB/S3/email-bound critical operations), Maintenance (periodic fire-and-forget). Each has its own worker with independent concurrency and retention policies. Source files: `apps/api/src/services/queue.ts` (AI), `queue-ops.ts` (Ops), `queue-maintenance.ts` (Maintenance), `queue-shared.ts` (shared utilities).
 
@@ -394,7 +395,7 @@ See `ai-cost-tracking.md` for the wrapper design and admin dashboard.
 **Trigger:** BullMQ repeatable job scheduler, daily at 4:00 UTC (`pattern: "0 4 * * *"`).
 
 **Processor logic:**
-1. Select up to 500 users matching `email LIKE '%@example.com' AND email NOT LIKE 'user%@example.com' AND created_at < now() - 1h`
+1. Select up to 500 users matching `user.type = 'test' AND created_at < now() - 1h` (BLI-271 — swapped from the prior email LIKE pattern; `type` is set at `/dev/auto-login` insert time)
 2. In a single `db.transaction`, two-phase delete:
    - **Phase A** — look up conversations owned by test users; delete ALL their participants + ratings (regardless of author), then the conversations themselves. `messages`/`message_reactions`/`topics` cascade via `conversations`. Needed because `conversation_participants` and `conversation_ratings` have NO ACTION FKs to `conversations`, so a chatbot demo participating in a test-owned group would block the delete and roll back the whole tx.
    - **Phase B** — delete remaining test-user rows everywhere else: `statusMatches`, `messageReactions`, `messages`, `conversationParticipants`, `conversationRatings`, `connectionAnalyses`, `waves`, `blocks`, `pushTokens`, `topics`. Four of these are dual-FK tables deleted with `or(inArray(colA, ids), inArray(colB, ids))`.
@@ -408,15 +409,11 @@ See `ai-cost-tracking.md` for the wrapper design and admin dashboard.
 
 **Job options override:** `attempts: 1` (no retry storm — wait 24h on failure), `removeOnComplete: { count: 30 }`, `removeOnFail: { count: 30 }` (~month of history).
 
-**Source:** `apps/api/src/services/test-users-cleanup.ts` — `cleanupTestUsers()` + `isTestUserEmail()` helper.
+**Source:** `apps/api/src/services/test-users-cleanup.ts` — `cleanupTestUsers()`.
 
 **Returns:** `{ found, deleted, sampledIds }`.
 
-**Definition of "test user" lives in 4 places** (BLI-271 will consolidate via a `user.isTestUser` column):
-1. `cleanupTestUsers()` SQL filter — `apps/api/src/services/test-users-cleanup.ts`
-2. `isTestUserEmail()` helper (mirrors filter, used by tests; future use: `/dev/auto-login` to set the flag) — same file
-3. Admin `seedFilter` — `apps/admin/src/server/routers/users.ts`
-4. Manual escape hatch dev-cli `cleanup-e2e` (narrower `seed%@example.com` filter) — `packages/dev-cli/src/cli.ts`
+**Definition of "test user" is now the `user.type = 'test'` column** (BLI-271 consolidated the prior 4 LIKE-pattern sites). Assignment happens at `/dev/auto-login` insert time (`type: "test"` by default; seed-users.ts passes `type: "demo"` for chatbot fixtures). All consumers — `cleanupTestUsers()`, admin `seedFilter`, dev-cli `cleanup-e2e` — read the column directly.
 
 ## Deduplication: `safeEnqueuePairJob`
 
@@ -527,5 +524,5 @@ If you change this system, also check:
 - **`analysis:ready` Redis channel:** Chatbot subscribes to this — changing format breaks bot wave acceptance
 - **`connectionAnalyses` table:** Both `analyze-pair` and `quick-score` write to it — schema changes affect both
 - **Queue name constants:** `QUEUE_NAMES` in `queue-shared.ts`. Admin app has matching local constants — keep in sync
-- **Changing the "test user" definition** (BLI-271 migration to `user.isTestUser` column): Update the WHERE clause in `cleanupTestUsers()` (`apps/api/src/services/test-users-cleanup.ts`), the admin `seedFilter` (`apps/admin/src/server/routers/users.ts`), and the dev-cli `cleanup-e2e` command (`packages/dev-cli/src/cli.ts`). The `isTestUserEmail()` helper stays — moves from "predicate mirror" role to "decide flag at user-creation time" role inside `/dev/auto-login`.
+- **Changing the "test user" definition** (post-BLI-271): The source of truth is `user.type`. Change how `/dev/auto-login` decides the value on insert (`apps/api/src/index.ts`), and optionally backfill existing rows via a one-time migration. All filter sites (cleanup cron, admin seedFilter, dev-cli) read the column and need no code change unless you rename the type values themselves.
 - **New table with `user` FK:** Update the delete order in `cleanupTestUsers()` (`apps/api/src/services/test-users-cleanup.ts`), the parallel list in `packages/dev-cli/src/cli.ts` `cleanup-e2e`, and the anonymization or preservation decision in `processHardDeleteUser` (`queue-ops.ts`). All three touch the same FK graph from different angles.
