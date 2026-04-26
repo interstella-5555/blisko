@@ -663,6 +663,7 @@ const styles = StyleSheet.create({
   },
   otherStatus: {
     marginTop: 10,
+    marginBottom: 10,
     marginHorizontal: spacing.section,
     paddingVertical: 8,
     paddingHorizontal: 12,

@@ -80,7 +80,9 @@ async function acceptWaveCore(
       .insert(schema.conversations)
       .values({
         metadata: {
+          senderUserId: wave.fromUserId,
           senderStatus: wave.senderStatusSnapshot ?? null,
+          recipientUserId: responderUserId,
           recipientStatus: responderProfile?.currentStatus ?? null,
           connectedAt: new Date().toISOString(),
           connectedDistance,

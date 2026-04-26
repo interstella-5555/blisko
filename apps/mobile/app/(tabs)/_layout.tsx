@@ -300,13 +300,13 @@ export default function TabsLayout() {
   }, [chatConversations]);
 
   // Read badges from stores (single source of truth).
-  // Chats tab badge = unread messages + pending pings the user hasn't tapped yet.
-  // The pings half mirrors `unviewedPingCount` shown on the sonar pill inside the chats screen.
-  const totalUnread = useConversationsStore((s) => s.conversations.reduce((sum, c) => sum + c.unreadCount, 0));
+  // Chats tab badge = items needing attention: unread conversations + unviewed pending pings.
+  // Mirrors the count shown on the "Nieprzeczytane" pill inside the chats screen.
+  const unreadConvCount = useConversationsStore((s) => s.conversations.filter((c) => c.unreadCount > 0).length);
   const unviewedPings = useWavesStore((s) =>
     s.received.reduce((n, w) => (w.wave.status === "pending" && !s.viewedWaveIds.has(w.wave.id) ? n + 1 : n), 0),
   );
-  const chatsTabBadge = totalUnread + unviewedPings;
+  const chatsTabBadge = unreadConvCount + unviewedPings;
 
   // If not logged in, redirect to auth
   if (!user) {
@@ -339,7 +339,7 @@ export default function TabsLayout() {
           title: "W okolicy",
           tabBarIcon: ({ color }) => <IconPin size={20} color={color} />,
           tabBarAccessibilityLabel: "tab-nearby",
-          header: () => <TabHeader title="W okolicy" />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
