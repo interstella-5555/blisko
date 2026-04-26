@@ -86,12 +86,6 @@ export default function ChatScreen() {
 
   const isMuted = storeConversation?.mutedUntil != null && new Date(storeConversation.mutedUntil) > new Date();
 
-  // Mute stays as tRPC hook — it's a conversation concern, not messages
-  const muteConversation = trpc.messages.muteConversation.useMutation({
-    onSuccess: (data) => {
-      useConversationsStore.getState().setMutedUntil(conversationId!, data.mutedUntil.toString());
-    },
-  });
   const unmuteConversation = trpc.messages.unmuteConversation.useMutation({
     onSuccess: () => {
       useConversationsStore.getState().setMutedUntil(conversationId!, null);
@@ -102,21 +96,7 @@ export default function ChatScreen() {
     if (isMuted) {
       unmuteConversation.mutate({ conversationId: conversationId! });
     } else {
-      Alert.alert("Wycisz powiadomienia", "Na jak długo?", [
-        {
-          text: "1 godzinę",
-          onPress: () => muteConversation.mutate({ conversationId: conversationId!, duration: "1h" }),
-        },
-        {
-          text: "8 godzin",
-          onPress: () => muteConversation.mutate({ conversationId: conversationId!, duration: "8h" }),
-        },
-        {
-          text: "Na zawsze",
-          onPress: () => muteConversation.mutate({ conversationId: conversationId!, duration: "forever" }),
-        },
-        { text: "Anuluj", style: "cancel" },
-      ]);
+      router.push({ pathname: "/mute-conversation", params: { conversationId: conversationId! } });
     }
   };
 
@@ -321,7 +301,7 @@ export default function ChatScreen() {
                 </Pressable>
                 <Pressable onPress={handleMuteToggle} hitSlop={8} style={{ width: 24 }}>
                   {isMuted ? (
-                    <IconBellOff size={20} color={colors.muted} />
+                    <IconBellOff size={20} color={colors.accent} />
                   ) : (
                     <IconBell size={20} color={colors.muted} />
                   )}
@@ -343,28 +323,39 @@ export default function ChatScreen() {
               ` · ~${storeConversation.metadata.connectedDistance}m od siebie`}
           </Text>
           {(typeof storeConversation.metadata.senderStatus === "string" ||
-            typeof storeConversation.metadata.recipientStatus === "string") && (
-            <View style={styles.snapshotStatuses}>
-              {typeof storeConversation.metadata.recipientStatus === "string" && (
-                <View style={styles.snapshotRow}>
-                  <Text style={styles.snapshotLabel}>{participantName}</Text>
-                  <View style={styles.snapshotPillTheirs}>
-                    <Text style={styles.snapshotPillTheirsText}>
-                      {storeConversation.metadata.recipientStatus as string}
-                    </Text>
-                  </View>
+            typeof storeConversation.metadata.recipientStatus === "string") &&
+            (() => {
+              // Map sender/recipient snapshots to "mine" / "theirs" using stored userIds.
+              // Fallback (old conversations without senderUserId): assume sender = me, matches legacy behavior.
+              const senderUserId = storeConversation.metadata.senderUserId as string | undefined;
+              const senderIsMe = senderUserId ? senderUserId === userId : true;
+              const myStatus = senderIsMe
+                ? storeConversation.metadata.senderStatus
+                : storeConversation.metadata.recipientStatus;
+              const theirStatus = senderIsMe
+                ? storeConversation.metadata.recipientStatus
+                : storeConversation.metadata.senderStatus;
+              return (
+                <View style={styles.snapshotStatuses}>
+                  {typeof theirStatus === "string" && (
+                    <View style={styles.snapshotRow}>
+                      <Text style={styles.snapshotLabel}>{participantName}</Text>
+                      <View style={styles.snapshotPillTheirs}>
+                        <Text style={styles.snapshotPillTheirsText}>{theirStatus}</Text>
+                      </View>
+                    </View>
+                  )}
+                  {typeof myStatus === "string" && (
+                    <View style={styles.snapshotRowMine}>
+                      <Text style={styles.snapshotLabel}>Ty</Text>
+                      <View style={styles.snapshotPillMine}>
+                        <Text style={styles.snapshotPillMineText}>{myStatus}</Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
-              )}
-              {typeof storeConversation.metadata.senderStatus === "string" && (
-                <View style={styles.snapshotRowMine}>
-                  <Text style={styles.snapshotLabel}>Ty</Text>
-                  <View style={styles.snapshotPillMine}>
-                    <Text style={styles.snapshotPillMineText}>{storeConversation.metadata.senderStatus as string}</Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          )}
+              );
+            })()}
         </View>
       )}
 

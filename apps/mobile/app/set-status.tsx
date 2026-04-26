@@ -1,3 +1,4 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { STATUS_CATEGORIES, type StatusCategory } from "@repo/shared";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -14,11 +15,15 @@ type Visibility = "public" | "private";
 const VISIBILITY_HELP =
   "Publiczny — tekst statusu + kategorie widoczne dla innych na mapie i w profilu. Dopasowania liczone są DO tekstu statusu.\n\nPrywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim się matchujesz. Dopasowania liczone są do Twojego profilu.";
 
-const CATEGORY_OPTIONS: { value: StatusCategory; label: string; emoji: string }[] = [
-  { value: "project", label: "Projekt", emoji: "⚡" },
-  { value: "networking", label: "Networking", emoji: "🤝" },
-  { value: "dating", label: "Randka", emoji: "🔥" },
-  { value: "casual", label: "Casual", emoji: "☕" },
+const CATEGORY_OPTIONS: {
+  value: StatusCategory;
+  label: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+}[] = [
+  { value: "project", label: "Projekt", icon: "lightbulb-outline" },
+  { value: "networking", label: "Networking", icon: "account-multiple-outline" },
+  { value: "dating", label: "Spotkanie", icon: "coffee-outline" },
+  { value: "casual", label: "Hobby", icon: "tennis" },
 ];
 
 export default function SetStatusScreen() {
@@ -130,7 +135,9 @@ export default function SetStatusScreen() {
               style={[styles.categoryTile, selected && styles.categoryTileSelected]}
               onPress={() => toggleCategory(cat.value)}
             >
-              <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
+              <View style={styles.categoryIcon}>
+                <MaterialCommunityIcons name={cat.icon} size={24} color={selected ? "#D4851C" : colors.muted} />
+              </View>
               <Text style={[styles.categoryLabel, selected && styles.categoryLabelSelected]}>{cat.label}</Text>
             </Pressable>
           );
@@ -259,8 +266,9 @@ const styles = StyleSheet.create({
     borderColor: "#D4851C",
     backgroundColor: "#FFF8F0",
   },
-  categoryEmoji: {
-    fontSize: 20,
+  categoryIcon: {
+    height: 24,
+    justifyContent: "center",
     marginBottom: 4,
   },
   categoryLabel: {

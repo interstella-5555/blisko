@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@better-auth/expo": "catalog:",
+    "@expo/vector-icons": "^15.1.1",
     "@repo/api": "workspace:*",
     "@repo/shared": "workspace:*",
     "@tanstack/react-query": "catalog:",

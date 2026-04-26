@@ -283,6 +283,17 @@ export default function RootLayout() {
                       contentStyle: { backgroundColor: colors.bg },
                     }}
                   />
+                  <Stack.Screen
+                    name="mute-conversation"
+                    options={{
+                      presentation: "formSheet",
+                      headerShown: false,
+                      sheetAllowedDetents: "fitToContents",
+                      sheetGrabberVisible: true,
+                      sheetCornerRadius: 20,
+                      contentStyle: { backgroundColor: colors.bg },
+                    }}
+                  />
                 </Stack>
               </AppGate>
             </LinkPreviewContextProvider>

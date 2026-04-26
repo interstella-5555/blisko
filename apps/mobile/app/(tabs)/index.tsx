@@ -2,26 +2,16 @@ import { keepPreviousData } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  Easing,
-  FlatList,
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Animated, Dimensions, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import type { Region } from "react-native-maps";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDebouncedCallback } from "use-debounce";
 import { DEFAULT_MAP_DELTA, ListShimmer, type NearbyMapRef, NearbyMapView } from "@/components/nearby";
 import { GroupRow } from "@/components/nearby/GroupRow";
 import type { UserRowStatus } from "@/components/nearby/UserRow";
 import { UserRow } from "@/components/nearby/UserRow";
 import { Button } from "@/components/ui/Button";
-import { IconFilter, IconPin, IconPlus } from "@/components/ui/icons";
+import { IconFilter, IconMap, IconPin, IconPlus } from "@/components/ui/icons";
 import { SplashHold } from "@/components/ui/SplashHold";
 import { useNearbyList } from "@/hooks/useNearbyList";
 import { useNearbyMapMarkers } from "@/hooks/useNearbyMapMarkers";
@@ -68,11 +58,17 @@ export default function NearbyScreen() {
   const { latitude, longitude, permissionStatus, setLocation, setPermissionStatus } = useLocationStore();
   const { nearbyRadiusMeters, loadPreferences, photoOnly, showAllNearby } = usePreferencesStore();
 
+  const insets = useSafeAreaInsets();
   const [mapExpanded, setMapExpanded] = useState(true);
   const mapHeight = useRef(new Animated.Value(MAP_EXPANDED_HEIGHT)).current;
   const mapExpandedRef = useRef(mapExpanded);
   mapExpandedRef.current = mapExpanded;
   const mapRef = useRef<NearbyMapRef>(null);
+  const topSpacer = mapHeight.interpolate({
+    inputRange: [0, MAP_EXPANDED_HEIGHT],
+    outputRange: [insets.top, 0],
+    extrapolate: "clamp",
+  });
 
   const hasActiveFilters = photoOnly || showAllNearby;
 
@@ -244,12 +240,21 @@ export default function NearbyScreen() {
     | { type: "group"; data: NearbyGroup }
     | { type: "groupsEmpty" };
 
+  const uniqueListUsers = useMemo(() => {
+    const seen = new Set<string>();
+    return listUsers.filter((u) => {
+      if (seen.has(u.profile.id)) return false;
+      seen.add(u.profile.id);
+      return true;
+    });
+  }, [listUsers]);
+
   const listItems = useMemo((): ListItem[] => {
     const items: ListItem[] = [];
     const groups = nearbyGroups ?? [];
 
     if (nearbyFilter === "people") {
-      for (const u of listUsers) {
+      for (const u of uniqueListUsers) {
         items.push({ type: "user", data: u });
       }
     } else if (nearbyFilter === "groups") {
@@ -262,9 +267,9 @@ export default function NearbyScreen() {
       }
     } else {
       // "all" — users section then groups section
-      if (listUsers.length > 0) {
+      if (uniqueListUsers.length > 0) {
         items.push({ type: "userHeader", count: totalUserCount, viewportCount: totalCount });
-        for (const u of listUsers) {
+        for (const u of uniqueListUsers) {
           items.push({ type: "user", data: u });
         }
       }
@@ -276,7 +281,7 @@ export default function NearbyScreen() {
       }
     }
     return items;
-  }, [nearbyFilter, listUsers, nearbyGroups, totalUserCount, totalCount]);
+  }, [nearbyFilter, uniqueListUsers, nearbyGroups, totalUserCount, totalCount]);
 
   const updateLocation = useCallback(async () => {
     try {
@@ -320,60 +325,6 @@ export default function NearbyScreen() {
     setIsManualRefresh(true);
     Promise.all([refetchMarkers(), refetchList()]).finally(() => setIsManualRefresh(false));
   }, [refetchMarkers, refetchList]);
-
-  const mapPanResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, { dy }) => Math.abs(dy) > 5,
-      onPanResponderMove: (_, { dy }) => {
-        const base = mapExpandedRef.current ? MAP_EXPANDED_HEIGHT : 0;
-        mapHeight.setValue(Math.max(0, Math.min(MAP_EXPANDED_HEIGHT, base + dy)));
-      },
-      onPanResponderRelease: (_, { dy, vy }) => {
-        const expanded = mapExpandedRef.current;
-
-        // Tap — toggle
-        if (Math.abs(dy) < 5) {
-          const toValue = expanded ? 0 : MAP_EXPANDED_HEIGHT;
-          if (expanded) {
-            Animated.timing(mapHeight, {
-              toValue,
-              duration: 300,
-              easing: Easing.out(Easing.cubic),
-              useNativeDriver: false,
-            }).start();
-          } else {
-            Animated.spring(mapHeight, { toValue, useNativeDriver: false }).start();
-          }
-          setMapExpanded(!expanded);
-          return;
-        }
-
-        const threshold = MAP_EXPANDED_HEIGHT * 0.3;
-
-        // Swipe up to collapse
-        if (expanded && (dy < -threshold || vy < -0.5)) {
-          Animated.timing(mapHeight, {
-            toValue: 0,
-            duration: 200,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-          }).start();
-          setMapExpanded(false);
-        }
-        // Swipe down to expand
-        else if (!expanded && (dy > threshold || vy > 0.5)) {
-          Animated.spring(mapHeight, { toValue: MAP_EXPANDED_HEIGHT, useNativeDriver: false }).start();
-          setMapExpanded(true);
-        }
-        // Snap back
-        else {
-          const toValue = expanded ? MAP_EXPANDED_HEIGHT : 0;
-          Animated.spring(mapHeight, { toValue, useNativeDriver: false }).start();
-        }
-      },
-    }),
-  ).current;
 
   // Permission denied
   if (permissionStatus === "denied") {
@@ -518,7 +469,26 @@ export default function NearbyScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Status bar — above map */}
+      {/* Top spacer — grows to safe-area inset when map is collapsed */}
+      <Animated.View style={{ height: topSpacer }} />
+
+      {/* Collapsible map */}
+      <Animated.View style={{ height: mapHeight, overflow: "hidden" }}>
+        <View style={{ height: MAP_EXPANDED_HEIGHT }}>
+          <NearbyMapView
+            ref={mapRef}
+            clusters={clusters}
+            userLatitude={latitude!}
+            userLongitude={longitude!}
+            onClusterPress={handleClusterPress}
+            onUserPress={(userId) => router.push({ pathname: "/(modals)/user/[userId]", params: { userId } })}
+            onGroupPress={(groupId) => router.push({ pathname: "/(modals)/group/[id]", params: { id: groupId } })}
+            onRegionChangeComplete={handleRegionChangeComplete}
+          />
+        </View>
+      </Animated.View>
+
+      {/* Status bar — below map toggle */}
       {myStatus ? (
         <Pressable
           style={styles.statusBar}
@@ -543,28 +513,6 @@ export default function NearbyScreen() {
         </Pressable>
       )}
 
-      {/* Collapsible map */}
-      <Animated.View style={{ height: mapHeight, overflow: "hidden" }}>
-        <View style={{ height: MAP_EXPANDED_HEIGHT }}>
-          <NearbyMapView
-            ref={mapRef}
-            clusters={clusters}
-            userLatitude={latitude!}
-            userLongitude={longitude!}
-            onClusterPress={handleClusterPress}
-            onUserPress={(userId) => router.push({ pathname: "/(modals)/user/[userId]", params: { userId } })}
-            onGroupPress={(groupId) => router.push({ pathname: "/(modals)/group/[id]", params: { id: groupId } })}
-            onRegionChangeComplete={handleRegionChangeComplete}
-          />
-        </View>
-      </Animated.View>
-
-      {/* Map toggle bar — tap or swipe to show/hide */}
-      <View {...mapPanResponder.panHandlers} style={styles.mapToggle}>
-        <View style={styles.dragHandle} />
-        <Text style={styles.mapToggleText}>{mapExpanded ? "UKRYJ MAPĘ" : "POKAŻ MAPĘ"}</Text>
-      </View>
-
       {/* Filter chips + funnel */}
       <View style={styles.filterRow}>
         <View style={styles.filterChips}>
@@ -588,6 +536,20 @@ export default function NearbyScreen() {
             </Pressable>
           ))}
         </View>
+        <Pressable
+          style={styles.filterFunnel}
+          onPress={() => {
+            const next = !mapExpandedRef.current;
+            Animated.timing(mapHeight, {
+              toValue: next ? MAP_EXPANDED_HEIGHT : 0,
+              duration: 200,
+              useNativeDriver: false,
+            }).start();
+            setMapExpanded(next);
+          }}
+        >
+          <IconMap size={16} color={colors.muted} />
+        </Pressable>
         <Pressable
           style={[styles.filterFunnel, hasActiveFilters && styles.filterFunnelActive]}
           onPress={() => router.push("/filters" as never)}
@@ -690,6 +652,8 @@ const styles = StyleSheet.create({
   },
   statusBar: {
     backgroundColor: "#FDF5EC",
+    borderTopWidth: 1.5,
+    borderTopColor: "#E8C9A0",
     borderBottomWidth: 1.5,
     borderBottomColor: "#E8C9A0",
     paddingVertical: spacing.gutter,
@@ -706,6 +670,8 @@ const styles = StyleSheet.create({
   },
   statusBarEmpty: {
     backgroundColor: colors.mapBg,
+    borderTopWidth: 1,
+    borderTopColor: colors.rule,
     borderBottomWidth: 1,
     borderBottomColor: colors.rule,
     paddingVertical: spacing.gutter,

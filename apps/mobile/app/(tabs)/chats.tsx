@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { ConversationRow } from "@/components/chat/ConversationRow";
 import { Avatar } from "@/components/ui/Avatar";
-import { IconChat, IconGroup } from "@/components/ui/icons";
+import { IconChat } from "@/components/ui/icons";
 import { SonarDot } from "@/components/ui/SonarDot";
 import { useIsGhost } from "@/hooks/useIsGhost";
 import { trpc, vanillaClient } from "@/lib/trpc";
@@ -12,12 +12,12 @@ import { rawToEnriched, useMessagesStore } from "@/stores/messagesStore";
 import { useWavesStore } from "@/stores/wavesStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
-type FilterType = "all" | "unread" | "group" | "pings";
+type FilterType = "all" | "unread" | "pings";
 
-const FILTER_PILLS: { key: Exclude<FilterType, "pings">; label: string }[] = [
-  { key: "all", label: "Wszystkie" },
+const FILTER_PILLS: { key: FilterType; label: string }[] = [
+  { key: "all", label: "Rozmowy" },
+  { key: "pings", label: "Pingi" },
   { key: "unread", label: "Nieprzeczytane" },
-  { key: "group", label: "Grupy" },
 ];
 
 function formatTimeAgo(dateString: string): string {
@@ -39,24 +39,18 @@ export default function ChatsScreen() {
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
   const { isLoading, refetch } = trpc.messages.getConversations.useQuery();
+  const utils = trpc.useUtils();
 
   const conversations = useConversationsStore((s) => s.conversations);
   const hydrated = useConversationsStore((s) => s._hydrated);
 
   const received = useWavesStore((s) => s.received);
   const viewedWaveIds = useWavesStore((s) => s.viewedWaveIds);
-  const pendingPings = useMemo(
-    () =>
-      received
-        .filter((w) => w.wave.status === "pending")
-        .sort((a, b) => new Date(a.wave.createdAt).getTime() - new Date(b.wave.createdAt).getTime()),
+  const allReceivedPings = useMemo(
+    () => [...received].sort((a, b) => new Date(b.wave.createdAt).getTime() - new Date(a.wave.createdAt).getTime()),
     [received],
   );
-  const unviewedPingCount = useMemo(
-    () => pendingPings.filter((p) => !viewedWaveIds.has(p.wave.id)).length,
-    [pendingPings, viewedWaveIds],
-  );
-
+  const pendingPings = useMemo(() => allReceivedPings.filter((w) => w.wave.status === "pending"), [allReceivedPings]);
   const deleteConversation = trpc.messages.deleteConversation.useMutation({
     onSuccess: (_, variables) => {
       useConversationsStore.getState().remove(variables.conversationId);
@@ -78,11 +72,25 @@ export default function ChatsScreen() {
     ]);
   };
 
-  const filteredConversations = useMemo(() => {
-    if (filter === "unread") return conversations.filter((c) => c.unreadCount > 0);
-    if (filter === "group") return conversations.filter((c) => c.type === "group");
-    return conversations;
-  }, [conversations, filter]);
+  const unreadConversations = useMemo(() => conversations.filter((c) => c.unreadCount > 0), [conversations]);
+
+  type UnreadItem =
+    | { kind: "ping"; createdAt: string; data: (typeof pendingPings)[number] }
+    | { kind: "convo"; createdAt: string; data: (typeof conversations)[number] };
+
+  const unreadItems = useMemo<UnreadItem[]>(() => {
+    const pings: UnreadItem[] = pendingPings
+      .filter((p) => !viewedWaveIds.has(p.wave.id))
+      .map((p) => ({ kind: "ping", createdAt: p.wave.createdAt, data: p }));
+    const convos: UnreadItem[] = unreadConversations.map((c) => ({
+      kind: "convo",
+      createdAt: c.lastMessage?.createdAt ?? new Date(0).toISOString(),
+      data: c,
+    }));
+    return [...pings, ...convos].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [pendingPings, viewedWaveIds, unreadConversations]);
+
+  const totalUnreadItemCount = unreadItems.length;
 
   // Eager preload top 15 conversations with 1 message each (runs once after hydration)
   const hasPreloaded = useRef(false);
@@ -111,11 +119,11 @@ export default function ChatsScreen() {
   const handleRefresh = useCallback(async () => {
     setIsManualRefreshing(true);
     try {
-      await refetch();
+      await Promise.all([refetch(), utils.waves.getReceived.refetch(), utils.waves.getSent.refetch()]);
     } finally {
       setIsManualRefreshing(false);
     }
-  }, [refetch]);
+  }, [refetch, utils.waves.getReceived, utils.waves.getSent]);
 
   const handlePingPress = (ping: (typeof pendingPings)[0]) => {
     useWavesStore.getState().markViewed(ping.wave.id);
@@ -130,76 +138,48 @@ export default function ChatsScreen() {
   };
 
   const showPings = filter === "pings";
+  const showUnread = filter === "unread";
 
   return (
     <View style={styles.container} testID="chats-screen">
       {/* Filter pills */}
       <View style={styles.pillRow}>
-        {FILTER_PILLS.map((pill) => (
-          <Pressable
-            key={pill.key}
-            style={[styles.pill, filter === pill.key && styles.pillActive]}
-            onPress={() => setFilter(pill.key)}
-          >
-            <Text style={[styles.pillText, filter === pill.key && styles.pillTextActive]}>{pill.label}</Text>
-          </Pressable>
-        ))}
-        <View style={{ flex: 1 }} />
-        <Pressable
-          style={[styles.sonarPill, filter === "pings" && styles.pillActive]}
-          onPress={() => setFilter(filter === "pings" ? "all" : "pings")}
-        >
-          <SonarDot size={7} color={filter === "pings" ? colors.bg : colors.muted} />
-          {unviewedPingCount > 0 && (
-            <View style={[styles.sonarBadge, filter === "pings" && styles.sonarBadgeActive]}>
-              <Text style={styles.sonarBadgeText}>{unviewedPingCount}</Text>
-            </View>
-          )}
-        </Pressable>
+        {FILTER_PILLS.map((pill) => {
+          const isActive = filter === pill.key;
+          const isUnread = pill.key === "unread";
+          return (
+            <Pressable
+              key={pill.key}
+              style={[styles.pill, isActive && styles.pillActive, isUnread && styles.unreadPill]}
+              onPress={() => setFilter(pill.key)}
+            >
+              <Text style={[styles.pillText, isActive && styles.pillTextActive]}>{pill.label}</Text>
+              {isUnread && totalUnreadItemCount > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadBadgeText}>{totalUnreadItemCount}</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
 
       {showPings ? (
-        /* Pings list */
-        pendingPings.length > 0 ? (
+        /* Pings tab — full history (pending + accepted + declined) sorted newest first */
+        allReceivedPings.length > 0 ? (
           <FlatList
             key="pings-list"
             testID="pings-list"
-            data={pendingPings}
+            data={allReceivedPings}
             keyExtractor={(item) => item.wave.id}
-            renderItem={({ item }) => {
-              const isUnviewed = !viewedWaveIds.has(item.wave.id);
-              return (
-                <Pressable style={styles.pingRow} onPress={() => handlePingPress(item)}>
-                  <Avatar
-                    uri={item.fromProfile.avatarUrl}
-                    name={item.fromProfile.displayName}
-                    size={48}
-                    blurred={isGhost}
-                  />
-                  <View style={styles.pingBody}>
-                    <View style={styles.pingTopLine}>
-                      <Text style={styles.pingName}>{item.fromProfile.displayName}</Text>
-                      <View style={{ flex: 1 }} />
-                      <Text style={styles.pingTime}>{formatTimeAgo(item.wave.createdAt)}</Text>
-                      {isUnviewed && <View style={styles.unviewedDot} />}
-                    </View>
-                    {item.fromProfile.bio && (
-                      <Text style={styles.pingBio} numberOfLines={1}>
-                        {item.fromProfile.bio}
-                      </Text>
-                    )}
-                    {item.wave.senderStatusSnapshot && (
-                      <View style={styles.pingStatusBar}>
-                        <Text style={styles.pingStatusLabel}>SZUKA TERAZ</Text>
-                        <Text style={styles.pingStatusText} numberOfLines={2}>
-                          {item.wave.senderStatusSnapshot}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </Pressable>
-              );
-            }}
+            renderItem={({ item }) =>
+              renderPingRow(
+                item,
+                item.wave.status === "pending" && !viewedWaveIds.has(item.wave.id),
+                isGhost,
+                handlePingPress,
+              )
+            }
             refreshControl={
               <RefreshControl refreshing={isManualRefreshing} onRefresh={handleRefresh} tintColor={colors.ink} />
             }
@@ -211,12 +191,57 @@ export default function ChatsScreen() {
             <Text style={styles.emptyText}>Kiedy ktoś Cię pingnie, pojawi się tutaj</Text>
           </View>
         )
+      ) : showUnread ? (
+        /* Mixed unread inbox: pings (unviewed) + unread conversations, sorted chronologically */
+        <FlatList
+          key="unread-list"
+          testID="unread-list"
+          data={unreadItems}
+          keyExtractor={(item) => (item.kind === "ping" ? `p-${item.data.wave.id}` : `c-${item.data.id}`)}
+          renderItem={({ item }) =>
+            item.kind === "ping" ? (
+              renderPingRow(item.data, true, isGhost, handlePingPress)
+            ) : (
+              <ConversationRow
+                type={item.data.type}
+                displayName={
+                  item.data.type === "group"
+                    ? (item.data.groupName ?? "Grupa")
+                    : (item.data.participant?.displayName ?? "")
+                }
+                avatarUrl={
+                  item.data.type === "group" ? item.data.groupAvatarUrl : (item.data.participant?.avatarUrl ?? null)
+                }
+                lastMessage={item.data.lastMessage?.content ?? null}
+                lastMessageSenderName={item.data.lastMessage?.senderName ?? null}
+                lastMessageTime={item.data.lastMessage?.createdAt ?? null}
+                memberCount={item.data.memberCount ?? undefined}
+                unreadCount={item.data.unreadCount}
+                muted={item.data.mutedUntil != null && new Date(item.data.mutedUntil) > new Date()}
+                onPress={() => router.push(`/chat/${item.data.id}`)}
+                onLongPress={() => handleDeleteChat(item.data.id)}
+              />
+            )
+          }
+          ListEmptyComponent={
+            isLoading && !hydrated ? null : (
+              <View style={styles.empty} testID="chats-empty-unread">
+                <IconChat size={48} color={colors.muted} />
+                <Text style={styles.emptyTitle}>Wszystko ogarnięte</Text>
+                <Text style={styles.emptyText}>Żadnych pingów ani nieprzeczytanych wiadomości</Text>
+              </View>
+            )
+          }
+          refreshControl={
+            <RefreshControl refreshing={isManualRefreshing} onRefresh={handleRefresh} tintColor={colors.ink} />
+          }
+        />
       ) : (
-        /* Conversations list */
+        /* All conversations */
         <FlatList
           key="chats-list"
           testID="chats-list"
-          data={filteredConversations}
+          data={conversations}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ConversationRow
@@ -234,22 +259,7 @@ export default function ChatsScreen() {
             />
           )}
           ListEmptyComponent={
-            isLoading && !hydrated ? null : filter === "group" ? (
-              <View style={styles.empty} testID="chats-empty-groups">
-                <IconGroup size={48} color={colors.muted} />
-                <Text style={styles.emptyTitle}>Brak grup</Text>
-                <Text style={styles.emptyText}>Grupy pozwalają rozmawiać z wieloma osobami naraz</Text>
-                <Pressable style={styles.emptyButton} onPress={() => router.push("/create-group")}>
-                  <Text style={styles.emptyButtonText}>Załóż grupę</Text>
-                </Pressable>
-              </View>
-            ) : filter === "unread" ? (
-              <View style={styles.empty} testID="chats-empty-unread">
-                <IconChat size={48} color={colors.muted} />
-                <Text style={styles.emptyTitle}>Wszystko przeczytane</Text>
-                <Text style={styles.emptyText}>Żadnych nieprzeczytanych wiadomości</Text>
-              </View>
-            ) : (
+            isLoading && !hydrated ? null : (
               <View style={styles.empty} testID="chats-empty">
                 <IconChat size={48} color={colors.muted} />
                 <Text style={styles.emptyTitle}>Brak czatów</Text>
@@ -263,6 +273,51 @@ export default function ChatsScreen() {
         />
       )}
     </View>
+  );
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  accepted: "Zaakceptowane",
+  declined: "Odrzucone",
+  expired: "Wygasł",
+};
+
+function renderPingRow(
+  item: {
+    wave: { id: string; status: string; createdAt: string; senderStatusSnapshot?: string | null };
+    fromProfile: { displayName: string; avatarUrl: string | null; bio?: string | null };
+  },
+  isUnviewed: boolean,
+  isGhost: boolean,
+  onPress: (item: never) => void,
+) {
+  const isPending = item.wave.status === "pending";
+  const statusLabel = !isPending ? STATUS_LABEL[item.wave.status] : null;
+  return (
+    <Pressable style={styles.pingRow} onPress={() => onPress(item as never)}>
+      <Avatar uri={item.fromProfile.avatarUrl} name={item.fromProfile.displayName} size={48} blurred={isGhost} />
+      <View style={styles.pingBody}>
+        <View style={styles.pingTopLine}>
+          <Text style={styles.pingName}>{item.fromProfile.displayName}</Text>
+          <View style={{ flex: 1 }} />
+          {statusLabel && <Text style={styles.pingStatusLabel}>{statusLabel}</Text>}
+          <Text style={styles.pingTime}>{formatTimeAgo(item.wave.createdAt)}</Text>
+          {isUnviewed && <View style={styles.unviewedDot} />}
+        </View>
+        {item.fromProfile.bio && (
+          <Text style={styles.pingBio} numberOfLines={1}>
+            {item.fromProfile.bio}
+          </Text>
+        )}
+        {item.wave.senderStatusSnapshot && (
+          <View style={styles.pingStatusBar}>
+            <Text style={styles.pingStatusText} numberOfLines={2}>
+              {item.wave.senderStatusSnapshot}
+            </Text>
+          </View>
+        )}
+      </View>
+    </Pressable>
   );
 }
 
@@ -297,33 +352,22 @@ const styles = StyleSheet.create({
   pillTextActive: {
     color: colors.bg,
   },
-  // Sonar pill
-  sonarPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 18,
-    backgroundColor: "#EDEAE4",
-    position: "relative",
+  // Nieprzeczytane pill — text + inline badge with item count (pings + unread convos)
+  unreadPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
-  sonarBadge: {
-    position: "absolute",
-    top: -6,
-    right: -6,
+  unreadBadge: {
     backgroundColor: colors.accent,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 6,
-    borderWidth: 2,
-    borderColor: "#EDEAE4",
-    zIndex: 3,
+    paddingHorizontal: 5,
   },
-  sonarBadgeActive: {
-    borderColor: colors.ink,
-  },
-  sonarBadgeText: {
+  unreadBadgeText: {
     fontFamily: fonts.sansSemiBold,
     color: "#FFFFFF",
     fontSize: 11,
@@ -355,6 +399,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.muted,
   },
+  pingStatusLabel: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 11,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: colors.muted,
+    marginRight: 8,
+  },
   unviewedDot: {
     width: 8,
     height: 8,
@@ -377,13 +429,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderTopRightRadius: 6,
     borderBottomRightRadius: 6,
-  },
-  pingStatusLabel: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 9,
-    letterSpacing: 1,
-    color: "#D4851C",
-    marginBottom: 1,
   },
   pingStatusText: {
     fontFamily: fonts.sans,
@@ -415,17 +460,5 @@ const styles = StyleSheet.create({
     ...typ.body,
     color: colors.muted,
     textAlign: "center",
-  },
-  emptyButton: {
-    marginTop: spacing.column,
-    paddingHorizontal: spacing.section,
-    paddingVertical: spacing.gutter,
-    backgroundColor: colors.ink,
-    borderRadius: 8,
-  },
-  emptyButtonText: {
-    fontFamily: fonts.sansMedium,
-    fontSize: 14,
-    color: colors.bg,
   },
 });
