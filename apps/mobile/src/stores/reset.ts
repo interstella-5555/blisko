@@ -1,5 +1,6 @@
 import { useAuthStore } from "./authStore";
 import { useConversationsStore } from "./conversationsStore";
+import { useLocaleStore } from "./localeStore";
 import { useLocationStore } from "./locationStore";
 import { useMessagesStore } from "./messagesStore";
 import { useOnboardingStore } from "./onboardingStore";
@@ -22,6 +23,7 @@ export const USER_SCOPED_STORES = [
 
 export const DEVICE_SCOPED_STORES = [
   usePreferencesStore, // nearbyRadius + notificationPrefs — UX, preserved across logout by product decision
+  useLocaleStore, // PL/UA UI language — preserved across logout (BLI-277)
 ] as const;
 
 /**

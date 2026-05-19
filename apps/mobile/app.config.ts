@@ -16,5 +16,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY || "",
       },
     ],
+    "expo-localization",
   ],
 });

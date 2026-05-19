@@ -1,3 +1,4 @@
+import type { LocaleCode } from "@repo/shared";
 import { create } from "zustand";
 
 interface User {
@@ -33,6 +34,7 @@ interface Profile {
   superpower?: string | null;
   offerType?: "volunteer" | "exchange" | "gig" | null;
   portrait?: string | null;
+  locale?: LocaleCode | null;
   updatedAt?: string | Date;
 }
 

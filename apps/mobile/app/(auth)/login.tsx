@@ -3,14 +3,17 @@ import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useMemo, useState } from "react";
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { authClient } from "@/lib/auth";
 import { useAuthStore } from "@/stores/authStore";
+import { useLocaleStore } from "@/stores/localeStore";
 import { resetUserScopedStores } from "@/stores/reset";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
 import { Button } from "@/components/ui/Button";
+import { LocalePill } from "@/components/ui/LocalePill";
 import { showToast } from "@/lib/toast";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
@@ -30,6 +33,8 @@ export default function LoginScreen() {
 
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const { setUser, setSession, setProfile, setHasCheckedProfile } = useAuthStore();
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
 
   const isLoading = loadingAction !== null;
   const seedUserNumber = useMemo(() => Math.floor(Math.random() * 250), []);
@@ -96,6 +101,9 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+      <SafeAreaView edges={["top"]} style={styles.localeAnchor} pointerEvents="box-none">
+        <LocalePill value={locale} onChange={(next) => setLocale(next, true)} />
+      </SafeAreaView>
       <View style={styles.content}>
         <Text style={styles.title}>BLISKO</Text>
         <Text style={styles.subtitle}>To nie przypadek. To Blisko.</Text>
@@ -249,6 +257,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  localeAnchor: {
+    position: "absolute",
+    top: 0,
+    right: spacing.section,
+    zIndex: 10,
+    alignItems: "flex-end",
+    paddingTop: spacing.compact,
   },
   content: {
     flex: 1,

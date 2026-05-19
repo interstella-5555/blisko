@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import { SplashHold } from "@/components/ui/SplashHold";
 import { getLastFailedRequestId, trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
+import { useLocaleStore } from "@/stores/localeStore";
 import { colors, type as typ } from "@/theme";
 
 // Gate between the root providers and the Stack. Holds the branded splash up
@@ -47,6 +48,13 @@ export function AppGate({ children }: { children: React.ReactNode }) {
     if (profileData !== undefined && !hasCheckedProfile) {
       setProfile(profileData);
       setHasCheckedProfile(true);
+      // Cross-device locale sync — if the user set their language on another
+      // device, profiles.locale is set and should win over the device-detected
+      // value already in localeStore. Treated as user-initiated so future
+      // device-locale detection won't override it. BLI-277.
+      if (profileData?.locale) {
+        useLocaleStore.getState().setLocale(profileData.locale, true);
+      }
     }
   }, [profileData, hasCheckedProfile, setProfile, setHasCheckedProfile]);
 
