@@ -33,10 +33,12 @@ Defined in `apps/api/src/auth.ts`. Every option documented below.
 
 ```
 accountLinking.enabled: true
-accountLinking.trustedProviders: ["apple", "google", "facebook", "linkedin"]
+accountLinking.trustedProviders: [...ENABLED_OAUTH_PROVIDERS]
 accountLinking.allowDifferentEmails: true
 accountLinking.updateUserInfoOnLink: true
 ```
+
+`trustedProviders` is spread from `ENABLED_OAUTH_PROVIDERS` in `packages/shared/src/config/auth.ts`. See [OAuth Providers](#oauth-providers).
 
 **What:** Users can sign in with multiple OAuth providers. If a user signs in with Apple (email A), then later with Google (email B), the accounts are linked to the same user.
 
@@ -78,14 +80,16 @@ Both types are also logged to console for local development.
 
 ## OAuth Providers
 
-All four providers use `*_CLIENT_ID` + `*_CLIENT_SECRET` env vars.
+`ENABLED_OAUTH_PROVIDERS` in `packages/shared/src/config/auth.ts` is the single source of truth for which providers are exposed. It drives API `socialProviders` and `accountLinking.trustedProviders` in `apps/api/src/auth.ts` (entries spread from `allSocialProviders` and filtered by the constant — disabled providers never reach Better Auth), the buttons on the mobile login screen (`apps/mobile/app/(auth)/login.tsx`), and the rows on mobile settings → Połączone konta (`apps/mobile/app/settings/account.tsx`). On the settings screen, a disabled provider is hidden unless the user already has an account connected to it, in which case the row stays visible so they can disconnect.
 
-| Provider | Env Vars | Post-Link Behavior |
-|----------|----------|-------------------|
-| Apple | `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET` | No additional data fetched. Uses `response_mode=form_post` (requires `SameSite=none` cookie). |
-| Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No additional data fetched. Name comes from ID token. |
-| Facebook | `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET` | After account creation, fetches real name via `https://graph.facebook.com/me?fields=name&access_token=...`. Stores as `socialLinks.facebook` on profile. |
-| LinkedIn | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | After account creation, fetches real name via `https://api.linkedin.com/v2/userinfo`. Stores as `socialLinks.linkedin` on profile. |
+All providers use `*_CLIENT_ID` + `*_CLIENT_SECRET` env vars.
+
+| Provider | Env Vars | Enabled | Post-Link Behavior |
+|----------|----------|---------|--------------------|
+| Apple | `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET` | ✅ | No additional data fetched. Uses `response_mode=form_post` (requires `SameSite=none` cookie). |
+| Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | ✅ | No additional data fetched. Name comes from ID token. |
+| Facebook | `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET` | ❌ | After account creation, fetches real name via `https://graph.facebook.com/me?fields=name&access_token=...`. Stores as `socialLinks.facebook` on profile. |
+| LinkedIn | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | ❌ | After account creation, fetches real name via `https://api.linkedin.com/v2/userinfo`. Stores as `socialLinks.linkedin` on profile. |
 
 The Facebook and LinkedIn name-fetching happens in `databaseHooks.account.create.after`. It only runs when `accessToken` is available and the provider is `facebook` or `linkedin`. Failures are logged but don't block account creation.
 

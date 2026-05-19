@@ -1,11 +1,36 @@
 import { expo } from "@better-auth/expo";
-import { OTP_LENGTH } from "@repo/shared";
+import { ENABLED_OAUTH_PROVIDERS, isOAuthProviderEnabled, OTP_LENGTH } from "@repo/shared";
 import { APIError, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { changeEmailOtp, sendEmail, signInOtp } from "@/services/email";
+
+const allSocialProviders = {
+  linkedin: {
+    clientId: process.env.LINKEDIN_CLIENT_ID as string,
+    clientSecret: process.env.LINKEDIN_CLIENT_SECRET as string,
+  },
+  facebook: {
+    clientId: process.env.FACEBOOK_CLIENT_ID as string,
+    clientSecret: process.env.FACEBOOK_CLIENT_SECRET as string,
+  },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID as string,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+  },
+  apple: {
+    clientId: process.env.APPLE_CLIENT_ID as string,
+    clientSecret: process.env.APPLE_CLIENT_SECRET as string,
+  },
+} as const;
+
+const socialProviders = Object.fromEntries(
+  Object.entries(allSocialProviders).filter(([provider]) =>
+    isOAuthProviderEnabled(provider as keyof typeof allSocialProviders),
+  ),
+) as Partial<typeof allSocialProviders>;
 
 // Pre-auth gate: block session creation for soft-deleted or suspended users.
 // Runs for every path that lands in databaseHooks.session.create.before —
@@ -25,7 +50,7 @@ export const auth = betterAuth({
   account: {
     accountLinking: {
       enabled: true,
-      trustedProviders: ["apple", "google", "facebook", "linkedin"],
+      trustedProviders: [...ENABLED_OAUTH_PROVIDERS],
       allowDifferentEmails: true,
       updateUserInfoOnLink: true,
     },
@@ -90,24 +115,7 @@ export const auth = betterAuth({
       },
     },
   },
-  socialProviders: {
-    linkedin: {
-      clientId: process.env.LINKEDIN_CLIENT_ID as string,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET as string,
-    },
-    facebook: {
-      clientId: process.env.FACEBOOK_CLIENT_ID as string,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET as string,
-    },
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    },
-    apple: {
-      clientId: process.env.APPLE_CLIENT_ID as string,
-      clientSecret: process.env.APPLE_CLIENT_SECRET as string,
-    },
-  },
+  socialProviders,
   advanced: {
     crossSubDomainCookies: {
       enabled: false,
