@@ -1,4 +1,4 @@
-import { OTP_LENGTH } from "@repo/shared";
+import { isOAuthProviderEnabled, OTP_LENGTH } from "@repo/shared";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -237,42 +237,25 @@ export default function AccountScreen() {
       {connectedAccounts.isLoading ? (
         <ActivityIndicator color={colors.muted} style={{ marginVertical: spacing.gutter }} />
       ) : (
-        <>
-          {Platform.OS === "ios" && (
+        (["apple", "google", "facebook", "linkedin"] as const).map((provider) => {
+          const connected = !!connectedAccounts.data?.find((a) => a.providerId === provider);
+          // Hide providers that are disabled in config — unless the user already has a legacy
+          // connection, in which case keep the row visible so they can disconnect. Apple stays
+          // iOS-only regardless.
+          if (provider === "apple" && Platform.OS !== "ios") return null;
+          if (!isOAuthProviderEnabled(provider) && !connected) return null;
+          return (
             <ConnectedAccountRow
-              provider="apple"
-              connected={!!connectedAccounts.data?.find((a) => a.providerId === "apple")}
-              username={connectedAccounts.data?.find((a) => a.providerId === "apple")?.username}
-              onConnect={() => authClient.signIn.social({ provider: "apple", callbackURL: "/settings/account" })}
-              onDisconnect={() => disconnectAccount.mutate({ providerId: "apple" })}
+              key={provider}
+              provider={provider}
+              connected={connected}
+              username={connectedAccounts.data?.find((a) => a.providerId === provider)?.username}
+              onConnect={() => authClient.signIn.social({ provider, callbackURL: "/settings/account" })}
+              onDisconnect={() => disconnectAccount.mutate({ providerId: provider })}
               disconnecting={disconnectAccount.isPending}
             />
-          )}
-          <ConnectedAccountRow
-            provider="google"
-            connected={!!connectedAccounts.data?.find((a) => a.providerId === "google")}
-            username={connectedAccounts.data?.find((a) => a.providerId === "google")?.username}
-            onConnect={() => authClient.signIn.social({ provider: "google", callbackURL: "/settings/account" })}
-            onDisconnect={() => disconnectAccount.mutate({ providerId: "google" })}
-            disconnecting={disconnectAccount.isPending}
-          />
-          <ConnectedAccountRow
-            provider="facebook"
-            connected={!!connectedAccounts.data?.find((a) => a.providerId === "facebook")}
-            username={connectedAccounts.data?.find((a) => a.providerId === "facebook")?.username}
-            onConnect={() => authClient.signIn.social({ provider: "facebook", callbackURL: "/settings/account" })}
-            onDisconnect={() => disconnectAccount.mutate({ providerId: "facebook" })}
-            disconnecting={disconnectAccount.isPending}
-          />
-          <ConnectedAccountRow
-            provider="linkedin"
-            connected={!!connectedAccounts.data?.find((a) => a.providerId === "linkedin")}
-            username={connectedAccounts.data?.find((a) => a.providerId === "linkedin")?.username}
-            onConnect={() => authClient.signIn.social({ provider: "linkedin", callbackURL: "/settings/account" })}
-            onDisconnect={() => disconnectAccount.mutate({ providerId: "linkedin" })}
-            disconnecting={disconnectAccount.isPending}
-          />
-        </>
+          );
+        })
       )}
 
       <View style={styles.divider} />
