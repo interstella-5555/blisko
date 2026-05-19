@@ -239,9 +239,8 @@ export default function AccountScreen() {
       ) : (
         (["apple", "google", "facebook", "linkedin"] as const).map((provider) => {
           const connected = !!connectedAccounts.data?.find((a) => a.providerId === provider);
-          // Hide providers that are disabled in config — unless the user already has a legacy
-          // connection, in which case keep the row visible so they can disconnect. Apple stays
-          // iOS-only regardless.
+          // Disabled providers stay visible only when already connected, so the user
+          // can disconnect them. Apple is iOS-only.
           if (provider === "apple" && Platform.OS !== "ios") return null;
           if (!isOAuthProviderEnabled(provider) && !connected) return null;
           return (

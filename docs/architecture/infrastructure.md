@@ -153,10 +153,10 @@ Migration script (`apps/api/src/migrate.ts`): imports `drizzle-orm/node-postgres
 | `IP_HASH_SALT` | Salt for hashing client IPs in metrics (default: `dev-salt`) |
 | `ENABLE_DEV_LOGIN` | `true` enables the entire `/dev/*` HTTP surface (see Dev-only HTTP endpoints below). Currently `true` in Railway production to support E2E tests seeded via `@repo/mobile`'s Maestro suite. |
 | `PORT` | HTTP port (default: 3000) |
-| `APPLE_CLIENT_ID` / `APPLE_CLIENT_SECRET` | Apple OAuth (enabled on MVP) |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth (enabled on MVP) |
-| `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET` | Facebook OAuth (disabled via `ENABLED_OAUTH_PROVIDERS` — kept for re-enable, BLI-276) |
-| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | LinkedIn OAuth (disabled via `ENABLED_OAUTH_PROVIDERS` — kept for re-enable, BLI-276) |
+| `APPLE_CLIENT_ID` / `APPLE_CLIENT_SECRET` | Apple OAuth |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth |
+| `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET` | Facebook OAuth |
+| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | LinkedIn OAuth |
 | `SENTRY_DSN` | Bugsink (Sentry-compatible) DSN for the `blisko-api` project. Unset locally → error reporting disabled. See `instrumentation.md`. |
 | `RAILWAY_ENVIRONMENT_NAME` / `RAILWAY_DEPLOYMENT_ID` | Railway-injected. Used as Sentry `environment` / `release` tags. |
 
