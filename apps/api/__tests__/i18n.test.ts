@@ -34,6 +34,15 @@ describe("t() backend helper", () => {
     expect(t("push.wave.new.body", "pl", {})).toBe("{senderName} — nowy ping!");
   });
 
+  it("looks up an email subject with an interpolated OTP", () => {
+    expect(t("email.signIn.subject", "uk", { otp: "123456" })).toBe("123456 - Твій код до Blisko");
+  });
+
+  it("renders the localized layout footer", () => {
+    expect(t("email.layout.footer", "uk")).toBe("З повагою,<br>Команда Blisko");
+    expect(t("email.layout.footer", null)).toBe("Pozdrawiamy,<br>Zespół Blisko");
+  });
+
   it("returns the key when caller passes an unknown key (defense-in-depth)", () => {
     // Cast simulates a runtime caller bypassing the BackendTranslationKey type.
     // Helper falls through to the key name so the bug surfaces visibly instead

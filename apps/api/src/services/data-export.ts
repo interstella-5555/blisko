@@ -385,6 +385,6 @@ export async function collectAndExportUserData(userId: string, email: string) {
 
   const downloadUrl = s3Client.file(key).presign({ expiresIn: 7 * 24 * 60 * 60 });
 
-  // Send email notification
-  await sendEmail(email, dataExportReady(downloadUrl));
+  // Send email notification (locale comes from the profile we already fetched above)
+  await sendEmail(email, dataExportReady(downloadUrl, profile?.locale));
 }

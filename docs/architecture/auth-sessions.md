@@ -2,6 +2,7 @@
 
 > v1 — AI-generated from source analysis, 2026-04-06.
 > Updated 2026-04-22 — BLI-156 adds pre-auth suspension/deletion gates (`emailOTP.sendVerificationOTP` early-return + `databaseHooks.session.create.before` catch-all) and extends `isAuthed` to throw `ACCOUNT_SUSPENDED`. See `moderation-suspension.md`.
+> Updated 2026-05-20 — BLI-282: all 4 outbound email templates (`signInOtp`, `changeEmailOtp`, `dataExportReady`, `dataExportDelayed`) are now locale-aware. Each accepts an optional `locale` parameter and routes every translatable phrase (subjects, body lines, button labels, layout footer) through `t(key, locale, params)` from `apps/api/src/services/i18n.ts`. Callsites in `auth.ts`, `services/queue-ops.ts` and `services/data-export.ts` fetch the linked `profiles.locale` before sending; `null` falls back to PL. Pre-profile sign-in OTPs (first signup, no profile row yet) land in PL by design — subsequent emails switch once the user finishes onboarding and `localeStore` syncs to DB.
 
 Better Auth `^1.5.4` (self-hosted). Source: `apps/api/src/auth.ts`. Session middleware: `apps/api/src/trpc/trpc.ts`. Context: `apps/api/src/trpc/context.ts`. Validators: `packages/shared/src/validators.ts`.
 
@@ -69,10 +70,12 @@ accountLinking.updateUserInfoOnLink: true
 
 The `sendVerificationOTP` callback handles two OTP types:
 
-- **`sign-in`**: Sends an email with a deep link button (`blisko://auth/verify?otp=...&email=...`) and an OTP code fallback. The deep link auto-fills and submits the OTP in the app. Template: `signInOtp()` in `apps/api/src/services/email.ts`.
-- **`change-email`**: Sends just the OTP code (no deep link). Template: `changeEmailOtp()`.
+- **`sign-in`**: Sends an email with a deep link button (`blisko://auth/verify?otp=...&email=...`) and an OTP code fallback. The deep link auto-fills and submits the OTP in the app. Template: `signInOtp(otp, deepLink, locale)` in `apps/api/src/services/email.ts`.
+- **`change-email`**: Sends just the OTP code (no deep link). Template: `changeEmailOtp(otp, locale)`.
 
 Both types are also logged to console for local development.
+
+**Locale resolution.** The callback fetches the user row by email with the linked profile in one query (`db.query.user.findFirst({ with: { profile: { columns: { locale: true } } } })`) and passes `profile?.locale ?? null` to the email template. Templates accept `null` and fall back to PL — see [i18n.md](./i18n.md) for the helper. Edge case: a brand-new user signing in for the first time has a `user` row but no `profile` yet, so the sign-in OTP lands in PL. Once the user finishes onboarding on mobile and `localeStore` pushes `profiles.locale` to the DB (see [mobile-architecture.md → localeStore](./mobile-architecture.md#localestore)), subsequent sign-in OTPs go out in the user's chosen language. BLI-282.
 
 ### User Additional Fields
 

@@ -143,13 +143,19 @@ export const auth = betterAuth({
         // Short-circuit for suspended / deleted accounts on the sign-in path.
         // Skipping this for change-email: a change-email OTP means the user
         // already has a valid session, which isAuthed has already vetted.
+        // Fetch the linked profile.locale in the same query for both branches
+        // so the OTP email lands in the user's preferred language. New
+        // signups (no profile yet) get the `null` fallback to PL — see
+        // services/email.ts.
+        const userRow = await db.query.user.findFirst({
+          where: eq(schema.user.email, email),
+          columns: { deletedAt: true, suspendedAt: true },
+          with: { profile: { columns: { locale: true } } },
+        });
         if (type === "sign-in") {
-          const user = await db.query.user.findFirst({
-            where: eq(schema.user.email, email),
-            columns: { deletedAt: true, suspendedAt: true },
-          });
-          assertUserCanSignIn(user);
+          assertUserCanSignIn(userRow);
         }
+        const locale = userRow?.profile?.locale ?? null;
 
         console.log(`OTP for ${email}: ${otp}`);
 
@@ -157,13 +163,13 @@ export const auth = betterAuth({
           const deepLink = `blisko://auth/verify?otp=${otp}&email=${encodeURIComponent(email)}`;
           console.log(`Deep link: ${deepLink}`);
           try {
-            await sendEmail(email, signInOtp(otp, deepLink));
+            await sendEmail(email, signInOtp(otp, deepLink, locale));
           } catch (err) {
             console.error("Failed to send email:", err);
           }
         } else if (type === "change-email") {
           try {
-            await sendEmail(email, changeEmailOtp(otp));
+            await sendEmail(email, changeEmailOtp(otp, locale));
           } catch (err) {
             console.error("Failed to send change-email OTP:", err);
           }

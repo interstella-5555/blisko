@@ -307,7 +307,11 @@ async function handleExportFailure(userId: string, userEmail: string, jobId: str
       j.timestamp > subDays(new Date(), 7).getTime(),
   );
   if (!priorFailed) {
-    await sendEmail(userEmail, dataExportDelayed());
+    const profile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, userId),
+      columns: { locale: true },
+    });
+    await sendEmail(userEmail, dataExportDelayed(profile?.locale));
   }
 
   // TODO(BLI-169): Add proper admin alerting (Sentry, Discord webhook, etc.)
