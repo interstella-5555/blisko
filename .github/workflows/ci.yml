@@ -52,6 +52,17 @@ jobs:
       - name: Drizzle schema/migration consistency check
         run: bun run --filter '@repo/api' db:check
 
+  i18n:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+      - run: bun install
+      - name: PO catalog completeness — every PL msgid must have a UA msgstr
+        run: bun run mobile:i18n:check
+
   mobile-bundle:
     runs-on: ubuntu-latest
     env:

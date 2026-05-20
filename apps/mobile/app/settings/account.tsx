@@ -194,7 +194,7 @@ export default function AccountScreen() {
   });
 
   const handleLocaleChange = (next: LocaleCode) => {
-    setLocale(next, true);
+    setLocale(next);
     updateLocale.mutate({ locale: next });
   };
 

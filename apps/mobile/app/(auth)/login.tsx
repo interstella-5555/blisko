@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { isOAuthProviderEnabled, type OAuthProvider } from "@repo/shared";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
@@ -17,13 +18,15 @@ import { LocalePill } from "@/components/ui/LocalePill";
 import { showToast } from "@/lib/toast";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
-const authErrorMessages: Record<string, string> = {
-  "Too many requests. Please try again later.": "Zbyt wiele prób. Spróbuj ponownie za chwilę.",
-};
-
-function translateAuthError(message?: string): string {
-  if (!message) return "Wystąpił błąd";
-  return authErrorMessages[message] || message;
+function useTranslateAuthError() {
+  const { t } = useLingui();
+  return (message?: string): string => {
+    if (!message) return t`Wystąpił błąd`;
+    if (message === "Too many requests. Please try again later.") {
+      return t`Zbyt wiele prób. Spróbuj ponownie za chwilę.`;
+    }
+    return message;
+  };
 }
 
 export default function LoginScreen() {
@@ -31,6 +34,8 @@ export default function LoginScreen() {
     resetUserScopedStores();
   }, []);
 
+  const { t } = useLingui();
+  const translateAuthError = useTranslateAuthError();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const { setUser, setSession, setProfile, setHasCheckedProfile } = useAuthStore();
   const locale = useLocaleStore((s) => s.locale);
@@ -49,7 +54,7 @@ export default function LoginScreen() {
         body: JSON.stringify({ email }),
       });
       if (!response.ok) {
-        showToast("error", "Błąd", "Auto-login failed");
+        showToast("error", t`Błąd`, "Auto-login failed");
         setLoadingAction(null);
         return;
       }
@@ -62,7 +67,7 @@ export default function LoginScreen() {
       setSession({ ...data.session, expiresAt: new Date(data.session.expiresAt) });
       router.replace("/(tabs)");
     } catch {
-      showToast("error", "Błąd", "Auto-login failed");
+      showToast("error", t`Błąd`, "Auto-login failed");
     }
     setLoadingAction(null);
   };
@@ -77,7 +82,7 @@ export default function LoginScreen() {
       });
 
       if (result?.error) {
-        showToast("error", "Błąd logowania", translateAuthError(result.error.message));
+        showToast("error", t`Błąd logowania`, translateAuthError(result.error.message));
         setLoadingAction(null);
         return;
       }
@@ -91,10 +96,10 @@ export default function LoginScreen() {
         setSession(data.session);
         router.replace("/(tabs)");
       } else {
-        showToast("error", "Błąd logowania", "Nie udało się zalogować. Spróbuj ponownie.");
+        showToast("error", t`Błąd logowania`, t`Nie udało się zalogować. Spróbuj ponownie.`);
       }
     } catch (_err) {
-      showToast("error", "Błąd logowania", "Spróbuj ponownie");
+      showToast("error", t`Błąd logowania`, t`Spróbuj ponownie`);
     }
     setLoadingAction(null);
   };
@@ -102,11 +107,13 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView edges={["top"]} style={styles.localeAnchor} pointerEvents="box-none">
-        <LocalePill value={locale} onChange={(next) => setLocale(next, true)} />
+        <LocalePill value={locale} onChange={setLocale} />
       </SafeAreaView>
       <View style={styles.content}>
         <Text style={styles.title}>BLISKO</Text>
-        <Text style={styles.subtitle}>To nie przypadek. To Blisko.</Text>
+        <Text style={styles.subtitle}>
+          <Trans>To nie przypadek. To Blisko.</Trans>
+        </Text>
 
         <View style={styles.form}>
           {Platform.OS === "ios" && isOAuthProviderEnabled("apple") && (
@@ -123,7 +130,9 @@ export default function LoginScreen() {
                     fill={colors.ink}
                   />
                 </Svg>
-                <Text style={styles.oauthButtonText}>Kontynuuj z Apple</Text>
+                <Text style={styles.oauthButtonText}>
+                  <Trans>Kontynuuj z Apple</Trans>
+                </Text>
               </View>
             </Button>
           )}
@@ -154,7 +163,9 @@ export default function LoginScreen() {
                     fill="#EA4335"
                   />
                 </Svg>
-                <Text style={styles.oauthButtonText}>Kontynuuj z Google</Text>
+                <Text style={styles.oauthButtonText}>
+                  <Trans>Kontynuuj z Google</Trans>
+                </Text>
               </View>
             </Button>
           )}
@@ -176,7 +187,9 @@ export default function LoginScreen() {
                     strokeLinejoin="round"
                   />
                 </Svg>
-                <Text style={styles.oauthButtonText}>Kontynuuj z Facebook</Text>
+                <Text style={styles.oauthButtonText}>
+                  <Trans>Kontynuuj z Facebook</Trans>
+                </Text>
               </View>
             </Button>
           )}
@@ -198,14 +211,18 @@ export default function LoginScreen() {
                   <Path d="M2 9h4v12H2z" stroke={colors.ink} strokeWidth={1.8} />
                   <Path d="M4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke={colors.ink} strokeWidth={1.8} />
                 </Svg>
-                <Text style={styles.oauthButtonText}>Kontynuuj z LinkedIn</Text>
+                <Text style={styles.oauthButtonText}>
+                  <Trans>Kontynuuj z LinkedIn</Trans>
+                </Text>
               </View>
             </Button>
           )}
 
           <View style={styles.separator}>
             <View style={styles.separatorLine} />
-            <Text style={styles.separatorText}>lub</Text>
+            <Text style={styles.separatorText}>
+              <Trans>lub</Trans>
+            </Text>
             <View style={styles.separatorLine} />
           </View>
 
@@ -227,26 +244,32 @@ export default function LoginScreen() {
                   strokeLinejoin="round"
                 />
               </Svg>
-              <Text style={styles.oauthButtonText}>Kontynuuj z Email</Text>
+              <Text style={styles.oauthButtonText}>
+                <Trans>Kontynuuj z Email</Trans>
+              </Text>
             </View>
           </Button>
 
           {__DEV__ && (
             <Pressable onPress={handleDevLogin} disabled={isLoading} style={styles.devLogin}>
-              <Text style={styles.devLoginText}>Użyj testowego konta user{seedUserNumber}@example.com</Text>
+              <Text style={styles.devLoginText}>
+                <Trans>Użyj testowego konta user{seedUserNumber}@example.com</Trans>
+              </Text>
             </Pressable>
           )}
         </View>
         <Text style={styles.legalText}>
-          Rejestrując się akceptujesz{" "}
-          <Text style={styles.legalLink} onPress={() => Linking.openURL("https://blisko.app/terms")}>
-            Regulamin
-          </Text>{" "}
-          i{" "}
-          <Text style={styles.legalLink} onPress={() => Linking.openURL("https://blisko.app/privacy")}>
-            Politykę Prywatności
-          </Text>
-          .
+          <Trans>
+            Rejestrując się akceptujesz{" "}
+            <Text style={styles.legalLink} onPress={() => Linking.openURL("https://blisko.app/terms")}>
+              Regulamin
+            </Text>{" "}
+            i{" "}
+            <Text style={styles.legalLink} onPress={() => Linking.openURL("https://blisko.app/privacy")}>
+              Politykę Prywatności
+            </Text>
+            .
+          </Trans>
         </Text>
       </View>
     </View>

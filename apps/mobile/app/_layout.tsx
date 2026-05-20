@@ -1,3 +1,5 @@
+import { t } from "@lingui/core/macro";
+import { I18nProvider } from "@lingui/react";
 import { focusManager, MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
@@ -19,9 +21,11 @@ import { IconCheck, IconChevronLeft, IconX } from "@/components/ui/icons";
 import { SplashHold } from "@/components/ui/SplashHold";
 import { authClient } from "@/lib/auth";
 import { handleGlobalError as runGlobalErrorHandlers } from "@/lib/globalErrorHandler";
+import { i18n } from "@/lib/i18n";
 import { trpc, trpcClient } from "@/lib/trpc";
 import { useWebSocket } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
+import { useLocaleStore } from "@/stores/localeStore";
 import { resetUserScopedStores } from "@/stores/reset";
 import { colors, fonts, layout, spacing } from "@/theme";
 
@@ -39,17 +43,21 @@ let accountBlockedAlertShown = false;
 
 type BlockedKind = "ACCOUNT_DELETED" | "ACCOUNT_SUSPENDED";
 
-const BLOCKED_COPY: Record<BlockedKind, { title: string; message: string }> = {
-  ACCOUNT_DELETED: {
-    title: "Konto usunięte",
-    message: "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.",
-  },
-  ACCOUNT_SUSPENDED: {
-    title: "Konto zawieszone",
-    message:
-      "Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka.",
-  },
-};
+// Lingui macros must run inside a function (active locale is resolved at
+// call time), so the copy is computed lazily rather than as module-level
+// constants.
+function getBlockedCopy(kind: BlockedKind): { title: string; message: string } {
+  if (kind === "ACCOUNT_DELETED") {
+    return {
+      title: t`Konto usunięte`,
+      message: t`Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.`,
+    };
+  }
+  return {
+    title: t`Konto zawieszone`,
+    message: t`Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka.`,
+  };
+}
 
 function handleAccountBlocked(error: unknown) {
   const err = error as { data?: { code?: string }; message?: string };
@@ -58,7 +66,7 @@ function handleAccountBlocked(error: unknown) {
   if (!kind || accountBlockedAlertShown) return;
 
   accountBlockedAlertShown = true;
-  const copy = BLOCKED_COPY[kind];
+  const copy = getBlockedCopy(kind);
   Alert.alert(copy.title, copy.message, [
     {
       text: "OK",
@@ -213,6 +221,27 @@ export default function RootLayout() {
     checkSession();
   }, [setUser, setSession, setLoading]);
 
+  // Lingui: re-activate the catalog whenever the localeStore changes. The
+  // initial activate() runs at module load in lib/i18n.ts but at that point
+  // zustand's persist hydration from SecureStore hasn't finished, so it
+  // captures the default "pl" — not the user's saved preference. Two race
+  // cases to cover on cold launch:
+  //   (a) hydration finishes BEFORE this effect runs → subscribe would never
+  //       see the change. Sync once with getState() at effect start.
+  //   (b) hydration finishes AFTER this effect runs → subscribe catches the
+  //       setState() call zustand fires during rehydrate.
+  // Both paths converge on the correct locale; toggles afterwards flow
+  // through the subscription normally.
+  useEffect(() => {
+    i18n.activate(useLocaleStore.getState().locale);
+    const unsubscribe = useLocaleStore.subscribe((state, prevState) => {
+      if (state.locale !== prevState.locale) {
+        i18n.activate(state.locale);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
   // Render <SplashHold> under the native splash while fonts load. Same dot +
   // wordmark geometry as assets/splash-icon.png, so the user sees a
   // continuous image even if the native layer fades before the Stack paints.
@@ -227,75 +256,79 @@ export default function RootLayout() {
           <QueryClientProvider client={queryClient}>
             <StatusBar style="dark" />
             <LinkPreviewContextProvider>
-              <AppGate>
-                <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-                  <Stack.Screen name="(auth)" />
-                  <Stack.Screen name="(tabs)" />
-                  <Stack.Screen name="settings" options={{ headerShown: false }} />
-                  <Stack.Screen name="onboarding" />
-                  <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
-                  <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
-                  <Stack.Screen
-                    name="create-group"
-                    options={{
-                      headerShown: true,
-                      header: () => (
-                        <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              paddingHorizontal: spacing.section,
-                              height: layout.headerHeight,
-                            }}
-                          >
-                            <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
-                              <IconChevronLeft size={24} color={colors.ink} />
-                            </Pressable>
-                            <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>Nowa grupa</Text>
-                            <View style={{ width: 24 }} />
-                          </View>
-                        </SafeAreaView>
-                      ),
-                      contentStyle: { backgroundColor: colors.bg },
-                    }}
-                  />
-                  <Stack.Screen
-                    name="set-status"
-                    options={{
-                      presentation: "formSheet",
-                      headerShown: false,
-                      sheetAllowedDetents: "fitToContents",
-                      sheetGrabberVisible: true,
-                      sheetCornerRadius: 20,
-                      contentStyle: { backgroundColor: colors.bg },
-                    }}
-                  />
-                  <Stack.Screen
-                    name="filters"
-                    options={{
-                      presentation: "formSheet",
-                      headerShown: false,
-                      sheetAllowedDetents: "fitToContents",
-                      sheetGrabberVisible: true,
-                      sheetCornerRadius: 20,
-                      contentStyle: { backgroundColor: colors.bg },
-                    }}
-                  />
-                  <Stack.Screen
-                    name="mute-conversation"
-                    options={{
-                      presentation: "formSheet",
-                      headerShown: false,
-                      sheetAllowedDetents: "fitToContents",
-                      sheetGrabberVisible: true,
-                      sheetCornerRadius: 20,
-                      contentStyle: { backgroundColor: colors.bg },
-                    }}
-                  />
-                </Stack>
-              </AppGate>
+              <I18nProvider i18n={i18n}>
+                <AppGate>
+                  <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="settings" options={{ headerShown: false }} />
+                    <Stack.Screen name="onboarding" />
+                    <Stack.Screen name="(modals)" options={{ presentation: "modal" }} />
+                    <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
+                    <Stack.Screen
+                      name="create-group"
+                      options={{
+                        headerShown: true,
+                        header: () => (
+                          <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.bg }}>
+                            <View
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                paddingHorizontal: spacing.section,
+                                height: layout.headerHeight,
+                              }}
+                            >
+                              <Pressable onPress={() => router.back()} hitSlop={8} style={{ width: 24 }}>
+                                <IconChevronLeft size={24} color={colors.ink} />
+                              </Pressable>
+                              <Text style={{ fontFamily: fonts.serif, fontSize: 18, color: colors.ink }}>
+                                Nowa grupa
+                              </Text>
+                              <View style={{ width: 24 }} />
+                            </View>
+                          </SafeAreaView>
+                        ),
+                        contentStyle: { backgroundColor: colors.bg },
+                      }}
+                    />
+                    <Stack.Screen
+                      name="set-status"
+                      options={{
+                        presentation: "formSheet",
+                        headerShown: false,
+                        sheetAllowedDetents: "fitToContents",
+                        sheetGrabberVisible: true,
+                        sheetCornerRadius: 20,
+                        contentStyle: { backgroundColor: colors.bg },
+                      }}
+                    />
+                    <Stack.Screen
+                      name="filters"
+                      options={{
+                        presentation: "formSheet",
+                        headerShown: false,
+                        sheetAllowedDetents: "fitToContents",
+                        sheetGrabberVisible: true,
+                        sheetCornerRadius: 20,
+                        contentStyle: { backgroundColor: colors.bg },
+                      }}
+                    />
+                    <Stack.Screen
+                      name="mute-conversation"
+                      options={{
+                        presentation: "formSheet",
+                        headerShown: false,
+                        sheetAllowedDetents: "fitToContents",
+                        sheetGrabberVisible: true,
+                        sheetCornerRadius: 20,
+                        contentStyle: { backgroundColor: colors.bg },
+                      }}
+                    />
+                  </Stack>
+                </AppGate>
+              </I18nProvider>
             </LinkPreviewContextProvider>
             <Toaster
               position="top-center"

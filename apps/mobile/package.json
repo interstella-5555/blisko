@@ -14,11 +14,16 @@
     "test:e2e:chat": "bash .maestro/chat/run-all.sh",
     "typecheck": "tsc --noEmit",
     "testflight": "bash scripts/testflight.sh",
-    "reset-ios": "bash scripts/reset-ios.sh"
+    "reset-ios": "bash scripts/reset-ios.sh",
+    "i18n:extract": "lingui extract --clean",
+    "i18n:translate": "bun run scripts/translate-po.ts",
+    "i18n:check": "bun run scripts/check-po-completeness.ts"
   },
   "dependencies": {
     "@better-auth/expo": "catalog:",
     "@expo/vector-icons": "^15.1.1",
+    "@lingui/core": "^6.0.1",
+    "@lingui/react": "^6.0.1",
     "@repo/api": "workspace:*",
     "@repo/shared": "workspace:*",
     "@tanstack/react-query": "catalog:",
@@ -66,11 +71,19 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@lingui/babel-plugin-lingui-macro": "^6.0.1",
+    "@lingui/cli": "^6.0.1",
+    "@lingui/conf": "^6.0.1",
+    "@lingui/format-po": "^6.0.1",
+    "@lingui/metro-transformer": "^6.0.1",
+    "@types/gettext-parser": "^9.0.0",
     "@types/ms": "catalog:",
     "@types/react": "catalog:",
     "@types/supercluster": "^7.1.3",
     "@types/uuid": "^11.0.0",
+    "babel-preset-expo": "^55.0.22",
     "eas-cli": "^16.28.0",
+    "gettext-parser": "^9.0.2",
     "typescript": "catalog:",
     "vitest": "^4.1.4"
   },

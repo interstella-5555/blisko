@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { router, Stack } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Platform, StyleSheet, Text, TextInput, View } from "react-native";
@@ -23,6 +24,7 @@ export default function ProfilingResultScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isGenerating, setIsGenerating] = useState(true);
+  const { t } = useLingui();
 
   // Redirect if no session (e.g., direct navigation or app restart)
   useEffect(() => {
@@ -98,7 +100,7 @@ export default function ProfilingResultScreen() {
       }, 100);
     } catch (err) {
       console.error("Failed to apply profile:", err);
-      setError("Nie udało się zapisać profilu. Spróbuj ponownie.");
+      setError(t`Nie udało się zapisać profilu. Spróbuj ponownie.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -110,7 +112,7 @@ export default function ProfilingResultScreen() {
       <View style={[styles.container, styles.centered]}>
         <Stack.Screen options={{ headerShown: false }} />
         <ThinkingIndicator
-          messages={["Generuję Twój profil...", "Analizuję Twoje odpowiedzi...", "Jeszcze chwilka..."]}
+          messages={[t`Generuję Twój profil...`, t`Analizuję Twoje odpowiedzi...`, t`Jeszcze chwilka...`]}
         />
       </View>
     );
@@ -125,17 +127,19 @@ export default function ProfilingResultScreen() {
       <Stack.Screen
         options={{
           headerShown: true,
-          header: () => <OnboardingStepHeader label="Ostatni krok" />,
+          header: () => <OnboardingStepHeader label={t`Ostatni krok`} />,
         }}
       />
       <OnboardingScreen
         footer={
           <>
-            <Text style={styles.footnote}>Możesz edytować zanim przejdziesz do aplikacji</Text>
+            <Text style={styles.footnote}>
+              <Trans>Możesz edytować zanim przejdziesz do aplikacji</Trans>
+            </Text>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Button
               testID="confirm-profile-button"
-              title="Tak, to ja"
+              title={t`Tak, to ja`}
               variant="accent"
               onPress={handleApply}
               disabled={isSubmitting || bio.trim().length < 10 || lookingFor.trim().length < 10}
@@ -144,9 +148,13 @@ export default function ProfilingResultScreen() {
           </>
         }
       >
-        <Text style={styles.title}>Oto jak Cię widzę</Text>
+        <Text style={styles.title}>
+          <Trans>Oto jak Cię widzę</Trans>
+        </Text>
 
-        <Text style={styles.label}>O MNIE</Text>
+        <Text style={styles.label}>
+          <Trans>O MNIE</Trans>
+        </Text>
         <TextInput
           testID="bio-input"
           style={styles.input}
@@ -160,7 +168,9 @@ export default function ProfilingResultScreen() {
         />
         <Text style={styles.charCount}>{bio.length} / 500</Text>
 
-        <Text style={styles.label}>KOGO SZUKAM</Text>
+        <Text style={styles.label}>
+          <Trans>KOGO SZUKAM</Trans>
+        </Text>
         <TextInput
           testID="looking-for-input"
           style={styles.input}

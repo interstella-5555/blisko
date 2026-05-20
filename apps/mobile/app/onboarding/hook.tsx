@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { router } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
@@ -93,14 +94,18 @@ export default function HookScreen() {
       ))}
 
       <View style={styles.overlay}>
-        <Text style={styles.headline}>Świat jest pełen ludzi, których potrzebujesz.</Text>
+        <Text style={styles.headline}>
+          <Trans>Świat jest pełen ludzi, których potrzebujesz.</Trans>
+        </Text>
         <Animated.View style={{ opacity: ctaOpacity }}>
           <Pressable
             testID="hook-start-button"
             style={styles.cta}
             onPress={() => router.replace("/onboarding" as never)}
           >
-            <Text style={styles.ctaText}>Zacznij</Text>
+            <Text style={styles.ctaText}>
+              <Trans>Zacznij</Trans>
+            </Text>
           </Pressable>
         </Animated.View>
       </View>

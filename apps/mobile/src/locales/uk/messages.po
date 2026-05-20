@@ -1,0 +1,459 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-05-20 12:39+0200\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: uk\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
+
+#: app/onboarding/profiling-result.tsx
+msgid "Analizuję Twoje odpowiedzi..."
+msgstr "Аналізую твої відповіді..."
+
+#: app/onboarding/questions.tsx
+msgid "Analizuję Twoje odpowiedzi…"
+msgstr "Аналізую твої відповіді…"
+
+#: app/(auth)/login.tsx
+msgid "Błąd"
+msgstr "Помилка"
+
+#: app/(auth)/login.tsx
+msgid "Błąd logowania"
+msgstr "Помилка входу"
+
+#: app/onboarding/visibility.tsx
+msgid "Chcesz być widoczny?"
+msgstr "Хочеш бути видимим?"
+
+#: app/onboarding/index.tsx
+#: app/onboarding/questions-intro.tsx
+#: app/onboarding/questions.tsx
+#: app/onboarding/visibility.tsx
+msgid "Dalej"
+msgstr "Далі"
+
+#: app/(auth)/email.tsx
+msgid "Dev auto-login failed"
+msgstr "Не вдалося автоматично увійти"
+
+#: src/lib/rateLimitMessages.ts
+msgid "Eksport danych jest dostępny raz na 24 godziny."
+msgstr "Експорт даних доступний раз на 24 години."
+
+#: app/onboarding/profiling-result.tsx
+msgid "Generuję Twój profil..."
+msgstr "Генерую твій профіль..."
+
+#: app/onboarding/questions.tsx
+msgid "Generuję Twój profil…"
+msgstr "Генерую твій профіль…"
+
+#: app/onboarding/index.tsx
+msgid "Jak masz na imię?"
+msgstr "Як тебе звати?"
+
+#: app/onboarding/questions-intro.tsx
+msgid "Jak to działa"
+msgstr "Як це працює"
+
+#: app/onboarding/profiling-result.tsx
+msgid "Jeszcze chwilka..."
+msgstr "Ще хвилинку..."
+
+#: app/onboarding/questions.tsx
+msgid "Jeszcze chwilka…"
+msgstr "Ще хвилинку…"
+
+#: app/onboarding/questions-intro.tsx
+msgid "Kilka pytań"
+msgstr "Кілька запитань"
+
+#: app/onboarding/profiling-result.tsx
+msgid "KOGO SZUKAM"
+msgstr "КОГО ШУКАЮ"
+
+#: src/lib/globalErrorHandler.ts
+msgid "Konto odbiorcy zostało zawieszone"
+msgstr "Обліковий запис отримувача було призупинено"
+
+#: app/_layout.tsx
+msgid "Konto usunięte"
+msgstr "Обліковий запис видалено"
+
+#: app/_layout.tsx
+msgid "Konto zawieszone"
+msgstr "Обліковий запис призупинено"
+
+#: app/(auth)/email.tsx
+#: app/(auth)/verify.tsx
+msgid ""
+"Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli "
+"uważasz, że to pomyłka."
+msgstr ""
+"Обліковий запис призупинено. Зв'яжися з адміністрацією: kontakt@blisko.app, "
+"якщо вважаєш, що це помилка."
+
+#: app/(auth)/login.tsx
+msgid "Kontynuuj z Apple"
+msgstr "Продовжити з Apple"
+
+#: app/(auth)/login.tsx
+msgid "Kontynuuj z Email"
+msgstr "Продовжити з Email"
+
+#: app/(auth)/login.tsx
+msgid "Kontynuuj z Facebook"
+msgstr "Продовжити з Facebook"
+
+#: app/(auth)/login.tsx
+msgid "Kontynuuj z Google"
+msgstr "Продовжити з Google"
+
+#: app/(auth)/login.tsx
+msgid "Kontynuuj z LinkedIn"
+msgstr "Продовжити з LinkedIn"
+
+#: app/onboarding/index.tsx
+msgid "Krok 1"
+msgstr "Крок 1"
+
+#: app/onboarding/visibility.tsx
+msgid "Krok 2"
+msgstr "Крок 2"
+
+#: app/onboarding/questions-intro.tsx
+#: app/onboarding/questions.tsx
+msgid "Krok 3"
+msgstr "Крок 3"
+
+#: app/(auth)/login.tsx
+msgid "lub"
+msgstr "або"
+
+#: app/onboarding/profiling-result.tsx
+msgid "Możesz edytować zanim przejdziesz do aplikacji"
+msgstr "Ти можеш редагувати, перш ніж перейти до додатку"
+
+#: app/onboarding/questions-intro.tsx
+msgid ""
+"Na podstawie Twoich odpowiedzi przygotujemy bio i opis tego, kogo lub czego "
+"szukasz. Zobaczysz gotowy tekst i poprawisz, zanim pokażemy go innym."
+msgstr ""
+"На основі твоїх відповідей ми підготуємо біо та опис того, кого або чого ти "
+"шукаєш. Ти побачиш готовий текст і зможеш його поправити, перш ніж ми "
+"покажемо його іншим."
+
+#: app/onboarding/visibility.tsx
+msgid "Na razie przeglądam"
+msgstr "Поки що переглядаю"
+
+#: app/onboarding/visibility.tsx
+msgid ""
+"Najpierw opowiesz o sobie — kilka pytań, nic więcej. Będziesz mieć pełny "
+"dostęp do ludzi i grup w Twojej okolicy. Dostaniesz powiadomienie, gdy obok "
+"pojawi się ktoś, kogo szukasz albo kto do Ciebie pasuje. Inni też zobaczą "
+"Cię na mapie i będą mogli Cię zaczepić."
+msgstr ""
+"Спочатку розкажи про себе — кілька запитань, нічого більше. Ти матимеш "
+"повний доступ до людей і груп у твоїй окрузі. Отримаєш сповіщення, коли "
+"поруч з'явиться хтось, кого ти шукаєш або хто тобі підходить. Інші також "
+"побачать тебе на карті і зможуть з тобою зв'язатися."
+
+#: app/onboarding/questions-intro.tsx
+msgid "Nie musi być idealnie"
+msgstr "Не обов'язково бути ідеальним"
+
+#: app/onboarding/questions.tsx
+msgid "Nie udało się przesłać odpowiedzi. Spróbuj ponownie."
+msgstr "Не вдалося надіслати відповідь. Спробуй ще раз."
+
+#: app/onboarding/visibility.tsx
+msgid "Nie udało się utworzyć profilu. Spróbuj ponownie."
+msgstr "Не вдалося створити профіль. Спробуй ще раз."
+
+#: app/onboarding/questions.tsx
+msgid "Nie udało się wygenerować profilu. Spróbuj ponownie."
+msgstr "Не вдалося згенерувати профіль. Спробуй ще раз."
+
+#: app/(auth)/email.tsx
+#: app/(auth)/verify.tsx
+msgid "Nie udało się wysłać kodu"
+msgstr "Не вдалося надіслати код"
+
+#: app/(auth)/login.tsx
+msgid "Nie udało się zalogować. Spróbuj ponownie."
+msgstr "Не вдалося увійти. Спробуй ще раз."
+
+#: app/onboarding/questions.tsx
+msgid "Nie udało się zapisać odpowiedzi. Spróbuj ponownie."
+msgstr "Не вдалося зберегти відповідь. Спробуй ще раз."
+
+#: app/onboarding/profiling-result.tsx
+msgid "Nie udało się zapisać profilu. Spróbuj ponownie."
+msgstr "Не вдалося зберегти профіль. Спробуй ще раз."
+
+#: app/(auth)/verify.tsx
+msgid "Nie udało się zweryfikować kodu"
+msgstr "Не вдалося перевірити код"
+
+#: app/(auth)/verify.tsx
+msgid "Nieprawidłowa odpowiedź serwera"
+msgstr "Неправильна відповідь сервера"
+
+#: app/(auth)/verify.tsx
+msgid "Nieprawidłowy kod"
+msgstr "Неправильний код"
+
+#: app/onboarding/visibility.tsx
+msgid "NIEWIDOCZNY"
+msgstr "НЕВИДИМИЙ"
+
+#: app/onboarding/profiling-result.tsx
+msgid "O MNIE"
+msgstr "ПРО МЕНЕ"
+
+#: app/onboarding/questions-intro.tsx
+msgid ""
+"Odpowiedzi nie muszą być pełnymi zdaniami. Mogą być krótkie, w punktach, "
+"nawet pojedyncze słowa — liczy się co napiszesz, nie jak. Pod każdym "
+"pytaniem zobaczysz kilka przykładowych odpowiedzi."
+msgstr ""
+"Відповіді не обов'язково мають бути повними реченнями. Вони можуть бути "
+"короткими, у пунктах, навіть окремими словами — важливо, що ти напишеш, а "
+"не як. Під кожним запитанням ти побачиш кілька прикладів відповідей."
+
+#: app/onboarding/visibility.tsx
+msgid "Opowiem o sobie"
+msgstr "Розкажу про себе"
+
+#: app/onboarding/profiling-result.tsx
+msgid "Ostatni krok"
+msgstr "Останній крок"
+
+#: app/onboarding/profiling-result.tsx
+msgid "Oto jak Cię widzę"
+msgstr "Ось як я тебе бачу"
+
+#: app/(auth)/email.tsx
+msgid "Podaj adres email"
+msgstr "Введи адресу електронної пошти"
+
+#: app/onboarding/questions.tsx
+msgid "Pomiń pytanie"
+msgstr "Пропустити запитання"
+
+#: app/onboarding/index.tsx
+msgid "Potwierdzam, że mam ukończone 18 lat"
+msgstr "Підтверджую, що мені виповнилося 18 років"
+
+#: app/onboarding/questions.tsx
+#. placeholder {0}: i + 1
+msgid "Przykład {0}"
+msgstr "Приклад {0}"
+
+#: app/onboarding/questions.tsx
+#. placeholder {0}: questionIndex + 1
+msgid "Pytanie {0} / {totalQuestions}"
+msgstr "Запитання {0} / {totalQuestions}"
+
+#: app/(auth)/login.tsx
+msgid "Rejestrując się akceptujesz <0>Regulamin</0> i <1>Politykę Prywatności</1>."
+msgstr ""
+"Реєструючись, ти приймаєш <0>Правила</0> та <1>Політику "
+"конфіденційності</1>."
+
+#: app/(auth)/verify.tsx
+msgid "Sprawdź folder spam jeśli nie widzisz maila"
+msgstr "Перевір папку спаму, якщо не бачиш листа"
+
+#: app/(auth)/email.tsx
+msgid "Spróbuj innej metody logowania"
+msgstr "Спробуй інший спосіб входу"
+
+#: app/(auth)/login.tsx
+#: app/onboarding/questions.tsx
+msgid "Spróbuj ponownie"
+msgstr "Спробуй ще раз"
+
+#: app/onboarding/hook.tsx
+msgid "Świat jest pełen ludzi, których potrzebujesz."
+msgstr "Світ сповнений людей, яких ти потребуєш."
+
+#: app/onboarding/profiling-result.tsx
+msgid "Tak, to ja"
+msgstr "Так, це я"
+
+#: app/(auth)/login.tsx
+msgid "To nie przypadek. To Blisko."
+msgstr "Це не випадковість. Це BLISKO."
+
+#: src/lib/globalErrorHandler.ts
+msgid "Treść narusza regulamin"
+msgstr "Контент порушує правила"
+
+#: app/onboarding/questions.tsx
+msgid "Twoja odpowiedź"
+msgstr "Твоя відповідь"
+
+#: app/onboarding/index.tsx
+msgid "Twoje imię"
+msgstr "Твоє ім'я"
+
+#: app/onboarding/index.tsx
+msgid "Twoje imię będzie widoczne publicznie"
+msgstr "Твоє ім'я буде видно публічно"
+
+#: app/_layout.tsx
+#: app/(auth)/email.tsx
+#: app/(auth)/verify.tsx
+msgid "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni."
+msgstr "Твій акаунт видаляється. Це може зайняти до 14 днів."
+
+#: app/_layout.tsx
+msgid ""
+"Twoje konto zostało zawieszone. Skontaktuj się z administracją: "
+"kontakt@blisko.app, jeśli uważasz, że to pomyłka."
+msgstr ""
+"Твій акаунт призупинено. Зв'яжися з адміністрацією: kontakt@blisko.app, "
+"якщо вважаєш, що це помилка."
+
+#: app/(auth)/login.tsx
+msgid "Użyj testowego konta user{seedUserNumber}@example.com"
+msgstr "Використай тестовий акаунт user{seedUserNumber}@example.com"
+
+#: app/onboarding/visibility.tsx
+msgid "Wchodzę do aplikacji"
+msgstr "Заходжу в додаток"
+
+#: app/(auth)/verify.tsx
+msgid "Weryfikacja..."
+msgstr "Перевірка..."
+
+#: app/onboarding/visibility.tsx
+msgid "Widoczność i prywatność zmienisz w każdej chwili w ustawieniach."
+msgstr "Ти можеш змінити видимість і приватність в будь-який момент в налаштуваннях."
+
+#: app/onboarding/visibility.tsx
+msgid "WIDOCZNY"
+msgstr "ВИДИМИЙ"
+
+#: app/onboarding/visibility.tsx
+msgid ""
+"Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez "
+"szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, "
+"chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, "
+"kto jest w twojej okolicy. Profil uzupełnisz później."
+msgstr ""
+"Ти бачиш, хто поруч, чим займається або цікавиться, але без деталей. Не "
+"зможеш почати розмову, не напишеш, не приєднаєшся до жодної групи, якщо "
+"хтось тебе не запросить. Добре для початку, якщо хочеш спочатку побачити, "
+"хто в твоїй окрузі. Профіль доповниш пізніше."
+
+#: app/(auth)/verify.tsx
+msgid "Wpisz 6-cyfrowy kod"
+msgstr "Введи 6-значний код"
+
+#: app/(auth)/verify.tsx
+msgid "Wpisz kod"
+msgstr "Введи код"
+
+#: app/(auth)/verify.tsx
+msgid "Wróć"
+msgstr "Повернутися"
+
+#: src/lib/rateLimitMessages.ts
+msgid "Wysłałeś dużo pingów. Odpocznij chwilę i spróbuj później."
+msgstr "Ти надіслав багато пінгів. Відпочинь трохи і спробуй пізніше."
+
+#: app/(auth)/verify.tsx
+msgid "Wysłaliśmy 6-cyfrowy kod na adres:"
+msgstr "Ми надіслали 6-значний код на адресу:"
+
+#: app/(auth)/email.tsx
+msgid "Wyślemy Ci jednorazowy kod weryfikacyjny"
+msgstr "Ми надішлемо тобі одноразовий код для перевірки"
+
+#: app/(auth)/email.tsx
+msgid "Wyślij kod"
+msgstr "Надіслати код"
+
+#: app/(auth)/verify.tsx
+msgid "Wyślij kod ponownie"
+msgstr "Надіслати код знову"
+
+#: app/(auth)/verify.tsx
+msgid "Wyślij kod ponownie ({resendCooldown}s)"
+msgstr "Надіслати код знову ({resendCooldown}s)"
+
+#: app/(auth)/email.tsx
+#: app/(auth)/login.tsx
+#: app/(auth)/verify.tsx
+msgid "Wystąpił błąd"
+msgstr "Сталася помилка"
+
+#: app/(auth)/email.tsx
+msgid "Wysyłanie..."
+msgstr "Надсилаємо..."
+
+#: app/(auth)/email.tsx
+#: app/(auth)/verify.tsx
+#: src/lib/rateLimitMessages.ts
+msgid "Za dużo prób logowania. Spróbuj ponownie za kilka minut."
+msgstr "Занадто багато спроб входу. Спробуй знову через кілька хвилин."
+
+#: src/lib/rateLimitMessages.ts
+msgid "Za dużo przesłanych plików. Spróbuj ponownie za chwilę."
+msgstr "Занадто багато надісланих файлів. Спробуй знову за хвилину."
+
+#: src/lib/rateLimitMessages.ts
+msgid "Za dużo wiadomości naraz. Zwolnij trochę."
+msgstr "Занадто багато повідомлень одночасно. Трохи сповільнись."
+
+#: src/lib/rateLimitMessages.ts
+msgid "Za dużo wiadomości. Spróbuj ponownie za chwilę."
+msgstr "Занадто багато повідомлень. Спробуй знову за хвилину."
+
+#: src/lib/rateLimitMessages.ts
+msgid "Za dużo zmian w profilu. Spróbuj ponownie za chwilę."
+msgstr "Занадто багато змін в профілі. Спробуй знову за хвилину."
+
+#: app/onboarding/questions-intro.tsx
+msgid ""
+"Zaczniemy od 7 krótkich pytań. Jeśli coś będzie wymagało doprecyzowania, "
+"dopytamy maksymalnie o 3 rzeczy."
+msgstr ""
+"Почнемо з 7 коротких запитань. Якщо щось потребуватиме уточнення, запитаємо "
+"максимум 3 речі."
+
+#: app/onboarding/hook.tsx
+msgid "Zacznij"
+msgstr "Почати"
+
+#: app/(auth)/email.tsx
+msgid "Zaloguj się emailem"
+msgstr "Увійти через email"
+
+#: app/(auth)/login.tsx
+#: src/lib/rateLimitMessages.ts
+msgid "Zbyt wiele prób. Spróbuj ponownie za chwilę."
+msgstr "Забагато спроб. Спробуй ще раз за мить."
+
+#: app/onboarding/questions.tsx
+msgid "Zostało ostatnie pytanie"
+msgstr "Залишилось останнє запитання"
+
+#: app/onboarding/questions.tsx
+msgid "Zostały tylko {remainingCount} pytania"
+msgstr "Залишилось тільки {remainingCount} запитань"
+
+#: app/onboarding/questions-intro.tsx
+msgid "Zrobimy z tego profil"
+msgstr "Зробимо з цього профіль"

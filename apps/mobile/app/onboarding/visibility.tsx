@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { router, Stack } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type LayoutChangeEvent, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
@@ -33,6 +34,7 @@ export default function VisibilityScreen() {
   const [expanded, setExpanded] = useState<OptionKey | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
+  const { t } = useLingui();
 
   const createGhost = trpc.profiling.createGhostProfile.useMutation();
   const profileQuery = trpc.profiles.me.useQuery(undefined, { enabled: false });
@@ -65,7 +67,7 @@ export default function VisibilityScreen() {
         }
       }
       console.error("Failed to create ghost profile:", err);
-      setError("Nie udało się utworzyć profilu. Spróbuj ponownie.");
+      setError(t`Nie udało się utworzyć profilu. Spróbuj ponownie.`);
     } finally {
       setIsCreating(false);
     }
@@ -81,13 +83,15 @@ export default function VisibilityScreen() {
   const onNext = expanded === "ghost" ? handleGhost : expanded === "fill" ? handleFillProfile : () => {};
   const ctaTestID =
     expanded === "ghost" ? "ghost-profile-button" : expanded === "fill" ? "fill-profile-button" : "visibility-next";
-  const ctaTitle = expanded === "ghost" ? "Wchodzę do aplikacji" : "Dalej";
+  const ctaTitle = expanded === "ghost" ? t`Wchodzę do aplikacji` : t`Dalej`;
 
   return (
     <OnboardingScreen
       footer={
         <>
-          <Text style={styles.footnote}>Widoczność i prywatność zmienisz w każdej chwili w ustawieniach.</Text>
+          <Text style={styles.footnote}>
+            <Trans>Widoczność i prywatność zmienisz w każdej chwili w ustawieniach.</Trans>
+          </Text>
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <Button
             testID={ctaTestID}
@@ -102,28 +106,32 @@ export default function VisibilityScreen() {
     >
       <Stack.Screen
         options={{
-          header: () => <OnboardingStepHeader label="Krok 2" onBack={() => router.back()} onLogout={signOutAndReset} />,
+          header: () => (
+            <OnboardingStepHeader label={t`Krok 2`} onBack={() => router.back()} onLogout={signOutAndReset} />
+          ),
         }}
       />
-      <Text style={styles.title}>Chcesz być widoczny?</Text>
+      <Text style={styles.title}>
+        <Trans>Chcesz być widoczny?</Trans>
+      </Text>
 
       <ScatteredAvatars height={graphicHeight} shuffleKey={expanded ?? "none"} isGhost={expanded === "ghost"} />
 
       <View style={styles.options}>
         <OptionCard
           testID="ghost-option"
-          title="Na razie przeglądam"
-          badge="NIEWIDOCZNY"
-          description="Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, kto jest w twojej okolicy. Profil uzupełnisz później."
+          title={t`Na razie przeglądam`}
+          badge={t`NIEWIDOCZNY`}
+          description={t`Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, kto jest w twojej okolicy. Profil uzupełnisz później.`}
           expanded={expanded === "ghost"}
           onPress={() => toggle("ghost")}
         />
 
         <OptionCard
           testID="fill-option"
-          title="Opowiem o sobie"
-          badge="WIDOCZNY"
-          description="Najpierw opowiesz o sobie — kilka pytań, nic więcej. Będziesz mieć pełny dostęp do ludzi i grup w Twojej okolicy. Dostaniesz powiadomienie, gdy obok pojawi się ktoś, kogo szukasz albo kto do Ciebie pasuje. Inni też zobaczą Cię na mapie i będą mogli Cię zaczepić."
+          title={t`Opowiem o sobie`}
+          badge={t`WIDOCZNY`}
+          description={t`Najpierw opowiesz o sobie — kilka pytań, nic więcej. Będziesz mieć pełny dostęp do ludzi i grup w Twojej okolicy. Dostaniesz powiadomienie, gdy obok pojawi się ktoś, kogo szukasz albo kto do Ciebie pasuje. Inni też zobaczą Cię na mapie i będą mogli Cię zaczepić.`}
           expanded={expanded === "fill"}
           onPress={() => toggle("fill")}
         />
