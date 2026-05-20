@@ -222,11 +222,18 @@ export default function RootLayout() {
   }, [setUser, setSession, setLoading]);
 
   // Lingui: re-activate the catalog whenever the localeStore changes. The
-  // initial activate() runs at module load in lib/i18n.ts so the first render
-  // already has a catalog; this subscription handles every toggle thereafter.
-  // zustand's persist hydration also fires this subscription, so cold-launch
-  // users with a saved UA preference land on UA after the first React frame.
+  // initial activate() runs at module load in lib/i18n.ts but at that point
+  // zustand's persist hydration from SecureStore hasn't finished, so it
+  // captures the default "pl" — not the user's saved preference. Two race
+  // cases to cover on cold launch:
+  //   (a) hydration finishes BEFORE this effect runs → subscribe would never
+  //       see the change. Sync once with getState() at effect start.
+  //   (b) hydration finishes AFTER this effect runs → subscribe catches the
+  //       setState() call zustand fires during rehydrate.
+  // Both paths converge on the correct locale; toggles afterwards flow
+  // through the subscription normally.
   useEffect(() => {
+    i18n.activate(useLocaleStore.getState().locale);
     const unsubscribe = useLocaleStore.subscribe((state, prevState) => {
       if (state.locale !== prevState.locale) {
         i18n.activate(state.locale);

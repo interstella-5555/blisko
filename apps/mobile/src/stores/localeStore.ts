@@ -12,42 +12,33 @@ const secureStoreAdapter: StateStorage = {
 
 interface LocaleState {
   locale: LocaleCode;
-  hasUserChosen: boolean;
-  setLocale: (locale: LocaleCode, userInitiated?: boolean) => void;
+  setLocale: (locale: LocaleCode) => void;
 }
 
-// Device-scoped and authoritative — the store is the source of truth for
-// what the user sees on THIS phone. Two phones can legitimately show
-// different languages. `profiles.locale` in the DB is push-only from the
-// device perspective (AppGate writes after login so the server can render
-// emails / push in the user's last-active language). DB → store sync does
-// NOT happen — pulling would surprise users who deliberately chose a
-// different language on this device.
+// Device-scoped UI language. The store is authoritative for what's
+// displayed on this phone; `profiles.locale` in the DB is a one-way mirror
+// that AppGate pushes on session restore so the server has a value for
+// emails / push (see AppGate.tsx and docs/architecture/i18n.md).
 //
-// `hasUserChosen` exists only to block OS re-detection across app launches.
-// Detection runs once on first install (`hasUserChosen=false`); after the
-// user taps the toggle it flips to true and the OS locale is ignored from
-// then on, even if the user changes their iOS / Android language. BLI-277.
+// First-install detection runs at module load: `Localization.getLocales()`
+// reads the OS language synchronously and the result is mapped (uk / ru /
+// be → "uk", else "pl") into the store's initial `locale`. Persist then
+// hydrates from SecureStore — if anything is saved, it replaces the initial
+// value; if not, the OS-derived initial sticks and is persisted on the next
+// setLocale call. This means once a user has been through the app, their
+// locale is fixed in SecureStore and OS-language changes no longer affect
+// the UI — they have to tap the toggle. BLI-277 / BLI-280.
+const initialLocale: LocaleCode = detectLocaleFromLanguageCode(Localization.getLocales()[0]?.languageCode);
+
 export const useLocaleStore = create<LocaleState>()(
   persist(
-    (set, get) => ({
-      locale: "pl",
-      hasUserChosen: false,
-      setLocale: (locale, userInitiated = true) => set({ locale, hasUserChosen: userInitiated || get().hasUserChosen }),
+    (set) => ({
+      locale: initialLocale,
+      setLocale: (locale) => set({ locale }),
     }),
     {
       name: "blisko_locale",
       storage: createJSONStorage(() => secureStoreAdapter),
-      onRehydrateStorage: () => (state) => {
-        // After hydration, if the user has never explicitly chosen, seed from
-        // device locale. Done here (not in a useEffect) because we need access
-        // to the post-hydration value, and a useEffect would race the
-        // hydration on cold start.
-        if (state && !state.hasUserChosen) {
-          const languageCode = Localization.getLocales()[0]?.languageCode;
-          state.locale = detectLocaleFromLanguageCode(languageCode);
-        }
-      },
     },
   ),
 );

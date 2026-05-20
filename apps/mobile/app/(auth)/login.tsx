@@ -107,7 +107,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <SafeAreaView edges={["top"]} style={styles.localeAnchor} pointerEvents="box-none">
-        <LocalePill value={locale} onChange={(next) => setLocale(next, true)} />
+        <LocalePill value={locale} onChange={setLocale} />
       </SafeAreaView>
       <View style={styles.content}>
         <Text style={styles.title}>BLISKO</Text>
