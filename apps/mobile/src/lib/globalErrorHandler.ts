@@ -1,3 +1,4 @@
+import { t } from "@lingui/core/macro";
 import { getRateLimitMessage } from "@/lib/rateLimitMessages";
 import { showToast } from "@/lib/toast";
 
@@ -51,12 +52,12 @@ function handleRateLimitError(error: unknown) {
 
 function handleContentModeration(error: unknown) {
   if (!isContentModerationError(error)) return;
-  showToast("error", "Treść narusza regulamin", undefined, { id: CONTENT_MODERATION_TOAST_ID });
+  showToast("error", t`Treść narusza regulamin`, undefined, { id: CONTENT_MODERATION_TOAST_ID });
 }
 
 function handleRecipientSuspended(error: unknown) {
   if (!isRecipientSuspendedError(error)) return;
-  showToast("error", "Konto odbiorcy zostało zawieszone", undefined, { id: RECIPIENT_SUSPENDED_TOAST_ID });
+  showToast("error", t`Konto odbiorcy zostało zawieszone`, undefined, { id: RECIPIENT_SUSPENDED_TOAST_ID });
 }
 
 // Callable from MutationCache/QueryCache onError AND from vanillaClient .catch()

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { OTP_LENGTH, RESEND_COOLDOWN_SECONDS } from "@repo/shared";
 import { router, useLocalSearchParams } from "expo-router";
 import * as SecureStore from "expo-secure-store";
@@ -10,26 +11,32 @@ import { authClient } from "@/lib/auth";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
-const authErrorMessages: Record<string, string> = {
-  "Too many requests. Please try again later.": "Za dużo prób logowania. Spróbuj ponownie za kilka minut.",
-  ACCOUNT_SUSPENDED:
-    "Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka.",
-  ACCOUNT_DELETED: "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.",
-};
-
-function translateAuthError(message?: string): string {
-  if (!message) return "Wystąpił błąd";
-  if (authErrorMessages[message]) return authErrorMessages[message];
-  try {
-    const parsed = JSON.parse(message);
-    if (parsed.error === "RATE_LIMITED" && parsed.message) return parsed.message;
-  } catch {
-    // Not JSON, use as-is
-  }
-  return message;
+function useTranslateAuthError() {
+  const { t } = useLingui();
+  return (message?: string): string => {
+    if (!message) return t`Wystąpił błąd`;
+    if (message === "Too many requests. Please try again later.") {
+      return t`Za dużo prób logowania. Spróbuj ponownie za kilka minut.`;
+    }
+    if (message === "ACCOUNT_SUSPENDED") {
+      return t`Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka.`;
+    }
+    if (message === "ACCOUNT_DELETED") {
+      return t`Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.`;
+    }
+    try {
+      const parsed = JSON.parse(message);
+      if (parsed.error === "RATE_LIMITED" && parsed.message) return parsed.message;
+    } catch {
+      // Not JSON, use as-is
+    }
+    return message;
+  };
 }
 
 export default function VerifyScreen() {
+  const { t } = useLingui();
+  const translateAuthError = useTranslateAuthError();
   const { email, otp: initialOtp } = useLocalSearchParams<{ email: string; otp?: string }>();
   const [code, setCode] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +50,7 @@ export default function VerifyScreen() {
       const codeToVerify = verifyCode || code.join("");
 
       if (codeToVerify.length !== OTP_LENGTH) {
-        setError("Wpisz 6-cyfrowy kod");
+        setError(t`Wpisz 6-cyfrowy kod`);
         return;
       }
 
@@ -57,7 +64,7 @@ export default function VerifyScreen() {
         });
 
         if (result.error) {
-          setError(translateAuthError(result.error.message) || "Nieprawidłowy kod");
+          setError(translateAuthError(result.error.message) || t`Nieprawidłowy kod`);
           setIsLoading(false);
           return;
         }
@@ -86,16 +93,16 @@ export default function VerifyScreen() {
 
           router.replace("/(tabs)");
         } else {
-          setError("Nieprawidłowa odpowiedź serwera");
+          setError(t`Nieprawidłowa odpowiedź serwera`);
         }
       } catch (err) {
         console.error("Verify error:", err);
-        setError("Nie udało się zweryfikować kodu");
+        setError(t`Nie udało się zweryfikować kodu`);
       }
 
       setIsLoading(false);
     },
-    [code, email, setProfile, setHasCheckedProfile, setUser, setSession],
+    [code, email, setProfile, setHasCheckedProfile, setUser, setSession, t, translateAuthError],
   );
 
   // Auto-verify if OTP came from deep link
@@ -174,7 +181,7 @@ export default function VerifyScreen() {
       });
 
       if (result.error) {
-        setError(translateAuthError(result.error.message) || "Nie udało się wysłać kodu");
+        setError(translateAuthError(result.error.message) || t`Nie udało się wysłać kodu`);
       } else {
         setResendCooldown(RESEND_COOLDOWN_SECONDS);
         // Clear the code inputs
@@ -182,7 +189,7 @@ export default function VerifyScreen() {
         inputRefs.current[0]?.focus();
       }
     } catch (_err) {
-      setError("Nie udało się wysłać kodu");
+      setError(t`Nie udało się wysłać kodu`);
     }
 
     setIsLoading(false);
@@ -194,8 +201,12 @@ export default function VerifyScreen() {
         <View style={styles.iconContainer}>
           <IconSend size={32} color={colors.ink} />
         </View>
-        <Text style={styles.title}>Wpisz kod</Text>
-        <Text style={styles.message}>Wysłaliśmy 6-cyfrowy kod na adres:</Text>
+        <Text style={styles.title}>
+          <Trans>Wpisz kod</Trans>
+        </Text>
+        <Text style={styles.message}>
+          <Trans>Wysłaliśmy 6-cyfrowy kod na adres:</Trans>
+        </Text>
         <Text style={styles.email}>{email}</Text>
 
         <View style={styles.codeContainer}>
@@ -221,18 +232,24 @@ export default function VerifyScreen() {
 
         {error && <Text style={styles.error}>{error}</Text>}
 
-        {isLoading && <Text style={styles.loading}>Weryfikacja...</Text>}
+        {isLoading && (
+          <Text style={styles.loading}>
+            <Trans>Weryfikacja...</Trans>
+          </Text>
+        )}
 
-        <Text style={styles.hint}>Sprawdź folder spam jeśli nie widzisz maila</Text>
+        <Text style={styles.hint}>
+          <Trans>Sprawdź folder spam jeśli nie widzisz maila</Trans>
+        </Text>
 
         <Button
-          title={resendCooldown > 0 ? `Wyślij kod ponownie (${resendCooldown}s)` : "Wyślij kod ponownie"}
+          title={resendCooldown > 0 ? t`Wyślij kod ponownie (${resendCooldown}s)` : t`Wyślij kod ponownie`}
           variant="ghost"
           onPress={handleResend}
           disabled={resendCooldown > 0 || isLoading}
         />
 
-        <Button title="Wróć" variant="ghost" onPress={() => router.back()} />
+        <Button title={t`Wróć`} variant="ghost" onPress={() => router.back()} />
       </View>
     </KeyboardAvoidingView>
   );

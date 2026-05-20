@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { router, Stack } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
@@ -20,33 +21,36 @@ function Bullet({ title, body }: BulletProps) {
 }
 
 export default function QuestionsIntroScreen() {
+  const { t } = useLingui();
   const handleStart = () => {
     router.push("/onboarding/questions");
   };
 
   return (
     <OnboardingScreen
-      footer={<Button testID="questions-intro-start" title="Dalej" variant="accent" onPress={handleStart} />}
+      footer={<Button testID="questions-intro-start" title={t`Dalej`} variant="accent" onPress={handleStart} />}
     >
       <Stack.Screen
         options={{
-          header: () => <OnboardingStepHeader label="Krok 3" onBack={() => router.back()} />,
+          header: () => <OnboardingStepHeader label={t`Krok 3`} onBack={() => router.back()} />,
         }}
       />
-      <Text style={styles.title}>Jak to działa</Text>
+      <Text style={styles.title}>
+        <Trans>Jak to działa</Trans>
+      </Text>
 
       <View style={styles.bullets}>
         <Bullet
-          title="Kilka pytań"
-          body="Zaczniemy od 7 krótkich pytań. Jeśli coś będzie wymagało doprecyzowania, dopytamy maksymalnie o 3 rzeczy."
+          title={t`Kilka pytań`}
+          body={t`Zaczniemy od 7 krótkich pytań. Jeśli coś będzie wymagało doprecyzowania, dopytamy maksymalnie o 3 rzeczy.`}
         />
         <Bullet
-          title="Zrobimy z tego profil"
-          body="Na podstawie Twoich odpowiedzi przygotujemy bio i opis tego, kogo lub czego szukasz. Zobaczysz gotowy tekst i poprawisz, zanim pokażemy go innym."
+          title={t`Zrobimy z tego profil`}
+          body={t`Na podstawie Twoich odpowiedzi przygotujemy bio i opis tego, kogo lub czego szukasz. Zobaczysz gotowy tekst i poprawisz, zanim pokażemy go innym.`}
         />
         <Bullet
-          title="Nie musi być idealnie"
-          body="Odpowiedzi nie muszą być pełnymi zdaniami. Mogą być krótkie, w punktach, nawet pojedyncze słowa — liczy się co napiszesz, nie jak. Pod każdym pytaniem zobaczysz kilka przykładowych odpowiedzi."
+          title={t`Nie musi być idealnie`}
+          body={t`Odpowiedzi nie muszą być pełnymi zdaniami. Mogą być krótkie, w punktach, nawet pojedyncze słowa — liczy się co napiszesz, nie jak. Pod każdym pytaniem zobaczysz kilka przykładowych odpowiedzi.`}
         />
       </View>
     </OnboardingScreen>

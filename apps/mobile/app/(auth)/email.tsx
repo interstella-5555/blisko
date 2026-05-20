@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
@@ -11,27 +12,33 @@ import { colors, fonts, spacing, type as typ } from "@/theme";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
-const authErrorMessages: Record<string, string> = {
-  "Too many requests. Please try again later.": "Za dużo prób logowania. Spróbuj ponownie za kilka minut.",
-  ACCOUNT_SUSPENDED:
-    "Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka.",
-  ACCOUNT_DELETED: "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.",
-};
-
-function translateAuthError(message?: string): string {
-  if (!message) return "Wystąpił błąd";
-  if (authErrorMessages[message]) return authErrorMessages[message];
-  // Try parsing rate limit JSON response from Hono middleware
-  try {
-    const parsed = JSON.parse(message);
-    if (parsed.error === "RATE_LIMITED" && parsed.message) return parsed.message;
-  } catch {
-    // Not JSON, use as-is
-  }
-  return message;
+function useTranslateAuthError() {
+  const { t } = useLingui();
+  return (message?: string): string => {
+    if (!message) return t`Wystąpił błąd`;
+    if (message === "Too many requests. Please try again later.") {
+      return t`Za dużo prób logowania. Spróbuj ponownie za kilka minut.`;
+    }
+    if (message === "ACCOUNT_SUSPENDED") {
+      return t`Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka.`;
+    }
+    if (message === "ACCOUNT_DELETED") {
+      return t`Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni.`;
+    }
+    // Try parsing rate limit JSON response from Hono middleware
+    try {
+      const parsed = JSON.parse(message);
+      if (parsed.error === "RATE_LIMITED" && parsed.message) return parsed.message;
+    } catch {
+      // Not JSON, use as-is
+    }
+    return message;
+  };
 }
 
 export default function EmailLoginScreen() {
+  const { t } = useLingui();
+  const translateAuthError = useTranslateAuthError();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +47,7 @@ export default function EmailLoginScreen() {
   const handleSendMagicLink = async (emailOverride?: string) => {
     const target = (emailOverride || email).trim();
     if (!target) {
-      setError("Podaj adres email");
+      setError(t`Podaj adres email`);
       return;
     }
 
@@ -86,7 +93,7 @@ export default function EmailLoginScreen() {
         router.replace("/(tabs)");
         return;
       } catch (_err) {
-        setError("Dev auto-login failed");
+        setError(t`Dev auto-login failed`);
         setIsLoading(false);
         return;
       }
@@ -109,7 +116,7 @@ export default function EmailLoginScreen() {
         params: { email: target },
       });
     } catch (_err) {
-      setError("Nie udało się wysłać kodu");
+      setError(t`Nie udało się wysłać kodu`);
     }
 
     setIsLoading(false);
@@ -118,8 +125,12 @@ export default function EmailLoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
-        <Text style={styles.title}>Zaloguj się emailem</Text>
-        <Text style={styles.subtitle}>Wyślemy Ci jednorazowy kod weryfikacyjny</Text>
+        <Text style={styles.title}>
+          <Trans>Zaloguj się emailem</Trans>
+        </Text>
+        <Text style={styles.subtitle}>
+          <Trans>Wyślemy Ci jednorazowy kod weryfikacyjny</Trans>
+        </Text>
 
         <View style={styles.form}>
           <Input
@@ -138,7 +149,7 @@ export default function EmailLoginScreen() {
 
           <Button
             testID="send-link-button"
-            title={isLoading ? "Wysyłanie..." : "Wyślij kod"}
+            title={isLoading ? t`Wysyłanie...` : t`Wyślij kod`}
             variant="accent"
             onPress={() => handleSendMagicLink()}
             disabled={isLoading}
@@ -146,7 +157,9 @@ export default function EmailLoginScreen() {
           />
 
           <Pressable onPress={() => router.back()} style={styles.backLink} hitSlop={8}>
-            <Text style={styles.backLinkText}>Spróbuj innej metody logowania</Text>
+            <Text style={styles.backLinkText}>
+              <Trans>Spróbuj innej metody logowania</Trans>
+            </Text>
           </Pressable>
         </View>
       </View>

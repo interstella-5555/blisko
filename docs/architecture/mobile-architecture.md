@@ -24,6 +24,7 @@
 > Updated 2026-04-21 — BLI-253: `TabHeader` extended with `leftAction?: ActionConfig | "back"` (sugar `"back"` resolves to `IconChevronLeft` + `router.back()`). `settings/_layout.tsx` and `(modals)/_layout.tsx` dropped ~40 LOC each of near-duplicate inline header JSX + local StyleSheet and now call `<TabHeader title={options.title ?? ""} leftAction="back" />`. Left icon size 24 / `colors.ink`, right icon size 20 / `colors.muted` are owned by `TabHeader`.
 > Updated 2026-04-22 — BLI-254 avatar pipeline via imgproxy. `profiles.avatarUrl` now holds a source pointer (`s3://${BUCKET_NAME}/uploads/{uuid}.{ext}` for our uploads, OAuth / seed HTTPS URLs pass through). Mobile never reads raw source — `<Avatar>` and `GridClusterMarker`'s single-user branch call `resolveAvatarUri(uri, sizePt)` from `src/lib/avatar.ts`, which composes an imgproxy URL (`https://img.blisko.app/unsafe/rs:fill:N:N/f:webp/plain/{source}`) for `sizePt * PixelRatio.get()` → nearest of `[96, 144, 288, 384, 576]`. Unknown sources (Facebook CDN) fall through raw — see BLI-256. `edit-profile.tsx` now reads `source` from the upload response (previously `url` was a 7-day presigned URL that silently expired). `EXPO_PUBLIC_IMGPROXY_URL` env var required. Full doc: `docs/architecture/images.md`.
 > Updated 2026-04-20 — BLI-214: global tRPC error classification extracted into `src/lib/globalErrorHandler.ts`. Exports `handleGlobalError(err, onAccountDeleted?)`, `isRateLimitError(err)`, `isContentModerationError(err)`. `_layout.tsx` still hosts the account-deleted handler (calls `signOutAndReset`) and passes it in as a callback. Local `onError` / `catch` blocks early-return on `isRateLimitError` so the global localized toast fires exactly once. `messagesStore` vanillaClient catches also call `handleGlobalError` directly — vanilla tRPC client bypasses `MutationCache` so the root interceptor does not see those failures.
+> Updated 2026-05-20 — BLI-280: Lingui v6 wired up for pre-login screens (login, email-OTP, verify, onboarding) + global error/toast strings. `@lingui/babel-plugin-lingui-macro` in `babel.config.js`, `@lingui/metro-transformer/expo` in `metro.config.js`, `<I18nProvider>` wrapped around `<AppGate>`, `useLocaleStore` subscription drives `i18n.activate(locale)`. 97 PL msgids extracted to `src/locales/pl/messages.po`; UA catalog filled via OpenAI batch translator (`bun run mobile:i18n:translate` → `gpt-4o-mini`). CI gate `i18n:check` blocks PRs with missing UA translations. Post-login app + push templates + email templates in follow-up sub-issues (BLI-281, BLI-282). See `docs/architecture/i18n.md`.
 > Updated 2026-05-20 — BLI-277: `localeStore` (device-scoped, SecureStore persist `blisko_locale`). PL/UA toggle on login screen (`LocalePill` in top-right, text-only no flags) and in Settings → Konto → Język. First-launch detection via `expo-localization` — `uk` / `ru` / `be` system locale → UA, everything else → PL. After first tap, `hasUserChosen=true` and OS re-detection never overrides. **Per-device, push-only sync** with `profiles.locale`: AppGate pushes the device's current locale to DB after login (so server can render emails / push), but never pulls. Two phones can legitimately show different languages — DB just reflects whichever device most recently logged in. No translated strings yet — strings ticket is next.
 
 React Native 0.83.4, Expo SDK 55, React 19.2, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
@@ -203,6 +204,14 @@ User's chosen UI language (`"pl"` / `"uk"`). Persisted to SecureStore via Zustan
 **Key methods:** `setLocale(locale, userInitiated?)`. Tracked by BLI-277.
 
 ---
+
+## Internationalization
+
+Pre-login screens (login, email-OTP, verify, onboarding) and global error/toast strings ship in PL + UA via [Lingui v6](https://lingui.dev). `<I18nProvider>` wraps `<AppGate>` in `app/_layout.tsx`; an effect there subscribes to `useLocaleStore` and calls `i18n.activate(locale)` whenever the toggle moves. Initial activate happens at module load inside `src/lib/i18n.ts` so the very first render already has a catalog.
+
+Locale storage / per-device sync rules: see [localeStore](#localestore). PO catalog workflow (extract → translate → CI check) and macro patterns: see [docs/architecture/i18n.md](i18n.md).
+
+Post-login screens, push notification templates, and email templates are still PL-only — covered by BLI-281 and BLI-282.
 
 ## tRPC Client
 

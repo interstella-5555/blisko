@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { ONBOARDING_QUESTIONS } from "@repo/shared";
 import { router, Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -43,6 +44,7 @@ interface FollowUp {
 
 export default function QuestionsScreen() {
   const { setAnswer, addSkipped, setProfilingSessionId } = useOnboardingStore();
+  const { t } = useLingui();
 
   // Current question index (for standard questions)
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -248,7 +250,7 @@ export default function QuestionsScreen() {
       }
     } catch (err) {
       console.error("Failed to submit onboarding:", err);
-      setError("Nie udało się przesłać odpowiedzi. Spróbuj ponownie.");
+      setError(t`Nie udało się przesłać odpowiedzi. Spróbuj ponownie.`);
       setPhase("questions");
     }
   };
@@ -280,7 +282,7 @@ export default function QuestionsScreen() {
       }
     } catch (err) {
       console.error("Failed to answer follow-up:", err);
-      setError("Nie udało się zapisać odpowiedzi. Spróbuj ponownie.");
+      setError(t`Nie udało się zapisać odpowiedzi. Spróbuj ponownie.`);
     }
   };
 
@@ -291,7 +293,7 @@ export default function QuestionsScreen() {
       router.replace("/onboarding/profiling-result");
     } catch (err) {
       console.error("Failed to complete session:", err);
-      setError("Nie udało się wygenerować profilu. Spróbuj ponownie.");
+      setError(t`Nie udało się wygenerować profilu. Spróbuj ponownie.`);
       // Stay in generating phase — show retry button
     }
   };
@@ -301,7 +303,7 @@ export default function QuestionsScreen() {
     return (
       <View style={[styles.container, styles.centered]}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ThinkingIndicator messages={["Analizuję Twoje odpowiedzi…"]} />
+        <ThinkingIndicator messages={[t`Analizuję Twoje odpowiedzi…`]} />
       </View>
     );
   }
@@ -316,7 +318,7 @@ export default function QuestionsScreen() {
             <Text style={styles.error}>{error}</Text>
             <View style={{ marginTop: spacing.column }}>
               <Button
-                title="Spróbuj ponownie"
+                title={t`Spróbuj ponownie`}
                 variant="accent"
                 onPress={() => {
                   setError("");
@@ -326,7 +328,9 @@ export default function QuestionsScreen() {
             </View>
           </View>
         ) : (
-          <ThinkingIndicator messages={["Generuję Twój profil…", "Analizuję Twoje odpowiedzi…", "Jeszcze chwilka…"]} />
+          <ThinkingIndicator
+            messages={[t`Generuję Twój profil…`, t`Analizuję Twoje odpowiedzi…`, t`Jeszcze chwilka…`]}
+          />
         )}
       </View>
     );
@@ -345,9 +349,9 @@ export default function QuestionsScreen() {
             headerShown: true,
             header: () => (
               <OnboardingStepHeader
-                label="Krok 3"
+                label={t`Krok 3`}
                 rightLabel={
-                  remainingCount === 1 ? "Zostało ostatnie pytanie" : `Zostały tylko ${remainingCount} pytania`
+                  remainingCount === 1 ? t`Zostało ostatnie pytanie` : t`Zostały tylko ${remainingCount} pytania`
                 }
               />
             ),
@@ -358,7 +362,7 @@ export default function QuestionsScreen() {
             <>
               {error ? <Text style={styles.error}>{error}</Text> : null}
               <Button
-                title="Dalej"
+                title={t`Dalej`}
                 variant="accent"
                 onPress={handleFollowUpNext}
                 disabled={!followUpText.trim() || answerFollowUp.isPending}
@@ -376,7 +380,7 @@ export default function QuestionsScreen() {
               style={styles.input}
               value={followUpText}
               onChangeText={setFollowUpText}
-              placeholder="Twoja odpowiedź"
+              placeholder={t`Twoja odpowiedź`}
               placeholderTextColor={colors.muted}
               spellCheck={false}
               autoCorrect={false}
@@ -400,9 +404,9 @@ export default function QuestionsScreen() {
           headerShown: true,
           header: () => (
             <OnboardingStepHeader
-              label="Krok 3"
+              label={t`Krok 3`}
               onBack={handleBack}
-              rightLabel={`Pytanie ${questionIndex + 1} / ${totalQuestions}`}
+              rightLabel={t`Pytanie ${questionIndex + 1} / ${totalQuestions}`}
             />
           ),
         }}
@@ -413,11 +417,13 @@ export default function QuestionsScreen() {
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {!currentQuestion.required && (
               <Pressable testID="skip-question-button" onPress={handleSkip} hitSlop={8} style={styles.skipWrap}>
-                <Text style={styles.skipText}>Pomiń pytanie</Text>
+                <Text style={styles.skipText}>
+                  <Trans>Pomiń pytanie</Trans>
+                </Text>
               </Pressable>
             )}
             <Button
-              title="Dalej"
+              title={t`Dalej`}
               variant="accent"
               onPress={handleNext}
               disabled={!currentText.trim() && currentQuestion.required}
@@ -434,7 +440,7 @@ export default function QuestionsScreen() {
             style={styles.input}
             value={currentText}
             onChangeText={setCurrentText}
-            placeholder="Twoja odpowiedź"
+            placeholder={t`Twoja odpowiedź`}
             placeholderTextColor={colors.muted}
             spellCheck={false}
             autoCorrect={false}
@@ -456,7 +462,9 @@ export default function QuestionsScreen() {
               >
                 {currentQuestion.examples.map((ex, i) => (
                   <View key={ex} style={styles.card}>
-                    <Text style={styles.cardPrefix}>Przykład {i + 1}</Text>
+                    <Text style={styles.cardPrefix}>
+                      <Trans>Przykład {i + 1}</Trans>
+                    </Text>
                     <Text style={styles.cardText}>{ex}</Text>
                   </View>
                 ))}

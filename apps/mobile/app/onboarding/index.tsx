@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
@@ -17,6 +18,7 @@ export default function OnboardingNameScreen() {
   const { displayName, setDisplayName } = useOnboardingStore();
   const [name, setName] = useState(displayName || user?.name || "");
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const { t } = useLingui();
 
   const canProceed = name.trim().length >= 2 && ageConfirmed;
 
@@ -28,16 +30,22 @@ export default function OnboardingNameScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.keyboardWrap} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-      <Stack.Screen options={{ header: () => <OnboardingStepHeader label="Krok 1" onLogout={signOutAndReset} /> }} />
-      <OnboardingScreen footer={<Button title="Dalej" variant="accent" onPress={handleNext} disabled={!canProceed} />}>
-        <Text style={styles.title}>Jak masz na imię?</Text>
-        <Text style={styles.subtitle}>Twoje imię będzie widoczne publicznie</Text>
+      <Stack.Screen options={{ header: () => <OnboardingStepHeader label={t`Krok 1`} onLogout={signOutAndReset} /> }} />
+      <OnboardingScreen
+        footer={<Button title={t`Dalej`} variant="accent" onPress={handleNext} disabled={!canProceed} />}
+      >
+        <Text style={styles.title}>
+          <Trans>Jak masz na imię?</Trans>
+        </Text>
+        <Text style={styles.subtitle}>
+          <Trans>Twoje imię będzie widoczne publicznie</Trans>
+        </Text>
 
         <Input
           testID="name-input"
           value={name}
           onChangeText={setName}
-          placeholder="Twoje imię"
+          placeholder={t`Twoje imię`}
           autoCapitalize="words"
           autoFocus
           maxLength={30}
@@ -45,7 +53,9 @@ export default function OnboardingNameScreen() {
 
         <View style={styles.ageRow}>
           <Toggle testID="age-confirm-toggle" value={ageConfirmed} onValueChange={setAgeConfirmed} />
-          <Text style={styles.ageLabel}>Potwierdzam, że mam ukończone 18 lat</Text>
+          <Text style={styles.ageLabel}>
+            <Trans>Potwierdzam, że mam ukończone 18 lat</Trans>
+          </Text>
         </View>
       </OnboardingScreen>
     </KeyboardAvoidingView>
