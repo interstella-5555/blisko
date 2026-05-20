@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { isOAuthProviderEnabled, type LocaleCode, OTP_LENGTH } from "@repo/shared";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -126,6 +127,7 @@ function ConnectedAccountRow({
   onDisconnect: () => void;
   disconnecting: boolean;
 }) {
+  const { t } = useLingui();
   const { label, Icon } = providerConfig[provider];
   const hasUsername = provider === "facebook" || provider === "linkedin";
 
@@ -139,19 +141,25 @@ function ConnectedAccountRow({
         {connected ? (
           <View style={styles.connectedBadge}>
             <CheckIcon />
-            <Text style={styles.connectedText}>{hasUsername && username ? `@${username}` : "Połączono"}</Text>
+            <Text style={styles.connectedText}>{hasUsername && username ? `@${username}` : t`Połączono`}</Text>
           </View>
         ) : (
-          <Text style={styles.providerStatus}>Nie połączono</Text>
+          <Text style={styles.providerStatus}>
+            <Trans>Nie połączono</Trans>
+          </Text>
         )}
       </View>
       {connected ? (
         <Pressable onPress={onDisconnect} disabled={disconnecting} hitSlop={8}>
-          <Text style={styles.disconnectText}>ODŁĄCZ</Text>
+          <Text style={styles.disconnectText}>
+            <Trans>ODŁĄCZ</Trans>
+          </Text>
         </Pressable>
       ) : (
         <Pressable style={styles.connectButton} onPress={onConnect}>
-          <Text style={styles.connectText}>POŁĄCZ</Text>
+          <Text style={styles.connectText}>
+            <Trans>POŁĄCZ</Trans>
+          </Text>
         </Pressable>
       )}
     </View>
@@ -159,6 +167,7 @@ function ConnectedAccountRow({
 }
 
 export default function AccountScreen() {
+  const { t } = useLingui();
   const user = useAuthStore((state) => state.user);
 
   const [isDeleting, setIsDeleting] = useState(false);
@@ -176,11 +185,11 @@ export default function AccountScreen() {
 
   const requestExport = trpc.accounts.requestDataExport.useMutation({
     onSuccess: () => {
-      showToast("success", "Eksport danych", "Eksport został zlecony. Sprawdź swój e-mail.");
+      showToast("success", t`Eksport danych`, t`Eksport został zlecony. Sprawdź swój e-mail.`);
     },
     onError: (err) => {
       if (isRateLimitError(err)) return; // global handler shows localized toast
-      showToast("error", "Błąd", "Nie udało się zlecić eksportu. Spróbuj ponownie.");
+      showToast("error", t`Błąd`, t`Nie udało się zlecić eksportu. Spróbuj ponownie.`);
     },
   });
 
@@ -189,7 +198,7 @@ export default function AccountScreen() {
   const updateLocale = trpc.profiles.updateLocale.useMutation({
     onError: (err) => {
       if (isRateLimitError(err)) return;
-      showToast("error", "Błąd", "Nie udało się zapisać języka.");
+      showToast("error", t`Błąd`, t`Nie udało się zapisać języka.`);
     },
   });
 
@@ -200,12 +209,12 @@ export default function AccountScreen() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      "Usuń konto",
-      "Czy na pewno chcesz usunąć swoje konto? Twoje dane zostaną trwale usunięte w ciągu 14 dni.",
+      t`Usuń konto`,
+      t`Czy na pewno chcesz usunąć swoje konto? Twoje dane zostaną trwale usunięte w ciągu 14 dni.`,
       [
-        { text: "Anuluj", style: "cancel" },
+        { text: t`Anuluj`, style: "cancel" },
         {
-          text: "Kontynuuj",
+          text: t`Kontynuuj`,
           style: "destructive",
           onPress: async () => {
             setIsDeleting(true);
@@ -216,7 +225,7 @@ export default function AccountScreen() {
               });
               setOtpStep(true);
             } catch {
-              Alert.alert("Błąd", "Nie udało się wysłać kodu weryfikacyjnego.");
+              Alert.alert(t`Błąd`, t`Nie udało się wysłać kodu weryfikacyjnego.`);
             }
             setIsDeleting(false);
           },
@@ -232,30 +241,40 @@ export default function AccountScreen() {
       await requestDeletion.mutateAsync({ otp });
       await signOutAndReset();
     } catch {
-      Alert.alert("Błąd", "Nieprawidłowy kod. Spróbuj ponownie.");
+      Alert.alert(t`Błąd`, t`Nieprawidłowy kod. Spróbuj ponownie.`);
     }
     setOtpLoading(false);
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.sectionLabel}>EMAIL</Text>
+      <Text style={styles.sectionLabel}>
+        <Trans>EMAIL</Trans>
+      </Text>
       <View style={styles.emailRow}>
         <Text style={styles.emailText}>{user?.email}</Text>
         <Pressable onPress={() => router.push("/settings/change-email" as never)} hitSlop={8}>
-          <Text style={styles.changeEmailText}>ZMIEŃ</Text>
+          <Text style={styles.changeEmailText}>
+            <Trans>ZMIEŃ</Trans>
+          </Text>
         </Pressable>
       </View>
 
       <View style={styles.divider} />
-      <Text style={styles.sectionLabel}>JĘZYK</Text>
+      <Text style={styles.sectionLabel}>
+        <Trans>JĘZYK</Trans>
+      </Text>
       <View style={styles.localeRow}>
-        <Text style={styles.localeDescription}>Język interfejsu aplikacji.</Text>
+        <Text style={styles.localeDescription}>
+          <Trans>Język interfejsu aplikacji.</Trans>
+        </Text>
         <LocalePill value={locale} onChange={handleLocaleChange} />
       </View>
 
       <View style={styles.divider} />
-      <Text style={styles.sectionLabel}>POŁĄCZONE KONTA</Text>
+      <Text style={styles.sectionLabel}>
+        <Trans>POŁĄCZONE KONTA</Trans>
+      </Text>
 
       {connectedAccounts.isLoading ? (
         <ActivityIndicator color={colors.muted} style={{ marginVertical: spacing.gutter }} />
@@ -281,22 +300,33 @@ export default function AccountScreen() {
       )}
 
       <View style={styles.divider} />
-      <Text style={styles.sectionLabel}>EKSPORT DANYCH</Text>
+      <Text style={styles.sectionLabel}>
+        <Trans>EKSPORT DANYCH</Trans>
+      </Text>
       <Text style={styles.exportDescription}>
-        Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania zostanie wysłany na Twój adres e-mail.
+        <Trans>
+          Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania zostanie wysłany na Twój adres
+          e-mail.
+        </Trans>
       </Text>
       <Pressable style={styles.exportButton} onPress={() => requestExport.mutate()} disabled={requestExport.isPending}>
         {requestExport.isPending ? (
           <ActivityIndicator color={colors.ink} size="small" />
         ) : (
-          <Text style={styles.exportButtonText}>POBIERZ MOJE DANE</Text>
+          <Text style={styles.exportButtonText}>
+            <Trans>POBIERZ MOJE DANE</Trans>
+          </Text>
         )}
       </Pressable>
 
       {otpStep ? (
         <View style={styles.deleteSection}>
-          <Text style={styles.deleteText}>Wpisz kod weryfikacyjny</Text>
-          <Text style={styles.deleteDescription}>Wysłaliśmy 6-cyfrowy kod na {user?.email}</Text>
+          <Text style={styles.deleteText}>
+            <Trans>Wpisz kod weryfikacyjny</Trans>
+          </Text>
+          <Text style={styles.deleteDescription}>
+            <Trans>Wysłaliśmy 6-cyfrowy kod na {user?.email}</Trans>
+          </Text>
           <TextInput
             style={styles.otpInput}
             value={otp}
@@ -314,7 +344,9 @@ export default function AccountScreen() {
             {otpLoading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.confirmDeleteText}>Usuń konto</Text>
+              <Text style={styles.confirmDeleteText}>
+                <Trans>Usuń konto</Trans>
+              </Text>
             )}
           </Pressable>
         </View>
@@ -324,9 +356,11 @@ export default function AccountScreen() {
             <ActivityIndicator color={colors.muted} size="small" />
           ) : (
             <>
-              <Text style={styles.deleteText}>Usuń konto</Text>
+              <Text style={styles.deleteText}>
+                <Trans>Usuń konto</Trans>
+              </Text>
               <Text style={styles.deleteDescription}>
-                Trwale usuwa Twoje konto, profil i wszystkie dane. Proces trwa do 14 dni.
+                <Trans>Trwale usuwa Twoje konto, profil i wszystkie dane. Proces trwa do 14 dni.</Trans>
               </Text>
             </>
           )}

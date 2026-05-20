@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -11,6 +12,7 @@ import { useOnboardingStore } from "@/stores/onboardingStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function ProfilingResultModal() {
+  const { t } = useLingui();
   const { profilingSessionId } = useOnboardingStore();
   const profile = useAuthStore((s) => s.profile);
   const setProfile = useAuthStore((s) => s.setProfile);
@@ -81,7 +83,7 @@ export default function ProfilingResultModal() {
       router.dismiss();
     } catch (err) {
       console.error("Failed to apply profile:", err);
-      setError("Nie udało się zapisać profilu. Spróbuj ponownie.");
+      setError(t`Nie udało się zapisać profilu. Spróbuj ponownie.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +94,7 @@ export default function ProfilingResultModal() {
     return (
       <View style={[styles.container, styles.centered]}>
         <ThinkingIndicator
-          messages={["Generuję Twój profil...", "Analizuję Twoje odpowiedzi...", "Jeszcze chwilka..."]}
+          messages={[t`Generuję Twój profil...`, t`Analizuję Twoje odpowiedzi...`, t`Jeszcze chwilka...`]}
         />
       </View>
     );
@@ -104,10 +106,16 @@ export default function ProfilingResultModal() {
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title}>Nowy profil</Text>
-      <Text style={styles.subtitle}>Możesz edytować tekst przed zapisaniem</Text>
+      <Text style={styles.title}>
+        <Trans>Nowy profil</Trans>
+      </Text>
+      <Text style={styles.subtitle}>
+        <Trans>Możesz edytować tekst przed zapisaniem</Trans>
+      </Text>
 
-      <Text style={styles.label}>O MNIE</Text>
+      <Text style={styles.label}>
+        <Trans>O MNIE</Trans>
+      </Text>
       <TextInput
         style={styles.input}
         value={bio}
@@ -120,7 +128,9 @@ export default function ProfilingResultModal() {
       />
       <Text style={styles.charCount}>{bio.length} / 500</Text>
 
-      <Text style={styles.label}>KOGO SZUKAM</Text>
+      <Text style={styles.label}>
+        <Trans>KOGO SZUKAM</Trans>
+      </Text>
       <TextInput
         style={styles.input}
         value={lookingFor}
@@ -137,7 +147,7 @@ export default function ProfilingResultModal() {
 
       <View style={styles.buttonContainer}>
         <Button
-          title="Zapisz"
+          title={t`Zapisz`}
           variant="accent"
           onPress={handleApply}
           disabled={isSubmitting || bio.trim().length < 10 || lookingFor.trim().length < 10}

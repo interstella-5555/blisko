@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useEffect } from "react";
 import { Text, View } from "react-native";
 import { SplashHold } from "@/components/ui/SplashHold";
@@ -74,10 +75,10 @@ export function AppGate({ children }: { children: React.ReactNode }) {
         style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: colors.bg }}
       >
         <Text style={{ ...typ.body, color: colors.muted, marginBottom: 16, textAlign: "center" }}>
-          Nie udało się połączyć z serwerem
+          <Trans>Nie udało się połączyć z serwerem</Trans>
         </Text>
         <Text style={{ ...typ.body, color: colors.accent }} onPress={() => refetch()}>
-          Spróbuj ponownie
+          <Trans>Spróbuj ponownie</Trans>
         </Text>
         {requestId && (
           <Text selectable style={{ ...typ.caption, color: colors.muted, marginTop: 12 }}>

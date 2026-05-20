@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useIsGhost } from "@/hooks/useIsGhost";
@@ -19,7 +20,7 @@ interface ConversationRowProps {
   onLongPress?: () => void;
 }
 
-function formatRelativeTime(dateString: string): string {
+function formatRelativeTime(dateString: string, nowLabel: string): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -27,7 +28,7 @@ function formatRelativeTime(dateString: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return "teraz";
+  if (diffMins < 1) return nowLabel;
   if (diffMins < 60) return `${diffMins} min`;
   if (diffHours < 24) return `${diffHours} godz.`;
   if (diffDays < 7) return `${diffDays} d.`;
@@ -46,13 +47,14 @@ export function ConversationRow({
   onPress,
   onLongPress,
 }: ConversationRowProps) {
+  const { t } = useLingui();
   const isGhost = useIsGhost();
   const isGroup = type === "group";
 
   // For groups, build preview with sender name prefix
   let previewText: React.ReactNode;
   if (!lastMessage) {
-    previewText = isGroup ? "Brak wiadomości" : "Rozpocznij rozmowę";
+    previewText = isGroup ? t`Brak wiadomości` : t`Rozpocznij rozmowę`;
   } else if (isGroup && lastMessageSenderName) {
     previewText = (
       <Text numberOfLines={1}>
@@ -74,7 +76,7 @@ export function ConversationRow({
           </Text>
           <View style={styles.timeRow}>
             {muted && <IconBellOff size={12} color={colors.muted} />}
-            {lastMessageTime && <Text style={styles.time}>{formatRelativeTime(lastMessageTime)}</Text>}
+            {lastMessageTime && <Text style={styles.time}>{formatRelativeTime(lastMessageTime, t`teraz`)}</Text>}
           </View>
         </View>
         <View style={styles.bottomLine}>

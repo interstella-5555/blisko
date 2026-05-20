@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -53,6 +54,7 @@ export default function ChatScreen() {
     id: string;
     topicId?: string;
   }>();
+  const { t } = useLingui();
   const userId = useAuthStore((state) => state.user?.id);
   const isGhost = useIsGhost();
   const flatListRef = useRef<FlatList>(null);
@@ -81,8 +83,8 @@ export default function ChatScreen() {
   const storeConversation = useConversationsStore((s) => s.conversations.find((c) => c.id === conversationId));
   const isGroup = storeConversation?.type === "group";
   const participantName = isGroup
-    ? (storeConversation?.groupName ?? "Grupa")
-    : (storeConversation?.participant?.displayName ?? "Czat");
+    ? (storeConversation?.groupName ?? t`Grupa`)
+    : (storeConversation?.participant?.displayName ?? t`Czat`);
 
   const isMuted = storeConversation?.mutedUntil != null && new Date(storeConversation.mutedUntil) > new Date();
 
@@ -219,14 +221,14 @@ export default function ChatScreen() {
     const asset = result.assets[0];
     try {
       const { source } = await uploadImage(asset);
-      useMessagesStore.getState().send(conversationId, "[Zdjęcie]", {
+      useMessagesStore.getState().send(conversationId, t`[Zdjęcie]`, {
         userId,
         type: "image",
         metadata: { imageUrl: source, width: asset.width, height: asset.height },
       });
     } catch (error) {
       if (showModerationToastIfApplicable(error)) return;
-      Alert.alert("Błąd", "Nie udało się wysłać zdjęcia");
+      Alert.alert(t`Błąd`, t`Nie udało się wysłać zdjęcia`);
     }
   };
 
@@ -235,18 +237,18 @@ export default function ChatScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Brak uprawnień", "Pozwól na dostęp do lokalizacji w ustawieniach.");
+        Alert.alert(t`Brak uprawnień`, t`Pozwól na dostęp do lokalizacji w ustawieniach.`);
         return;
       }
 
       const location = await Location.getCurrentPositionAsync({});
-      useMessagesStore.getState().send(conversationId, "Moja lokalizacja", {
+      useMessagesStore.getState().send(conversationId, t`Moja lokalizacja`, {
         userId,
         type: "location",
         metadata: { latitude: location.coords.latitude, longitude: location.coords.longitude },
       });
     } catch {
-      Alert.alert("Błąd", "Nie udało się pobrać lokalizacji");
+      Alert.alert(t`Błąd`, t`Nie udało się pobrać lokalizacji`);
     }
   };
 
@@ -255,9 +257,9 @@ export default function ChatScreen() {
     if (!isGroup) return [];
     return typingUserIds.map((uid) => {
       const profile = useProfilesStore.getState().get(uid);
-      return profile?.displayName ?? "Ktoś";
+      return profile?.displayName ?? t`Ktoś`;
     });
-  }, [isGroup, typingUserIds]);
+  }, [isGroup, typingUserIds, t]);
 
   const headerAvatarUrl = isGroup ? storeConversation?.groupAvatarUrl : storeConversation?.participant?.avatarUrl;
 
@@ -295,7 +297,9 @@ export default function ChatScreen() {
                       {participantName}
                     </Text>
                     {isGroup && storeConversation?.memberCount != null && (
-                      <Text style={styles.headerSubtitle}>{storeConversation.memberCount} członków</Text>
+                      <Text style={styles.headerSubtitle}>
+                        <Trans>{storeConversation.memberCount} członków</Trans>
+                      </Text>
                     )}
                   </View>
                 </Pressable>
@@ -320,7 +324,7 @@ export default function ChatScreen() {
               month: "long",
             })}
             {storeConversation.metadata.connectedDistance != null &&
-              ` · ~${storeConversation.metadata.connectedDistance}m od siebie`}
+              t` · ~${String(storeConversation.metadata.connectedDistance)}m od siebie`}
           </Text>
           {(typeof storeConversation.metadata.senderStatus === "string" ||
             typeof storeConversation.metadata.recipientStatus === "string") &&
@@ -347,7 +351,9 @@ export default function ChatScreen() {
                   )}
                   {typeof myStatus === "string" && (
                     <View style={styles.snapshotRowMine}>
-                      <Text style={styles.snapshotLabel}>Ty</Text>
+                      <Text style={styles.snapshotLabel}>
+                        <Trans>Ty</Trans>
+                      </Text>
                       <View style={styles.snapshotPillMine}>
                         <Text style={styles.snapshotPillMineText}>{myStatus}</Text>
                       </View>
@@ -374,7 +380,7 @@ export default function ChatScreen() {
             ? (item.senderAvatarUrl ?? undefined)
             : (storeConversation?.participant?.avatarUrl ?? undefined);
 
-          const senderName = isGroup ? (item.senderName ?? "Użytkownik") : participantName;
+          const senderName = isGroup ? (item.senderName ?? t`Użytkownik`) : participantName;
           const showSenderLabel = isGroup && !isMine && (position === "first" || position === "solo");
           const above = allMessages[index + 1];
           const senderSwitch = above && above.senderId !== item.senderId;
@@ -465,7 +471,9 @@ export default function ChatScreen() {
               }}
               style={styles.errorContainer}
             >
-              <Text style={styles.errorText}>Nie udało się załadować. Dotknij, aby spróbować ponownie.</Text>
+              <Text style={styles.errorText}>
+                <Trans>Nie udało się załadować. Dotknij, aby spróbować ponownie.</Trans>
+              </Text>
             </Pressable>
           ) : isLoading || (!cacheStatus && allMessages.length === 0) ? (
             <ActivityIndicator size="large" color={colors.ink} />
@@ -477,7 +485,7 @@ export default function ChatScreen() {
         {someoneTyping && (
           <View style={styles.typingBar}>
             <Text style={styles.typingText}>
-              {isGroup && typingDisplayNames.length > 0 ? `${typingDisplayNames.join(", ")} pisze...` : "pisze..."}
+              {isGroup && typingDisplayNames.length > 0 ? t`${typingDisplayNames.join(", ")} pisze...` : t`pisze...`}
             </Text>
           </View>
         )}
@@ -490,7 +498,7 @@ export default function ChatScreen() {
             replyingTo={replyingTo}
             onCancelReply={() => setReplyingTo(null)}
             onTyping={() => sendTyping(true)}
-            disabledReason={!isGroup && storeConversation?.participant?.isSuspended ? "Konto zawieszone" : null}
+            disabledReason={!isGroup && storeConversation?.participant?.isSuspended ? t`Konto zawieszone` : null}
           />
         </View>
       </KeyboardStickyView>
@@ -505,7 +513,7 @@ export default function ChatScreen() {
           onReply={() => {
             const msg = allMessages.find((m) => m.id === contextMenu.messageId);
             if (msg) {
-              const name = isGroup ? (msg.senderName ?? "Użytkownik") : participantName;
+              const name = isGroup ? (msg.senderName ?? t`Użytkownik`) : participantName;
               setReplyingTo({ id: msg.id, content: msg.content, senderName: name });
             }
           }}
@@ -513,14 +521,14 @@ export default function ChatScreen() {
             const msg = allMessages.find((m) => m.id === contextMenu.messageId);
             if (msg) {
               const { setStringAsync } = await import("expo-clipboard");
-              setStringAsync(msg.type === "image" ? "[Zdjęcie]" : msg.content);
+              setStringAsync(msg.type === "image" ? t`[Zdjęcie]` : msg.content);
             }
           }}
           onDelete={() => {
-            Alert.alert("Usuń wiadomość", "Czy na pewno chcesz usunąć tę wiadomość?", [
-              { text: "Anuluj", style: "cancel" },
+            Alert.alert(t`Usuń wiadomość`, t`Czy na pewno chcesz usunąć tę wiadomość?`, [
+              { text: t`Anuluj`, style: "cancel" },
               {
-                text: "Usuń",
+                text: t`Usuń`,
                 style: "destructive",
                 onPress: () => useMessagesStore.getState().deleteMessage(conversationId!, contextMenu.messageId),
               },

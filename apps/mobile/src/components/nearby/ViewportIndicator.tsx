@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "@/theme";
 
@@ -9,19 +10,22 @@ interface ViewportIndicatorProps {
 }
 
 export function ViewportIndicator({ viewportCount, totalCount, showAll, onToggle }: ViewportIndicatorProps) {
+  const { t } = useLingui();
   if (totalCount === 0) return null;
 
   return (
     <View style={[styles.container, showAll && styles.containerShowAll]}>
       <Text style={[styles.text, showAll && styles.textShowAll]}>
-        Pokazujesz{" "}
-        <Text style={[styles.bold, showAll && styles.boldShowAll]}>
-          {showAll ? `wszystkich ${totalCount}` : `${viewportCount} z ${totalCount}`}
-        </Text>{" "}
-        osób w okolicy
+        <Trans>
+          Pokazujesz{" "}
+          <Text style={[styles.bold, showAll && styles.boldShowAll]}>
+            {showAll ? `wszystkich ${totalCount}` : `${viewportCount} z ${totalCount}`}
+          </Text>{" "}
+          osób w okolicy
+        </Trans>
       </Text>
       <Pressable onPress={onToggle} hitSlop={8}>
-        <Text style={styles.btn}>{showAll ? "Wróć do widoku mapy" : "Pokaż wszystkich"}</Text>
+        <Text style={styles.btn}>{showAll ? t`Wróć do widoku mapy` : t`Pokaż wszystkich`}</Text>
       </Pressable>
     </View>
   );

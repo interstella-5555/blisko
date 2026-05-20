@@ -1,3 +1,5 @@
+import { t } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
@@ -14,26 +16,26 @@ import { colors, fonts, spacing, type as typ } from "@/theme";
 
 type FilterType = "all" | "unread" | "pings";
 
-const FILTER_PILLS: { key: FilterType; label: string }[] = [
-  { key: "all", label: "Rozmowy" },
-  { key: "pings", label: "Pingi" },
-  { key: "unread", label: "Nieprzeczytane" },
-];
-
 function formatTimeAgo(dateString: string): string {
   const diffMs = Date.now() - new Date(dateString).getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return "teraz";
-  if (diffMins < 60) return `${diffMins} min temu`;
-  if (diffHours < 24) return `${diffHours} godz. temu`;
-  if (diffDays < 7) return `${diffDays} dni temu`;
+  if (diffMins < 1) return t`teraz`;
+  if (diffMins < 60) return t`${diffMins} min temu`;
+  if (diffHours < 24) return t`${diffHours} godz. temu`;
+  if (diffDays < 7) return t`${diffDays} dni temu`;
   return new Date(dateString).toLocaleDateString("pl-PL");
 }
 
 export default function ChatsScreen() {
+  const { t } = useLingui();
+  const FILTER_PILLS: { key: FilterType; label: string }[] = [
+    { key: "all", label: t`Rozmowy` },
+    { key: "pings", label: t`Pingi` },
+    { key: "unread", label: t`Nieprzeczytane` },
+  ];
   const router = useRouter();
   const isGhost = useIsGhost();
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
@@ -58,17 +60,17 @@ export default function ChatsScreen() {
   });
 
   const handleDeleteChat = (conversationId: string) => {
-    Alert.alert("Jak było?", "Oceń rozmowę przed usunięciem", [
+    Alert.alert(t`Jak było?`, t`Oceń rozmowę przed usunięciem`, [
       ...[1, 2, 3, 4, 5].map((n) => ({
         text: "★".repeat(n),
         onPress: () => deleteConversation.mutate({ conversationId, rating: n }),
       })),
       {
-        text: "Pomiń i usuń",
+        text: t`Pomiń i usuń`,
         style: "destructive" as const,
         onPress: () => deleteConversation.mutate({ conversationId }),
       },
-      { text: "Anuluj", style: "cancel" as const },
+      { text: t`Anuluj`, style: "cancel" as const },
     ]);
   };
 
@@ -187,8 +189,12 @@ export default function ChatsScreen() {
         ) : (
           <View style={styles.emptyPings}>
             <SonarDot size={14} color={colors.muted} />
-            <Text style={styles.emptyTitle}>Brak pingów</Text>
-            <Text style={styles.emptyText}>Kiedy ktoś Cię pingnie, pojawi się tutaj</Text>
+            <Text style={styles.emptyTitle}>
+              <Trans>Brak pingów</Trans>
+            </Text>
+            <Text style={styles.emptyText}>
+              <Trans>Kiedy ktoś Cię pingnie, pojawi się tutaj</Trans>
+            </Text>
           </View>
         )
       ) : showUnread ? (
@@ -206,7 +212,7 @@ export default function ChatsScreen() {
                 type={item.data.type}
                 displayName={
                   item.data.type === "group"
-                    ? (item.data.groupName ?? "Grupa")
+                    ? (item.data.groupName ?? t`Grupa`)
                     : (item.data.participant?.displayName ?? "")
                 }
                 avatarUrl={
@@ -227,8 +233,12 @@ export default function ChatsScreen() {
             isLoading && !hydrated ? null : (
               <View style={styles.empty} testID="chats-empty-unread">
                 <IconChat size={48} color={colors.muted} />
-                <Text style={styles.emptyTitle}>Wszystko ogarnięte</Text>
-                <Text style={styles.emptyText}>Żadnych pingów ani nieprzeczytanych wiadomości</Text>
+                <Text style={styles.emptyTitle}>
+                  <Trans>Wszystko ogarnięte</Trans>
+                </Text>
+                <Text style={styles.emptyText}>
+                  <Trans>Żadnych pingów ani nieprzeczytanych wiadomości</Trans>
+                </Text>
               </View>
             )
           }
@@ -246,7 +256,7 @@ export default function ChatsScreen() {
           renderItem={({ item }) => (
             <ConversationRow
               type={item.type}
-              displayName={item.type === "group" ? (item.groupName ?? "Grupa") : (item.participant?.displayName ?? "")}
+              displayName={item.type === "group" ? (item.groupName ?? t`Grupa`) : (item.participant?.displayName ?? "")}
               avatarUrl={item.type === "group" ? item.groupAvatarUrl : (item.participant?.avatarUrl ?? null)}
               lastMessage={item.lastMessage?.content ?? null}
               lastMessageSenderName={item.lastMessage?.senderName ?? null}
@@ -262,8 +272,12 @@ export default function ChatsScreen() {
             isLoading && !hydrated ? null : (
               <View style={styles.empty} testID="chats-empty">
                 <IconChat size={48} color={colors.muted} />
-                <Text style={styles.emptyTitle}>Brak czatów</Text>
-                <Text style={styles.emptyText}>Zacznij rozmowę odpowiadając na ping</Text>
+                <Text style={styles.emptyTitle}>
+                  <Trans>Brak czatów</Trans>
+                </Text>
+                <Text style={styles.emptyText}>
+                  <Trans>Zacznij rozmowę odpowiadając na ping</Trans>
+                </Text>
               </View>
             )
           }
@@ -276,11 +290,14 @@ export default function ChatsScreen() {
   );
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  accepted: "Zaakceptowane",
-  declined: "Odrzucone",
-  expired: "Wygasł",
-};
+function getStatusLabel(status: string): string | undefined {
+  const map: Record<string, string> = {
+    accepted: t`Zaakceptowane`,
+    declined: t`Odrzucone`,
+    expired: t`Wygasł`,
+  };
+  return map[status];
+}
 
 function renderPingRow(
   item: {
@@ -292,7 +309,7 @@ function renderPingRow(
   onPress: (item: never) => void,
 ) {
   const isPending = item.wave.status === "pending";
-  const statusLabel = !isPending ? STATUS_LABEL[item.wave.status] : null;
+  const statusLabel = !isPending ? getStatusLabel(item.wave.status) : null;
   return (
     <Pressable style={styles.pingRow} onPress={() => onPress(item as never)}>
       <Avatar uri={item.fromProfile.avatarUrl} name={item.fromProfile.displayName} size={48} blurred={isGhost} />

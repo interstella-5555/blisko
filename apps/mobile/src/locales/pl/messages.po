@@ -13,15 +13,138 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. placeholder {0}: String(storeConversation.metadata.connectedDistance)
+#: app/chat/[id].tsx
+msgid " · ~{0}m od siebie"
+msgstr " · ~{0}m od siebie"
+
+#: app/(modals)/group/[id].tsx
+#: app/(modals)/group/members/[id].tsx
+msgid " (Ty)"
+msgstr " (Ty)"
+
+#: app/settings/edit-profile.tsx
+msgid "\"Kogo szukam\" musi mieć co najmniej 10 znaków"
+msgstr "\"Kogo szukam\" musi mieć co najmniej 10 znaków"
+
+#: app/chat/[id].tsx
+msgid "[Zdjęcie]"
+msgstr "[Zdjęcie]"
+
+#. placeholder {0}: groupInfo.memberCount
+#. placeholder {0}: storeConversation.memberCount
+#: app/(modals)/group/[id].tsx
+#: app/chat/[id].tsx
+msgid "{0} członków"
+msgstr "{0} członków"
+
+#. placeholder {0}: typingDisplayNames.join(", ")
+#: app/chat/[id].tsx
+msgid "{0} pisze..."
+msgstr "{0} pisze..."
+
+#. placeholder {0}: topic.messageCount
+#: app/(modals)/group/[id].tsx
+msgid "{0} wiadomości"
+msgstr "{0} wiadomości"
+
+#: app/(tabs)/chats.tsx
+msgid "{diffDays} dni temu"
+msgstr "{diffDays} dni temu"
+
+#: app/(tabs)/chats.tsx
+msgid "{diffHours} godz. temu"
+msgstr "{diffHours} godz. temu"
+
+#: app/(tabs)/chats.tsx
+msgid "{diffMins} min temu"
+msgstr "{diffMins} min temu"
+
+#: app/(modals)/user/[userId].tsx
+msgid "{matchPercent}% dopasowania"
+msgstr "{matchPercent}% dopasowania"
+
+#: app/(modals)/group/[id].tsx
+msgid "+ Nowy wątek"
+msgstr "+ Nowy wątek"
+
+#: app/(tabs)/index.tsx
+#: app/(tabs)/profile.tsx
+msgid "+ Ustaw status na teraz"
+msgstr "+ Ustaw status na teraz"
+
+#: app/(tabs)/index.tsx
+msgid "+ UTWÓRZ"
+msgstr "+ UTWÓRZ"
+
+#: app/mute-conversation.tsx
+msgid "1 godzinę"
+msgstr "1 godzinę"
+
+#. placeholder {0}: nearbyData.totalNearby
+#: app/(modals)/group/[id].tsx
+msgid "20 najbliższych z {0}"
+msgstr "20 najbliższych z {0}"
+
+#: app/mute-conversation.tsx
+msgid "8 godzin"
+msgstr "8 godzin"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Aby pingować musisz być widoczny"
+msgstr "Aby pingować musisz być widoczny"
+
+#: app/(modals)/group/[id].tsx
+#: app/(modals)/group/members/[id].tsx
+msgid "Admin"
+msgstr "Admin"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Akceptuj"
+msgstr "Akceptuj"
+
+#: app/(tabs)/profile.tsx
+msgid "aktywny dopóki go nie zmienisz"
+msgstr "aktywny dopóki go nie zmienisz"
+
 #: app/onboarding/profiling-result.tsx
+#: app/settings/profiling-result.tsx
+#: app/settings/profiling.tsx
 msgid "Analizuję Twoje odpowiedzi..."
 msgstr "Analizuję Twoje odpowiedzi..."
 
 #: app/onboarding/questions.tsx
+#: src/components/ui/ThinkingIndicator.tsx
 msgid "Analizuję Twoje odpowiedzi…"
 msgstr "Analizuję Twoje odpowiedzi…"
 
+#: app/(modals)/group/[id].tsx
+#: app/(modals)/user/[userId].tsx
+#: app/(tabs)/chats.tsx
+#: app/chat/[id].tsx
+#: app/mute-conversation.tsx
+#: app/settings/account.tsx
+#: app/settings/blocked-users.tsx
+#: app/settings/edit-profile.tsx
+msgid "Anuluj"
+msgstr "Anuluj"
+
+#: app/settings/profile.tsx
+msgid "Automatyczne profilowanie"
+msgstr "Automatyczne profilowanie"
+
+#: app/settings/edit-profile.tsx
+msgid "Bio musi mieć co najmniej 10 znaków"
+msgstr "Bio musi mieć co najmniej 10 znaków"
+
 #: app/(auth)/login.tsx
+#: app/(modals)/group/[id].tsx
+#: app/(modals)/user/[userId].tsx
+#: app/chat/[id].tsx
+#: app/create-group.tsx
+#: app/set-status.tsx
+#: app/settings/account.tsx
+#: app/settings/edit-profile.tsx
 msgid "Błąd"
 msgstr "Błąd"
 
@@ -29,14 +152,108 @@ msgstr "Błąd"
 msgid "Błąd logowania"
 msgstr "Błąd logowania"
 
+#: app/(modals)/user/[userId].tsx
+msgid "Blokowanie..."
+msgstr "Blokowanie..."
+
+#: app/(tabs)/chats.tsx
+msgid "Brak czatów"
+msgstr "Brak czatów"
+
+#: app/(tabs)/index.tsx
+msgid "Brak dostępu do lokalizacji"
+msgstr "Brak dostępu do lokalizacji"
+
+#: app/(tabs)/profile.tsx
+#: app/settings/index.tsx
+msgid "Brak nazwy"
+msgstr "Brak nazwy"
+
+#: app/(modals)/user/[userId].tsx
+#: app/(tabs)/profile.tsx
+msgid "Brak opisu"
+msgstr "Brak opisu"
+
+#: app/(tabs)/chats.tsx
+msgid "Brak pingów"
+msgstr "Brak pingów"
+
+#: app/chat/[id].tsx
+msgid "Brak uprawnień"
+msgstr "Brak uprawnień"
+
+#: src/components/chat/ConversationRow.tsx
+msgid "Brak wiadomości"
+msgstr "Brak wiadomości"
+
+#: app/settings/blocked-users.tsx
+msgid "Brak zablokowanych użytkowników"
+msgstr "Brak zablokowanych użytkowników"
+
 #: app/onboarding/visibility.tsx
 msgid "Chcesz być widoczny?"
 msgstr "Chcesz być widoczny?"
+
+#: app/(modals)/user/[userId].tsx
+#: app/settings/edit-profile.tsx
+msgid "Co mogę dać"
+msgstr "Co mogę dać"
+
+#: app/set-status.tsx
+msgid "Co teraz?"
+msgstr "Co teraz?"
+
+#: app/chat/[id].tsx
+msgid "Czat"
+msgstr "Czat"
+
+#: app/(tabs)/_layout.tsx
+msgid "Czaty"
+msgstr "Czaty"
+
+#: app/set-status.tsx
+msgid "Czego szukasz lub co możesz dać?"
+msgstr "Czego szukasz lub co możesz dać?"
+
+#: app/(modals)/_layout.tsx
+#: app/(modals)/group/members/[id].tsx
+msgid "Członkowie"
+msgstr "Członkowie"
+
+#. placeholder {0}: sortedMembers.length
+#: app/(modals)/group/[id].tsx
+msgid "Członkowie ({0})"
+msgstr "Członkowie ({0})"
+
+#: app/(modals)/group/members/[id].tsx
+msgid "Członkowie ({memberCount})"
+msgstr "Członkowie ({memberCount})"
+
+#: app/(modals)/group/[id].tsx
+msgid "Czy na pewno chcesz opuścić tę grupę?"
+msgstr "Czy na pewno chcesz opuścić tę grupę?"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Czy na pewno chcesz pominąć ten ping?"
+msgstr "Czy na pewno chcesz pominąć ten ping?"
+
+#: app/settings/account.tsx
+msgid "Czy na pewno chcesz usunąć swoje konto? Twoje dane zostaną trwale usunięte w ciągu 14 dni."
+msgstr "Czy na pewno chcesz usunąć swoje konto? Twoje dane zostaną trwale usunięte w ciągu 14 dni."
+
+#: app/chat/[id].tsx
+msgid "Czy na pewno chcesz usunąć tę wiadomość?"
+msgstr "Czy na pewno chcesz usunąć tę wiadomość?"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Czy na pewno chcesz zablokować {displayName}?"
+msgstr "Czy na pewno chcesz zablokować {displayName}?"
 
 #: app/onboarding/index.tsx
 #: app/onboarding/questions-intro.tsx
 #: app/onboarding/questions.tsx
 #: app/onboarding/visibility.tsx
+#: app/settings/profiling.tsx
 msgid "Dalej"
 msgstr "Dalej"
 
@@ -44,17 +261,118 @@ msgstr "Dalej"
 msgid "Dev auto-login failed"
 msgstr "Dev auto-login failed"
 
+#: app/create-group.tsx
+msgid "Dodaj członków"
+msgstr "Dodaj członków"
+
+#: app/(modals)/group/[id].tsx
+msgid "Dołącz"
+msgstr "Dołącz"
+
+#. placeholder {0}: groupInfo.name
+#. placeholder {1}: groupInfo.inviteCode
+#: app/(modals)/group/[id].tsx
+msgid ""
+"Dołącz do grupy „{0}\" w Blisko!\n"
+"https://blisko.app/join/{1}"
+msgstr ""
+"Dołącz do grupy „{0}\" w Blisko!\n"
+"https://blisko.app/join/{1}"
+
+#: app/group/join/[code].tsx
+msgid "Dołączam do grupy…"
+msgstr "Dołączam do grupy…"
+
+#: app/settings/_layout.tsx
+#: app/settings/profile.tsx
+msgid "Edytuj profil"
+msgstr "Edytuj profil"
+
+#: app/settings/index.tsx
+msgid "Edytuj profil, automatyczne profilowanie"
+msgstr "Edytuj profil, automatyczne profilowanie"
+
+#: app/settings/account.tsx
+msgid "Eksport danych"
+msgstr "Eksport danych"
+
+#: app/settings/account.tsx
+msgid "EKSPORT DANYCH"
+msgstr "EKSPORT DANYCH"
+
 #: src/lib/rateLimitMessages.ts
 msgid "Eksport danych jest dostępny raz na 24 godziny."
 msgstr "Eksport danych jest dostępny raz na 24 godziny."
 
+#: app/settings/account.tsx
+msgid "Eksport został zlecony. Sprawdź swój e-mail."
+msgstr "Eksport został zlecony. Sprawdź swój e-mail."
+
+#: app/settings/account.tsx
+msgid "EMAIL"
+msgstr "EMAIL"
+
+#: app/settings/index.tsx
+msgid "FAQ, zgłoś problem, regulamin"
+msgstr "FAQ, zgłoś problem, regulamin"
+
+#: app/filters.tsx
+msgid "Filtry"
+msgstr "Filtry"
+
+#: app/settings/edit-profile.tsx
+msgid "Forma"
+msgstr "Forma"
+
 #: app/onboarding/profiling-result.tsx
+#: app/settings/profiling-result.tsx
+#: app/settings/profiling.tsx
 msgid "Generuję Twój profil..."
 msgstr "Generuję Twój profil..."
 
 #: app/onboarding/questions.tsx
 msgid "Generuję Twój profil…"
 msgstr "Generuję Twój profil…"
+
+#: app/(tabs)/index.tsx
+msgid "GRUP"
+msgstr "GRUP"
+
+#: app/(modals)/_layout.tsx
+#: app/(modals)/group/[id].tsx
+#: app/(tabs)/chats.tsx
+#: app/chat/[id].tsx
+#: src/hooks/useInAppNotifications.ts
+msgid "Grupa"
+msgstr "Grupa"
+
+#: app/(tabs)/index.tsx
+msgid "GRUPA"
+msgstr "GRUPA"
+
+#: app/(tabs)/index.tsx
+msgid "Grupy"
+msgstr "Grupy"
+
+#: app/set-status.tsx
+msgid "Hobby"
+msgstr "Hobby"
+
+#: app/settings/edit-profile.tsx
+msgid "Imię"
+msgstr "Imię"
+
+#: app/settings/edit-profile.tsx
+msgid "Imię nie może być zmienione"
+msgstr "Imię nie może być zmienione"
+
+#: app/(modals)/group/[id].tsx
+msgid "Inni członkowie zobaczą, że jesteś w pobliżu"
+msgstr "Inni członkowie zobaczą, że jesteś w pobliżu"
+
+#: app/(tabs)/chats.tsx
+msgid "Jak było?"
+msgstr "Jak było?"
 
 #: app/onboarding/index.tsx
 msgid "Jak masz na imię?"
@@ -64,21 +382,87 @@ msgstr "Jak masz na imię?"
 msgid "Jak to działa"
 msgstr "Jak to działa"
 
+#: app/settings/help.tsx
+msgid "Jak to działa?"
+msgstr "Jak to działa?"
+
+#. placeholder {0}: nearbyFilter === "people" ? t`osoby` : t`osoby i grupy`
+#: app/(tabs)/index.tsx
+msgid "Jesteś poza zasięgiem — pokazujemy {0} tylko w pobliżu Twojej lokalizacji"
+msgstr "Jesteś poza zasięgiem — pokazujemy {0} tylko w pobliżu Twojej lokalizacji"
+
+#: app/(tabs)/index.tsx
+msgid "Jesteś poza zasięgiem — pokazujemy grupy tylko w pobliżu Twojej lokalizacji"
+msgstr "Jesteś poza zasięgiem — pokazujemy grupy tylko w pobliżu Twojej lokalizacji"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Jesteście połączeni"
+msgstr "Jesteście połączeni"
+
+#. placeholder {0}: followUps.length - followUpIndex
+#: app/settings/profiling.tsx
+msgid "Jeszcze {0} pytania"
+msgstr "Jeszcze {0} pytania"
+
+#. placeholder {0}: followUps.length - followUpIndex
+#: app/settings/profiling.tsx
+msgid "Jeszcze {0} pytanie"
+msgstr "Jeszcze {0} pytanie"
+
 #: app/onboarding/profiling-result.tsx
+#: app/settings/profiling-result.tsx
+#: app/settings/profiling.tsx
 msgid "Jeszcze chwilka..."
 msgstr "Jeszcze chwilka..."
 
 #: app/onboarding/questions.tsx
+#: src/components/ui/ThinkingIndicator.tsx
 msgid "Jeszcze chwilka…"
 msgstr "Jeszcze chwilka…"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Jeszcze nie teraz"
+msgstr "Jeszcze nie teraz"
+
+#: app/settings/account.tsx
+msgid "JĘZYK"
+msgstr "JĘZYK"
+
+#: app/settings/account.tsx
+msgid "Język interfejsu aplikacji."
+msgstr "Język interfejsu aplikacji."
+
+#: app/(modals)/user/[userId].tsx
+msgid "Już pingowałeś tę osobę. Spróbuj ponownie za {hours}h."
+msgstr "Już pingowałeś tę osobę. Spróbuj ponownie za {hours}h."
+
+#: app/set-status.tsx
+msgid "KATEGORIA (max 2)"
+msgstr "KATEGORIA (max 2)"
+
+#: app/(tabs)/chats.tsx
+msgid "Kiedy ktoś Cię pingnie, pojawi się tutaj"
+msgstr "Kiedy ktoś Cię pingnie, pojawi się tutaj"
 
 #: app/onboarding/questions-intro.tsx
 msgid "Kilka pytań"
 msgstr "Kilka pytań"
 
+#: app/(modals)/user/[userId].tsx
+#: app/(tabs)/profile.tsx
+#: app/settings/edit-profile.tsx
+msgid "Kogo szukam"
+msgstr "Kogo szukam"
+
 #: app/onboarding/profiling-result.tsx
+#: app/settings/profiling-result.tsx
 msgid "KOGO SZUKAM"
 msgstr "KOGO SZUKAM"
+
+#: app/settings/_layout.tsx
+#: app/settings/index.tsx
+msgid "Konto"
+msgstr "Konto"
 
 #: src/lib/globalErrorHandler.ts
 msgid "Konto odbiorcy zostało zawieszone"
@@ -89,6 +473,8 @@ msgid "Konto usunięte"
 msgstr "Konto usunięte"
 
 #: app/_layout.tsx
+#: app/(modals)/group/members/[id].tsx
+#: app/chat/[id].tsx
 msgid "Konto zawieszone"
 msgstr "Konto zawieszone"
 
@@ -96,6 +482,10 @@ msgstr "Konto zawieszone"
 #: app/(auth)/verify.tsx
 msgid "Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
 msgstr "Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
+
+#: app/settings/account.tsx
+msgid "Kontynuuj"
+msgstr "Kontynuuj"
 
 #: app/(auth)/login.tsx
 msgid "Kontynuuj z Apple"
@@ -117,6 +507,10 @@ msgstr "Kontynuuj z Google"
 msgid "Kontynuuj z LinkedIn"
 msgstr "Kontynuuj z LinkedIn"
 
+#: src/components/chat/MessageContextMenu.tsx
+msgid "Kopiuj"
+msgstr "Kopiuj"
+
 #: app/onboarding/index.tsx
 msgid "Krok 1"
 msgstr "Krok 1"
@@ -130,13 +524,50 @@ msgstr "Krok 2"
 msgid "Krok 3"
 msgstr "Krok 3"
 
+#: app/chat/[id].tsx
+#: src/hooks/useInAppNotifications.ts
+msgid "Ktoś"
+msgstr "Ktoś"
+
+#: app/settings/blocked-users.tsx
+msgid "Ładowanie..."
+msgstr "Ładowanie..."
+
+#: app/(modals)/user/[userId].tsx
+msgid "Limit dzienny"
+msgstr "Limit dzienny"
+
+#: app/(modals)/group/[id].tsx
+msgid "Link zaproszenia"
+msgstr "Link zaproszenia"
+
 #: app/(auth)/login.tsx
 msgid "lub"
 msgstr "lub"
 
+#: app/(modals)/user/[userId].tsx
+msgid "Macie już ze sobą chat — otwórz go z listy rozmów."
+msgstr "Macie już ze sobą chat — otwórz go z listy rozmów."
+
+#: app/chat/[id].tsx
+msgid "Moja lokalizacja"
+msgstr "Moja lokalizacja"
+
+#: app/settings/profiling-result.tsx
+msgid "Możesz edytować tekst przed zapisaniem"
+msgstr "Możesz edytować tekst przed zapisaniem"
+
 #: app/onboarding/profiling-result.tsx
 msgid "Możesz edytować zanim przejdziesz do aplikacji"
 msgstr "Możesz edytować zanim przejdziesz do aplikacji"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Możesz pingować tę osobę ponownie za {hours}h."
+msgstr "Możesz pingować tę osobę ponownie za {hours}h."
+
+#: app/mute-conversation.tsx
+msgid "Na jak długo?"
+msgstr "Na jak długo?"
 
 #: app/onboarding/questions-intro.tsx
 msgid "Na podstawie Twoich odpowiedzi przygotujemy bio i opis tego, kogo lub czego szukasz. Zobaczysz gotowy tekst i poprawisz, zanim pokażemy go innym."
@@ -146,70 +577,334 @@ msgstr "Na podstawie Twoich odpowiedzi przygotujemy bio i opis tego, kogo lub cz
 msgid "Na razie przeglądam"
 msgstr "Na razie przeglądam"
 
+#: app/(modals)/user/[userId].tsx
+msgid "NA TERAZ"
+msgstr "NA TERAZ"
+
+#: app/mute-conversation.tsx
+msgid "Na zawsze"
+msgstr "Na zawsze"
+
 #: app/onboarding/visibility.tsx
 msgid "Najpierw opowiesz o sobie — kilka pytań, nic więcej. Będziesz mieć pełny dostęp do ludzi i grup w Twojej okolicy. Dostaniesz powiadomienie, gdy obok pojawi się ktoś, kogo szukasz albo kto do Ciebie pasuje. Inni też zobaczą Cię na mapie i będą mogli Cię zaczepić."
 msgstr "Najpierw opowiesz o sobie — kilka pytań, nic więcej. Będziesz mieć pełny dostęp do ludzi i grup w Twojej okolicy. Dostaniesz powiadomienie, gdy obok pojawi się ktoś, kogo szukasz albo kto do Ciebie pasuje. Inni też zobaczą Cię na mapie i będą mogli Cię zaczepić."
+
+#: app/settings/edit-profile.tsx
+msgid "Napisz kilka słów o sobie..."
+msgstr "Napisz kilka słów o sobie..."
+
+#: app/(modals)/user/[userId].tsx
+msgid "Napisz wiadomość"
+msgstr "Napisz wiadomość"
+
+#: app/create-group.tsx
+msgid "Nazwa grupy"
+msgstr "Nazwa grupy"
+
+#: app/(modals)/group/[id].tsx
+msgid "Nazwa wątku"
+msgstr "Nazwa wątku"
+
+#: app/set-status.tsx
+msgid "Networking"
+msgstr "Networking"
 
 #: app/onboarding/questions-intro.tsx
 msgid "Nie musi być idealnie"
 msgstr "Nie musi być idealnie"
 
+#: app/settings/account.tsx
+msgid "Nie połączono"
+msgstr "Nie połączono"
+
+#: app/settings/privacy.tsx
+msgid "Nie przeszkadzać"
+msgstr "Nie przeszkadzać"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Nie teraz"
+msgstr "Nie teraz"
+
+#: src/stores/messagesStore.ts
+msgid "Nie udało się dodać reakcji"
+msgstr "Nie udało się dodać reakcji"
+
+#: app/(modals)/group/[id].tsx
+#: app/group/join/[code].tsx
+msgid "Nie udało się dołączyć do grupy"
+msgstr "Nie udało się dołączyć do grupy"
+
+#: app/chat/[id].tsx
+msgid "Nie udało się pobrać lokalizacji"
+msgstr "Nie udało się pobrać lokalizacji"
+
+#: src/components/AppGate.tsx
+msgid "Nie udało się połączyć z serwerem"
+msgstr "Nie udało się połączyć z serwerem"
+
 #: app/onboarding/questions.tsx
+#: app/settings/profiling.tsx
 msgid "Nie udało się przesłać odpowiedzi. Spróbuj ponownie."
 msgstr "Nie udało się przesłać odpowiedzi. Spróbuj ponownie."
+
+#: app/settings/edit-profile.tsx
+msgid "Nie udało się przesłać zdjęcia"
+msgstr "Nie udało się przesłać zdjęcia"
+
+#: app/set-status.tsx
+msgid "Nie udało się ustawić statusu"
+msgstr "Nie udało się ustawić statusu"
+
+#: src/stores/messagesStore.ts
+msgid "Nie udało się usunąć wiadomości"
+msgstr "Nie udało się usunąć wiadomości"
+
+#: app/create-group.tsx
+msgid "Nie udało się utworzyć grupy"
+msgstr "Nie udało się utworzyć grupy"
 
 #: app/onboarding/visibility.tsx
 msgid "Nie udało się utworzyć profilu. Spróbuj ponownie."
 msgstr "Nie udało się utworzyć profilu. Spróbuj ponownie."
 
+#: app/(modals)/group/[id].tsx
+msgid "Nie udało się utworzyć wątku"
+msgstr "Nie udało się utworzyć wątku"
+
+#: app/set-status.tsx
+msgid "Nie udało się wyczyścić statusu"
+msgstr "Nie udało się wyczyścić statusu"
+
 #: app/onboarding/questions.tsx
+#: app/settings/profiling.tsx
 msgid "Nie udało się wygenerować profilu. Spróbuj ponownie."
 msgstr "Nie udało się wygenerować profilu. Spróbuj ponownie."
 
 #: app/(auth)/email.tsx
 #: app/(auth)/verify.tsx
+#: app/settings/change-email.tsx
+#: app/settings/verify-email.tsx
 msgid "Nie udało się wysłać kodu"
 msgstr "Nie udało się wysłać kodu"
+
+#: app/settings/account.tsx
+msgid "Nie udało się wysłać kodu weryfikacyjnego."
+msgstr "Nie udało się wysłać kodu weryfikacyjnego."
+
+#: app/(modals)/user/[userId].tsx
+msgid "Nie udało się wysłać pinga: {errorMsg}"
+msgstr "Nie udało się wysłać pinga: {errorMsg}"
+
+#: src/stores/messagesStore.ts
+msgid "Nie udało się wysłać wiadomości"
+msgstr "Nie udało się wysłać wiadomości"
+
+#: app/chat/[id].tsx
+msgid "Nie udało się wysłać zdjęcia"
+msgstr "Nie udało się wysłać zdjęcia"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Nie udało się zablokować użytkownika."
+msgstr "Nie udało się zablokować użytkownika."
+
+#: app/chat/[id].tsx
+msgid "Nie udało się załadować. Dotknij, aby spróbować ponownie."
+msgstr "Nie udało się załadować. Dotknij, aby spróbować ponownie."
 
 #: app/(auth)/login.tsx
 msgid "Nie udało się zalogować. Spróbuj ponownie."
 msgstr "Nie udało się zalogować. Spróbuj ponownie."
 
+#: app/settings/account.tsx
+msgid "Nie udało się zapisać języka."
+msgstr "Nie udało się zapisać języka."
+
 #: app/onboarding/questions.tsx
+#: app/settings/profiling.tsx
 msgid "Nie udało się zapisać odpowiedzi. Spróbuj ponownie."
 msgstr "Nie udało się zapisać odpowiedzi. Spróbuj ponownie."
 
+#: app/settings/edit-profile.tsx
+msgid "Nie udało się zapisać profilu"
+msgstr "Nie udało się zapisać profilu"
+
 #: app/onboarding/profiling-result.tsx
+#: app/settings/profiling-result.tsx
 msgid "Nie udało się zapisać profilu. Spróbuj ponownie."
 msgstr "Nie udało się zapisać profilu. Spróbuj ponownie."
 
+#: app/settings/account.tsx
+msgid "Nie udało się zlecić eksportu. Spróbuj ponownie."
+msgstr "Nie udało się zlecić eksportu. Spróbuj ponownie."
+
+#: app/(modals)/user/[userId].tsx
+msgid "Nie udało się zmienić trybu widoczności."
+msgstr "Nie udało się zmienić trybu widoczności."
+
 #: app/(auth)/verify.tsx
+#: app/settings/verify-email.tsx
 msgid "Nie udało się zweryfikować kodu"
 msgstr "Nie udało się zweryfikować kodu"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Nie znaleziono profilu"
+msgstr "Nie znaleziono profilu"
 
 #: app/(auth)/verify.tsx
 msgid "Nieprawidłowa odpowiedź serwera"
 msgstr "Nieprawidłowa odpowiedź serwera"
 
 #: app/(auth)/verify.tsx
+#: app/settings/verify-email.tsx
 msgid "Nieprawidłowy kod"
 msgstr "Nieprawidłowy kod"
+
+#: app/settings/account.tsx
+msgid "Nieprawidłowy kod. Spróbuj ponownie."
+msgstr "Nieprawidłowy kod. Spróbuj ponownie."
+
+#: app/(tabs)/chats.tsx
+msgid "Nieprzeczytane"
+msgstr "Nieprzeczytane"
 
 #: app/onboarding/visibility.tsx
 msgid "NIEWIDOCZNY"
 msgstr "NIEWIDOCZNY"
 
+#: src/hooks/useInAppNotifications.ts
+msgid "Nowa wiadomość"
+msgstr "Nowa wiadomość"
+
+#: app/settings/notifications.tsx
+msgid "Nowe pingi"
+msgstr "Nowe pingi"
+
+#: app/settings/notifications.tsx
+msgid "Nowe wiadomosci"
+msgstr "Nowe wiadomosci"
+
+#: src/hooks/useInAppNotifications.ts
+msgid "Nowe zaproszenie do grupy"
+msgstr "Nowe zaproszenie do grupy"
+
+#: app/settings/change-email.tsx
+msgid "Nowy email musi być inny niż obecny"
+msgstr "Nowy email musi być inny niż obecny"
+
+#: app/settings/profiling-result.tsx
+msgid "Nowy profil"
+msgstr "Nowy profil"
+
+#: app/settings/change-email.tsx
+msgid "nowy@email.com"
+msgstr "nowy@email.com"
+
+#: app/create-group.tsx
+msgid "np. Sąsiedzi z Mokotowa"
+msgstr "np. Sąsiedzi z Mokotowa"
+
+#: app/create-group.tsx
+msgid "O czym jest ta grupa? (opcjonalnie)"
+msgstr "O czym jest ta grupa? (opcjonalnie)"
+
+#: app/(modals)/user/[userId].tsx
+#: app/(tabs)/profile.tsx
+#: app/settings/edit-profile.tsx
+msgid "O mnie"
+msgstr "O mnie"
+
 #: app/onboarding/profiling-result.tsx
+#: app/settings/profiling-result.tsx
 msgid "O MNIE"
 msgstr "O MNIE"
+
+#: app/settings/change-email.tsx
+msgid "Obecny email:"
+msgstr "Obecny email:"
+
+#: app/(tabs)/chats.tsx
+msgid "Oceń rozmowę przed usunięciem"
+msgstr "Oceń rozmowę przed usunięciem"
+
+#: app/settings/blocked-users.tsx
+msgid "Odblokować {displayName}?"
+msgstr "Odblokować {displayName}?"
+
+#: app/settings/blocked-users.tsx
+msgid "Odblokuj"
+msgstr "Odblokuj"
+
+#: app/settings/account.tsx
+msgid "ODŁĄCZ"
+msgstr "ODŁĄCZ"
+
+#: src/components/chat/ChatInput.tsx
+msgid "Odpowiadasz:"
+msgstr "Odpowiadasz:"
+
+#: src/components/chat/MessageContextMenu.tsx
+msgid "Odpowiedz"
+msgstr "Odpowiedz"
+
+#: app/settings/notifications.tsx
+msgid "Odpowiedzi na pingi"
+msgstr "Odpowiedzi na pingi"
 
 #: app/onboarding/questions-intro.tsx
 msgid "Odpowiedzi nie muszą być pełnymi zdaniami. Mogą być krótkie, w punktach, nawet pojedyncze słowa — liczy się co napiszesz, nie jak. Pod każdym pytaniem zobaczysz kilka przykładowych odpowiedzi."
 msgstr "Odpowiedzi nie muszą być pełnymi zdaniami. Mogą być krótkie, w punktach, nawet pojedyncze słowa — liczy się co napiszesz, nie jak. Pod każdym pytaniem zobaczysz kilka przykładowych odpowiedzi."
 
+#: app/(tabs)/chats.tsx
+msgid "Odrzucone"
+msgstr "Odrzucone"
+
+#: app/create-group.tsx
+msgid "Opis"
+msgstr "Opis"
+
+#: app/settings/edit-profile.tsx
+msgid "Opisz, jakie osoby chciałbyś poznać..."
+msgstr "Opisz, jakie osoby chciałbyś poznać..."
+
 #: app/onboarding/visibility.tsx
 msgid "Opowiem o sobie"
 msgstr "Opowiem o sobie"
+
+#: app/(modals)/group/[id].tsx
+msgid "Opuść"
+msgstr "Opuść"
+
+#: app/(modals)/group/[id].tsx
+msgid "Opuść grupę"
+msgstr "Opuść grupę"
+
+#: app/(tabs)/index.tsx
+msgid "OSÓB"
+msgstr "OSÓB"
+
+#: app/(tabs)/index.tsx
+msgid "OSÓB W POBLIŻU"
+msgstr "OSÓB W POBLIŻU"
+
+#: app/(tabs)/index.tsx
+msgid "OSOBA"
+msgstr "OSOBA"
+
+#: app/(tabs)/index.tsx
+msgid "osoby"
+msgstr "osoby"
+
+#: app/(tabs)/index.tsx
+msgid "Osoby"
+msgstr "Osoby"
+
+#: app/(tabs)/index.tsx
+msgid "osoby i grupy"
+msgstr "osoby i grupy"
+
+#: app/create-group.tsx
+msgid "Osoby w pobliżu będą mogły znaleźć i dołączyć do grupy"
+msgstr "Osoby w pobliżu będą mogły znaleźć i dołączyć do grupy"
 
 #: app/onboarding/profiling-result.tsx
 msgid "Ostatni krok"
@@ -219,33 +914,237 @@ msgstr "Ostatni krok"
 msgid "Oto jak Cię widzę"
 msgstr "Oto jak Cię widzę"
 
+#: app/(modals)/user/[userId].tsx
+msgid "Ping"
+msgstr "Ping"
+
+#: app/(tabs)/chats.tsx
+msgid "Pingi"
+msgstr "Pingi"
+
+#: app/settings/privacy.tsx
+msgid "Pingi dochodzą, ale powiadomienia push wyciszone."
+msgstr "Pingi dochodzą, ale powiadomienia push wyciszone."
+
+#: app/settings/index.tsx
+msgid "Pingi, wiadomości"
+msgstr "Pingi, wiadomości"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Pingowano"
+msgstr "Pingowano"
+
+#: src/hooks/useInAppNotifications.ts
+msgid "Pinguje Cię!"
+msgstr "Pinguje Cię!"
+
+#: app/chat/[id].tsx
+msgid "pisze..."
+msgstr "pisze..."
+
+#: app/settings/account.tsx
+msgid "Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania zostanie wysłany na Twój adres e-mail."
+msgstr "Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania zostanie wysłany na Twój adres e-mail."
+
+#: app/settings/account.tsx
+msgid "POBIERZ MOJE DANE"
+msgstr "POBIERZ MOJE DANE"
+
 #: app/(auth)/email.tsx
 msgid "Podaj adres email"
 msgstr "Podaj adres email"
+
+#: app/create-group.tsx
+msgid "Podaj nazwę grupy"
+msgstr "Podaj nazwę grupy"
+
+#: app/settings/change-email.tsx
+msgid "Podaj nowy adres email"
+msgstr "Podaj nowy adres email"
+
+#: app/(modals)/group/[id].tsx
+msgid "Pokaż moją lokalizację"
+msgstr "Pokaż moją lokalizację"
+
+#: app/(modals)/group/[id].tsx
+msgid "Pokaż w pobliżu →"
+msgstr "Pokaż w pobliżu →"
+
+#: src/components/nearby/ViewportIndicator.tsx
+msgid "Pokaż wszystkich"
+msgstr "Pokaż wszystkich"
+
+#. placeholder {0}: groupInfo.memberCount
+#: app/(modals)/group/[id].tsx
+msgid "Pokaż wszystkich ({0}) →"
+msgstr "Pokaż wszystkich ({0}) →"
+
+#: app/filters.tsx
+msgid "Pokaż wszystkich w promieniu"
+msgstr "Pokaż wszystkich w promieniu"
+
+#: app/filters.tsx
+msgid "Pokazuj osoby, które mają zdjęcie profilowe"
+msgstr "Pokazuj osoby, które mają zdjęcie profilowe"
+
+#. placeholder {0}: showAll ? `wszystkich ${totalCount}` : `${viewportCount} z ${totalCount}`
+#: src/components/nearby/ViewportIndicator.tsx
+msgid "Pokazujesz <0>{0}</0> osób w okolicy"
+msgstr "Pokazujesz <0>{0}</0> osób w okolicy"
+
+#: app/settings/account.tsx
+msgid "POŁĄCZ"
+msgstr "POŁĄCZ"
+
+#: app/settings/account.tsx
+msgid "POŁĄCZONE KONTA"
+msgstr "POŁĄCZONE KONTA"
+
+#: app/settings/index.tsx
+msgid "Połączone konta, email"
+msgstr "Połączone konta, email"
+
+#: app/settings/account.tsx
+msgid "Połączono"
+msgstr "Połączono"
+
+#: app/settings/help.tsx
+msgid "Polityka prywatności"
+msgstr "Polityka prywatności"
+
+#: app/(modals)/user/[userId].tsx
+#: app/settings/profiling.tsx
+msgid "Pomiń"
+msgstr "Pomiń"
+
+#: app/(tabs)/chats.tsx
+msgid "Pomiń i usuń"
+msgstr "Pomiń i usuń"
 
 #: app/onboarding/questions.tsx
 msgid "Pomiń pytanie"
 msgstr "Pomiń pytanie"
 
+#: app/settings/_layout.tsx
+#: app/settings/index.tsx
+msgid "Pomoc"
+msgstr "Pomoc"
+
 #: app/onboarding/index.tsx
 msgid "Potwierdzam, że mam ukończone 18 lat"
 msgstr "Potwierdzam, że mam ukończone 18 lat"
+
+#: app/settings/_layout.tsx
+#: app/settings/index.tsx
+msgid "Powiadomienia"
+msgstr "Powiadomienia"
+
+#: app/settings/notifications.tsx
+msgid "Powiadomienia push wymagają zgody systemowej. Jeśli je wyłączyłeś, włącz je w Ustawieniach iPhone'a > Blisko."
+msgstr "Powiadomienia push wymagają zgody systemowej. Jeśli je wyłączyłeś, włącz je w Ustawieniach iPhone'a > Blisko."
+
+#: src/components/ProfileGateSheet.tsx
+msgid "Później"
+msgstr "Później"
+
+#: app/chat/[id].tsx
+msgid "Pozwól na dostęp do lokalizacji w ustawieniach."
+msgstr "Pozwól na dostęp do lokalizacji w ustawieniach."
+
+#: app/(modals)/_layout.tsx
+#: app/(tabs)/_layout.tsx
+#: app/settings/_layout.tsx
+#: app/settings/index.tsx
+msgid "Profil"
+msgstr "Profil"
+
+#: app/settings/_layout.tsx
+msgid "Profilowanie"
+msgstr "Profilowanie"
+
+#: app/set-status.tsx
+msgid "Projekt"
+msgstr "Projekt"
+
+#: app/settings/_layout.tsx
+#: app/settings/index.tsx
+msgid "Prywatność"
+msgstr "Prywatność"
+
+#: app/set-status.tsx
+msgid "Prywatny"
+msgstr "Prywatny"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Przejść w tryb Semi-Open?"
+msgstr "Przejść w tryb Semi-Open?"
+
+#: app/create-group.tsx
+msgid "Przesuń pin, żeby ustawić lokalizację"
+msgstr "Przesuń pin, żeby ustawić lokalizację"
+
+#: app/settings/edit-profile.tsx
+msgid "Przesyłanie..."
+msgstr "Przesyłanie..."
+
+#: src/components/ui/ThinkingIndicator.tsx
+msgid "Przygotowuję kolejne pytanie…"
+msgstr "Przygotowuję kolejne pytanie…"
+
+#: src/hooks/useInAppNotifications.ts
+msgid "Przyjął(a) Twój ping!"
+msgstr "Przyjął(a) Twój ping!"
 
 #. placeholder {0}: i + 1
 #: app/onboarding/questions.tsx
 msgid "Przykład {0}"
 msgstr "Przykład {0}"
 
+#: app/set-status.tsx
+msgid "Publiczny"
+msgstr "Publiczny"
+
+#: app/set-status.tsx
+msgid ""
+"Publiczny — tekst statusu + kategorie widoczne dla innych na mapie i w profilu. Dopasowania liczone są DO tekstu statusu.\n"
+"\n"
+"Prywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim się matchujesz. Dopasowania liczone są do Twojego profilu."
+msgstr ""
+"Publiczny — tekst statusu + kategorie widoczne dla innych na mapie i w profilu. Dopasowania liczone są DO tekstu statusu.\n"
+"\n"
+"Prywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim się matchujesz. Dopasowania liczone są do Twojego profilu."
+
+#: app/settings/notifications.tsx
+msgid "PUSH"
+msgstr "PUSH"
+
 #. placeholder {0}: questionIndex + 1
 #: app/onboarding/questions.tsx
 msgid "Pytanie {0} / {totalQuestions}"
 msgstr "Pytanie {0} / {totalQuestions}"
 
+#: app/settings/help.tsx
+msgid "Regulamin"
+msgstr "Regulamin"
+
 #: app/(auth)/login.tsx
 msgid "Rejestrując się akceptujesz <0>Regulamin</0> i <1>Politykę Prywatności</1>."
 msgstr "Rejestrując się akceptujesz <0>Regulamin</0> i <1>Politykę Prywatności</1>."
 
+#: app/(tabs)/chats.tsx
+msgid "Rozmowy"
+msgstr "Rozmowy"
+
+#: src/components/chat/ConversationRow.tsx
+msgid "Rozpocznij rozmowę"
+msgstr "Rozpocznij rozmowę"
+
+#: app/set-status.tsx
+msgid "Spotkanie"
+msgstr "Spotkanie"
+
 #: app/(auth)/verify.tsx
+#: app/settings/verify-email.tsx
 msgid "Sprawdź folder spam jeśli nie widzisz maila"
 msgstr "Sprawdź folder spam jeśli nie widzisz maila"
 
@@ -254,7 +1153,10 @@ msgid "Spróbuj innej metody logowania"
 msgstr "Spróbuj innej metody logowania"
 
 #: app/(auth)/login.tsx
+#: app/(tabs)/index.tsx
 #: app/onboarding/questions.tsx
+#: app/settings/profiling.tsx
+#: src/components/AppGate.tsx
 msgid "Spróbuj ponownie"
 msgstr "Spróbuj ponownie"
 
@@ -262,9 +1164,35 @@ msgstr "Spróbuj ponownie"
 msgid "Świat jest pełen ludzi, których potrzebujesz."
 msgstr "Świat jest pełen ludzi, których potrzebujesz."
 
+#: src/components/ui/ThinkingIndicator.tsx
+msgid "Szukam najlepszego pytania…"
+msgstr "Szukam najlepszego pytania…"
+
+#: app/(modals)/group/[id].tsx
+#: app/group/join/[code].tsx
+msgid "Ta grupa jest pełna"
+msgstr "Ta grupa jest pełna"
+
+#: src/hooks/useInAppNotifications.ts
+msgid "Ta osoba jest teraz niedostępna — powodów może być wiele, nie przejmuj się."
+msgstr "Ta osoba jest teraz niedostępna — powodów może być wiele, nie przejmuj się."
+
+#: app/(modals)/user/[userId].tsx
+msgid "Tak"
+msgstr "Tak"
+
 #: app/onboarding/profiling-result.tsx
 msgid "Tak, to ja"
 msgstr "Tak, to ja"
+
+#: app/group/join/[code].tsx
+msgid "Ten link jest nieprawidłowy lub wygasł"
+msgstr "Ten link jest nieprawidłowy lub wygasł"
+
+#: app/(tabs)/chats.tsx
+#: src/components/chat/ConversationRow.tsx
+msgid "teraz"
+msgstr "teraz"
 
 #: app/(auth)/login.tsx
 msgid "To nie przypadek. To Blisko."
@@ -274,7 +1202,20 @@ msgstr "To nie przypadek. To Blisko."
 msgid "Treść narusza regulamin"
 msgstr "Treść narusza regulamin"
 
+#: app/settings/account.tsx
+msgid "Trwale usuwa Twoje konto, profil i wszystkie dane. Proces trwa do 14 dni."
+msgstr "Trwale usuwa Twoje konto, profil i wszystkie dane. Proces trwa do 14 dni."
+
+#: app/settings/privacy.tsx
+msgid "TRYB WIDOCZNOŚCI"
+msgstr "TRYB WIDOCZNOŚCI"
+
+#: src/lib/format.ts
+msgid "tuż obok"
+msgstr "tuż obok"
+
 #: app/onboarding/questions.tsx
+#: app/settings/profiling.tsx
 msgid "Twoja odpowiedź"
 msgstr "Twoja odpowiedź"
 
@@ -296,47 +1237,264 @@ msgstr "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni."
 msgid "Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
 msgstr "Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
 
+#: app/chat/[id].tsx
+msgid "Ty"
+msgstr "Ty"
+
+#: app/filters.tsx
+msgid "Tylko ze zdjęciem"
+msgstr "Tylko ze zdjęciem"
+
+#: app/(modals)/group/[id].tsx
+msgid "Udostępnij"
+msgstr "Udostępnij"
+
+#: src/components/chat/MessageBubble.tsx
+msgid "Udostępniona lokalizacja"
+msgstr "Udostępniona lokalizacja"
+
+#: app/set-status.tsx
+msgid "Ustaw status"
+msgstr "Ustaw status"
+
+#: app/settings/_layout.tsx
+msgid "Ustawienia"
+msgstr "Ustawienia"
+
+#: app/chat/[id].tsx
+#: src/components/chat/MessageContextMenu.tsx
+msgid "Usuń"
+msgstr "Usuń"
+
+#: app/settings/account.tsx
+msgid "Usuń konto"
+msgstr "Usuń konto"
+
+#: app/chat/[id].tsx
+msgid "Usuń wiadomość"
+msgstr "Usuń wiadomość"
+
+#: app/(modals)/group/[id].tsx
+msgid "UTWÓRZ"
+msgstr "UTWÓRZ"
+
+#: app/(tabs)/index.tsx
+#: app/create-group.tsx
+msgid "Utwórz grupę"
+msgstr "Utwórz grupę"
+
+#: src/components/ProfileGateSheet.tsx
+msgid "Uzupełnij profil"
+msgstr "Uzupełnij profil"
+
+#: src/components/ProfileGateSheet.tsx
+msgid "Uzupełnij teraz"
+msgstr "Uzupełnij teraz"
+
 #: app/(auth)/login.tsx
 msgid "Użyj testowego konta user{seedUserNumber}@example.com"
 msgstr "Użyj testowego konta user{seedUserNumber}@example.com"
+
+#: app/(tabs)/_layout.tsx
+#: app/chat/[id].tsx
+msgid "Użytkownik"
+msgstr "Użytkownik"
+
+#: app/settings/edit-profile.tsx
+msgid "W czym możesz komuś pomóc od ręki?"
+msgstr "W czym możesz komuś pomóc od ręki?"
+
+#: app/(tabs)/_layout.tsx
+msgid "W okolicy"
+msgstr "W okolicy"
+
+#: app/(tabs)/index.tsx
+msgid "W POBLIŻU"
+msgstr "W POBLIŻU"
+
+#. placeholder {0}: nearbyData.totalNearby
+#: app/(modals)/group/[id].tsx
+msgid "W pobliżu ({0})"
+msgstr "W pobliżu ({0})"
+
+#: app/(tabs)/index.tsx
+msgid "W tej okolicy nie ma jeszcze żadnych grup"
+msgstr "W tej okolicy nie ma jeszcze żadnych grup"
+
+#: app/(tabs)/index.tsx
+msgid "W tej okolicy nie ma jeszcze żadnych użytkowników"
+msgstr "W tej okolicy nie ma jeszcze żadnych użytkowników"
+
+#: app/(tabs)/index.tsx
+msgid "W tej okolicy nie ma jeszcze żadnych użytkowników i grup"
+msgstr "W tej okolicy nie ma jeszcze żadnych użytkowników i grup"
+
+#: app/(modals)/group/[id].tsx
+msgid "Wątki"
+msgstr "Wątki"
 
 #: app/onboarding/visibility.tsx
 msgid "Wchodzę do aplikacji"
 msgstr "Wchodzę do aplikacji"
 
+#: app/settings/_layout.tsx
+msgid "Weryfikacja"
+msgstr "Weryfikacja"
+
 #: app/(auth)/verify.tsx
+#: app/settings/verify-email.tsx
 msgid "Weryfikacja..."
 msgstr "Weryfikacja..."
+
+#: src/components/chat/MessageBubble.tsx
+msgid "Wiadomość usunięta"
+msgstr "Wiadomość usunięta"
+
+#: app/create-group.tsx
+msgid "Widoczna w okolicy"
+msgstr "Widoczna w okolicy"
+
+#: app/set-status.tsx
+msgid "WIDOCZNOŚĆ"
+msgstr "WIDOCZNOŚĆ"
 
 #: app/onboarding/visibility.tsx
 msgid "Widoczność i prywatność zmienisz w każdej chwili w ustawieniach."
 msgstr "Widoczność i prywatność zmienisz w każdej chwili w ustawieniach."
 
+#: app/settings/index.tsx
+msgid "Widoczność, zablokowani użytkownicy"
+msgstr "Widoczność, zablokowani użytkownicy"
+
 #: app/onboarding/visibility.tsx
 msgid "WIDOCZNY"
 msgstr "WIDOCZNY"
+
+#: app/settings/privacy.tsx
+msgid "Widoczny i otwarty — w profilu pojawi się \"Podejdź śmiało\"."
+msgstr "Widoczny i otwarty — w profilu pojawi się \"Podejdź śmiało\"."
+
+#: app/settings/privacy.tsx
+msgid "Widoczny na mapie. Możesz pingować i być pingowany."
+msgstr "Widoczny na mapie. Możesz pingować i być pingowany."
+
+#: app/settings/privacy.tsx
+msgid "Widzisz innych, ale Ciebie nie widać na mapie. Nie możesz pingować."
+msgstr "Widzisz innych, ale Ciebie nie widać na mapie. Nie możesz pingować."
 
 #: app/onboarding/visibility.tsx
 msgid "Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, kto jest w twojej okolicy. Profil uzupełnisz później."
 msgstr "Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, kto jest w twojej okolicy. Profil uzupełnisz później."
 
+#: app/settings/help.tsx
+msgid "Wkrótce!"
+msgstr "Wkrótce!"
+
+#: app/(tabs)/index.tsx
+msgid "Włącz lokalizację w ustawieniach, aby zobaczyć osoby w pobliżu"
+msgstr "Włącz lokalizację w ustawieniach, aby zobaczyć osoby w pobliżu"
+
+#: app/create-group.tsx
+msgid "Włącz lokalizację, żeby grupa była widoczna"
+msgstr "Włącz lokalizację, żeby grupa była widoczna"
+
+#: app/(modals)/group/[id].tsx
+#: app/(modals)/group/members/[id].tsx
+msgid "Właściciel"
+msgstr "Właściciel"
+
+#: app/(modals)/user/[userId].tsx
+#: app/settings/edit-profile.tsx
+msgid "Wolontariat"
+msgstr "Wolontariat"
+
 #: app/(auth)/verify.tsx
+#: app/settings/verify-email.tsx
 msgid "Wpisz 6-cyfrowy kod"
 msgstr "Wpisz 6-cyfrowy kod"
 
 #: app/(auth)/verify.tsx
+#: app/settings/verify-email.tsx
 msgid "Wpisz kod"
 msgstr "Wpisz kod"
 
+#: app/settings/account.tsx
+msgid "Wpisz kod weryfikacyjny"
+msgstr "Wpisz kod weryfikacyjny"
+
+#: src/components/chat/ChatInput.tsx
+msgid "Wpisz wiadomość..."
+msgstr "Wpisz wiadomość..."
+
 #: app/(auth)/verify.tsx
+#: app/group/join/[code].tsx
 msgid "Wróć"
 msgstr "Wróć"
+
+#: app/(tabs)/index.tsx
+msgid "Wróć do mojej lokalizacji"
+msgstr "Wróć do mojej lokalizacji"
+
+#: src/components/nearby/ViewportIndicator.tsx
+msgid "Wróć do widoku mapy"
+msgstr "Wróć do widoku mapy"
+
+#: app/(modals)/user/[userId].tsx
+msgid "WSPÓLNE"
+msgstr "WSPÓLNE"
+
+#: app/(tabs)/index.tsx
+msgid "Wszystko"
+msgstr "Wszystko"
+
+#: app/(tabs)/chats.tsx
+msgid "Wszystko ogarnięte"
+msgstr "Wszystko ogarnięte"
+
+#: app/mute-conversation.tsx
+msgid "Wycisz powiadomienia"
+msgstr "Wycisz powiadomienia"
+
+#: app/set-status.tsx
+msgid "Wyczyść status"
+msgstr "Wyczyść status"
+
+#: app/(tabs)/chats.tsx
+msgid "Wygasł"
+msgstr "Wygasł"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Wykorzystałeś dzienny limit pingów. Wróć jutro!"
+msgstr "Wykorzystałeś dzienny limit pingów. Wróć jutro!"
+
+#: app/filters.tsx
+msgid "Wyłącz, aby lista pokazywała tylko osoby widoczne na mapie"
+msgstr "Wyłącz, aby lista pokazywała tylko osoby widoczne na mapie"
+
+#: app/settings/index.tsx
+msgid "WYLOGUJ SIĘ"
+msgstr "WYLOGUJ SIĘ"
+
+#: app/(modals)/user/[userId].tsx
+#: app/settings/edit-profile.tsx
+msgid "Wymiana"
+msgstr "Wymiana"
+
+#: app/settings/_layout.tsx
+msgid "Wynik profilowania"
+msgstr "Wynik profilowania"
 
 #: src/lib/rateLimitMessages.ts
 msgid "Wysłałeś dużo pingów. Odpocznij chwilę i spróbuj później."
 msgstr "Wysłałeś dużo pingów. Odpocznij chwilę i spróbuj później."
 
+#. placeholder {0}: user?.email
+#: app/settings/account.tsx
+msgid "Wysłaliśmy 6-cyfrowy kod na {0}"
+msgstr "Wysłaliśmy 6-cyfrowy kod na {0}"
+
 #: app/(auth)/verify.tsx
+#: app/settings/verify-email.tsx
 msgid "Wysłaliśmy 6-cyfrowy kod na adres:"
 msgstr "Wysłaliśmy 6-cyfrowy kod na adres:"
 
@@ -344,17 +1502,27 @@ msgstr "Wysłaliśmy 6-cyfrowy kod na adres:"
 msgid "Wyślemy Ci jednorazowy kod weryfikacyjny"
 msgstr "Wyślemy Ci jednorazowy kod weryfikacyjny"
 
+#: src/components/chat/ChatInput.tsx
+msgid "Wyślij"
+msgstr "Wyślij"
+
 #: app/(auth)/email.tsx
 msgid "Wyślij kod"
 msgstr "Wyślij kod"
 
 #: app/(auth)/verify.tsx
+#: app/settings/verify-email.tsx
 msgid "Wyślij kod ponownie"
 msgstr "Wyślij kod ponownie"
 
 #: app/(auth)/verify.tsx
+#: app/settings/verify-email.tsx
 msgid "Wyślij kod ponownie ({resendCooldown}s)"
 msgstr "Wyślij kod ponownie ({resendCooldown}s)"
+
+#: app/settings/change-email.tsx
+msgid "Wyślij kod weryfikacyjny"
+msgstr "Wyślij kod weryfikacyjny"
 
 #: app/(auth)/email.tsx
 #: app/(auth)/login.tsx
@@ -363,8 +1531,13 @@ msgid "Wystąpił błąd"
 msgstr "Wystąpił błąd"
 
 #: app/(auth)/email.tsx
+#: app/settings/change-email.tsx
 msgid "Wysyłanie..."
 msgstr "Wysyłanie..."
+
+#: app/(tabs)/index.tsx
+msgid "Z"
+msgstr "Z"
 
 #: app/(auth)/email.tsx
 #: app/(auth)/verify.tsx
@@ -388,6 +1561,26 @@ msgstr "Za dużo wiadomości. Spróbuj ponownie za chwilę."
 msgid "Za dużo zmian w profilu. Spróbuj ponownie za chwilę."
 msgstr "Za dużo zmian w profilu. Spróbuj ponownie za chwilę."
 
+#: app/(tabs)/chats.tsx
+msgid "Zaakceptowane"
+msgstr "Zaakceptowane"
+
+#: app/settings/_layout.tsx
+msgid "Zablokowani"
+msgstr "Zablokowani"
+
+#: app/settings/privacy.tsx
+msgid "Zablokowani użytkownicy"
+msgstr "Zablokowani użytkownicy"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Zablokuj"
+msgstr "Zablokuj"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Zablokuj użytkownika"
+msgstr "Zablokuj użytkownika"
+
 #: app/onboarding/questions-intro.tsx
 msgid "Zaczniemy od 7 krótkich pytań. Jeśli coś będzie wymagało doprecyzowania, dopytamy maksymalnie o 3 rzeczy."
 msgstr "Zaczniemy od 7 krótkich pytań. Jeśli coś będzie wymagało doprecyzowania, dopytamy maksymalnie o 3 rzeczy."
@@ -396,14 +1589,72 @@ msgstr "Zaczniemy od 7 krótkich pytań. Jeśli coś będzie wymagało doprecyzo
 msgid "Zacznij"
 msgstr "Zacznij"
 
+#: app/(tabs)/chats.tsx
+msgid "Zacznij rozmowę odpowiadając na ping"
+msgstr "Zacznij rozmowę odpowiadając na ping"
+
+#: app/(tabs)/chats.tsx
+msgid "Żadnych pingów ani nieprzeczytanych wiadomości"
+msgstr "Żadnych pingów ani nieprzeczytanych wiadomości"
+
 #: app/(auth)/email.tsx
 msgid "Zaloguj się emailem"
 msgstr "Zaloguj się emailem"
+
+#: app/settings/edit-profile.tsx
+#: app/settings/profiling-result.tsx
+msgid "Zapisz"
+msgstr "Zapisz"
+
+#: app/settings/notifications.tsx
+msgid "Zaproszenia do grup"
+msgstr "Zaproszenia do grup"
+
+#: src/components/ui/ThinkingIndicator.tsx
+msgid "Zastanawiam się nad czymś ciekawym…"
+msgstr "Zastanawiam się nad czymś ciekawym…"
 
 #: app/(auth)/login.tsx
 #: src/lib/rateLimitMessages.ts
 msgid "Zbyt wiele prób. Spróbuj ponownie za chwilę."
 msgstr "Zbyt wiele prób. Spróbuj ponownie za chwilę."
+
+#: src/lib/uploadImage.ts
+msgid "Zdjęcie narusza regulamin"
+msgstr "Zdjęcie narusza regulamin"
+
+#: src/components/ProfileGateSheet.tsx
+msgid "Żeby korzystać z tej funkcji, uzupełnij swój profil."
+msgstr "Żeby korzystać z tej funkcji, uzupełnij swój profil."
+
+#: app/settings/help.tsx
+msgid "Zgłoś problem"
+msgstr "Zgłoś problem"
+
+#: app/settings/help.tsx
+msgid "Zgłoszenie problemu"
+msgstr "Zgłoszenie problemu"
+
+#: app/(modals)/user/[userId].tsx
+#: app/settings/edit-profile.tsx
+msgid "Zlecenie"
+msgstr "Zlecenie"
+
+#: app/settings/privacy.tsx
+msgid "Zmiana trybu widoczności nie wpływa na istniejące rozmowy i dopasowania."
+msgstr "Zmiana trybu widoczności nie wpływa na istniejące rozmowy i dopasowania."
+
+#: app/settings/account.tsx
+msgid "ZMIEŃ"
+msgstr "ZMIEŃ"
+
+#: app/settings/_layout.tsx
+msgid "Zmień email"
+msgstr "Zmień email"
+
+#: app/settings/edit-profile.tsx
+msgid "Zmień zdjęcie"
+msgstr "Zmień zdjęcie"
 
 #: app/onboarding/questions.tsx
 msgid "Zostało ostatnie pytanie"
@@ -416,3 +1667,7 @@ msgstr "Zostały tylko {remainingCount} pytania"
 #: app/onboarding/questions-intro.tsx
 msgid "Zrobimy z tego profil"
 msgstr "Zrobimy z tego profil"
+
+#: app/(modals)/group/[id].tsx
+msgid "Zwiń"
+msgstr "Zwiń"

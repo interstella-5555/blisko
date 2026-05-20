@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { OTP_LENGTH, RESEND_COOLDOWN_SECONDS } from "@repo/shared";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -10,6 +11,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function VerifyEmailScreen() {
+  const { t } = useLingui();
   const { newEmail } = useLocalSearchParams<{ newEmail: string }>();
   const [code, setCode] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [isLoading, setIsLoading] = useState(false);
@@ -67,7 +69,7 @@ export default function VerifyEmailScreen() {
   const handleVerify = async (verifyCode?: string) => {
     const codeToVerify = verifyCode || code.join("");
     if (codeToVerify.length !== OTP_LENGTH) {
-      setError("Wpisz 6-cyfrowy kod");
+      setError(t`Wpisz 6-cyfrowy kod`);
       return;
     }
 
@@ -81,7 +83,7 @@ export default function VerifyEmailScreen() {
       });
 
       if (result.error) {
-        setError(result.error.message || "Nieprawidłowy kod");
+        setError(result.error.message || t`Nieprawidłowy kod`);
         setIsLoading(false);
         return;
       }
@@ -92,7 +94,7 @@ export default function VerifyEmailScreen() {
 
       router.dismiss(2);
     } catch (_err) {
-      setError("Nie udało się zweryfikować kodu");
+      setError(t`Nie udało się zweryfikować kodu`);
     }
 
     setIsLoading(false);
@@ -110,14 +112,14 @@ export default function VerifyEmailScreen() {
       });
 
       if (result.error) {
-        setError(result.error.message || "Nie udało się wysłać kodu");
+        setError(result.error.message || t`Nie udało się wysłać kodu`);
       } else {
         setResendCooldown(RESEND_COOLDOWN_SECONDS);
         setCode(Array(OTP_LENGTH).fill(""));
         inputRefs.current[0]?.focus();
       }
     } catch (_err) {
-      setError("Nie udało się wysłać kodu");
+      setError(t`Nie udało się wysłać kodu`);
     }
 
     setIsLoading(false);
@@ -129,8 +131,12 @@ export default function VerifyEmailScreen() {
         <View style={styles.iconContainer}>
           <IconSend size={32} color={colors.ink} />
         </View>
-        <Text style={styles.title}>Wpisz kod</Text>
-        <Text style={styles.message}>Wysłaliśmy 6-cyfrowy kod na adres:</Text>
+        <Text style={styles.title}>
+          <Trans>Wpisz kod</Trans>
+        </Text>
+        <Text style={styles.message}>
+          <Trans>Wysłaliśmy 6-cyfrowy kod na adres:</Trans>
+        </Text>
         <Text style={styles.email}>{newEmail}</Text>
 
         <View style={styles.codeContainer}>
@@ -155,12 +161,18 @@ export default function VerifyEmailScreen() {
 
         {error && <Text style={styles.error}>{error}</Text>}
 
-        {isLoading && <Text style={styles.loading}>Weryfikacja...</Text>}
+        {isLoading && (
+          <Text style={styles.loading}>
+            <Trans>Weryfikacja...</Trans>
+          </Text>
+        )}
 
-        <Text style={styles.hint}>Sprawdź folder spam jeśli nie widzisz maila</Text>
+        <Text style={styles.hint}>
+          <Trans>Sprawdź folder spam jeśli nie widzisz maila</Trans>
+        </Text>
 
         <Button
-          title={resendCooldown > 0 ? `Wyślij kod ponownie (${resendCooldown}s)` : "Wyślij kod ponownie"}
+          title={resendCooldown > 0 ? t`Wyślij kod ponownie (${resendCooldown}s)` : t`Wyślij kod ponownie`}
           variant="ghost"
           onPress={handleResend}
           disabled={resendCooldown > 0 || isLoading}

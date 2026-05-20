@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/ui/Avatar";
 import { useIsGhost } from "@/hooks/useIsGhost";
@@ -5,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function BlockedUsersScreen() {
+  const { t } = useLingui();
   const isGhost = useIsGhost();
   const utils = trpc.useUtils();
   const { data: blockedUsers, isLoading } = trpc.waves.getBlocked.useQuery();
@@ -15,10 +17,10 @@ export default function BlockedUsersScreen() {
   });
 
   const handleUnblock = (userId: string, displayName: string) => {
-    Alert.alert("Odblokuj", `Odblokować ${displayName}?`, [
-      { text: "Anuluj", style: "cancel" },
+    Alert.alert(t`Odblokuj`, t`Odblokować ${displayName}?`, [
+      { text: t`Anuluj`, style: "cancel" },
       {
-        text: "Odblokuj",
+        text: t`Odblokuj`,
         onPress: () => unblockMutation.mutate({ userId }),
       },
     ]);
@@ -27,7 +29,9 @@ export default function BlockedUsersScreen() {
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emptyText}>Ładowanie...</Text>
+        <Text style={styles.emptyText}>
+          <Trans>Ładowanie...</Trans>
+        </Text>
       </View>
     );
   }
@@ -35,7 +39,9 @@ export default function BlockedUsersScreen() {
   if (!blockedUsers?.length) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emptyText}>Brak zablokowanych użytkowników</Text>
+        <Text style={styles.emptyText}>
+          <Trans>Brak zablokowanych użytkowników</Trans>
+        </Text>
       </View>
     );
   }
@@ -53,7 +59,9 @@ export default function BlockedUsersScreen() {
             onPress={() => handleUnblock(user.userId, user.displayName)}
             disabled={unblockMutation.isPending}
           >
-            <Text style={styles.unblockText}>Odblokuj</Text>
+            <Text style={styles.unblockText}>
+              <Trans>Odblokuj</Trans>
+            </Text>
           </Pressable>
         </View>
       ))}

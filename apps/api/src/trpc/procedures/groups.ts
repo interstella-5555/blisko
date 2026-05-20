@@ -7,10 +7,11 @@ import {
   updateGroupSchema,
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
-import { and, between, eq, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
+import { and, between, eq, inArray, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
 import { userIsVisibleTo } from "@/db/filters";
+import { t } from "@/services/i18n";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
 import { featureGate } from "@/trpc/middleware/featureGate";
@@ -133,6 +134,13 @@ export const groupsRouter = router({
       setTargetGroupId(ctx.req, conversation.id);
 
       // Notify invited members (outside transaction — non-critical side effects)
+      const inviteeLocales = await db
+        .select({ userId: schema.profiles.userId, locale: schema.profiles.locale })
+        .from(schema.profiles)
+        .where(inArray(schema.profiles.userId, input.memberUserIds));
+      const localeByUserId = new Map<string, string | null>();
+      for (const row of inviteeLocales) localeByUserId.set(row.userId, row.locale);
+
       for (const userId of input.memberUserIds) {
         publishEvent("groupInvited", {
           userId,
@@ -142,7 +150,7 @@ export const groupsRouter = router({
 
         void sendPushToUser(userId, {
           title: input.name ?? "Grupa",
-          body: "Nowe zaproszenie do grupy",
+          body: t("push.group.invite.body", localeByUserId.get(userId)),
           data: { type: "group", conversationId: conversation.id },
           collapseId: `group-invite:${conversation.id}`,
         });
@@ -444,9 +452,13 @@ export const groupsRouter = router({
       groupName: conv.name,
     });
 
+    const inviteeProfile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, input.userId),
+      columns: { locale: true },
+    });
     void sendPushToUser(input.userId, {
       title: conv.name ?? "Grupa",
-      body: "Nowe zaproszenie do grupy",
+      body: t("push.group.invite.body", inviteeProfile?.locale),
       data: { type: "group", conversationId: input.conversationId },
       collapseId: `group-invite:${input.conversationId}`,
     });

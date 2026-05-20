@@ -5,6 +5,7 @@ import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { DAILY_PING_LIMIT_BASIC, DECLINE_COOLDOWN_HOURS, PER_PERSON_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, schema } from "@/db";
 import { userIsVisibleTo } from "@/db/filters";
+import { t } from "@/services/i18n";
 import { setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
 import { promotePairAnalysis } from "@/services/queue";
@@ -98,9 +99,15 @@ async function acceptWaveCore(
     return { updatedWave, conversation };
   });
 
+  const recipientProfile = await db.query.profiles.findFirst({
+    where: eq(schema.profiles.userId, wave.fromUserId),
+    columns: { locale: true },
+  });
   void sendPushToUser(wave.fromUserId, {
     title: "Blisko",
-    body: `${responderProfile?.displayName ?? "Ktoś"} — ping przyjęty! Możecie teraz pisać.`,
+    body: t("push.wave.accepted.body", recipientProfile?.locale, {
+      responderName: responderProfile?.displayName ?? "Ktoś",
+    }),
     data: { type: "chat", conversationId: result.conversation.id },
   });
 
@@ -329,9 +336,15 @@ export const wavesRouter = router({
 
       await promotePairAnalysis(ctx.userId, input.toUserId);
 
+      const recipientProfile = await db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, input.toUserId),
+        columns: { locale: true },
+      });
       void sendPushToUser(input.toUserId, {
         title: "Blisko",
-        body: `${senderProfile?.displayName ?? "Ktoś"} — nowy ping!`,
+        body: t("push.wave.new.body", recipientProfile?.locale, {
+          senderName: senderProfile?.displayName ?? "Ktoś",
+        }),
         data: { type: "wave", userId: ctx.userId },
       });
 

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, type LayoutChangeEvent, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -38,6 +39,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const [text, setText] = useState("");
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const { t } = useLingui();
   const inputRef = useRef<TextInput>(null);
   const { bottom } = useSafeAreaInsets();
 
@@ -81,7 +83,9 @@ export function ChatInput({
       {replyingTo && (
         <View style={styles.replyBar}>
           <View style={styles.replyContent}>
-            <Text style={styles.replyLabel}>Odpowiadasz:</Text>
+            <Text style={styles.replyLabel}>
+              <Trans>Odpowiadasz:</Trans>
+            </Text>
             <Text style={styles.replyText} numberOfLines={1}>
               {replyingTo.content}
             </Text>
@@ -109,7 +113,7 @@ export function ChatInput({
           style={styles.input}
           value={text}
           onChangeText={handleChangeText}
-          placeholder={isDisabled ? "" : "Wpisz wiadomość..."}
+          placeholder={isDisabled ? "" : t`Wpisz wiadomość...`}
           placeholderTextColor={colors.muted}
           spellCheck={false}
           autoCorrect={false}
@@ -126,7 +130,9 @@ export function ChatInput({
           disabled={!text.trim() || isDisabled}
           testID="chat-send-btn"
         >
-          <Text style={styles.sendText}>Wyślij</Text>
+          <Text style={styles.sendText}>
+            <Trans>Wyślij</Trans>
+          </Text>
         </Pressable>
       </View>
     </View>

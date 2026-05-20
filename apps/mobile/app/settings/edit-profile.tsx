@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -12,6 +13,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function EditProfileScreen() {
+  const { t } = useLingui();
   const profile = useAuthStore((state) => state.profile);
   const setProfile = useAuthStore((state) => state.setProfile);
 
@@ -32,7 +34,7 @@ export default function EditProfileScreen() {
     },
     onError: (err) => {
       if (isRateLimitError(err)) return; // global handler shows localized toast
-      Alert.alert("Błąd", "Nie udało się zapisać profilu");
+      Alert.alert(t`Błąd`, t`Nie udało się zapisać profilu`);
     },
   });
 
@@ -52,7 +54,7 @@ export default function EditProfileScreen() {
       setAvatarUrl(source);
     } catch (error) {
       if (showModerationToastIfApplicable(error)) return;
-      Alert.alert("Błąd", "Nie udało się przesłać zdjęcia");
+      Alert.alert(t`Błąd`, t`Nie udało się przesłać zdjęcia`);
     } finally {
       setUploading(false);
     }
@@ -60,11 +62,11 @@ export default function EditProfileScreen() {
 
   const handleSave = () => {
     if (bio.trim().length < 10) {
-      Alert.alert("Błąd", "Bio musi mieć co najmniej 10 znaków");
+      Alert.alert(t`Błąd`, t`Bio musi mieć co najmniej 10 znaków`);
       return;
     }
     if (lookingFor.trim().length < 10) {
-      Alert.alert("Błąd", '"Kogo szukam" musi mieć co najmniej 10 znaków');
+      Alert.alert(t`Błąd`, t`"Kogo szukam" musi mieć co najmniej 10 znaków`);
       return;
     }
 
@@ -87,29 +89,35 @@ export default function EditProfileScreen() {
             <Avatar uri={avatarUrl} name={displayName || "?"} size={100} />
           </Pressable>
           <Pressable onPress={handlePickAvatar} disabled={uploading}>
-            <Text style={styles.changePhotoText}>{uploading ? "Przesyłanie..." : "Zmień zdjęcie"}</Text>
+            <Text style={styles.changePhotoText}>{uploading ? t`Przesyłanie...` : t`Zmień zdjęcie`}</Text>
           </Pressable>
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Imię</Text>
+          <Text style={styles.label}>
+            <Trans>Imię</Trans>
+          </Text>
           <TextInput
             testID="edit-name-input"
             style={[styles.input, styles.inputLocked]}
             value={displayName}
             editable={false}
           />
-          <Text style={styles.lockedHint}>Imię nie może być zmienione</Text>
+          <Text style={styles.lockedHint}>
+            <Trans>Imię nie może być zmienione</Trans>
+          </Text>
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>O mnie</Text>
+          <Text style={styles.label}>
+            <Trans>O mnie</Trans>
+          </Text>
           <TextInput
             testID="edit-bio-input"
             style={[styles.input, styles.multilineInput]}
             value={bio}
             onChangeText={setBio}
-            placeholder="Napisz kilka słów o sobie..."
+            placeholder={t`Napisz kilka słów o sobie...`}
             placeholderTextColor={colors.muted}
             spellCheck={false}
             autoCorrect={false}
@@ -122,13 +130,15 @@ export default function EditProfileScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Kogo szukam</Text>
+          <Text style={styles.label}>
+            <Trans>Kogo szukam</Trans>
+          </Text>
           <TextInput
             testID="edit-looking-for-input"
             style={[styles.input, styles.multilineInput]}
             value={lookingFor}
             onChangeText={setLookingFor}
-            placeholder="Opisz, jakie osoby chciałbyś poznać..."
+            placeholder={t`Opisz, jakie osoby chciałbyś poznać...`}
             placeholderTextColor={colors.muted}
             spellCheck={false}
             autoCorrect={false}
@@ -141,12 +151,14 @@ export default function EditProfileScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Co mogę dać</Text>
+          <Text style={styles.label}>
+            <Trans>Co mogę dać</Trans>
+          </Text>
           <TextInput
             style={[styles.input, styles.multilineInput]}
             value={superpower}
             onChangeText={setSuperpower}
-            placeholder="W czym możesz komuś pomóc od ręki?"
+            placeholder={t`W czym możesz komuś pomóc od ręki?`}
             placeholderTextColor={colors.muted}
             spellCheck={false}
             autoCorrect={false}
@@ -160,16 +172,18 @@ export default function EditProfileScreen() {
 
         {superpower.trim().length > 0 && (
           <View style={styles.field}>
-            <Text style={styles.label}>Forma</Text>
+            <Text style={styles.label}>
+              <Trans>Forma</Trans>
+            </Text>
             <View style={styles.offerTypeRow}>
-              {(["volunteer", "exchange", "gig"] as const).map((t) => (
+              {(["volunteer", "exchange", "gig"] as const).map((opt) => (
                 <Pressable
-                  key={t}
-                  style={[styles.offerTypeChip, offerType === t && styles.offerTypeChipSelected]}
-                  onPress={() => setOfferType(t)}
+                  key={opt}
+                  style={[styles.offerTypeChip, offerType === opt && styles.offerTypeChipSelected]}
+                  onPress={() => setOfferType(opt)}
                 >
-                  <Text style={[styles.offerTypeText, offerType === t && styles.offerTypeTextSelected]}>
-                    {{ volunteer: "Wolontariat", exchange: "Wymiana", gig: "Zlecenie" }[t]}
+                  <Text style={[styles.offerTypeText, offerType === opt && styles.offerTypeTextSelected]}>
+                    {{ volunteer: t`Wolontariat`, exchange: t`Wymiana`, gig: t`Zlecenie` }[opt]}
                   </Text>
                 </Pressable>
               ))}
@@ -180,14 +194,16 @@ export default function EditProfileScreen() {
         <View style={styles.saveContainer}>
           <Button
             testID="save-profile-btn"
-            title="Zapisz"
+            title={t`Zapisz`}
             variant="accent"
             onPress={handleSave}
             disabled={!canSave}
             loading={updateProfile.isPending}
           />
           <Pressable style={styles.cancelButton} onPress={() => router.back()}>
-            <Text style={styles.cancelText}>Anuluj</Text>
+            <Text style={styles.cancelText}>
+              <Trans>Anuluj</Trans>
+            </Text>
           </Pressable>
         </View>
       </ScrollView>

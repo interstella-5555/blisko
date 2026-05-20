@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { STATUS_CATEGORIES, type StatusCategory } from "@repo/shared";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -12,26 +13,28 @@ import { colors, fonts, spacing, type as typ } from "@/theme";
 
 type Visibility = "public" | "private";
 
-const VISIBILITY_HELP =
-  "Publiczny — tekst statusu + kategorie widoczne dla innych na mapie i w profilu. Dopasowania liczone są DO tekstu statusu.\n\nPrywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim się matchujesz. Dopasowania liczone są do Twojego profilu.";
-
-const CATEGORY_OPTIONS: {
-  value: StatusCategory;
-  label: string;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-}[] = [
-  { value: "project", label: "Projekt", icon: "lightbulb-outline" },
-  { value: "networking", label: "Networking", icon: "account-multiple-outline" },
-  { value: "dating", label: "Spotkanie", icon: "coffee-outline" },
-  { value: "casual", label: "Hobby", icon: "tennis" },
-];
-
 export default function SetStatusScreen() {
+  const { t } = useLingui();
   const { prefill, prefillVisibility, prefillCategories } = useLocalSearchParams<{
     prefill?: string;
     prefillVisibility?: string;
     prefillCategories?: string;
   }>();
+
+  const VISIBILITY_HELP = t`Publiczny — tekst statusu + kategorie widoczne dla innych na mapie i w profilu. Dopasowania liczone są DO tekstu statusu.
+
+Prywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim się matchujesz. Dopasowania liczone są do Twojego profilu.`;
+
+  const CATEGORY_OPTIONS: {
+    value: StatusCategory;
+    label: string;
+    icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  }[] = [
+    { value: "project", label: t`Projekt`, icon: "lightbulb-outline" },
+    { value: "networking", label: t`Networking`, icon: "account-multiple-outline" },
+    { value: "dating", label: t`Spotkanie`, icon: "coffee-outline" },
+    { value: "casual", label: t`Hobby`, icon: "tennis" },
+  ];
   const setProfile = useAuthStore((state) => state.setProfile);
   const [text, setText] = useState(prefill || "");
   const [visibility, setVisibility] = useState<Visibility>(
@@ -71,7 +74,7 @@ export default function SetStatusScreen() {
       invalidateAfterStatusChange();
     },
     onError: () => {
-      Alert.alert("Błąd", "Nie udało się wyczyścić statusu");
+      Alert.alert(t`Błąd`, t`Nie udało się wyczyścić statusu`);
     },
   });
 
@@ -95,7 +98,7 @@ export default function SetStatusScreen() {
       {
         onError: () => {
           if (previousProfile) setProfile(previousProfile);
-          Alert.alert("Błąd", "Nie udało się ustawić statusu");
+          Alert.alert(t`Błąd`, t`Nie udało się ustawić statusu`);
         },
       },
     );
@@ -123,9 +126,13 @@ export default function SetStatusScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Co teraz?</Text>
+      <Text style={styles.title}>
+        <Trans>Co teraz?</Trans>
+      </Text>
 
-      <Text style={styles.sectionLabel}>KATEGORIA (max 2)</Text>
+      <Text style={styles.sectionLabel}>
+        <Trans>KATEGORIA (max 2)</Trans>
+      </Text>
       <View style={styles.categoryRow}>
         {CATEGORY_OPTIONS.map((cat) => {
           const selected = categories.includes(cat.value);
@@ -149,7 +156,7 @@ export default function SetStatusScreen() {
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder="Czego szukasz lub co możesz dać?"
+          placeholder={t`Czego szukasz lub co możesz dać?`}
           placeholderTextColor={colors.muted}
           spellCheck={false}
           autoCorrect={false}
@@ -161,7 +168,9 @@ export default function SetStatusScreen() {
       </View>
 
       <View style={styles.visibilityRow}>
-        <Text style={[styles.sectionLabel, styles.inlineLabel]}>WIDOCZNOŚĆ</Text>
+        <Text style={[styles.sectionLabel, styles.inlineLabel]}>
+          <Trans>WIDOCZNOŚĆ</Trans>
+        </Text>
         <View style={styles.visibilityControls}>
           <Pressable onPress={() => setShowHelp((s) => !s)} hitSlop={8}>
             <IconHelp size={16} color={colors.muted} />
@@ -169,7 +178,7 @@ export default function SetStatusScreen() {
           <Toggle
             value={visibility === "public"}
             onValueChange={(v) => setVisibility(v ? "public" : "private")}
-            labels={{ off: "Prywatny", on: "Publiczny" }}
+            labels={{ off: t`Prywatny`, on: t`Publiczny` }}
           />
         </View>
       </View>
@@ -177,7 +186,7 @@ export default function SetStatusScreen() {
 
       <View style={styles.submitContainer}>
         <Button
-          title="Ustaw status"
+          title={t`Ustaw status`}
           variant="accent"
           onPress={handleSubmit}
           disabled={!canSubmit}
@@ -185,7 +194,9 @@ export default function SetStatusScreen() {
         />
         {isEditing && (
           <Pressable onPress={handleClear} style={styles.clearButton} hitSlop={8}>
-            <Text style={styles.clearText}>Wyczyść status</Text>
+            <Text style={styles.clearText}>
+              <Trans>Wyczyść status</Trans>
+            </Text>
           </Pressable>
         )}
       </View>

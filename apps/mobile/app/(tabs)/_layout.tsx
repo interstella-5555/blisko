@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { subMinutes } from "date-fns";
 import { Redirect, router, Tabs } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
@@ -17,6 +18,7 @@ import { useWavesStore } from "@/stores/wavesStore";
 import { colors, fonts, type as typ } from "@/theme";
 
 export default function TabsLayout() {
+  const { t } = useLingui();
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
   const hasCheckedProfile = useAuthStore((state) => state.hasCheckedProfile);
@@ -28,163 +30,173 @@ export default function TabsLayout() {
   const userIdRef = useRef(user?.id);
   userIdRef.current = user?.id;
 
-  const wsHandler = useCallback((msg: WSMessage) => {
-    if (msg.type === "newWave") {
-      useWavesStore.getState().addReceived(msg.wave, msg.fromProfile);
-      useProfilesStore.getState().merge(msg.wave.fromUserId, {
-        displayName: msg.fromProfile.displayName,
-        avatarUrl: msg.fromProfile.avatarUrl,
-        _partial: true,
-      });
-    }
-    if (msg.type === "waveResponded") {
-      useWavesStore.getState().updateStatus(msg.waveId, msg.accepted);
-    }
-    if (msg.type === "newMessage") {
-      // Skip own messages — HTTP response is the confirmation path
-      if (msg.message.senderId === userIdRef.current) return;
-
-      const convStore = useConversationsStore.getState();
-      const msgStore = useMessagesStore.getState();
-
-      // Resolve replyTo from cached parent message
-      let replyTo = null;
-      if (msg.message.replyToId) {
-        const chat = msgStore.getChat(msg.conversationId);
-        const parent = chat?.items.find((m) => m.id === msg.message.replyToId);
-        if (parent) {
-          replyTo = { id: parent.id, content: parent.content, senderName: parent.senderName ?? "Użytkownik" };
-        }
-      }
-
-      // Update messages store
-      msgStore.prepend(msg.conversationId, {
-        ...msg.message,
-        seq: msg.message.seq ?? null,
-        conversationId: msg.conversationId,
-        type: msg.message.type ?? "text",
-        metadata: msg.message.metadata ?? null,
-        replyToId: msg.message.replyToId ?? null,
-        readAt: msg.message.readAt ?? null,
-        deletedAt: msg.message.deletedAt ?? null,
-        replyTo,
-        reactions: [],
-        senderName: msg.senderName ?? null,
-        senderAvatarUrl: msg.senderAvatarUrl ?? null,
-      });
-
-      // Update conversation's last message
-      convStore.updateLastMessage(msg.conversationId, {
-        id: msg.message.id,
-        content: msg.message.content,
-        senderId: msg.message.senderId,
-        createdAt: msg.message.createdAt,
-        type: msg.message.type ?? "text",
-        senderName: msg.senderName ?? null,
-      });
-
-      // Increment unread if not viewing this conversation
-      if (convStore.activeConversationId !== msg.conversationId) {
-        convStore.incrementUnread(msg.conversationId);
-      }
-    }
-    if (msg.type === "reaction") {
-      useMessagesStore
-        .getState()
-        .updateReaction(msg.conversationId, msg.messageId, msg.emoji, msg.userId, msg.action, userIdRef.current ?? "");
-    }
-    if (msg.type === "waveResponded" && msg.accepted && msg.conversationId) {
-      sendWsMessage({ type: "subscribe", conversationId: msg.conversationId });
-      // Build conversation entry from WS payload — no HTTP refetch needed
-      const responderId = msg.responderId ?? "";
-      if (msg.responderProfile) {
-        useProfilesStore.getState().merge(responderId, {
-          displayName: msg.responderProfile.displayName,
-          avatarUrl: msg.responderProfile.avatarUrl,
+  const wsHandler = useCallback(
+    (msg: WSMessage) => {
+      if (msg.type === "newWave") {
+        useWavesStore.getState().addReceived(msg.wave, msg.fromProfile);
+        useProfilesStore.getState().merge(msg.wave.fromUserId, {
+          displayName: msg.fromProfile.displayName,
+          avatarUrl: msg.fromProfile.avatarUrl,
           _partial: true,
         });
       }
-      const now = new Date().toISOString();
-      useConversationsStore.getState().addNew({
-        id: msg.conversationId,
-        type: "dm",
-        participant: msg.responderProfile
-          ? {
-              userId: responderId,
-              displayName: msg.responderProfile.displayName,
-              avatarUrl: msg.responderProfile.avatarUrl,
-              isSuspended: false,
-            }
-          : null,
-        groupName: null,
-        groupAvatarUrl: null,
-        memberCount: null,
-        lastMessage: null,
-        unreadCount: 0,
-        mutedUntil: null,
-        metadata: null,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-    if (msg.type === "reconnected") {
-      // Reconcile after WS reconnection — may have missed events
-      utilsRef.current.waves.getReceived.refetch();
-      utilsRef.current.waves.getSent.refetch();
-      utilsRef.current.messages.getConversations.refetch();
-      utilsRef.current.profiles.me.refetch();
+      if (msg.type === "waveResponded") {
+        useWavesStore.getState().updateStatus(msg.waveId, msg.accepted);
+      }
+      if (msg.type === "newMessage") {
+        // Skip own messages — HTTP response is the confirmation path
+        if (msg.message.senderId === userIdRef.current) return;
 
-      // Batch gap fill for cached chats
-      const reconnectMsgStore = useMessagesStore.getState();
-      const cursors: Record<string, number> = {};
-      for (const [convId, cache] of reconnectMsgStore.chats) {
-        if (cache.newestSeq != null) {
-          cursors[convId] = cache.newestSeq;
+        const convStore = useConversationsStore.getState();
+        const msgStore = useMessagesStore.getState();
+
+        // Resolve replyTo from cached parent message
+        let replyTo = null;
+        if (msg.message.replyToId) {
+          const chat = msgStore.getChat(msg.conversationId);
+          const parent = chat?.items.find((m) => m.id === msg.message.replyToId);
+          if (parent) {
+            replyTo = { id: parent.id, content: parent.content, senderName: parent.senderName ?? t`Użytkownik` };
+          }
+        }
+
+        // Update messages store
+        msgStore.prepend(msg.conversationId, {
+          ...msg.message,
+          seq: msg.message.seq ?? null,
+          conversationId: msg.conversationId,
+          type: msg.message.type ?? "text",
+          metadata: msg.message.metadata ?? null,
+          replyToId: msg.message.replyToId ?? null,
+          readAt: msg.message.readAt ?? null,
+          deletedAt: msg.message.deletedAt ?? null,
+          replyTo,
+          reactions: [],
+          senderName: msg.senderName ?? null,
+          senderAvatarUrl: msg.senderAvatarUrl ?? null,
+        });
+
+        // Update conversation's last message
+        convStore.updateLastMessage(msg.conversationId, {
+          id: msg.message.id,
+          content: msg.message.content,
+          senderId: msg.message.senderId,
+          createdAt: msg.message.createdAt,
+          type: msg.message.type ?? "text",
+          senderName: msg.senderName ?? null,
+        });
+
+        // Increment unread if not viewing this conversation
+        if (convStore.activeConversationId !== msg.conversationId) {
+          convStore.incrementUnread(msg.conversationId);
         }
       }
-      if (Object.keys(cursors).length > 0) {
-        reconnectMsgStore.syncGaps(cursors);
+      if (msg.type === "reaction") {
+        useMessagesStore
+          .getState()
+          .updateReaction(
+            msg.conversationId,
+            msg.messageId,
+            msg.emoji,
+            msg.userId,
+            msg.action,
+            userIdRef.current ?? "",
+          );
       }
-    }
-    if (msg.type === "profileReady") {
-      // AI pipeline completed — refresh profile with embedding/interests
-      utilsRef.current.profiles.me.refetch();
-    }
-    if (msg.type === "groupMember") {
-      const convStore = useConversationsStore.getState();
-      if (msg.action === "joined") {
-        convStore.updateMemberCount(msg.conversationId, 1);
-      } else if (msg.action === "left" || msg.action === "removed") {
-        if (msg.userId === userIdRef.current) {
-          convStore.remove(msg.conversationId);
-        } else {
-          convStore.updateMemberCount(msg.conversationId, -1);
+      if (msg.type === "waveResponded" && msg.accepted && msg.conversationId) {
+        sendWsMessage({ type: "subscribe", conversationId: msg.conversationId });
+        // Build conversation entry from WS payload — no HTTP refetch needed
+        const responderId = msg.responderId ?? "";
+        if (msg.responderProfile) {
+          useProfilesStore.getState().merge(responderId, {
+            displayName: msg.responderProfile.displayName,
+            avatarUrl: msg.responderProfile.avatarUrl,
+            _partial: true,
+          });
+        }
+        const now = new Date().toISOString();
+        useConversationsStore.getState().addNew({
+          id: msg.conversationId,
+          type: "dm",
+          participant: msg.responderProfile
+            ? {
+                userId: responderId,
+                displayName: msg.responderProfile.displayName,
+                avatarUrl: msg.responderProfile.avatarUrl,
+                isSuspended: false,
+              }
+            : null,
+          groupName: null,
+          groupAvatarUrl: null,
+          memberCount: null,
+          lastMessage: null,
+          unreadCount: 0,
+          mutedUntil: null,
+          metadata: null,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+      if (msg.type === "reconnected") {
+        // Reconcile after WS reconnection — may have missed events
+        utilsRef.current.waves.getReceived.refetch();
+        utilsRef.current.waves.getSent.refetch();
+        utilsRef.current.messages.getConversations.refetch();
+        utilsRef.current.profiles.me.refetch();
+
+        // Batch gap fill for cached chats
+        const reconnectMsgStore = useMessagesStore.getState();
+        const cursors: Record<string, number> = {};
+        for (const [convId, cache] of reconnectMsgStore.chats) {
+          if (cache.newestSeq != null) {
+            cursors[convId] = cache.newestSeq;
+          }
+        }
+        if (Object.keys(cursors).length > 0) {
+          reconnectMsgStore.syncGaps(cursors);
         }
       }
-    }
-    if (msg.type === "groupUpdated") {
-      useConversationsStore.getState().updateGroupInfo(msg.conversationId, msg.updates);
-    }
-    if (msg.type === "topicEvent") {
-      utilsRef.current.groups.getGroupInfo.invalidate({ conversationId: msg.conversationId });
-    }
-    if (msg.type === "conversationDeleted") {
-      const convStore = useConversationsStore.getState();
-      const wasActive = convStore.activeConversationId === msg.conversationId;
-      convStore.remove(msg.conversationId);
-      if (wasActive) {
-        router.back();
+      if (msg.type === "profileReady") {
+        // AI pipeline completed — refresh profile with embedding/interests
+        utilsRef.current.profiles.me.refetch();
       }
-    }
-    if (msg.type === "groupInvited") {
-      // Subscribe to the new group conversation and refetch
-      sendWsMessage({
-        type: "subscribe",
-        conversationId: msg.conversationId,
-      });
-      utilsRef.current.messages.getConversations.refetch();
-    }
-  }, []);
+      if (msg.type === "groupMember") {
+        const convStore = useConversationsStore.getState();
+        if (msg.action === "joined") {
+          convStore.updateMemberCount(msg.conversationId, 1);
+        } else if (msg.action === "left" || msg.action === "removed") {
+          if (msg.userId === userIdRef.current) {
+            convStore.remove(msg.conversationId);
+          } else {
+            convStore.updateMemberCount(msg.conversationId, -1);
+          }
+        }
+      }
+      if (msg.type === "groupUpdated") {
+        useConversationsStore.getState().updateGroupInfo(msg.conversationId, msg.updates);
+      }
+      if (msg.type === "topicEvent") {
+        utilsRef.current.groups.getGroupInfo.invalidate({ conversationId: msg.conversationId });
+      }
+      if (msg.type === "conversationDeleted") {
+        const convStore = useConversationsStore.getState();
+        const wasActive = convStore.activeConversationId === msg.conversationId;
+        convStore.remove(msg.conversationId);
+        if (wasActive) {
+          router.back();
+        }
+      }
+      if (msg.type === "groupInvited") {
+        // Subscribe to the new group conversation and refetch
+        sendWsMessage({
+          type: "subscribe",
+          conversationId: msg.conversationId,
+        });
+        utilsRef.current.messages.getConversations.refetch();
+      }
+    },
+    [t],
+  );
   useWebSocket(wsHandler);
   useInAppNotifications();
   usePushNotifications();
@@ -336,7 +348,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "W okolicy",
+          title: t`W okolicy`,
           tabBarIcon: ({ color }) => <IconPin size={20} color={color} />,
           tabBarAccessibilityLabel: "tab-nearby",
           headerShown: false,
@@ -345,7 +357,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="chats"
         options={{
-          title: "Czaty",
+          title: t`Czaty`,
           tabBarIcon: ({ color }) => <IconChat size={20} color={color} />,
           tabBarAccessibilityLabel: "tab-chats",
           tabBarBadge: chatsTabBadge > 0 ? chatsTabBadge : undefined,
@@ -359,7 +371,7 @@ export default function TabsLayout() {
           },
           header: () => (
             <TabHeader
-              title="Czaty"
+              title={t`Czaty`}
               rightAction={{
                 Icon: IconPlus,
                 onPress: () => router.push("/create-group"),
@@ -372,12 +384,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profil",
+          title: t`Profil`,
           tabBarIcon: ({ color }) => <IconPerson size={20} color={color} />,
           tabBarAccessibilityLabel: "tab-profile",
           header: () => (
             <TabHeader
-              title="Profil"
+              title={t`Profil`}
               rightAction={{
                 Icon: IconSettings,
                 onPress: () => router.push("/settings"),

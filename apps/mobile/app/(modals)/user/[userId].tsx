@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { router, useLocalSearchParams, usePathname } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -18,14 +19,15 @@ import { useWavesStore } from "@/stores/wavesStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
 function BlockAction({ userId, displayName }: { userId: string; displayName: string }) {
+  const { t } = useLingui();
   const blockMutation = trpc.waves.block.useMutation();
   const utils = trpc.useUtils();
 
   const handleBlock = () => {
-    Alert.alert("Zablokuj", `Czy na pewno chcesz zablokować ${displayName}?`, [
-      { text: "Anuluj", style: "cancel" },
+    Alert.alert(t`Zablokuj`, t`Czy na pewno chcesz zablokować ${displayName}?`, [
+      { text: t`Anuluj`, style: "cancel" },
       {
-        text: "Zablokuj",
+        text: t`Zablokuj`,
         style: "destructive",
         onPress: async () => {
           try {
@@ -42,7 +44,7 @@ function BlockAction({ userId, displayName }: { userId: string; displayName: str
             await Promise.all([utils.waves.getSent.invalidate(), utils.waves.getReceived.invalidate()]);
             router.back();
           } catch {
-            Alert.alert("Błąd", "Nie udało się zablokować użytkownika.");
+            Alert.alert(t`Błąd`, t`Nie udało się zablokować użytkownika.`);
           }
         },
       },
@@ -51,7 +53,7 @@ function BlockAction({ userId, displayName }: { userId: string; displayName: str
 
   return (
     <Pressable style={styles.blockAction} onPress={handleBlock} disabled={blockMutation.isPending}>
-      <Text style={styles.blockActionText}>{blockMutation.isPending ? "Blokowanie..." : "Zablokuj użytkownika"}</Text>
+      <Text style={styles.blockActionText}>{blockMutation.isPending ? t`Blokowanie...` : t`Zablokuj użytkownika`}</Text>
     </Pressable>
   );
 }
@@ -91,6 +93,7 @@ function SkeletonLines({ count }: { count: number }) {
 }
 
 export default function UserProfileScreen() {
+  const { t } = useLingui();
   const params = useLocalSearchParams<{
     userId: string;
     distance: string;
@@ -203,10 +206,10 @@ export default function UserProfileScreen() {
     // Ninja mode check — hidden users must switch to visible before pinging
     const myProfile = useAuthStore.getState().profile;
     if (myProfile?.visibilityMode === "ninja") {
-      Alert.alert("Aby pingować musisz być widoczny", "Przejść w tryb Semi-Open?", [
-        { text: "Anuluj", style: "cancel" },
+      Alert.alert(t`Aby pingować musisz być widoczny`, t`Przejść w tryb Semi-Open?`, [
+        { text: t`Anuluj`, style: "cancel" },
         {
-          text: "Tak",
+          text: t`Tak`,
           onPress: async () => {
             try {
               const updated = await updateProfileMutation.mutateAsync({ visibilityMode: "semi_open" });
@@ -214,7 +217,7 @@ export default function UserProfileScreen() {
               handleWave();
             } catch (err) {
               if (isRateLimitError(err)) return; // global handler shows localized toast
-              Alert.alert("Błąd", "Nie udało się zmienić trybu widoczności.");
+              Alert.alert(t`Błąd`, t`Nie udało się zmienić trybu widoczności.`);
             }
           },
         },
@@ -271,21 +274,21 @@ export default function UserProfileScreen() {
         // Already waved — keep pending state, let next sync pick up the real ID
       } else if (errorMsg.includes("already_connected")) {
         setPendingWaveId(null);
-        Alert.alert("Jesteście połączeni", "Macie już ze sobą chat — otwórz go z listy rozmów.");
+        Alert.alert(t`Jesteście połączeni`, t`Macie już ze sobą chat — otwórz go z listy rozmów.`);
       } else if (errorMsg.includes("daily_limit")) {
         setPendingWaveId(null);
-        Alert.alert("Limit dzienny", "Wykorzystałeś dzienny limit pingów. Wróć jutro!");
+        Alert.alert(t`Limit dzienny`, t`Wykorzystałeś dzienny limit pingów. Wróć jutro!`);
       } else if (errorMsg.includes("per_person:")) {
         const hours = errorMsg.split("per_person:")[1];
         setPendingWaveId(null);
-        Alert.alert("Jeszcze nie teraz", `Już pingowałeś tę osobę. Spróbuj ponownie za ${hours}h.`);
+        Alert.alert(t`Jeszcze nie teraz`, t`Już pingowałeś tę osobę. Spróbuj ponownie za ${hours}h.`);
       } else if (errorMsg.includes("cooldown:")) {
         const hours = errorMsg.split("cooldown:")[1];
         setPendingWaveId(null);
-        Alert.alert("Jeszcze nie teraz", `Możesz pingować tę osobę ponownie za ${hours}h.`);
+        Alert.alert(t`Jeszcze nie teraz`, t`Możesz pingować tę osobę ponownie za ${hours}h.`);
       } else {
         setPendingWaveId(null);
-        Alert.alert("Błąd", `Nie udało się wysłać pinga: ${errorMsg}`);
+        Alert.alert(t`Błąd`, t`Nie udało się wysłać pinga: ${errorMsg}`);
       }
     } finally {
       busyRef.current = false;
@@ -345,10 +348,10 @@ export default function UserProfileScreen() {
   const handleDecline = () => {
     if (!gate.requireFullProfile()) return;
     if (busyRef.current || !incomingWave) return;
-    Alert.alert("Nie teraz", "Czy na pewno chcesz pominąć ten ping?", [
-      { text: "Anuluj", style: "cancel" },
+    Alert.alert(t`Nie teraz`, t`Czy na pewno chcesz pominąć ten ping?`, [
+      { text: t`Anuluj`, style: "cancel" },
       {
-        text: "Pomiń",
+        text: t`Pomiń`,
         style: "destructive",
         onPress: async () => {
           busyRef.current = true;
@@ -379,7 +382,9 @@ export default function UserProfileScreen() {
   if (!isLoading && !profile && !cached) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emptyText}>Nie znaleziono profilu</Text>
+        <Text style={styles.emptyText}>
+          <Trans>Nie znaleziono profilu</Trans>
+        </Text>
       </View>
     );
   }
@@ -405,7 +410,7 @@ export default function UserProfileScreen() {
           <Avatar uri={profile?.avatarUrl ?? resolvedAvatarUrl} name={displayName} size={100} blurred={isGhost} />
           <Text style={styles.displayName}>{displayName}</Text>
           <View style={styles.meta}>
-            {matchPercent > 0 && <Text style={styles.matchBadge}>{matchPercent}% dopasowania</Text>}
+            {matchPercent > 0 && <Text style={styles.matchBadge}>{t`${matchPercent}% dopasowania`}</Text>}
             <Text style={styles.distance}>{formatDistance(resolvedDistance)}</Text>
           </View>
 
@@ -414,29 +419,39 @@ export default function UserProfileScreen() {
             {actionState === "idle" && (
               <Pressable style={styles.actionPill} onPress={handleWave}>
                 <IconWave size={13} color={colors.bg} />
-                <Text style={styles.actionPillText}>Ping</Text>
+                <Text style={styles.actionPillText}>
+                  <Trans>Ping</Trans>
+                </Text>
               </Pressable>
             )}
             {actionState === "pending" && (
               <View style={styles.pendingPill}>
                 <IconCheck size={12} color={colors.muted} />
-                <Text style={styles.pendingPillText}>Pingowano</Text>
+                <Text style={styles.pendingPillText}>
+                  <Trans>Pingowano</Trans>
+                </Text>
               </View>
             )}
             {actionState === "incoming" && (
               <View style={styles.incomingActions}>
                 <Pressable style={styles.declinePill} onPress={handleDecline}>
-                  <Text style={styles.declinePillText}>Nie teraz</Text>
+                  <Text style={styles.declinePillText}>
+                    <Trans>Nie teraz</Trans>
+                  </Text>
                 </Pressable>
                 <Pressable style={styles.actionPill} onPress={handleAccept}>
-                  <Text style={styles.actionPillText}>Akceptuj</Text>
+                  <Text style={styles.actionPillText}>
+                    <Trans>Akceptuj</Trans>
+                  </Text>
                 </Pressable>
               </View>
             )}
             {actionState === "chat" && (
               <Pressable style={styles.chatPill} onPress={handleOpenChat}>
                 <IconChat size={13} color={colors.bg} />
-                <Text style={styles.chatPillText}>Napisz wiadomość</Text>
+                <Text style={styles.chatPillText}>
+                  <Trans>Napisz wiadomość</Trans>
+                </Text>
               </Pressable>
             )}
           </View>
@@ -445,7 +460,9 @@ export default function UserProfileScreen() {
         {/* Status "Na teraz" */}
         {profile?.currentStatus && (
           <View style={styles.otherStatus}>
-            <Text style={styles.otherStatusLabel}>NA TERAZ</Text>
+            <Text style={styles.otherStatusLabel}>
+              <Trans>NA TERAZ</Trans>
+            </Text>
             <Text style={styles.otherStatusText} numberOfLines={1}>
               {profile.currentStatus}
             </Text>
@@ -455,12 +472,16 @@ export default function UserProfileScreen() {
         {/* AI connection analysis */}
         {analysis?.status === "ready" && analysis.longDescription ? (
           <View style={styles.snippetBlock}>
-            <Text style={styles.snippetLabel}>WSPÓLNE</Text>
+            <Text style={styles.snippetLabel}>
+              <Trans>WSPÓLNE</Trans>
+            </Text>
             <Text style={styles.snippetText}>{analysis.longDescription}</Text>
           </View>
         ) : commonInterests.length > 0 ? (
           <View style={styles.snippetBlock}>
-            <Text style={styles.snippetLabel}>WSPÓLNE</Text>
+            <Text style={styles.snippetLabel}>
+              <Trans>WSPÓLNE</Trans>
+            </Text>
             <View style={styles.pillRow}>
               {commonInterests.map((interest) => (
                 <View key={interest} style={styles.pill}>
@@ -471,39 +492,47 @@ export default function UserProfileScreen() {
           </View>
         ) : (
           <View style={styles.snippetBlock}>
-            <Text style={styles.snippetLabel}>WSPÓLNE</Text>
+            <Text style={styles.snippetLabel}>
+              <Trans>WSPÓLNE</Trans>
+            </Text>
             <SkeletonLines count={3} />
           </View>
         )}
 
         {/* Bio */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>O mnie</Text>
+          <Text style={styles.sectionTitle}>
+            <Trans>O mnie</Trans>
+          </Text>
           {!cached && isLoading ? (
             <SkeletonLines count={3} />
           ) : (
-            <Text style={styles.sectionContent}>{resolvedBio || "Brak opisu"}</Text>
+            <Text style={styles.sectionContent}>{resolvedBio || t`Brak opisu`}</Text>
           )}
         </View>
 
         {/* Looking for */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Kogo szukam</Text>
+          <Text style={styles.sectionTitle}>
+            <Trans>Kogo szukam</Trans>
+          </Text>
           {!cached && isLoading ? (
             <SkeletonLines count={2} />
           ) : (
-            <Text style={styles.sectionContent}>{resolvedLookingFor || "Brak opisu"}</Text>
+            <Text style={styles.sectionContent}>{resolvedLookingFor || t`Brak opisu`}</Text>
           )}
         </View>
 
         {/* Superpower */}
         {profile?.superpower && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Co mogę dać</Text>
+            <Text style={styles.sectionTitle}>
+              <Trans>Co mogę dać</Trans>
+            </Text>
             <Text style={styles.sectionContent}>{profile.superpower}</Text>
             {profile.offerType && (
               <Text style={styles.offerTypeBadge}>
-                {{ volunteer: "Wolontariat", exchange: "Wymiana", gig: "Zlecenie" }[profile.offerType]}
+                {{ volunteer: t`Wolontariat`, exchange: t`Wymiana`, gig: t`Zlecenie` }[profile.offerType]}
               </Text>
             )}
           </View>

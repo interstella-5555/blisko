@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Redirect, router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/ui/Avatar";
@@ -15,42 +16,43 @@ interface GroupRow {
   route: string;
 }
 
-const groups: GroupRow[] = [
-  {
-    icon: <IconPerson size={20} />,
-    label: "Profil",
-    description: "Edytuj profil, automatyczne profilowanie",
-    route: "/settings/profile",
-  },
-  {
-    icon: <IconAccount size={20} />,
-    label: "Konto",
-    description: "Połączone konta, email",
-    route: "/settings/account",
-  },
-  {
-    icon: <IconPrivacy size={20} />,
-    label: "Prywatność",
-    description: "Widoczność, zablokowani użytkownicy",
-    route: "/settings/privacy",
-  },
-  {
-    icon: <IconBell size={20} />,
-    label: "Powiadomienia",
-    description: "Pingi, wiadomości",
-    route: "/settings/notifications",
-  },
-  {
-    icon: <IconHelp size={20} />,
-    label: "Pomoc",
-    description: "FAQ, zgłoś problem, regulamin",
-    route: "/settings/help",
-  },
-];
-
 export default function SettingsHubScreen() {
+  const { t } = useLingui();
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
+
+  const groups: GroupRow[] = [
+    {
+      icon: <IconPerson size={20} />,
+      label: t`Profil`,
+      description: t`Edytuj profil, automatyczne profilowanie`,
+      route: "/settings/profile",
+    },
+    {
+      icon: <IconAccount size={20} />,
+      label: t`Konto`,
+      description: t`Połączone konta, email`,
+      route: "/settings/account",
+    },
+    {
+      icon: <IconPrivacy size={20} />,
+      label: t`Prywatność`,
+      description: t`Widoczność, zablokowani użytkownicy`,
+      route: "/settings/privacy",
+    },
+    {
+      icon: <IconBell size={20} />,
+      label: t`Powiadomienia`,
+      description: t`Pingi, wiadomości`,
+      route: "/settings/notifications",
+    },
+    {
+      icon: <IconHelp size={20} />,
+      label: t`Pomoc`,
+      description: t`FAQ, zgłoś problem, regulamin`,
+      route: "/settings/help",
+    },
+  ];
 
   const handleLogout = () => signOutAndReset();
 
@@ -65,7 +67,7 @@ export default function SettingsHubScreen() {
         <Avatar uri={profile?.avatarUrl} name={profile?.displayName || user?.email?.charAt(0) || "?"} size={48} />
         <View style={styles.userInfo}>
           <Text style={styles.userName} numberOfLines={1}>
-            {profile?.displayName || "Brak nazwy"}
+            {profile?.displayName || t`Brak nazwy`}
           </Text>
           <Text style={styles.userEmail} numberOfLines={1}>
             {user?.email}
@@ -89,7 +91,9 @@ export default function SettingsHubScreen() {
 
       {/* Logout */}
       <Pressable style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>WYLOGUJ SIĘ</Text>
+        <Text style={styles.logoutText}>
+          <Trans>WYLOGUJ SIĘ</Trans>
+        </Text>
       </Pressable>
 
       {/* Version */}

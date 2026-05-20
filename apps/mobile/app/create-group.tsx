@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -29,6 +30,7 @@ import { colors, fonts, spacing, type as typ } from "@/theme";
 const MAP_HEIGHT = 180;
 
 export default function CreateGroupScreen() {
+  const { t } = useLingui();
   const gate = useProfileGate();
   const isGhost = useIsGhost();
   const [name, setName] = useState("");
@@ -94,14 +96,14 @@ export default function CreateGroupScreen() {
       router.replace(`/chat/${data.id}`);
     },
     onError: () => {
-      Alert.alert("Błąd", "Nie udało się utworzyć grupy");
+      Alert.alert(t`Błąd`, t`Nie udało się utworzyć grupy`);
     },
   });
 
   const handleCreate = () => {
     if (!gate.requireFullProfile()) return;
     if (name.trim().length < 1) {
-      Alert.alert("Błąd", "Podaj nazwę grupy");
+      Alert.alert(t`Błąd`, t`Podaj nazwę grupy`);
       return;
     }
     createGroup.mutate({
@@ -136,13 +138,15 @@ export default function CreateGroupScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.field}>
-            <Text style={styles.label}>Nazwa grupy</Text>
+            <Text style={styles.label}>
+              <Trans>Nazwa grupy</Trans>
+            </Text>
             <TextInput
               testID="group-name-input"
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="np. Sąsiedzi z Mokotowa"
+              placeholder={t`np. Sąsiedzi z Mokotowa`}
               placeholderTextColor={colors.muted}
               spellCheck={false}
               autoCorrect={false}
@@ -152,13 +156,15 @@ export default function CreateGroupScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Opis</Text>
+            <Text style={styles.label}>
+              <Trans>Opis</Trans>
+            </Text>
             <TextInput
               testID="group-description-input"
               style={[styles.input, styles.multilineInput]}
               value={description}
               onChangeText={setDescription}
-              placeholder="O czym jest ta grupa? (opcjonalnie)"
+              placeholder={t`O czym jest ta grupa? (opcjonalnie)`}
               placeholderTextColor={colors.muted}
               spellCheck={false}
               autoCorrect={false}
@@ -171,13 +177,15 @@ export default function CreateGroupScreen() {
           </View>
 
           <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Widoczna w okolicy</Text>
+            <Text style={styles.toggleLabel}>
+              <Trans>Widoczna w okolicy</Trans>
+            </Text>
             <Toggle value={isDiscoverable} onValueChange={setIsDiscoverable} disabled={!hasLocation} />
           </View>
           <Text style={styles.toggleDescription}>
             {hasLocation
-              ? "Osoby w pobliżu będą mogły znaleźć i dołączyć do grupy"
-              : "Włącz lokalizację, żeby grupa była widoczna"}
+              ? t`Osoby w pobliżu będą mogły znaleźć i dołączyć do grupy`
+              : t`Włącz lokalizację, żeby grupa była widoczna`}
           </Text>
 
           {/* Map section — animated reveal when discoverable */}
@@ -208,12 +216,16 @@ export default function CreateGroupScreen() {
                 </MapView>
               )}
             </View>
-            <Text style={styles.mapHint}>Przesuń pin, żeby ustawić lokalizację</Text>
+            <Text style={styles.mapHint}>
+              <Trans>Przesuń pin, żeby ustawić lokalizację</Trans>
+            </Text>
           </Animated.View>
 
           {dmContacts.length > 0 && (
             <View style={styles.membersSection}>
-              <Text style={styles.label}>Dodaj członków</Text>
+              <Text style={styles.label}>
+                <Trans>Dodaj członków</Trans>
+              </Text>
               {dmContacts.map((contact) => (
                 <Pressable key={contact.userId} style={styles.contactRow} onPress={() => toggleMember(contact.userId)}>
                   <Avatar uri={contact.avatarUrl} name={contact.displayName} size={36} blurred={isGhost} />
@@ -231,7 +243,7 @@ export default function CreateGroupScreen() {
           <View style={styles.submitContainer}>
             <Button
               testID="create-group-btn"
-              title="Utwórz grupę"
+              title={t`Utwórz grupę`}
               variant="fullWidth"
               onPress={handleCreate}
               disabled={!canCreate}

@@ -1,3 +1,4 @@
+import { t } from "@lingui/core/macro";
 import { randomUUID } from "expo-crypto";
 import { create } from "zustand";
 import {
@@ -357,7 +358,7 @@ export const useMessagesStore = create<MessagesStore>((setState, getState) => ({
         // not otherwise run for this call path — invoke it explicitly.
         handleGlobalError(err);
         if (isRateLimitError(err) || isContentModerationError(err) || isRecipientSuspendedError(err)) return;
-        showToast("error", "Nie udało się wysłać wiadomości");
+        showToast("error", t`Nie udało się wysłać wiadomości`);
       });
   },
 
@@ -365,7 +366,7 @@ export const useMessagesStore = create<MessagesStore>((setState, getState) => ({
     vanillaClient.messages.react.mutate({ messageId, emoji }).catch((err) => {
       handleGlobalError(err);
       if (isRateLimitError(err)) return;
-      showToast("error", "Nie udało się dodać reakcji");
+      showToast("error", t`Nie udało się dodać reakcji`);
     });
   },
 
@@ -389,7 +390,7 @@ export const useMessagesStore = create<MessagesStore>((setState, getState) => ({
       }
       handleGlobalError(err);
       if (isRateLimitError(err)) return;
-      showToast("error", "Nie udało się usunąć wiadomości");
+      showToast("error", t`Nie udało się usunąć wiadomości`);
     });
   },
 

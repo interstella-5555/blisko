@@ -1,14 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useLingui } from "@lingui/react/macro";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "../../theme";
-
-const DEFAULT_MESSAGES = [
-  "Analizuję Twoje odpowiedzi…",
-  "Przygotowuję kolejne pytanie…",
-  "Zastanawiam się nad czymś ciekawym…",
-  "Jeszcze chwilka…",
-  "Szukam najlepszego pytania…",
-];
 
 interface ThinkingIndicatorProps {
   messages?: string[];
@@ -190,11 +183,23 @@ const typeStyles = StyleSheet.create({
 
 // --- Main Component ---
 
-export function ThinkingIndicator({ messages = DEFAULT_MESSAGES }: ThinkingIndicatorProps) {
+export function ThinkingIndicator({ messages }: ThinkingIndicatorProps) {
+  const { t } = useLingui();
+  const defaultMessages = useMemo(
+    () => [
+      t`Analizuję Twoje odpowiedzi…`,
+      t`Przygotowuję kolejne pytanie…`,
+      t`Zastanawiam się nad czymś ciekawym…`,
+      t`Jeszcze chwilka…`,
+      t`Szukam najlepszego pytania…`,
+    ],
+    [t],
+  );
+  const resolvedMessages = messages ?? defaultMessages;
   return (
     <View style={styles.container}>
       <InkRipple />
-      <TypewriterText messages={messages} />
+      <TypewriterText messages={resolvedMessages} />
     </View>
   );
 }
