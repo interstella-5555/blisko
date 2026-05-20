@@ -129,6 +129,10 @@ msgstr "Analizuję Twoje odpowiedzi…"
 msgid "Anuluj"
 msgstr "Anuluj"
 
+#: app/settings/profile.tsx
+msgid "Automatyczne profilowanie"
+msgstr "Automatyczne profilowanie"
+
 #: app/settings/edit-profile.tsx
 msgid "Bio musi mieć co najmniej 10 znaków"
 msgstr "Bio musi mieć co najmniej 10 znaków"
@@ -280,6 +284,7 @@ msgid "Dołączam do grupy…"
 msgstr "Dołączam do grupy…"
 
 #: app/settings/_layout.tsx
+#: app/settings/profile.tsx
 msgid "Edytuj profil"
 msgstr "Edytuj profil"
 
@@ -620,6 +625,10 @@ msgstr "Nie przeszkadzać"
 msgid "Nie teraz"
 msgstr "Nie teraz"
 
+#: src/stores/messagesStore.ts
+msgid "Nie udało się dodać reakcji"
+msgstr "Nie udało się dodać reakcji"
+
 #: app/(modals)/group/[id].tsx
 #: app/group/join/[code].tsx
 msgid "Nie udało się dołączyć do grupy"
@@ -628,6 +637,10 @@ msgstr "Nie udało się dołączyć do grupy"
 #: app/chat/[id].tsx
 msgid "Nie udało się pobrać lokalizacji"
 msgstr "Nie udało się pobrać lokalizacji"
+
+#: src/components/AppGate.tsx
+msgid "Nie udało się połączyć z serwerem"
+msgstr "Nie udało się połączyć z serwerem"
 
 #: app/onboarding/questions.tsx
 #: app/settings/profiling.tsx
@@ -641,6 +654,10 @@ msgstr "Nie udało się przesłać zdjęcia"
 #: app/set-status.tsx
 msgid "Nie udało się ustawić statusu"
 msgstr "Nie udało się ustawić statusu"
+
+#: src/stores/messagesStore.ts
+msgid "Nie udało się usunąć wiadomości"
+msgstr "Nie udało się usunąć wiadomości"
 
 #: app/create-group.tsx
 msgid "Nie udało się utworzyć grupy"
@@ -677,6 +694,10 @@ msgstr "Nie udało się wysłać kodu weryfikacyjnego."
 #: app/(modals)/user/[userId].tsx
 msgid "Nie udało się wysłać pinga: {errorMsg}"
 msgstr "Nie udało się wysłać pinga: {errorMsg}"
+
+#: src/stores/messagesStore.ts
+msgid "Nie udało się wysłać wiadomości"
+msgstr "Nie udało się wysłać wiadomości"
 
 #: app/chat/[id].tsx
 msgid "Nie udało się wysłać zdjęcia"
@@ -949,6 +970,10 @@ msgstr "Pokaż moją lokalizację"
 msgid "Pokaż w pobliżu →"
 msgstr "Pokaż w pobliżu →"
 
+#: src/components/nearby/ViewportIndicator.tsx
+msgid "Pokaż wszystkich"
+msgstr "Pokaż wszystkich"
+
 #. placeholder {0}: groupInfo.memberCount
 #: app/(modals)/group/[id].tsx
 msgid "Pokaż wszystkich ({0}) →"
@@ -961,6 +986,11 @@ msgstr "Pokaż wszystkich w promieniu"
 #: app/filters.tsx
 msgid "Pokazuj osoby, które mają zdjęcie profilowe"
 msgstr "Pokazuj osoby, które mają zdjęcie profilowe"
+
+#. placeholder {0}: showAll ? `wszystkich ${totalCount}` : `${viewportCount} z ${totalCount}`
+#: src/components/nearby/ViewportIndicator.tsx
+msgid "Pokazujesz <0>{0}</0> osób w okolicy"
+msgstr "Pokazujesz <0>{0}</0> osób w okolicy"
 
 #: app/settings/account.tsx
 msgid "POŁĄCZ"
@@ -1012,6 +1042,10 @@ msgstr "Powiadomienia"
 #: app/settings/notifications.tsx
 msgid "Powiadomienia push wymagają zgody systemowej. Jeśli je wyłączyłeś, włącz je w Ustawieniach iPhone'a > Blisko."
 msgstr "Powiadomienia push wymagają zgody systemowej. Jeśli je wyłączyłeś, włącz je w Ustawieniach iPhone'a > Blisko."
+
+#: src/components/ProfileGateSheet.tsx
+msgid "Później"
+msgstr "Później"
 
 #: app/chat/[id].tsx
 msgid "Pozwól na dostęp do lokalizacji w ustawieniach."
@@ -1122,6 +1156,7 @@ msgstr "Spróbuj innej metody logowania"
 #: app/(tabs)/index.tsx
 #: app/onboarding/questions.tsx
 #: app/settings/profiling.tsx
+#: src/components/AppGate.tsx
 msgid "Spróbuj ponownie"
 msgstr "Spróbuj ponownie"
 
@@ -1247,6 +1282,14 @@ msgstr "UTWÓRZ"
 #: app/create-group.tsx
 msgid "Utwórz grupę"
 msgstr "Utwórz grupę"
+
+#: src/components/ProfileGateSheet.tsx
+msgid "Uzupełnij profil"
+msgstr "Uzupełnij profil"
+
+#: src/components/ProfileGateSheet.tsx
+msgid "Uzupełnij teraz"
+msgstr "Uzupełnij teraz"
 
 #: app/(auth)/login.tsx
 msgid "Użyj testowego konta user{seedUserNumber}@example.com"
@@ -1391,6 +1434,10 @@ msgstr "Wróć"
 #: app/(tabs)/index.tsx
 msgid "Wróć do mojej lokalizacji"
 msgstr "Wróć do mojej lokalizacji"
+
+#: src/components/nearby/ViewportIndicator.tsx
+msgid "Wróć do widoku mapy"
+msgstr "Wróć do widoku mapy"
 
 #: app/(modals)/user/[userId].tsx
 msgid "WSPÓLNE"
@@ -1575,6 +1622,10 @@ msgstr "Zbyt wiele prób. Spróbuj ponownie za chwilę."
 #: src/lib/uploadImage.ts
 msgid "Zdjęcie narusza regulamin"
 msgstr "Zdjęcie narusza regulamin"
+
+#: src/components/ProfileGateSheet.tsx
+msgid "Żeby korzystać z tej funkcji, uzupełnij swój profil."
+msgstr "Żeby korzystać z tej funkcji, uzupełnij swój profil."
 
 #: app/settings/help.tsx
 msgid "Zgłoś problem"

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { IconChevronRight, IconEdit, IconSparkles } from "@/components/ui/icons";
@@ -20,16 +21,17 @@ function Row({ icon, label, onPress }: RowProps) {
 }
 
 export default function ProfileSettingsScreen() {
+  const { t } = useLingui();
   return (
     <View style={styles.container}>
       <Row
         icon={<IconEdit size={20} />}
-        label="Edytuj profil"
+        label={t`Edytuj profil`}
         onPress={() => router.push("/settings/edit-profile" as never)}
       />
       <Row
         icon={<IconSparkles size={20} />}
-        label="Automatyczne profilowanie"
+        label={t`Automatyczne profilowanie`}
         onPress={() => router.push("/settings/profiling" as never)}
       />
     </View>

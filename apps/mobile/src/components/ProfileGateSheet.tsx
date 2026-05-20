@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { router } from "expo-router";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, fonts, spacing } from "../theme";
@@ -18,13 +19,21 @@ export function ProfileGateSheet({ visible, onDismiss }: ProfileGateSheetProps) 
       <Pressable style={styles.backdrop} onPress={onDismiss}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={styles.handle} />
-          <Text style={styles.title}>Uzupełnij profil</Text>
-          <Text style={styles.body}>Żeby korzystać z tej funkcji, uzupełnij swój profil.</Text>
+          <Text style={styles.title}>
+            <Trans>Uzupełnij profil</Trans>
+          </Text>
+          <Text style={styles.body}>
+            <Trans>Żeby korzystać z tej funkcji, uzupełnij swój profil.</Trans>
+          </Text>
           <Pressable style={styles.cta} onPress={handleComplete}>
-            <Text style={styles.ctaText}>Uzupełnij teraz</Text>
+            <Text style={styles.ctaText}>
+              <Trans>Uzupełnij teraz</Trans>
+            </Text>
           </Pressable>
           <Pressable style={styles.dismiss} onPress={onDismiss}>
-            <Text style={styles.dismissText}>Później</Text>
+            <Text style={styles.dismissText}>
+              <Trans>Później</Trans>
+            </Text>
           </Pressable>
         </Pressable>
       </Pressable>
