@@ -162,6 +162,7 @@ async function processHardDeleteUser(userId: string) {
         bio: "",
         lookingFor: "",
         socialLinks: null,
+        locale: null,
         visibilityMode: "ninja",
         interests: null,
         embedding: null,
