@@ -16,13 +16,18 @@ interface LocaleState {
   setLocale: (locale: LocaleCode, userInitiated?: boolean) => void;
 }
 
-// Device-scoped — preserved across logout (a Polish user logging out and
-// signing up as someone new should keep the UI in Polish). Detection runs
-// once on first install when `hasUserChosen` is false. After the user taps
-// the toggle, `hasUserChosen` flips to true and detection never overrides
-// the choice again. Cross-device sync happens via profiles.locale →
-// AppGate seeds the store with `userInitiated=true` after profile fetch.
-// BLI-277.
+// Device-scoped and authoritative — the store is the source of truth for
+// what the user sees on THIS phone. Two phones can legitimately show
+// different languages. `profiles.locale` in the DB is push-only from the
+// device perspective (AppGate writes after login so the server can render
+// emails / push in the user's last-active language). DB → store sync does
+// NOT happen — pulling would surprise users who deliberately chose a
+// different language on this device.
+//
+// `hasUserChosen` exists only to block OS re-detection across app launches.
+// Detection runs once on first install (`hasUserChosen=false`); after the
+// user taps the toggle it flips to true and the OS locale is ignored from
+// then on, even if the user changes their iOS / Android language. BLI-277.
 export const useLocaleStore = create<LocaleState>()(
   persist(
     (set, get) => ({
