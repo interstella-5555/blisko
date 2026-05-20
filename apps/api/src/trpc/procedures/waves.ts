@@ -103,12 +103,10 @@ async function acceptWaveCore(
     where: eq(schema.profiles.userId, wave.fromUserId),
     columns: { locale: true },
   });
-  const responderName = responderProfile?.displayName ?? "Ktoś";
   void sendPushToUser(wave.fromUserId, {
     title: "Blisko",
-    body: t(recipientProfile?.locale, {
-      pl: `${responderName} — ping przyjęty! Możecie teraz pisać.`,
-      uk: `${responderName} — пінг прийнято! Тепер можете писати.`,
+    body: t("push.wave.accepted.body", recipientProfile?.locale, {
+      responderName: responderProfile?.displayName ?? "Ktoś",
     }),
     data: { type: "chat", conversationId: result.conversation.id },
   });
@@ -342,12 +340,10 @@ export const wavesRouter = router({
         where: eq(schema.profiles.userId, input.toUserId),
         columns: { locale: true },
       });
-      const senderName = senderProfile?.displayName ?? "Ktoś";
       void sendPushToUser(input.toUserId, {
         title: "Blisko",
-        body: t(recipientProfile?.locale, {
-          pl: `${senderName} — nowy ping!`,
-          uk: `${senderName} — новий пінг!`,
+        body: t("push.wave.new.body", recipientProfile?.locale, {
+          senderName: senderProfile?.displayName ?? "Ktoś",
         }),
         data: { type: "wave", userId: ctx.userId },
       });

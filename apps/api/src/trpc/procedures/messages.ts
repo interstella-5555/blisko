@@ -724,10 +724,7 @@ export const messagesRouter = router({
           void sendPushToUser(recipientId, {
             title: conversation?.name ?? senderProfile?.displayName ?? "Blisko",
             body: hasUnread
-              ? t(localeMap.get(recipientId), {
-                  pl: `${unreadCount} nowych wiadomości`,
-                  uk: `${unreadCount} нових повідомлень`,
-                })
+              ? t("push.message.unread.body", localeMap.get(recipientId), { unreadCount })
               : `${senderProfile?.displayName ?? "Ktoś"}: ${messagePreview}`,
             data: { type: "chat", conversationId: input.conversationId },
             collapseId: `group:${input.conversationId}`,
