@@ -1,47 +1,46 @@
 import { describe, expect, it } from "vitest";
 import { t } from "../src/services/i18n";
 
+const inviteTranslations = {
+  pl: "Nowe zaproszenie do grupy",
+  uk: "Нове запрошення до групи",
+};
+
 describe("t() backend helper", () => {
-  it("returns the PL template for locale='pl'", () => {
-    expect(t("push.group.invite.body", "pl")).toBe("Nowe zaproszenie do grupy");
+  it("returns the PL string for locale='pl'", () => {
+    expect(t("pl", inviteTranslations)).toBe("Nowe zaproszenie do grupy");
   });
 
-  it("returns the UA template for locale='uk'", () => {
-    expect(t("push.group.invite.body", "uk")).toBe("Нове запрошення до групи");
+  it("returns the UA string for locale='uk'", () => {
+    expect(t("uk", inviteTranslations)).toBe("Нове запрошення до групи");
   });
 
   it("falls back to PL when locale is null", () => {
-    expect(t("push.group.invite.body", null)).toBe("Nowe zaproszenie do grupy");
+    expect(t(null, inviteTranslations)).toBe("Nowe zaproszenie do grupy");
   });
 
   it("falls back to PL when locale is undefined", () => {
-    expect(t("push.group.invite.body", undefined)).toBe("Nowe zaproszenie do grupy");
+    expect(t(undefined, inviteTranslations)).toBe("Nowe zaproszenie do grupy");
   });
 
-  it("falls back to PL when locale is unsupported", () => {
-    expect(t("push.group.invite.body", "de")).toBe("Nowe zaproszenie do grupy");
+  it("falls back to PL for an unsupported locale", () => {
+    expect(t("de", inviteTranslations)).toBe("Nowe zaproszenie do grupy");
   });
 
-  it("interpolates params", () => {
-    expect(t("push.wave.new.body", "uk", { senderName: "Аня" })).toBe("Аня — новий пінг!");
+  it("falls back to PL when the requested locale's translation is missing", () => {
+    // Future-proofing: when a third locale is added to LocaleCode (e.g. "en"),
+    // legacy callsites that haven't been updated to provide that translation
+    // should not crash — they fall through to PL.
+    expect(t("uk", { pl: "Tylko PL" })).toBe("Tylko PL");
   });
 
-  it("interpolates a numeric param", () => {
-    expect(t("push.message.unread.body", "uk", { unreadCount: 5 })).toBe("5 нових повідомлень");
-  });
-
-  it("leaves placeholder intact when param is missing", () => {
-    expect(t("push.wave.new.body", "pl", {})).toBe("{senderName} — nowy ping!");
-  });
-
-  it("returns the key itself when missing in both catalogs", () => {
-    expect(t("push.nonexistent.key", "pl")).toBe("push.nonexistent.key");
-  });
-
-  it("falls back to PL when key is missing in UA but present in PL", () => {
-    // No realistic divergence right now; verify the behavior with a synthetic
-    // expectation by reusing an existing PL key — both catalogs have it, so
-    // this is a structural check, not a divergence assertion.
-    expect(t("push.wave.new.body", "uk", { senderName: "X" })).toBe("X — новий пінг!");
+  it("interpolates via template literals at the callsite (no params API)", () => {
+    const name = "Аня";
+    expect(
+      t("uk", {
+        pl: `${name} — nowy ping!`,
+        uk: `${name} — новий пінг!`,
+      }),
+    ).toBe("Аня — новий пінг!");
   });
 });

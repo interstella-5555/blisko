@@ -150,7 +150,10 @@ export const groupsRouter = router({
 
         void sendPushToUser(userId, {
           title: input.name ?? "Grupa",
-          body: t("push.group.invite.body", localeByUserId.get(userId)),
+          body: t(localeByUserId.get(userId), {
+            pl: "Nowe zaproszenie do grupy",
+            uk: "Нове запрошення до групи",
+          }),
           data: { type: "group", conversationId: conversation.id },
           collapseId: `group-invite:${conversation.id}`,
         });
@@ -458,7 +461,10 @@ export const groupsRouter = router({
     });
     void sendPushToUser(input.userId, {
       title: conv.name ?? "Grupa",
-      body: t("push.group.invite.body", inviteeProfile?.locale),
+      body: t(inviteeProfile?.locale, {
+        pl: "Nowe zaproszenie do grupy",
+        uk: "Нове запрошення до групи",
+      }),
       data: { type: "group", conversationId: input.conversationId },
       collapseId: `group-invite:${input.conversationId}`,
     });

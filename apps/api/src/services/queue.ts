@@ -169,7 +169,10 @@ async function sendAmbientPushWithCooldown(userId: string) {
     });
     void sendPushToUser(userId, {
       title: "Blisko",
-      body: t("push.ambient.statusMatch.body", recipientProfile?.locale),
+      body: t(recipientProfile?.locale, {
+        pl: "Ktoś z pasującym profilem jest w pobliżu",
+        uk: "Хтось із відповідним профілем поблизу",
+      }),
       data: { type: "ambient_match" },
       collapseId: "ambient-match",
     });

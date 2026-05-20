@@ -1,7 +1,0 @@
-{
-  "push.wave.new.body": "{senderName} — nowy ping!",
-  "push.wave.accepted.body": "{responderName} — ping przyjęty! Możecie teraz pisać.",
-  "push.message.unread.body": "{unreadCount} nowych wiadomości",
-  "push.group.invite.body": "Nowe zaproszenie do grupy",
-  "push.ambient.statusMatch.body": "Ktoś z pasującym profilem jest w pobliżu"
-}
