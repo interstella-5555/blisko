@@ -1,4 +1,4 @@
-import { isOAuthProviderEnabled, OTP_LENGTH } from "@repo/shared";
+import { isOAuthProviderEnabled, type LocaleCode, OTP_LENGTH } from "@repo/shared";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -13,11 +13,13 @@ import {
   View,
 } from "react-native";
 import Svg, { Path, Polyline } from "react-native-svg";
+import { LocalePill } from "@/components/ui/LocalePill";
 import { authClient } from "@/lib/auth";
 import { isRateLimitError } from "@/lib/globalErrorHandler";
 import { showToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
+import { useLocaleStore } from "@/stores/localeStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 import { signOutAndReset } from "../_layout";
 
@@ -182,6 +184,20 @@ export default function AccountScreen() {
     },
   });
 
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
+  const updateLocale = trpc.profiles.updateLocale.useMutation({
+    onError: (err) => {
+      if (isRateLimitError(err)) return;
+      showToast("error", "Błąd", "Nie udało się zapisać języka.");
+    },
+  });
+
+  const handleLocaleChange = (next: LocaleCode) => {
+    setLocale(next, true);
+    updateLocale.mutate({ locale: next });
+  };
+
   const handleDeleteAccount = () => {
     Alert.alert(
       "Usuń konto",
@@ -229,6 +245,13 @@ export default function AccountScreen() {
         <Pressable onPress={() => router.push("/settings/change-email" as never)} hitSlop={8}>
           <Text style={styles.changeEmailText}>ZMIEŃ</Text>
         </Pressable>
+      </View>
+
+      <View style={styles.divider} />
+      <Text style={styles.sectionLabel}>JĘZYK</Text>
+      <View style={styles.localeRow}>
+        <Text style={styles.localeDescription}>Język interfejsu aplikacji.</Text>
+        <LocalePill value={locale} onChange={handleLocaleChange} />
       </View>
 
       <View style={styles.divider} />
@@ -334,6 +357,17 @@ const styles = StyleSheet.create({
   },
   emailText: {
     ...typ.body,
+  },
+  localeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.gutter,
+  },
+  localeDescription: {
+    ...typ.body,
+    color: colors.muted,
+    flex: 1,
   },
   changeEmailText: {
     fontFamily: fonts.sansSemiBold,

@@ -5,6 +5,7 @@ import {
   getNearbyMapMarkersSchema,
   getNearbyUsersForMapSchema,
   getNearbyUsersSchema,
+  localeCodeSchema,
   setStatusSchema,
   updateLocationSchema,
   updateProfileSchema,
@@ -149,6 +150,22 @@ export const profilesRouter = router({
 
       return profile;
     }),
+
+  // Update user's preferred UI language. Cross-device sync — mobile seeds
+  // localeStore from this value on session start when set. BLI-277.
+  updateLocale: protectedProcedure.input(z.object({ locale: localeCodeSchema })).mutation(async ({ ctx, input }) => {
+    const [profile] = await db
+      .update(schema.profiles)
+      .set({ locale: input.locale, updatedAt: new Date() })
+      .where(eq(schema.profiles.userId, ctx.userId))
+      .returning({ locale: schema.profiles.locale });
+
+    if (!profile) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
+    }
+
+    return { locale: profile.locale };
+  }),
 
   // Update location
   updateLocation: protectedProcedure.input(updateLocationSchema).mutation(async ({ ctx, input }) => {

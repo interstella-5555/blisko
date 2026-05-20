@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import { SplashHold } from "@/components/ui/SplashHold";
 import { getLastFailedRequestId, trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
+import { useLocaleStore } from "@/stores/localeStore";
 import { colors, type as typ } from "@/theme";
 
 // Gate between the root providers and the Stack. Holds the branded splash up
@@ -40,6 +41,8 @@ export function AppGate({ children }: { children: React.ReactNode }) {
     retry: 2,
   });
 
+  const updateLocale = trpc.profiles.updateLocale.useMutation();
+
   useEffect(() => {
     // Mirror query result into the store once. Don't overwrite a profile that
     // was just created during onboarding and has landed in the store ahead of
@@ -47,8 +50,19 @@ export function AppGate({ children }: { children: React.ReactNode }) {
     if (profileData !== undefined && !hasCheckedProfile) {
       setProfile(profileData);
       setHasCheckedProfile(true);
+      // Locale is per-device — localeStore is the source of truth for what
+      // the user sees on THIS phone. On login we push the device's current
+      // locale to profiles.locale so the server has a value for emails /
+      // push notifications, but we never pull DB → store. Two phones can
+      // legitimately show different languages. BLI-277.
+      if (profileData) {
+        const currentLocale = useLocaleStore.getState().locale;
+        if (profileData.locale !== currentLocale) {
+          updateLocale.mutate({ locale: currentLocale });
+        }
+      }
     }
-  }, [profileData, hasCheckedProfile, setProfile, setHasCheckedProfile]);
+  }, [profileData, hasCheckedProfile, setProfile, setHasCheckedProfile, updateLocale]);
 
   // Profile fetch failed on cold launch — retry screen instead of blindly
   // redirecting to onboarding. Preserves the "couldn't reach server" path

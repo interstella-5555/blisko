@@ -132,6 +132,7 @@ Extends `user` with app-specific data. 1:1 relationship via unique `user_id`.
 | `bio` | text | no | -- | User's self-description, AI-generated or manual |
 | `looking_for` | text | no | -- | What they seek (AI-generated or manual) |
 | `social_links` | jsonb | yes | -- | `{ facebook?: string, linkedin?: string }` -- usernames, not URLs |
+| `locale` | varchar(2) | yes | -- | User-chosen UI language (`pl` / `uk`). Null = no explicit choice, mobile falls back to device locale. Set via `profiles.updateLocale` (BLI-277). Added in `0030`. |
 | `visibility_mode` | text | no | `semi_open` | `ninja` / `semi_open` / `full_nomad` |
 | `do_not_disturb` | boolean | no | `false` | Mutes push notifications |
 | `superpower` | text | yes | -- | "What I can offer" freeform text |

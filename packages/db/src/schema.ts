@@ -117,6 +117,7 @@ export const profiles = pgTable(
     bio: text("bio").notNull(),
     lookingFor: text("looking_for").notNull(),
     socialLinks: jsonb("social_links").$type<{ facebook?: string; linkedin?: string }>(),
+    locale: varchar("locale", { length: 2 }).$type<"pl" | "uk">(),
     visibilityMode: text("visibility_mode")
       .$type<"ninja" | "semi_open" | "full_nomad">()
       .default("semi_open")

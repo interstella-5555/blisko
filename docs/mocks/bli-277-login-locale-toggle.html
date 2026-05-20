@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BLI-277 — PL/UA toggle on login (final: flag vs no-flag)</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #1a1a1a;
+        --bg: #faf7f2;
+        --accent: #c0392b;
+        --rule: #d5d0c4;
+        --muted: #8b8680;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        font-family: "DM Sans", system-ui, sans-serif;
+        background: #ece8df;
+        color: var(--ink);
+      }
+      .page {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 48px 32px 96px;
+      }
+      .page-header h1 {
+        font-family: "Instrument Serif", serif;
+        font-weight: 400;
+        font-size: 32px;
+        margin: 0 0 4px;
+        letter-spacing: 1px;
+      }
+      .page-header p {
+        margin: 0 0 32px;
+        color: var(--muted);
+        font-size: 14px;
+        max-width: 780px;
+        line-height: 1.6;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 48px 48px;
+        align-items: start;
+      }
+      @media (max-width: 900px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+      .variant {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+      .variant-label {
+        font-family: "DM Sans", sans-serif;
+        font-size: 11px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .variant-label.rec { color: var(--accent); }
+      .variant-title {
+        font-family: "Instrument Serif", serif;
+        font-size: 22px;
+        margin: 0;
+        text-align: center;
+      }
+      .variant-note {
+        font-size: 13.5px;
+        color: var(--ink);
+        line-height: 1.6;
+        text-align: left;
+        max-width: 380px;
+      }
+      .variant-note h4 {
+        margin: 14px 0 4px;
+        font-family: "DM Sans", sans-serif;
+        font-size: 10.5px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .variant-note ul {
+        margin: 4px 0;
+        padding-left: 18px;
+      }
+      .variant-note li { margin-bottom: 3px; }
+
+      /* iPhone frame — proportions follow design book PhoneFrame (402 × 874) */
+      .phone {
+        width: 360px;
+        aspect-ratio: 402 / 874;
+        background: var(--bg);
+        border-radius: 44px;
+        box-shadow:
+          0 0 0 6px #1a1a1a,
+          0 0 0 8px #2a2a28,
+          0 30px 60px -20px rgba(26, 26, 26, 0.35);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .phone.recommended {
+        box-shadow:
+          0 0 0 6px #1a1a1a,
+          0 0 0 8px #2a2a28,
+          0 0 0 13px var(--accent),
+          0 30px 60px -20px rgba(192, 57, 43, 0.4);
+      }
+      .notch {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 110px;
+        height: 28px;
+        background: #1a1a1a;
+        border-radius: 16px;
+        z-index: 5;
+      }
+      .status-bar {
+        height: 44px;
+        padding: 14px 26px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .status-bar .right {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .screen {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 0 22px;
+        position: relative;
+      }
+      .login-block {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .brand {
+        text-align: center;
+        font-family: "Instrument Serif", serif;
+        font-size: 26px;
+        letter-spacing: 2px;
+        margin: 0 0 6px;
+      }
+      .tagline {
+        text-align: center;
+        font-size: 13px;
+        color: var(--muted);
+        margin: 0 0 36px;
+      }
+      .form {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        background: var(--bg);
+        border: 1px solid var(--rule);
+        height: 44px;
+        border-radius: 4px;
+        font-family: "DM Sans", sans-serif;
+        font-weight: 600;
+        font-size: 10px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--ink);
+      }
+      .sep {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 4px 0;
+      }
+      .sep::before,
+      .sep::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--rule);
+      }
+      .sep span { font-size: 12px; color: var(--muted); }
+      .legal {
+        text-align: center;
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.55;
+        padding-bottom: 24px;
+      }
+      .legal a { color: var(--ink); text-decoration: underline; }
+
+      /* Pill toggle */
+      .pill {
+        display: inline-flex;
+        background: rgba(213, 208, 196, 0.35);
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        padding: 3px;
+      }
+      .pill button {
+        all: unset;
+        cursor: pointer;
+        padding: 5px 11px;
+        font-family: "DM Sans", sans-serif;
+        font-weight: 600;
+        font-size: 10px;
+        letter-spacing: 1.5px;
+        color: var(--muted);
+        border-radius: 999px;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .pill button.active {
+        background: var(--ink);
+        color: var(--bg);
+      }
+
+      .v-topright {
+        position: absolute;
+        top: 56px;
+        right: 22px;
+        z-index: 4;
+      }
+
+      /* Zoom box: shows the pill in detail */
+      .zoom {
+        background: #fff;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        max-width: 380px;
+      }
+      .zoom .pill {
+        transform: scale(1.5);
+        transform-origin: center;
+        margin: 14px 0;
+      }
+      .zoom .caption {
+        font-family: "DM Sans", sans-serif;
+        font-size: 10.5px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      /* Final recommendation banner */
+      .rec-banner {
+        background: #fff;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        padding: 28px 32px;
+        margin-top: 56px;
+        max-width: 900px;
+      }
+      .rec-banner h2 {
+        font-family: "Instrument Serif", serif;
+        font-weight: 400;
+        font-size: 26px;
+        margin: 0 0 12px;
+      }
+      .rec-banner p {
+        margin: 0 0 12px;
+        font-size: 14.5px;
+        line-height: 1.6;
+      }
+      .rec-banner b { font-weight: 600; }
+      .rec-banner code {
+        background: #f1ede4;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12.5px;
+      }
+      .rec-tag {
+        display: inline-block;
+        font-family: "DM Sans", sans-serif;
+        font-size: 10.5px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        background: var(--accent);
+        color: var(--bg);
+        padding: 4px 10px;
+        border-radius: 4px;
+        margin-bottom: 16px;
+      }
+      .rec-banner ul {
+        margin: 0 0 12px;
+        padding-left: 22px;
+        font-size: 14.5px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="page-header">
+        <h1>BLI-277 — Pill PL/UA, prawy górny: z flagą czy bez?</h1>
+        <p>
+          Decyzja o placement zapadła (B-right, prawy górny pod statusem). Pozostaje jedno —
+          czy w pillu są flagi 🇵🇱 / 🇺🇦, czy sam tekst <b>PL / UA</b>. W obecnym klimacie
+          politycznym w PL flaga waży więcej niż dwie litery — warto porównać 1:1.
+        </p>
+      </header>
+
+      <div class="grid">
+        <!-- ───────── With flags ───────── -->
+        <div class="variant">
+          <span class="variant-label">Wariant 1</span>
+          <h3 class="variant-title">Pill z flagami</h3>
+          <div class="phone">
+            <div class="notch"></div>
+            <div class="status-bar">
+              <span>9:41</span>
+              <div class="right"><span>􀙇</span><span>􀛨</span><span>􀛪</span></div>
+            </div>
+            <div class="v-topright">
+              <div class="pill">
+                <button class="active">🇵🇱 PL</button>
+                <button>🇺🇦 UA</button>
+              </div>
+            </div>
+            <div class="screen">
+              <div class="login-block">
+                <h1 class="brand">BLISKO</h1>
+                <p class="tagline">To nie przypadek. To Blisko.</p>
+                <div class="form">
+                  <div class="btn">Kontynuuj z Apple</div>
+                  <div class="btn">Kontynuuj z Google</div>
+                  <div class="sep"><span>lub</span></div>
+                  <div class="btn">Kontynuuj z Email</div>
+                </div>
+              </div>
+              <div class="legal">
+                Rejestrując się akceptujesz <a>Regulamin</a> i <a>Politykę Prywatności</a>.
+              </div>
+            </div>
+          </div>
+          <div class="zoom">
+            <span class="caption">Zoom 1.5×</span>
+            <div class="pill">
+              <button class="active">🇵🇱 PL</button>
+              <button>🇺🇦 UA</button>
+            </div>
+          </div>
+          <div class="variant-note">
+            <h4>Plusy</h4>
+            <ul>
+              <li>Maks. czytelność dla nie-czytającego skrótów (np. seniorka-Ukrainka).</li>
+              <li>Industry standard w country pickerach (Allegro, Booking).</li>
+            </ul>
+            <h4>Minusy</h4>
+            <ul>
+              <li>🇺🇦 w 2026 w PL ma ładunek polityczny, którego dwie litery nie mają.</li>
+              <li>Pojawia się jako artefakt wizualny w screenach App Store/Google Play (małe miniatury) — przyciąga uwagę krzykliwej mniejszości.</li>
+              <li>Visualnie cięższy niż reszta UI (kolor flag = jedyne kolorowe coś na ekranie poza czarnym BLISKO).</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ───────── No flags (RECOMMENDED) ───────── -->
+        <div class="variant">
+          <span class="variant-label rec">Wariant 2 · rekomendowany</span>
+          <h3 class="variant-title">Pill bez flag — sam tekst PL / UA</h3>
+          <div class="phone recommended">
+            <div class="notch"></div>
+            <div class="status-bar">
+              <span>9:41</span>
+              <div class="right"><span>􀙇</span><span>􀛨</span><span>􀛪</span></div>
+            </div>
+            <div class="v-topright">
+              <div class="pill">
+                <button class="active">PL</button>
+                <button>UA</button>
+              </div>
+            </div>
+            <div class="screen">
+              <div class="login-block">
+                <h1 class="brand">BLISKO</h1>
+                <p class="tagline">To nie przypadek. To Blisko.</p>
+                <div class="form">
+                  <div class="btn">Kontynuuj z Apple</div>
+                  <div class="btn">Kontynuuj z Google</div>
+                  <div class="sep"><span>lub</span></div>
+                  <div class="btn">Kontynuuj z Email</div>
+                </div>
+              </div>
+              <div class="legal">
+                Rejestrując się akceptujesz <a>Regulamin</a> i <a>Politykę Prywatności</a>.
+              </div>
+            </div>
+          </div>
+          <div class="zoom">
+            <span class="caption">Zoom 1.5×</span>
+            <div class="pill">
+              <button class="active">PL</button>
+              <button>UA</button>
+            </div>
+          </div>
+          <div class="variant-note">
+            <h4>Plusy</h4>
+            <ul>
+              <li>Neutralny politycznie — to ustawienie języka, nie deklaracja.</li>
+              <li>Pasuje do estetyki BLISKO: typograficznie czysty, monochromatyczny, minimalistyczny.</li>
+              <li>Semantycznie poprawny — to language switcher, nie country switcher.</li>
+              <li>Niewidoczny w przeglądarkach App Store w trybie miniatur — nie aktywizuje krzykliwej mniejszości.</li>
+            </ul>
+            <h4>Minusy</h4>
+            <ul>
+              <li>Wymaga rozumienia skrótu UA. Mitygant: defaultowa detekcja (uk + ru + be → UA) załatwia &gt;95% przypadków zanim user musi szukać togglu.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <section class="rec-banner">
+        <span class="rec-tag">Final spec</span>
+        <h2>B-right + tekst PL/UA bez flag</h2>
+        <p><b>Placement:</b> prawy górny róg, pod statusem (top: ~12 dpi pod SafeArea, right: 22 dpi = section padding).</p>
+        <p><b>Treatment:</b> pill PL / UA bez flag. Active state = <code>colors.ink</code> tło + <code>colors.bg</code> tekst. Inactive = transparent tło + <code>colors.muted</code> tekst. Border <code>colors.rule</code>, radius 999px, padding 3px, hit area minimum 44dpi przez <code>hitSlop</code>.</p>
+        <p><b>Default detection (pierwszy launch, <code>hasUserChosen=false</code>):</b></p>
+        <ul>
+          <li><code>uk</code> → UA</li>
+          <li><code>ru</code> → UA (Ukraińcy/Białorusini z phone'em sprzed 2022)</li>
+          <li><code>be</code> → UA (Białorusinom UA bliżej niż PL)</li>
+          <li>wszystko inne → PL</li>
+        </ul>
+        <p>Po pierwszym tapnięciu na toggle <code>hasUserChosen=true</code> i detekcja nigdy więcej nie nadpisuje wyboru.</p>
+      </section>
+    </div>
+  </body>
+</html>

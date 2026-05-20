@@ -24,6 +24,7 @@
 > Updated 2026-04-21 — BLI-253: `TabHeader` extended with `leftAction?: ActionConfig | "back"` (sugar `"back"` resolves to `IconChevronLeft` + `router.back()`). `settings/_layout.tsx` and `(modals)/_layout.tsx` dropped ~40 LOC each of near-duplicate inline header JSX + local StyleSheet and now call `<TabHeader title={options.title ?? ""} leftAction="back" />`. Left icon size 24 / `colors.ink`, right icon size 20 / `colors.muted` are owned by `TabHeader`.
 > Updated 2026-04-22 — BLI-254 avatar pipeline via imgproxy. `profiles.avatarUrl` now holds a source pointer (`s3://${BUCKET_NAME}/uploads/{uuid}.{ext}` for our uploads, OAuth / seed HTTPS URLs pass through). Mobile never reads raw source — `<Avatar>` and `GridClusterMarker`'s single-user branch call `resolveAvatarUri(uri, sizePt)` from `src/lib/avatar.ts`, which composes an imgproxy URL (`https://img.blisko.app/unsafe/rs:fill:N:N/f:webp/plain/{source}`) for `sizePt * PixelRatio.get()` → nearest of `[96, 144, 288, 384, 576]`. Unknown sources (Facebook CDN) fall through raw — see BLI-256. `edit-profile.tsx` now reads `source` from the upload response (previously `url` was a 7-day presigned URL that silently expired). `EXPO_PUBLIC_IMGPROXY_URL` env var required. Full doc: `docs/architecture/images.md`.
 > Updated 2026-04-20 — BLI-214: global tRPC error classification extracted into `src/lib/globalErrorHandler.ts`. Exports `handleGlobalError(err, onAccountDeleted?)`, `isRateLimitError(err)`, `isContentModerationError(err)`. `_layout.tsx` still hosts the account-deleted handler (calls `signOutAndReset`) and passes it in as a callback. Local `onError` / `catch` blocks early-return on `isRateLimitError` so the global localized toast fires exactly once. `messagesStore` vanillaClient catches also call `handleGlobalError` directly — vanilla tRPC client bypasses `MutationCache` so the root interceptor does not see those failures.
+> Updated 2026-05-20 — BLI-277: `localeStore` (device-scoped, SecureStore persist `blisko_locale`). PL/UA toggle on login screen (`LocalePill` in top-right, text-only no flags) and in Settings → Konto → Język. First-launch detection via `expo-localization` — `uk` / `ru` / `be` system locale → UA, everything else → PL. After first tap, `hasUserChosen=true` and OS re-detection never overrides. **Per-device, push-only sync** with `profiles.locale`: AppGate pushes the device's current locale to DB after login (so server can render emails / push), but never pulls. Two phones can legitimately show different languages — DB just reflects whichever device most recently logged in. No translated strings yet — strings ticket is next.
 
 React Native 0.83.4, Expo SDK 55, React 19.2, Expo Router v6 (file-based routing), TypeScript. Bundle ID: `com.blisko.app`. URI scheme: `blisko://`. Portrait-only.
 
@@ -177,6 +178,29 @@ Tracks progress through the onboarding flow: `displayName`, `bio`, `lookingFor`,
 ### preferencesStore
 
 Persisted to SecureStore. `nearbyRadiusMeters`: 500 / 1000 / 2000 (default 2000). `photoOnly` filter (`nearbyOnly` removed in BLI-189 — viewport sync is default). `notificationPrefs`: newWaves, waveResponses, newMessages, groupInvites (all default `true`).
+
+### localeStore
+
+User's chosen UI language (`"pl"` / `"uk"`). Persisted to SecureStore via Zustand `persist` middleware (same adapter as `locationStore` / `onboardingStore`). Two fields: `locale` (default `"pl"`) and `hasUserChosen` (default `false`).
+
+**Per-device, push-only model.** The store is authoritative for what the user sees on this phone. Two phones can show different languages — that's a feature, not a bug. The DB column `profiles.locale` exists only so the server has a value for emails and push notifications; it never pulls back into the store. The flow:
+
+| Trigger | Effect |
+|---------|--------|
+| First app install | `onRehydrateStorage` detects OS locale (`uk` / `ru` / `be` → UA, else PL), seeds `locale` |
+| User taps toggle (login screen or Settings → Konto) | `setLocale(locale, userInitiated=true)` — `hasUserChosen` flips to `true`, persists to SecureStore |
+| AppGate first profile fetch after login | Pushes `localeStore.locale` to DB via `profiles.updateLocale` if it differs from `profile.locale`. Never the other direction |
+| Settings → Konto toggle (post-login) | Updates store + fires `profiles.updateLocale` directly |
+
+**Why no DB → store sync.** Pulling DB on login would clobber a user who deliberately picked a different language on this phone — e.g. someone with a PL phone for work and a UA phone for personal use. The DB value reflects "whichever device most recently logged in"; that's the right semantics for server-side rendering (the user wants their next email in the language they're currently using) but the wrong semantics for cross-device UI propagation.
+
+**Mapping `ru` / `be` → UA on first install.** Most Russian/Belarusian-locale phones in Warsaw belong to Ukrainians (pre-2022 phones) and Belarusians (post-2020 emigration). Belarusian is closer to Ukrainian than to Polish. False positive (Russian-speaker gets UA) is one tap to fix; false negative (Ukrainian on RU-locale phone gets PL) is a real onboarding-friction risk.
+
+**`hasUserChosen` semantics.** Only blocks OS re-detection across app launches. After the user taps the toggle once, an iOS / Android language change won't flip the app's language back. Has no effect on DB sync — the push-on-login happens regardless of `hasUserChosen`.
+
+**Why device-scoped.** A Polish user logging out and a different Polish user signing up on the same device should not have to re-pick the language. The locale travels with the device.
+
+**Key methods:** `setLocale(locale, userInitiated?)`. Tracked by BLI-277.
 
 ---
 
@@ -363,6 +387,7 @@ The "W okolicy" tab (`(tabs)/index.tsx`) uses three dedicated hooks:
 | `onboarding-storage` | `onboardingStore` (zustand `persist` middleware) | Yes | Onboarding draft state — survives app force-quit mid-flow. Cleared on successful submission or sign-out. |
 | `blisko_nearby_radius` | `preferencesStore` (`RADIUS_KEY`) | No (intentional) | Map nearby radius (500/1000/2000m). Preserved across logout. |
 | `blisko_notification_prefs` | `preferencesStore` (`NOTIF_PREFS_KEY`) | No (intentional) | In-app notification toggles (newWaves, waveResponses, newMessages, groupInvites). Preserved across logout. |
+| `blisko_locale` | `localeStore` (zustand `persist` middleware) | No (intentional) | UI language `"pl"` / `"uk"` + `hasUserChosen` flag. Device-scoped — preserved across logout. Cross-device sync via `profiles.locale`. BLI-277. |
 | Better Auth internal keys | `lib/auth.ts` (Expo plugin, `storagePrefix: "blisko"`, SecureStore backend) | Yes (via `authClient.signOut()`) | Better Auth manages its own session + cookie storage under this namespace. Not touched directly. |
 
 ---
