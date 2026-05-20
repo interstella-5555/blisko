@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
@@ -9,6 +10,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function ChangeEmailScreen() {
+  const { t } = useLingui();
   const user = useAuthStore((state) => state.user);
   const [newEmail, setNewEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -17,11 +19,11 @@ export default function ChangeEmailScreen() {
   const handleSendCode = async () => {
     const email = newEmail.trim().toLowerCase();
     if (!email) {
-      setError("Podaj nowy adres email");
+      setError(t`Podaj nowy adres email`);
       return;
     }
     if (email === user?.email) {
-      setError("Nowy email musi być inny niż obecny");
+      setError(t`Nowy email musi być inny niż obecny`);
       return;
     }
 
@@ -34,7 +36,7 @@ export default function ChangeEmailScreen() {
       });
 
       if (result.error) {
-        setError(result.error.message || "Nie udało się wysłać kodu");
+        setError(result.error.message || t`Nie udało się wysłać kodu`);
         setIsLoading(false);
         return;
       }
@@ -44,7 +46,7 @@ export default function ChangeEmailScreen() {
         params: { newEmail: email },
       });
     } catch (_err) {
-      setError("Nie udało się wysłać kodu");
+      setError(t`Nie udało się wysłać kodu`);
     }
 
     setIsLoading(false);
@@ -53,11 +55,13 @@ export default function ChangeEmailScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={styles.content}>
-        <Text style={styles.subtitle}>Obecny email: {user?.email}</Text>
+        <Text style={styles.subtitle}>
+          {t`Obecny email:`} {user?.email}
+        </Text>
 
         <View style={styles.form}>
           <Input
-            placeholder="nowy@email.com"
+            placeholder={t`nowy@email.com`}
             value={newEmail}
             onChangeText={setNewEmail}
             keyboardType="email-address"
@@ -70,7 +74,7 @@ export default function ChangeEmailScreen() {
           {error && <Text style={styles.error}>{error}</Text>}
 
           <Button
-            title={isLoading ? "Wysyłanie..." : "Wyślij kod weryfikacyjny"}
+            title={isLoading ? t`Wysyłanie...` : t`Wyślij kod weryfikacyjny`}
             variant="accent"
             onPress={handleSendCode}
             disabled={isLoading}

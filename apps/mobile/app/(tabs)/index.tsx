@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { keepPreviousData } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { router } from "expo-router";
@@ -47,13 +48,13 @@ function approxDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: nu
 
 type NearbyFilter = "all" | "people" | "groups";
 
-const FILTER_CHIPS: { key: NearbyFilter; label: string }[] = [
-  { key: "all", label: "Wszystko" },
-  { key: "people", label: "Osoby" },
-  { key: "groups", label: "Grupy" },
-];
-
 export default function NearbyScreen() {
+  const { t } = useLingui();
+  const FILTER_CHIPS: { key: NearbyFilter; label: string }[] = [
+    { key: "all", label: t`Wszystko` },
+    { key: "people", label: t`Osoby` },
+    { key: "groups", label: t`Grupy` },
+  ];
   const [nearbyFilter, setNearbyFilter] = useState<NearbyFilter>("all");
   const { latitude, longitude, permissionStatus, setLocation, setPermissionStatus } = useLocationStore();
   const { nearbyRadiusMeters, loadPreferences, photoOnly, showAllNearby } = usePreferencesStore();
@@ -331,10 +332,14 @@ export default function NearbyScreen() {
     return (
       <View style={styles.centered}>
         <IconPin size={48} color={colors.muted} />
-        <Text style={styles.emptyTitle}>Brak dostępu do lokalizacji</Text>
-        <Text style={styles.emptyText}>Włącz lokalizację w ustawieniach, aby zobaczyć osoby w pobliżu</Text>
+        <Text style={styles.emptyTitle}>
+          <Trans>Brak dostępu do lokalizacji</Trans>
+        </Text>
+        <Text style={styles.emptyText}>
+          <Trans>Włącz lokalizację w ustawieniach, aby zobaczyć osoby w pobliżu</Trans>
+        </Text>
         <View style={{ marginTop: spacing.section }}>
-          <Button title="Spróbuj ponownie" variant="accent" onPress={requestLocationPermission} />
+          <Button title={t`Spróbuj ponownie`} variant="accent" onPress={requestLocationPermission} />
         </View>
       </View>
     );
@@ -358,8 +363,8 @@ export default function NearbyScreen() {
           <View style={styles.listHeader}>
             <Text style={styles.listHeaderTitle}>
               {showAllNearby || viewportCount >= count
-                ? `${count} ${count === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`
-                : `${viewportCount} Z ${count} OSÓB W POBLIŻU`}
+                ? `${count} ${count === 1 ? t`OSOBA` : t`OSÓB`} ${t`W POBLIŻU`}`
+                : `${viewportCount} ${t`Z`} ${count} ${t`OSÓB W POBLIŻU`}`}
             </Text>
           </View>
         );
@@ -409,7 +414,7 @@ export default function NearbyScreen() {
         return (
           <View style={styles.listHeader}>
             <Text style={styles.listHeaderTitle}>
-              {item.count} {item.count === 1 ? "GRUPA" : "GRUP"} W POBLIŻU
+              {item.count} {item.count === 1 ? t`GRUPA` : t`GRUP`} <Trans>W POBLIŻU</Trans>
             </Text>
           </View>
         );
@@ -432,16 +437,20 @@ export default function NearbyScreen() {
           <View style={styles.emptyList}>
             <Text style={styles.emptyListText}>
               {isOutsideRadius
-                ? "Jesteś poza zasięgiem — pokazujemy grupy tylko w pobliżu Twojej lokalizacji"
-                : "W tej okolicy nie ma jeszcze żadnych grup"}
+                ? t`Jesteś poza zasięgiem — pokazujemy grupy tylko w pobliżu Twojej lokalizacji`
+                : t`W tej okolicy nie ma jeszcze żadnych grup`}
             </Text>
             <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
               <IconPin size={14} color={colors.accent} />
-              <Text style={styles.returnButtonText}>Wróć do mojej lokalizacji</Text>
+              <Text style={styles.returnButtonText}>
+                <Trans>Wróć do mojej lokalizacji</Trans>
+              </Text>
             </Pressable>
             <Pressable style={styles.returnButton} onPress={() => router.push("/create-group")}>
               <IconPlus size={14} color={colors.accent} />
-              <Text style={styles.returnButtonText}>Utwórz grupę</Text>
+              <Text style={styles.returnButtonText}>
+                <Trans>Utwórz grupę</Trans>
+              </Text>
             </Pressable>
           </View>
         );
@@ -509,7 +518,9 @@ export default function NearbyScreen() {
         </Pressable>
       ) : (
         <Pressable style={styles.statusBarEmpty} onPress={() => router.push("/set-status" as never)}>
-          <Text style={styles.statusBarEmptyText}>+ Ustaw status na teraz</Text>
+          <Text style={styles.statusBarEmptyText}>
+            <Trans>+ Ustaw status na teraz</Trans>
+          </Text>
         </Pressable>
       )}
 
@@ -564,18 +575,21 @@ export default function NearbyScreen() {
         <View style={styles.listHeader}>
           <Text style={styles.listHeaderTitle}>
             {showAllNearby || totalCount >= totalUserCount
-              ? `${totalUserCount} ${totalUserCount === 1 ? "OSOBA" : "OSÓB"} W POBLIŻU`
-              : `${totalCount} Z ${totalUserCount} OSÓB W POBLIŻU`}
+              ? `${totalUserCount} ${totalUserCount === 1 ? t`OSOBA` : t`OSÓB`} ${t`W POBLIŻU`}`
+              : `${totalCount} ${t`Z`} ${totalUserCount} ${t`OSÓB W POBLIŻU`}`}
           </Text>
         </View>
       )}
       {nearbyFilter === "groups" && (nearbyGroups?.length ?? 0) > 0 && (
         <View style={styles.listHeader}>
           <Text style={styles.listHeaderTitle}>
-            {nearbyGroups?.length ?? 0} {(nearbyGroups?.length ?? 0) === 1 ? "GRUPA" : "GRUP"} W POBLIŻU
+            {nearbyGroups?.length ?? 0} {(nearbyGroups?.length ?? 0) === 1 ? t`GRUPA` : t`GRUP`}{" "}
+            <Trans>W POBLIŻU</Trans>
           </Text>
           <Pressable onPress={() => router.push("/create-group")} hitSlop={8}>
-            <Text style={styles.createGroupAction}>+ UTWÓRZ</Text>
+            <Text style={styles.createGroupAction}>
+              <Trans>+ UTWÓRZ</Trans>
+            </Text>
           </Pressable>
         </View>
       )}
@@ -593,14 +607,16 @@ export default function NearbyScreen() {
               <View style={styles.emptyList}>
                 <Text style={styles.emptyListText}>
                   {isOutsideRadius
-                    ? `Jesteś poza zasięgiem — pokazujemy ${nearbyFilter === "people" ? "osoby" : "osoby i grupy"} tylko w pobliżu Twojej lokalizacji`
+                    ? t`Jesteś poza zasięgiem — pokazujemy ${nearbyFilter === "people" ? t`osoby` : t`osoby i grupy`} tylko w pobliżu Twojej lokalizacji`
                     : nearbyFilter === "people"
-                      ? "W tej okolicy nie ma jeszcze żadnych użytkowników"
-                      : "W tej okolicy nie ma jeszcze żadnych użytkowników i grup"}
+                      ? t`W tej okolicy nie ma jeszcze żadnych użytkowników`
+                      : t`W tej okolicy nie ma jeszcze żadnych użytkowników i grup`}
                 </Text>
                 <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
                   <IconPin size={14} color={colors.accent} />
-                  <Text style={styles.returnButtonText}>Wróć do mojej lokalizacji</Text>
+                  <Text style={styles.returnButtonText}>
+                    <Trans>Wróć do mojej lokalizacji</Trans>
+                  </Text>
                 </Pressable>
               </View>
             ) : null

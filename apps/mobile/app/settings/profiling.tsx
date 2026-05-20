@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { ONBOARDING_QUESTIONS } from "@repo/shared";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -21,6 +22,7 @@ interface FollowUp {
 }
 
 export default function ProfilingModal() {
+  const { t } = useLingui();
   const { setProfilingSessionId } = useOnboardingStore();
 
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -142,7 +144,7 @@ export default function ProfilingModal() {
       }
     } catch (err) {
       console.error("Failed to submit:", err);
-      setError("Nie udało się przesłać odpowiedzi. Spróbuj ponownie.");
+      setError(t`Nie udało się przesłać odpowiedzi. Spróbuj ponownie.`);
       setPhase("questions");
     }
   };
@@ -173,7 +175,7 @@ export default function ProfilingModal() {
       }
     } catch (err) {
       console.error("Failed to answer follow-up:", err);
-      setError("Nie udało się zapisać odpowiedzi. Spróbuj ponownie.");
+      setError(t`Nie udało się zapisać odpowiedzi. Spróbuj ponownie.`);
     }
   };
 
@@ -184,7 +186,7 @@ export default function ProfilingModal() {
       router.replace("/settings/profiling-result");
     } catch (err) {
       console.error("Failed to complete session:", err);
-      setError("Nie udało się wygenerować profilu. Spróbuj ponownie.");
+      setError(t`Nie udało się wygenerować profilu. Spróbuj ponownie.`);
     }
   };
 
@@ -192,7 +194,7 @@ export default function ProfilingModal() {
   if (phase === "submitting") {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ThinkingIndicator messages={["Analizuję Twoje odpowiedzi..."]} />
+        <ThinkingIndicator messages={[t`Analizuję Twoje odpowiedzi...`]} />
       </View>
     );
   }
@@ -206,7 +208,7 @@ export default function ProfilingModal() {
             <Text style={styles.error}>{error}</Text>
             <View style={{ marginTop: spacing.column }}>
               <Button
-                title="Spróbuj ponownie"
+                title={t`Spróbuj ponownie`}
                 variant="accent"
                 onPress={() => {
                   setError("");
@@ -217,7 +219,7 @@ export default function ProfilingModal() {
           </View>
         ) : (
           <ThinkingIndicator
-            messages={["Generuję Twój profil...", "Analizuję Twoje odpowiedzi...", "Jeszcze chwilka..."]}
+            messages={[t`Generuję Twój profil...`, t`Analizuję Twoje odpowiedzi...`, t`Jeszcze chwilka...`]}
           />
         )}
       </View>
@@ -239,8 +241,9 @@ export default function ProfilingModal() {
           <View style={styles.header}>
             <View />
             <Text style={styles.counter}>
-              Jeszcze {followUps.length - followUpIndex}{" "}
-              {followUps.length - followUpIndex === 1 ? "pytanie" : "pytania"}
+              {followUps.length - followUpIndex === 1
+                ? t`Jeszcze ${followUps.length - followUpIndex} pytanie`
+                : t`Jeszcze ${followUps.length - followUpIndex} pytania`}
             </Text>
           </View>
 
@@ -251,7 +254,7 @@ export default function ProfilingModal() {
             style={styles.input}
             value={followUpText}
             onChangeText={setFollowUpText}
-            placeholder="Twoja odpowiedź"
+            placeholder={t`Twoja odpowiedź`}
             placeholderTextColor={colors.muted}
             spellCheck={false}
             autoCorrect={false}
@@ -264,7 +267,7 @@ export default function ProfilingModal() {
 
           <View style={styles.actions}>
             <Button
-              title="Dalej"
+              title={t`Dalej`}
               variant="accent"
               onPress={handleFollowUpNext}
               disabled={!followUpText.trim() || answerFollowUp.isPending}
@@ -304,7 +307,7 @@ export default function ProfilingModal() {
           style={styles.input}
           value={currentText}
           onChangeText={setCurrentText}
-          placeholder="Twoja odpowiedź"
+          placeholder={t`Twoja odpowiedź`}
           placeholderTextColor={colors.muted}
           spellCheck={false}
           autoCorrect={false}
@@ -317,14 +320,16 @@ export default function ProfilingModal() {
 
         <View style={styles.actions}>
           <Button
-            title="Dalej"
+            title={t`Dalej`}
             variant="accent"
             onPress={handleNext}
             disabled={!currentText.trim() && currentQuestion.required}
           />
           {!currentQuestion.required && (
             <Pressable onPress={handleSkip} hitSlop={8}>
-              <Text style={styles.skipText}>Pomiń</Text>
+              <Text style={styles.skipText}>
+                <Trans>Pomiń</Trans>
+              </Text>
             </Pressable>
           )}
         </View>

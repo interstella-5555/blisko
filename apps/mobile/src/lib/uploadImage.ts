@@ -1,3 +1,4 @@
+import { t } from "@lingui/core/macro";
 import { showToast } from "@/lib/toast";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -56,6 +57,6 @@ export async function uploadImage(asset: UploadImageAsset): Promise<{ source: st
  */
 export function showModerationToastIfApplicable(error: unknown): boolean {
   if (!(error instanceof ContentModeratedError)) return false;
-  showToast("error", "Zdjęcie narusza regulamin", undefined, { id: "content-moderation" });
+  showToast("error", t`Zdjęcie narusza regulamin`, undefined, { id: "content-moderation" });
   return true;
 }

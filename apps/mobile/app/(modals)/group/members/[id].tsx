@@ -1,5 +1,6 @@
+import { useLingui } from "@lingui/react/macro";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/ui/Avatar";
 import { useIsGhost } from "@/hooks/useIsGhost";
@@ -8,11 +9,6 @@ import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing } from "@/theme";
 
 const PAGE_SIZE = 50;
-
-const ROLE_LABELS: Record<string, string> = {
-  owner: "Właściciel",
-  admin: "Admin",
-};
 
 type Member = {
   userId: string;
@@ -24,6 +20,7 @@ type Member = {
 };
 
 export default function GroupMembersScreen() {
+  const { t } = useLingui();
   const { id: conversationId } = useLocalSearchParams<{ id: string }>();
   const userId = useAuthStore((s) => s.user?.id);
   const isGhost = useIsGhost();
@@ -31,6 +28,14 @@ export default function GroupMembersScreen() {
   const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const prevCursorRef = useRef(-1);
+
+  const ROLE_LABELS: Record<string, string> = useMemo(
+    () => ({
+      owner: t`Właściciel`,
+      admin: t`Admin`,
+    }),
+    [t],
+  );
 
   const { data: groupInfo } = trpc.groups.getGroupInfo.useQuery(
     { conversationId: conversationId! },
@@ -78,9 +83,9 @@ export default function GroupMembersScreen() {
         <View style={styles.memberInfo}>
           <Text style={styles.memberName} numberOfLines={1}>
             {item.displayName}
-            {item.userId === userId ? " (Ty)" : ""}
+            {item.userId === userId ? t` (Ty)` : ""}
           </Text>
-          {item.isSuspended ? <Text style={styles.memberSubtext}>Konto zawieszone</Text> : null}
+          {item.isSuspended ? <Text style={styles.memberSubtext}>{t`Konto zawieszone`}</Text> : null}
         </View>
         {ROLE_LABELS[item.role] ? (
           <View style={styles.roleBadge}>
@@ -89,13 +94,13 @@ export default function GroupMembersScreen() {
         ) : null}
       </Pressable>
     ),
-    [userId, isGhost],
+    [userId, isGhost, ROLE_LABELS, t],
   );
 
   if (isLoading && allMembers.length === 0) {
     return (
       <>
-        <Stack.Screen options={{ title: "Członkowie" }} />
+        <Stack.Screen options={{ title: t`Członkowie` }} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator color={colors.muted} />
         </View>
@@ -105,7 +110,7 @@ export default function GroupMembersScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: `Członkowie (${memberCount})` }} />
+      <Stack.Screen options={{ title: t`Członkowie (${memberCount})` }} />
       <FlatList
         data={allMembers}
         keyExtractor={(item) => item.userId}

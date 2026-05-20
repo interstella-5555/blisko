@@ -4,6 +4,7 @@
 > Updated 2026-04-10 — Push send logging via Redis batch buffer + `push_sends` table. Every push (sent, suppressed, failed) is now recorded.
 > Updated 2026-04-11 — `usePushNotifications` now bidirectionally syncs the device's push_tokens row with system permission on every `AppState === "active"`. Local mirror of server state lives in `authStore.pushToken`; register on grant, unregister on revoke, both also on mount. Drops SecureStore coordination between hook and `signOutAndReset` (BLI-205).
 > Updated 2026-04-19 — BLI-242 crash fix. Tap handler migrated from `addNotificationResponseReceivedListener` to `Notifications.useLastNotificationResponse()` + gated on `useRootNavigationState()?.key` (nav mounted) and `userId` (authenticated). Deduped by `response.notification.request.identifier` via `useRef`. Chat/group taps route through `openChatFromAnywhere(conversationId, pathname)` (same helper as in-app toasts from BLI-234); wave taps `router.dismissAll()` (guarded by `canDismiss`) before pushing the user modal. Root cause: pushing onto an unready root stack during cold launch provoked a TurboModule NSException which RN's `convertNSExceptionToJSError` then crashed on from the `com.meta.react.turbomodulemanager.queue` thread while the JS thread was also mid-`HermesRuntimeImpl::setPropertyValue` (cross-thread JSI race, stack-canary fault).
+> Updated 2026-05-20 — BLI-281: push notification bodies are now locale-aware. New `apps/api/src/services/i18n.ts` exposes `t(key, locale, params)` with flat JSON catalogs (`apps/api/src/locales/{pl,uk}.json`). Each callsite in `waves.ts`, `groups.ts`, `messages.ts` (group-aggregate-unread only) and `queue.ts` (ambient match) now fetches the recipient's `profiles.locale` and passes it to `t()`. Recipients with `profile.locale === null` fall back to PL. DM single-message and group first-unread bodies stay locale-agnostic — they're just user content + a `:` separator.
 
 Expo Push API delivering notifications to iOS and Android devices. Source: `apps/api/src/services/push.ts`, `apps/api/src/trpc/procedures/pushTokens.ts`.
 
@@ -94,16 +95,18 @@ The central push function. Every push notification in the app goes through this 
 
 ## All Push Types (8 triggers)
 
-| Trigger | Title | Body | collapseId | Sound | Source file |
-|---|---|---|---|---|---|
-| New wave | `"Blisko"` | `"{name} — nowy ping!"` | none | Yes | `waves.ts` |
-| Wave accepted | `"Blisko"` | `"{name} — ping przyjęty! Możecie teraz pisać."` | none | Yes | `waves.ts` |
-| DM message | `"{senderName}"` | `"{messagePreview}"` | none | Yes | `messages.ts` |
-| Group message (first unread) | `"{groupName}"` | `"{senderName}: {preview}"` | `"group:{conversationId}"` | Yes | `messages.ts` |
-| Group message (has unreads) | `"{groupName}"` | `"{N} nowych wiadomosci"` | `"group:{conversationId}"` | No (silent) | `messages.ts` |
-| Ambient status match | `"Blisko"` | `"Ktos z pasujacym profilem jest w poblizu"` | `"ambient-match"` | No (silent) | `queue.ts` |
-| Group invite (create) | `"{groupName}"` | `"Nowe zaproszenie do grupy"` | `"group-invite:{conversationId}"` | No (silent) | `groups.ts` |
-| Group invite (addMember) | `"{groupName}"` | `"Nowe zaproszenie do grupy"` | `"group-invite:{conversationId}"` | No (silent) | `groups.ts` |
+Bodies are looked up by key via the backend `t(key, locale, params)` helper (`apps/api/src/services/i18n.ts` — see [`i18n.md`](./i18n.md)) using the recipient's `profiles.locale`. Recipients with `profile.locale === null` fall back to PL. The columns below show the **PL** template — UA equivalents live in `apps/api/src/locales/uk.json`. Templates with no localizable content (DM single-message, group first-unread) are not routed through `t()` — they're just user content with a `:` separator.
+
+| Trigger | Title | Body (PL template) | i18n key | collapseId | Sound | Source file |
+|---|---|---|---|---|---|---|
+| New wave | `"Blisko"` | `"{senderName} — nowy ping!"` | `push.wave.new.body` | none | Yes | `waves.ts` |
+| Wave accepted | `"Blisko"` | `"{responderName} — ping przyjęty! Możecie teraz pisać."` | `push.wave.accepted.body` | none | Yes | `waves.ts` |
+| DM message | `"{senderName}"` | `"{messagePreview}"` | — (user content) | none | Yes | `messages.ts` |
+| Group message (first unread) | `"{groupName}"` | `"{senderName}: {preview}"` | — (user content + separator) | `"group:{conversationId}"` | Yes | `messages.ts` |
+| Group message (has unreads) | `"{groupName}"` | `"{unreadCount} nowych wiadomości"` | `push.message.unread.body` | `"group:{conversationId}"` | No (silent) | `messages.ts` |
+| Ambient status match | `"Blisko"` | `"Ktoś z pasującym profilem jest w pobliżu"` | `push.ambient.statusMatch.body` | `"ambient-match"` | No (silent) | `queue.ts` |
+| Group invite (create) | `"{groupName}"` | `"Nowe zaproszenie do grupy"` | `push.group.invite.body` | `"group-invite:{conversationId}"` | No (silent) | `groups.ts` |
+| Group invite (addMember) | `"{groupName}"` | `"Nowe zaproszenie do grupy"` | `push.group.invite.body` | `"group-invite:{conversationId}"` | No (silent) | `groups.ts` |
 
 ### Wave push details
 

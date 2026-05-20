@@ -4,6 +4,7 @@ import { RedisClient } from "bun";
 import { and, asc, desc, eq, gt, ilike, inArray, isNotNull, isNull, lt, max, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
+import { t } from "@/services/i18n";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
 import { moderateContent } from "@/services/moderation";
 import { sendPushToUser } from "@/services/push";
@@ -680,11 +681,14 @@ export const messagesRouter = router({
       const otherParticipantIds = participants.filter((p) => p.userId !== ctx.userId).map((p) => p.userId);
 
       if (isGroup && otherParticipantIds.length > 0) {
-        // Batch: single query to get per-recipient unread counts
+        // Batch: per-recipient unread counts + locale (for the "X new
+        // messages" aggregate template only — single-message body is just
+        // "sender: preview", separator is locale-agnostic).
         const unreadCounts = await db
           .select({
             userId: schema.conversationParticipants.userId,
             unreadCount: sql<number>`count(${schema.messages.id})`,
+            locale: schema.profiles.locale,
           })
           .from(schema.conversationParticipants)
           .leftJoin(
@@ -696,17 +700,20 @@ export const messagesRouter = router({
               sql`${schema.messages.createdAt} > COALESCE(${schema.conversationParticipants.lastReadAt}, '1970-01-01'::timestamp)`,
             ),
           )
+          .leftJoin(schema.profiles, eq(schema.profiles.userId, schema.conversationParticipants.userId))
           .where(
             and(
               eq(schema.conversationParticipants.conversationId, input.conversationId),
               inArray(schema.conversationParticipants.userId, otherParticipantIds),
             ),
           )
-          .groupBy(schema.conversationParticipants.userId);
+          .groupBy(schema.conversationParticipants.userId, schema.profiles.locale);
 
         const unreadMap = new Map<string, number>();
+        const localeMap = new Map<string, string | null>();
         for (const row of unreadCounts) {
           unreadMap.set(row.userId, Number(row.unreadCount));
+          localeMap.set(row.userId, row.locale);
         }
 
         for (const recipientId of otherParticipantIds) {
@@ -717,7 +724,7 @@ export const messagesRouter = router({
           void sendPushToUser(recipientId, {
             title: conversation?.name ?? senderProfile?.displayName ?? "Blisko",
             body: hasUnread
-              ? `${unreadCount} nowych wiadomości`
+              ? t("push.message.unread.body", localeMap.get(recipientId), { unreadCount })
               : `${senderProfile?.displayName ?? "Ktoś"}: ${messagePreview}`,
             data: { type: "chat", conversationId: input.conversationId },
             collapseId: `group:${input.conversationId}`,
@@ -725,7 +732,9 @@ export const messagesRouter = router({
           });
         }
       } else {
-        // DM: push every message
+        // DM: push every message. Title is sender's name, body is the raw
+        // preview — no locale-dependent string in either, so no per-recipient
+        // locale lookup needed.
         for (const p of participants) {
           if (p.userId === ctx.userId || isMuted(p.userId)) continue;
           void sendPushToUser(p.userId, {

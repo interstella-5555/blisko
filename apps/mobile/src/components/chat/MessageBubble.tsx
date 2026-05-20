@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { forwardRef } from "react";
 import { Image, Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { useIsGhost } from "@/hooks/useIsGhost";
@@ -106,7 +107,9 @@ export const MessageBubble = forwardRef<View, MessageBubbleProps>(function Messa
   if (deletedAt) {
     return (
       <View style={[styles.bubble, styles.bubbleDeleted]} testID="message-deleted">
-        <Text style={styles.deletedText}>Wiadomość usunięta</Text>
+        <Text style={styles.deletedText}>
+          <Trans>Wiadomość usunięta</Trans>
+        </Text>
       </View>
     );
   }
@@ -143,7 +146,7 @@ export const MessageBubble = forwardRef<View, MessageBubbleProps>(function Messa
         >
           <Text style={styles.locationIcon}>📍</Text>
           <Text style={[styles.locationLabel, isMine ? styles.contentMine : styles.contentTheirs]}>
-            Udostępniona lokalizacja
+            <Trans>Udostępniona lokalizacja</Trans>
           </Text>
         </Pressable>
       ) : (

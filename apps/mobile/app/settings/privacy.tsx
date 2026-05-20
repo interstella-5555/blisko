@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -9,27 +10,28 @@ import { colors, fonts, spacing, type as typ } from "@/theme";
 
 type VisibilityMode = "ninja" | "semi_open" | "full_nomad";
 
-const VISIBILITY_OPTIONS: { key: VisibilityMode; name: string; desc: string }[] = [
-  {
-    key: "ninja",
-    name: "Ninja",
-    desc: "Widzisz innych, ale Ciebie nie widać na mapie. Nie możesz pingować.",
-  },
-  {
-    key: "semi_open",
-    name: "Semi-Open",
-    desc: "Widoczny na mapie. Możesz pingować i być pingowany.",
-  },
-  {
-    key: "full_nomad",
-    name: "Full Nomad",
-    desc: 'Widoczny i otwarty — w profilu pojawi się "Podejdź śmiało".',
-  },
-];
-
 export default function PrivacyScreen() {
+  const { t } = useLingui();
   const profile = useAuthStore((state) => state.profile);
   const setProfile = useAuthStore((state) => state.setProfile);
+
+  const VISIBILITY_OPTIONS: { key: VisibilityMode; name: string; desc: string }[] = [
+    {
+      key: "ninja",
+      name: "Ninja",
+      desc: t`Widzisz innych, ale Ciebie nie widać na mapie. Nie możesz pingować.`,
+    },
+    {
+      key: "semi_open",
+      name: "Semi-Open",
+      desc: t`Widoczny na mapie. Możesz pingować i być pingowany.`,
+    },
+    {
+      key: "full_nomad",
+      name: "Full Nomad",
+      desc: t`Widoczny i otwarty — w profilu pojawi się "Podejdź śmiało".`,
+    },
+  ];
 
   const [mode, setMode] = useState<VisibilityMode>(profile?.visibilityMode ?? "semi_open");
   const [dnd, setDnd] = useState(profile?.doNotDisturb ?? false);
@@ -51,7 +53,9 @@ export default function PrivacyScreen() {
     <ScrollView style={styles.container}>
       {/* Visibility mode section */}
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>TRYB WIDOCZNOŚCI</Text>
+        <Text style={styles.sectionLabel}>
+          <Trans>TRYB WIDOCZNOŚCI</Trans>
+        </Text>
         {VISIBILITY_OPTIONS.map((opt) => (
           <Pressable key={opt.key} style={styles.option} onPress={() => handleChangeMode(opt.key)}>
             <View style={[styles.radio, mode === opt.key && styles.radioSelected]}>
@@ -63,14 +67,18 @@ export default function PrivacyScreen() {
             </View>
           </Pressable>
         ))}
-        <Text style={styles.note}>Zmiana trybu widoczności nie wpływa na istniejące rozmowy i dopasowania.</Text>
+        <Text style={styles.note}>
+          <Trans>Zmiana trybu widoczności nie wpływa na istniejące rozmowy i dopasowania.</Trans>
+        </Text>
       </View>
 
       {/* DND toggle */}
       <View style={styles.section}>
         <View style={styles.dndBlock}>
           <View style={styles.dndRow}>
-            <Text style={[styles.optionName, styles.dndLabel]}>Nie przeszkadzać</Text>
+            <Text style={[styles.optionName, styles.dndLabel]}>
+              <Trans>Nie przeszkadzać</Trans>
+            </Text>
             <Toggle
               value={dnd}
               onValueChange={(v) => {
@@ -79,14 +87,18 @@ export default function PrivacyScreen() {
               }}
             />
           </View>
-          <Text style={styles.optionDesc}>Pingi dochodzą, ale powiadomienia push wyciszone.</Text>
+          <Text style={styles.optionDesc}>
+            <Trans>Pingi dochodzą, ale powiadomienia push wyciszone.</Trans>
+          </Text>
         </View>
       </View>
 
       {/* Blocked users section */}
       <View style={styles.section}>
         <Pressable style={styles.blockedRow} onPress={() => router.push("/settings/blocked-users" as never)}>
-          <Text style={styles.blockedLabel}>Zablokowani użytkownicy</Text>
+          <Text style={styles.blockedLabel}>
+            <Trans>Zablokowani użytkownicy</Trans>
+          </Text>
           <IconChevronRight size={16} color={colors.muted} />
         </Pressable>
       </View>

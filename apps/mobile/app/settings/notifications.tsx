@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Toggle } from "@/components/ui/Toggle";
 import { usePreferencesStore } from "@/stores/preferencesStore";
@@ -19,38 +20,43 @@ function ToggleRow({ label, value, onValueChange }: ToggleRowProps) {
 }
 
 export default function NotificationsScreen() {
+  const { t } = useLingui();
   const notificationPrefs = usePreferencesStore((s) => s.notificationPrefs);
   const setNotificationPref = usePreferencesStore((s) => s.setNotificationPref);
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>PUSH</Text>
+        <Text style={styles.sectionLabel}>
+          <Trans>PUSH</Trans>
+        </Text>
 
         <ToggleRow
-          label="Nowe pingi"
+          label={t`Nowe pingi`}
           value={notificationPrefs.newWaves}
           onValueChange={(v) => setNotificationPref("newWaves", v)}
         />
         <ToggleRow
-          label="Odpowiedzi na pingi"
+          label={t`Odpowiedzi na pingi`}
           value={notificationPrefs.waveResponses}
           onValueChange={(v) => setNotificationPref("waveResponses", v)}
         />
         <ToggleRow
-          label="Nowe wiadomosci"
+          label={t`Nowe wiadomosci`}
           value={notificationPrefs.newMessages}
           onValueChange={(v) => setNotificationPref("newMessages", v)}
         />
         <ToggleRow
-          label="Zaproszenia do grup"
+          label={t`Zaproszenia do grup`}
           value={notificationPrefs.groupInvites}
           onValueChange={(v) => setNotificationPref("groupInvites", v)}
         />
 
         <Text style={styles.helperText}>
-          Powiadomienia push wymagają zgody systemowej. Jeśli je wyłączyłeś, włącz je w Ustawieniach iPhone'a {">"}{" "}
-          Blisko.
+          <Trans>
+            Powiadomienia push wymagają zgody systemowej. Jeśli je wyłączyłeś, włącz je w Ustawieniach iPhone'a {">"}{" "}
+            Blisko.
+          </Trans>
         </Text>
       </View>
     </ScrollView>

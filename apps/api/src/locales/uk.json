@@ -1,0 +1,7 @@
+{
+  "push.wave.new.body": "{senderName} — новий пінг!",
+  "push.wave.accepted.body": "{responderName} — пінг прийнято! Тепер можете писати.",
+  "push.message.unread.body": "{unreadCount} нових повідомлень",
+  "push.group.invite.body": "Нове запрошення до групи",
+  "push.ambient.statusMatch.body": "Хтось із відповідним профілем поблизу"
+}

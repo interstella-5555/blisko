@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useCallback, useEffect, useRef } from "react";
 import { Animated, Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -251,7 +252,9 @@ export function MessageContextMenu({
           onPress={handleReply}
         >
           <IconReply size={18} color={colors.ink} />
-          <Text style={styles.actionLabel}>Odpowiedz</Text>
+          <Text style={styles.actionLabel}>
+            <Trans>Odpowiedz</Trans>
+          </Text>
         </Pressable>
 
         <View style={styles.actionSeparator} />
@@ -263,7 +266,9 @@ export function MessageContextMenu({
               onPress={handleCopy}
             >
               <IconCopy size={18} color={colors.ink} />
-              <Text style={styles.actionLabel}>Kopiuj</Text>
+              <Text style={styles.actionLabel}>
+                <Trans>Kopiuj</Trans>
+              </Text>
             </Pressable>
             <View style={styles.actionSeparator} />
           </>
@@ -275,7 +280,9 @@ export function MessageContextMenu({
             onPress={handleDelete}
           >
             <IconTrash size={18} color={colors.accent} />
-            <Text style={[styles.actionLabel, styles.actionLabelDestructive]}>Usuń</Text>
+            <Text style={[styles.actionLabel, styles.actionLabelDestructive]}>
+              <Trans>Usuń</Trans>
+            </Text>
           </Pressable>
         )}
       </Animated.View>

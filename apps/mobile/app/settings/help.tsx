@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { IconChevronRight } from "@/components/ui/icons";
 import { colors, fonts, spacing } from "@/theme";
@@ -17,15 +18,18 @@ function Row({ label, onPress }: RowProps) {
 }
 
 export default function HelpScreen() {
+  const { t } = useLingui();
   return (
     <View style={styles.container}>
-      <Row label="Jak to działa?" onPress={() => Alert.alert("Wkrótce!")} />
+      <Row label={t`Jak to działa?`} onPress={() => Alert.alert(t`Wkrótce!`)} />
       <Row
-        label="Zgłoś problem"
-        onPress={() => Linking.openURL("mailto:kontakt@blisko.app?subject=Zgłoszenie problemu")}
+        label={t`Zgłoś problem`}
+        onPress={() =>
+          Linking.openURL(`mailto:kontakt@blisko.app?subject=${encodeURIComponent(t`Zgłoszenie problemu`)}`)
+        }
       />
-      <Row label="Regulamin" onPress={() => Linking.openURL("https://blisko.app/terms")} />
-      <Row label="Polityka prywatności" onPress={() => Linking.openURL("https://blisko.app/privacy")} />
+      <Row label={t`Regulamin`} onPress={() => Linking.openURL("https://blisko.app/terms")} />
+      <Row label={t`Polityka prywatności`} onPress={() => Linking.openURL("https://blisko.app/privacy")} />
     </View>
   );
 }

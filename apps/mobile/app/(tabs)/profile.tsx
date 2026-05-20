@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/ui/Avatar";
@@ -5,6 +6,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
 export default function ProfileScreen() {
+  const { t } = useLingui();
   const user = useAuthStore((state) => state.user);
   const profile = useAuthStore((state) => state.profile);
   const activeStatus = !!profile?.currentStatus;
@@ -14,7 +16,7 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <Avatar uri={profile?.avatarUrl} name={profile?.displayName || user?.email?.charAt(0) || "?"} size={100} />
         <Text testID="profile-display-name" style={styles.displayName}>
-          {profile?.displayName || "Brak nazwy"}
+          {profile?.displayName || t`Brak nazwy`}
         </Text>
         <Text style={styles.email}>{user?.email}</Text>
 
@@ -37,26 +39,34 @@ export default function ProfileScreen() {
                 {profile!.currentStatus}
               </Text>
             </Pressable>
-            <Text style={styles.statusExpiry}>aktywny dopóki go nie zmienisz</Text>
+            <Text style={styles.statusExpiry}>
+              <Trans>aktywny dopóki go nie zmienisz</Trans>
+            </Text>
           </View>
         ) : (
           <Pressable style={styles.setStatusButton} onPress={() => router.push("/set-status" as never)}>
-            <Text style={styles.setStatusText}>+ Ustaw status na teraz</Text>
+            <Text style={styles.setStatusText}>
+              <Trans>+ Ustaw status na teraz</Trans>
+            </Text>
           </Pressable>
         )}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>O mnie</Text>
+        <Text style={styles.sectionTitle}>
+          <Trans>O mnie</Trans>
+        </Text>
         <Text testID="profile-bio" style={styles.sectionContent}>
-          {profile?.bio || "Brak opisu"}
+          {profile?.bio || t`Brak opisu`}
         </Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Kogo szukam</Text>
+        <Text style={styles.sectionTitle}>
+          <Trans>Kogo szukam</Trans>
+        </Text>
         <Text testID="profile-looking-for" style={styles.sectionContent}>
-          {profile?.lookingFor || "Brak opisu"}
+          {profile?.lookingFor || t`Brak opisu`}
         </Text>
       </View>
     </ScrollView>

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { router, usePathname } from "expo-router";
 import React, { useCallback } from "react";
 import { NotificationToast } from "@/components/ui/NotificationToast";
@@ -15,6 +16,7 @@ function notification(
 }
 
 export function useInAppNotifications() {
+  const { t } = useLingui();
   const userId = useAuthStore((s) => s.user?.id);
   const pathname = usePathname();
 
@@ -28,7 +30,7 @@ export function useInAppNotifications() {
           id,
           notification(id, {
             title: fromProfile.displayName,
-            subtitle: "Pinguje Cię!",
+            subtitle: t`Pinguje Cię!`,
             avatarUrl: fromProfile.avatarUrl,
             avatarName: fromProfile.displayName,
             onPress: () => router.push({ pathname: "/(modals)/user/[userId]", params: { userId: wave.fromUserId } }),
@@ -44,8 +46,8 @@ export function useInAppNotifications() {
           "waveResponses",
           id,
           notification(id, {
-            title: responderProfile?.displayName ?? "Ktoś",
-            subtitle: "Przyjął(a) Twój ping!",
+            title: responderProfile?.displayName ?? t`Ktoś`,
+            subtitle: t`Przyjął(a) Twój ping!`,
             avatarUrl: responderProfile?.avatarUrl ?? null,
             avatarName: responderProfile?.displayName ?? "?",
             onPress: () => {
@@ -65,7 +67,7 @@ export function useInAppNotifications() {
           id,
           notification(id, {
             title: "Blisko",
-            subtitle: "Ta osoba jest teraz niedostępna — powodów może być wiele, nie przejmuj się.",
+            subtitle: t`Ta osoba jest teraz niedostępna — powodów może być wiele, nie przejmuj się.`,
             avatarUrl: null,
             avatarName: "B",
             onPress: () => {},
@@ -80,8 +82,8 @@ export function useInAppNotifications() {
           "groupInvites",
           id,
           notification(id, {
-            title: msg.groupName ?? "Grupa",
-            subtitle: "Nowe zaproszenie do grupy",
+            title: msg.groupName ?? t`Grupa`,
+            subtitle: t`Nowe zaproszenie do grupy`,
             avatarUrl: null,
             avatarName: msg.groupName ?? "G",
             onPress: () => {
@@ -101,7 +103,7 @@ export function useInAppNotifications() {
         if (convStore.activeConversationId === msg.conversationId) return;
 
         const conv = convStore.conversations.find((c) => c.id === msg.conversationId);
-        const senderName = conv?.participant?.displayName ?? "Nowa wiadomość";
+        const senderName = conv?.participant?.displayName ?? t`Nowa wiadomość`;
         const senderAvatar = conv?.participant?.avatarUrl ?? null;
         const preview = msg.message.content.length > 60 ? `${msg.message.content.slice(0, 60)}…` : msg.message.content;
 
@@ -123,7 +125,7 @@ export function useInAppNotifications() {
         );
       }
     },
-    [userId, pathname],
+    [userId, pathname, t],
   );
 
   useWebSocket(handler);

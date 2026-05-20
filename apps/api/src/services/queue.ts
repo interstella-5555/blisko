@@ -6,6 +6,7 @@ import ms from "ms";
 import { db, schema } from "@/db";
 import { userIsLive } from "@/db/filters";
 import { isStatusActive } from "@/lib/status";
+import { t } from "@/services/i18n";
 import { publishEvent } from "@/ws/redis-bridge";
 import {
   analyzeConnection,
@@ -162,9 +163,13 @@ async function sendAmbientPushWithCooldown(userId: string) {
   const alreadySent = await redis.get(cooldownKey);
   if (!alreadySent) {
     await redis.send("SET", [cooldownKey, "1", "EX", "3600"]);
+    const recipientProfile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, userId),
+      columns: { locale: true },
+    });
     void sendPushToUser(userId, {
       title: "Blisko",
-      body: "Ktoś z pasującym profilem jest w pobliżu",
+      body: t("push.ambient.statusMatch.body", recipientProfile?.locale),
       data: { type: "ambient_match" },
       collapseId: "ambient-match",
     });
