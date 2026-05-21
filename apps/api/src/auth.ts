@@ -1,5 +1,5 @@
 import { expo } from "@better-auth/expo";
-import { ENABLED_OAUTH_PROVIDERS, isOAuthProviderEnabled, OTP_LENGTH } from "@repo/shared";
+import { ACTIVE_OAUTH_PROVIDERS, OTP_LENGTH } from "@repo/shared";
 import { APIError, betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins";
@@ -7,15 +7,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { changeEmailOtp, sendEmail, signInOtp } from "@/services/email";
 
-const allSocialProviders = {
-  linkedin: {
-    clientId: process.env.LINKEDIN_CLIENT_ID as string,
-    clientSecret: process.env.LINKEDIN_CLIENT_SECRET as string,
-  },
-  facebook: {
-    clientId: process.env.FACEBOOK_CLIENT_ID as string,
-    clientSecret: process.env.FACEBOOK_CLIENT_SECRET as string,
-  },
+const socialProviders = {
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID as string,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
@@ -24,20 +16,14 @@ const allSocialProviders = {
     clientId: process.env.APPLE_CLIENT_ID as string,
     clientSecret: process.env.APPLE_CLIENT_SECRET as string,
   },
-} as const;
-
-const socialProviders = Object.fromEntries(
-  Object.entries(allSocialProviders).filter(([provider]) =>
-    isOAuthProviderEnabled(provider as keyof typeof allSocialProviders),
-  ),
-) as Partial<typeof allSocialProviders>;
+};
 
 // Pre-auth gate: block session creation for soft-deleted or suspended users.
 // Runs for every path that lands in databaseHooks.session.create.before —
-// OAuth callbacks (all four providers), email-OTP verify, and dev auto-login
-// (dev auto-login bypasses Better Auth but we keep the check symmetric). The
-// emailOTP sendVerificationOTP callback handles the earlier "don't even send
-// the code" case; this hook is the catch-all for OAuth where there is no OTP.
+// OAuth callbacks, email-OTP verify, and dev auto-login (dev auto-login
+// bypasses Better Auth but we keep the check symmetric). The emailOTP
+// sendVerificationOTP callback handles the earlier "don't even send the
+// code" case; this hook is the catch-all for OAuth where there is no OTP.
 function assertUserCanSignIn(user: { deletedAt: Date | null; suspendedAt: Date | null } | undefined) {
   if (user?.deletedAt) throw new APIError("FORBIDDEN", { message: "ACCOUNT_DELETED" });
   if (user?.suspendedAt) throw new APIError("FORBIDDEN", { message: "ACCOUNT_SUSPENDED" });
@@ -50,7 +36,7 @@ export const auth = betterAuth({
   account: {
     accountLinking: {
       enabled: true,
-      trustedProviders: [...ENABLED_OAUTH_PROVIDERS],
+      trustedProviders: [...ACTIVE_OAUTH_PROVIDERS],
       allowDifferentEmails: true,
       updateUserInfoOnLink: true,
     },
@@ -67,50 +53,6 @@ export const auth = betterAuth({
             columns: { deletedAt: true, suspendedAt: true },
           });
           assertUserCanSignIn(user);
-        },
-      },
-    },
-    account: {
-      create: {
-        after: async (account) => {
-          const { providerId, accessToken, userId } = account;
-          if (!accessToken || (providerId !== "facebook" && providerId !== "linkedin")) return;
-
-          let username: string | null = null;
-
-          try {
-            if (providerId === "facebook") {
-              const res = await fetch(`https://graph.facebook.com/me?fields=name&access_token=${accessToken}`);
-              if (res.ok) {
-                const data = await res.json();
-                username = data.name ?? null;
-              }
-            } else if (providerId === "linkedin") {
-              const res = await fetch("https://api.linkedin.com/v2/userinfo", {
-                headers: { Authorization: `Bearer ${accessToken}` },
-              });
-              if (res.ok) {
-                const data = await res.json();
-                username = data.name ?? null;
-              }
-            }
-          } catch (err) {
-            console.error(`[auth] Failed to fetch ${providerId} username:`, err);
-          }
-
-          if (username) {
-            const profile = await db.query.profiles.findFirst({
-              where: eq(schema.profiles.userId, userId),
-              columns: { socialLinks: true },
-            });
-            if (profile) {
-              const links = { ...(profile.socialLinks ?? {}), [providerId]: username };
-              await db
-                .update(schema.profiles)
-                .set({ socialLinks: links, updatedAt: new Date() })
-                .where(eq(schema.profiles.userId, userId));
-            }
-          }
         },
       },
     },

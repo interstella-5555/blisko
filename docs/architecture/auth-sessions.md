@@ -83,18 +83,16 @@ Both types are also logged to console for local development.
 
 ## OAuth Providers
 
-`ENABLED_OAUTH_PROVIDERS` in `packages/shared/src/config/auth.ts` is the single source of truth for which providers are exposed. It drives API `socialProviders` and `accountLinking.trustedProviders` in `apps/api/src/auth.ts` (entries spread from `allSocialProviders` and filtered by the constant — disabled providers never reach Better Auth), the buttons on the mobile login screen (`apps/mobile/app/(auth)/login.tsx`), and the rows on mobile settings → Połączone konta (`apps/mobile/app/settings/account.tsx`). On the settings screen, a disabled provider is hidden unless the user already has an account connected to it, in which case the row stays visible so they can disconnect.
+`ACTIVE_OAUTH_PROVIDERS = ["apple", "google"]` in `packages/shared/src/config/auth.ts` is the single source of truth for which providers the app accepts for new connections. It drives API `socialProviders` and `accountLinking.trustedProviders` in `apps/api/src/auth.ts`, the buttons on the mobile login screen (`apps/mobile/app/(auth)/login.tsx`), and the rows on mobile settings → Połączone konta (`apps/mobile/app/settings/account.tsx`). On the settings screen, inactive providers (facebook, linkedin — see below) stay visible only when a legacy connection exists so the user can disconnect.
 
-All providers use `*_CLIENT_ID` + `*_CLIENT_SECRET` env vars.
+All active providers use `*_CLIENT_ID` + `*_CLIENT_SECRET` env vars.
 
-| Provider | Env Vars | Enabled | Post-Link Behavior |
-|----------|----------|---------|--------------------|
-| Apple | `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET` | ✅ | No additional data fetched. Uses `response_mode=form_post` (requires `SameSite=none` cookie). |
-| Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | ✅ | No additional data fetched. Name comes from ID token. |
-| Facebook | `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET` | ❌ | After account creation, fetches real name via `https://graph.facebook.com/me?fields=name&access_token=...`. Stores as `socialLinks.facebook` on profile. |
-| LinkedIn | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | ❌ | After account creation, fetches real name via `https://api.linkedin.com/v2/userinfo`. Stores as `socialLinks.linkedin` on profile. |
+| Provider | Env Vars | Post-Link Behavior |
+|----------|----------|--------------------|
+| Apple | `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET` | No additional data fetched. Uses `response_mode=form_post` (requires `SameSite=none` cookie). |
+| Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No additional data fetched. Name comes from ID token. |
 
-The Facebook and LinkedIn name-fetching happens in `databaseHooks.account.create.after`. It only runs when `accessToken` is available and the provider is `facebook` or `linkedin`. Failures are logged but don't block account creation.
+**Facebook + LinkedIn removed (BLI-276, Workflow v4 §2.2 / §13).** OAuth login through those providers no longer works for any user, new or existing — `socialProviders` no longer registers them, the buttons are gone from login, and the `databaseHooks.account.create.after` hook that auto-populated `socialLinks.facebook` / `socialLinks.linkedin` from Graph API / userinfo is deleted. Legacy `account` rows for these providers stay in the DB but are dormant. The settings screen still renders a Facebook / LinkedIn row when one of those is connected so the user can disconnect it; once disconnected, the row disappears for good. `OAuthProvider` keeps `"facebook" | "linkedin"` in the type so the settings list can still type the legacy data; `ActiveOAuthProvider` is the narrower type used for the login path. The `FACEBOOK_*` / `LINKEDIN_*` env vars are left on Railway for now (cheap to keep, lets us flip back fast if we ever change our minds).
 
 ## Session Management
 
