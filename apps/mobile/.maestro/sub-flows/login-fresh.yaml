@@ -65,5 +65,6 @@ appId: com.blisko.app
 # --- VERIFY ---
 
 - extendedWaitUntil:
-    visible: "W okolicy"
+    visible:
+      id: "set-status-pill"
     timeout: 30000

@@ -28,5 +28,6 @@ appId: com.blisko.app
 
 # Seeded user has profile → goes straight to tabs
 - extendedWaitUntil:
-    visible: "W okolicy"
+    visible:
+      id: "set-status-pill"
     timeout: 30000
