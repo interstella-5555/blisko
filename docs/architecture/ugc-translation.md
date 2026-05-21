@@ -50,7 +50,7 @@ Future-proof: new locale = widen `LOCALE_CODES` in `@repo/shared`, update prompt
 
 ### AI-generated (bio, lookingFor, portrait)
 
-`generateProfileFromQA` and `generatePortrait` now return `{ pl: …, uk: … }` in a single LLM call. The model receives `<source_language>pl|uk</source_language>` and writes both versions. Cheaper than chaining a translate pass (~10 % fewer tokens) and the translation is higher quality because the model has full source context for both.
+`generateProfileFromQA` and `generatePortrait` now return `{ pl: …, ua: … }` in a single LLM call. The model receives `<source_language>pl|ua</source_language>` and writes both versions. Cheaper than chaining a translate pass (~10 % fewer tokens) and the translation is higher quality because the model has full source context for both.
 
 Token budgets bumped 2× (4000 for `generateProfileFromQA`, 2000 for `generatePortrait`) to leave room for both languages plus reasoning overhead.
 

@@ -6,8 +6,8 @@ describe("t() backend helper", () => {
     expect(t("push.group.invite.body", "pl")).toBe("Nowe zaproszenie do grupy");
   });
 
-  it("returns the UA template for locale='uk'", () => {
-    expect(t("push.group.invite.body", "uk")).toBe("Нове запрошення до групи");
+  it("returns the UA template for locale='ua'", () => {
+    expect(t("push.group.invite.body", "ua")).toBe("Нове запрошення до групи");
   });
 
   it("falls back to PL when locale is null", () => {
@@ -23,11 +23,11 @@ describe("t() backend helper", () => {
   });
 
   it("interpolates string params", () => {
-    expect(t("push.wave.new.body", "uk", { senderName: "Аня" })).toBe("Аня — новий пінг!");
+    expect(t("push.wave.new.body", "ua", { senderName: "Аня" })).toBe("Аня — новий пінг!");
   });
 
   it("interpolates numeric params", () => {
-    expect(t("push.message.unread.body", "uk", { unreadCount: 5 })).toBe("5 нових повідомлень");
+    expect(t("push.message.unread.body", "ua", { unreadCount: 5 })).toBe("5 нових повідомлень");
   });
 
   it("leaves placeholder intact when a param is missing", () => {
@@ -35,11 +35,11 @@ describe("t() backend helper", () => {
   });
 
   it("looks up an email subject with an interpolated OTP", () => {
-    expect(t("email.signIn.subject", "uk", { otp: "123456" })).toBe("123456 - Твій код до Blisko");
+    expect(t("email.signIn.subject", "ua", { otp: "123456" })).toBe("123456 - Твій код до Blisko");
   });
 
   it("renders the localized layout footer", () => {
-    expect(t("email.layout.footer", "uk")).toBe("З повагою,<br>Команда Blisko");
+    expect(t("email.layout.footer", "ua")).toBe("З повагою,<br>Команда Blisko");
     expect(t("email.layout.footer", null)).toBe("Pozdrawiamy,<br>Zespół Blisko");
   });
 

@@ -54,7 +54,7 @@ export async function generateEmbedding(text: string, ctx: AiLogCtx): Promise<nu
  *  context for both translations. */
 const portraitDualSchema = z.object({
   pl: z.string(),
-  uk: z.string(),
+  ua: z.string(),
 });
 
 export type PortraitDual = z.infer<typeof portraitDualSchema>;
@@ -68,12 +68,12 @@ export async function generatePortrait(
   if (!isConfigured()) {
     console.warn("OPENAI_API_KEY not set, returning raw bio+lookingFor");
     const fallback = `${bio}\n\n${lookingFor}`;
-    return { pl: fallback, uk: fallback };
+    return { pl: fallback, ua: fallback };
   }
 
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
-  const sourceLanguageLabel = contentLocale === "uk" ? "ukraiński (ukrainian)" : "polski (polish)";
+  const sourceLanguageLabel = contentLocale === "ua" ? "ukraiński (ukrainian)" : "polski (polish)";
   const system = `Na podstawie profilu użytkownika (bio: kim jestem, lookingFor: kogo szukam) wygeneruj bogaty profil społeczny (200-300 słów na każdą wersję językową) opisujący:
 - Kim jest ta osoba: zainteresowania, hobby, styl życia, osobowość
 - Czego szuka u innych: ROZWIĄŻ ogólne sformułowania na konkretne cechy (np. "ludzi o podobnych zainteresowaniach" → wymień jakich zainteresowaniach na podstawie bio)
@@ -84,7 +84,7 @@ NIE wspominaj o aktualnym statusie użytkownika ani bieżących intencjach "na t
 
 Wygeneruj DWIE WERSJE JĘZYKOWE:
 - "pl" — po polsku
-- "uk" — po ukraińsku
+- "ua" — po ukraińsku
 Tłumacz naturalnie, zachowując ton i osobowość. Imion własnych nie tłumacz. Język źródłowy: ${sourceLanguageLabel}.`;
   const prompt = `<user_bio>${bio}</user_bio>\n\n<user_looking_for>${lookingFor}</user_looking_for>`;
   const input: AiCallInput = {
@@ -119,7 +119,7 @@ Tłumacz naturalnie, zachowując ton i osobowość. Imion własnych nie tłumacz
       });
       const fallback = `${bio}\n\n${lookingFor}`;
       return {
-        result: { pl: object.pl || fallback, uk: object.uk || fallback },
+        result: { pl: object.pl || fallback, ua: object.ua || fallback },
         model,
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
@@ -129,7 +129,7 @@ Tłumacz naturalnie, zachowując ton i osobowość. Imion własnych nie tłumacz
   } catch (error) {
     console.error("Error generating social profile:", error);
     const fallback = `${bio}\n\n${lookingFor}`;
-    return { pl: fallback, uk: fallback };
+    return { pl: fallback, ua: fallback };
   }
 }
 

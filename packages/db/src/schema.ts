@@ -117,13 +117,13 @@ export const profiles = pgTable(
     bio: text("bio").notNull(),
     lookingFor: text("looking_for").notNull(),
     socialLinks: jsonb("social_links").$type<{ facebook?: string; linkedin?: string }>(),
-    locale: varchar("locale", { length: 2 }).$type<"pl" | "uk">(),
+    locale: varchar("locale", { length: 2 }).$type<"pl" | "ua">(),
     // Language of the canonical UGC text on this row (bio, looking_for, portrait,
     // current_status). Translations to other locales live in profile_translations.
     // Defaults to "pl" because the entire seed/legacy corpus is Polish; the column
     // is rewritten whenever the user edits UGC so it always matches the original.
     // BLI-279.
-    contentLocale: varchar("content_locale", { length: 2 }).$type<"pl" | "uk">().notNull().default("pl"),
+    contentLocale: varchar("content_locale", { length: 2 }).$type<"pl" | "ua">().notNull().default("pl"),
     visibilityMode: text("visibility_mode")
       .$type<"ninja" | "semi_open" | "full_nomad">()
       .default("semi_open")
@@ -180,7 +180,7 @@ export const profileTranslations = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     field: varchar("field", { length: 32 }).$type<UgcTranslatableField>().notNull(),
-    locale: varchar("locale", { length: 2 }).$type<"pl" | "uk">().notNull(),
+    locale: varchar("locale", { length: 2 }).$type<"pl" | "ua">().notNull(),
     content: text("content").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

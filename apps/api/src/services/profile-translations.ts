@@ -167,7 +167,7 @@ export async function getTranslationsForUsers(userIds: string[]): Promise<Map<st
 
 const LOCALE_LABELS: Record<LocaleCode, string> = {
   pl: "polski (Polish)",
-  uk: "ukraiński (Ukrainian)",
+  ua: "ukraiński (Ukrainian)",
 };
 
 /** Translate one UGC text via gpt-4o-mini. Keep the voice and tone, no
