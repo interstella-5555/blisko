@@ -10,3 +10,8 @@
 // schema.ts, API tRPC context, admin router, admin UI, and db filters.
 export const USER_TYPES = ["regular", "demo", "test", "review"] as const;
 export type UserType = (typeof USER_TYPES)[number];
+
+// UGC fields that get translated for cross-locale viewing — defined in
+// `@repo/shared` so mobile can import without pulling drizzle. Re-exported
+// here so existing `@repo/db/types` consumers keep working. BLI-279.
+export { UGC_TRANSLATABLE_FIELDS, type UgcTranslatableField } from "@repo/shared";

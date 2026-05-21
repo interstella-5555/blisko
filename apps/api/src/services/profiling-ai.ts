@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { AI_MODELS } from "@repo/shared";
+import { AI_MODELS, type LocaleCode } from "@repo/shared";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { type AiCallInput, type AiLogCtx, withAiLogging } from "./ai-log";
@@ -183,26 +183,42 @@ Wygeneruj następne pytanie.`;
   });
 }
 
-const profileFromQASchema = z.object({
+const profileFromQAPerLocaleSchema = z.object({
   bio: z.string(),
   lookingFor: z.string(),
   portrait: z.string(),
 });
 
+// Dual-language profile output (BLI-279). The LLM returns both PL and UK in a
+// single call — cheaper than chaining a translate pass and gives better
+// quality because the model sees the source context for both languages.
+const profileFromQASchema = z.object({
+  pl: profileFromQAPerLocaleSchema,
+  uk: profileFromQAPerLocaleSchema,
+});
+
+export type ProfileFromQAPerLocale = z.infer<typeof profileFromQAPerLocaleSchema>;
 export type ProfileFromQAResult = z.infer<typeof profileFromQASchema>;
 
 export async function generateProfileFromQA(
   displayName: string,
   qaHistory: { question: string; answer: string }[],
   previousSessionQA: { question: string; answer: string }[] | undefined,
+  contentLocale: LocaleCode,
   ctx: AiLogCtx,
 ): Promise<ProfileFromQAResult> {
   if (!isConfigured()) {
-    return {
+    const stub: ProfileFromQAPerLocale = {
       bio: "Jestem osobą otwartą na nowe znajomości.",
       lookingFor: "Szukam ludzi o podobnych zainteresowaniach.",
       portrait: "Osoba otwarta i ciekawa świata.",
     };
+    const stubUk: ProfileFromQAPerLocale = {
+      bio: "Я відкрита людина, готова до нових знайомств.",
+      lookingFor: "Шукаю людей зі схожими інтересами.",
+      portrait: "Відкрита, цікава людина.",
+    };
+    return contentLocale === "uk" ? { pl: stub, uk: stubUk } : { pl: stub, uk: stubUk };
   }
 
   let contextBlock = "";
@@ -216,13 +232,22 @@ export async function generateProfileFromQA(
 
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
+  const sourceLanguageLabel = contentLocale === "uk" ? "ukraiński (ukrainian)" : "polski (polish)";
   const system = `Na podstawie rozmowy profilowej generujesz profil użytkownika dla aplikacji społecznościowej.
 
-Generujesz trzy teksty:
+Język źródłowy odpowiedzi użytkownika: ${sourceLanguageLabel}.
 
-1. bio (100-300 znaków, 1. osoba, po polsku) — kim jest ta osoba: zainteresowania, charakter, styl życia. Naturalny, ciepłym tonem, jak gdyby osoba sama o sobie pisała.
+Generujesz DWIE WERSJE JĘZYKOWE tego samego profilu:
+- "pl" — po polsku (zawsze, niezależnie od języka źródłowego)
+- "uk" — po ukraińsku (zawsze)
 
-Przykłady dobrego bio:
+W KAŻDEJ wersji są te same trzy pola: bio, lookingFor, portrait. Tłumacz naturalnie, zachowując ton i osobowość — nie tłumacz dosłownie. Imion własnych nie tłumacz.
+
+W każdej wersji generujesz trzy teksty:
+
+1. bio (100-300 znaków, 1. osoba) — kim jest ta osoba: zainteresowania, charakter, styl życia. Naturalny, ciepłym tonem, jak gdyby osoba sama o sobie pisała.
+
+Przykłady dobrego bio (po polsku):
 - "Programuję, a po godzinach odkrywam kuchnię azjatycką. Piekę chleb na zakwasie — hodowla zakwasu to moja duma. Nocna marka, najlepsze pomysły mam po 23."
 - "Jestem położną, prowadzę podcast o rodzicielstwie. Zbieram winyle z lat 70. Lubię ludzi, ale potrzebuję czasu dla siebie."
 
@@ -231,17 +256,20 @@ Zasady dla bio:
 - Nie dodawaj defensywnych zastrzeżeń typu "ale nie oceniam", "bez ściemy", "nie narzucam"
 - Unikaj dwuznaczności — jeśli coś brzmi niejasno (np. "mam swoją hodowlę" — hodowlę czego?), doprecyzuj
 
-2. lookingFor (100-300 znaków, 1. osoba, po polsku) — kogo szuka: jakiego typu ludzi, jakich relacji, co ich mogłoby połączyć. Konkretnie, nie ogólnikowo.
+2. lookingFor (100-300 znaków, 1. osoba) — kogo szuka: jakiego typu ludzi, jakich relacji, co ich mogłoby połączyć. Konkretnie, nie ogólnikowo.
 
 Zasady dla lookingFor:
-- Pilnuj poprawności gramatycznej po przyimkach: "na" + biernik ("na wspólne wypady"), "do" + dopełniacz ("do wspólnych wypadów")
+- (PL) Pilnuj poprawności gramatycznej po przyimkach: "na" + biernik ("na wspólne wypady"), "do" + dopełniacz ("do wspólnych wypadów")
 - Nie mieszaj tych form — jeśli zaczynasz od "Szukam kogoś na", kontynuuj biernikiem
 - Nie używaj wykrzykników ani podwójnej interpunkcji ("partnera!." jest błędne)
 
-3. portrait (200-400 słów, 3. osoba, po polsku) — głęboki opis osobowości: jak myśli, co ceni, jak funkcjonuje społecznie, jakie ma motywacje i potrzeby. To jest prywatny dokument — pisz szczerze i wnikliwie, nie pochlebczo. Unikaj banalnych sformułowań.
+3. portrait (200-400 słów, 3. osoba) — głęboki opis osobowości: jak myśli, co ceni, jak funkcjonuje społecznie, jakie ma motywacje i potrzeby. To jest prywatny dokument — pisz szczerze i wnikliwie, nie pochlebczo. Unikaj banalnych sformułowań.
 
-Bazuj WYŁĄCZNIE na informacjach które wynikają z odpowiedzi. Nie wymyślaj.`;
+Bazuj WYŁĄCZNIE na informacjach które wynikają z odpowiedzi. Nie wymyślaj.
+
+Wynik MUSI mieć strukturę: { pl: { bio, lookingFor, portrait }, uk: { bio, lookingFor, portrait } }.`;
   const prompt = `<user_name>${displayName}</user_name>
+<source_language>${contentLocale}</source_language>
 
 <profiling_conversation>
 ${qaBlock}${contextBlock}
@@ -252,7 +280,7 @@ ${qaBlock}${contextBlock}
     system,
     prompt,
     temperature: 0.7,
-    maxOutputTokens: 2000,
+    maxOutputTokens: 4000,
     providerOptions: providerOptions ?? null,
     schemaName: "profileFromQASchema",
   };
@@ -262,7 +290,7 @@ ${qaBlock}${contextBlock}
       model: openai(model),
       schema: profileFromQASchema,
       temperature: 0.7,
-      maxOutputTokens: 2000,
+      maxOutputTokens: 4000,
       ...(providerOptions && { providerOptions }),
       system,
       prompt,

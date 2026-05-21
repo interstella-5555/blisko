@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { AI_MODELS, EMBEDDING_MODEL } from "@repo/shared";
+import { AI_MODELS, EMBEDDING_MODEL, type LocaleCode } from "@repo/shared";
 import { embed, generateObject, generateText } from "ai";
 import { z } from "zod";
 import { type AiCallInput, type AiLogCtx, withAiLogging } from "./ai-log";
@@ -49,55 +49,87 @@ export async function generateEmbedding(text: string, ctx: AiLogCtx): Promise<nu
   }
 }
 
-export async function generatePortrait(bio: string, lookingFor: string, ctx: AiLogCtx): Promise<string> {
+/** Dual-language portrait result (BLI-279). Generated in one LLM call —
+ *  cheaper than chaining a translate pass and the model has full source
+ *  context for both translations. */
+const portraitDualSchema = z.object({
+  pl: z.string(),
+  uk: z.string(),
+});
+
+export type PortraitDual = z.infer<typeof portraitDualSchema>;
+
+export async function generatePortrait(
+  bio: string,
+  lookingFor: string,
+  contentLocale: LocaleCode,
+  ctx: AiLogCtx,
+): Promise<PortraitDual> {
   if (!isConfigured()) {
     console.warn("OPENAI_API_KEY not set, returning raw bio+lookingFor");
-    return `${bio}\n\n${lookingFor}`;
+    const fallback = `${bio}\n\n${lookingFor}`;
+    return { pl: fallback, uk: fallback };
   }
 
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
-  const system = `Na podstawie profilu użytkownika (bio: kim jestem, lookingFor: kogo szukam), wygeneruj bogaty profil społeczny (200-300 słów) opisujący:
+  const sourceLanguageLabel = contentLocale === "uk" ? "ukraiński (ukrainian)" : "polski (polish)";
+  const system = `Na podstawie profilu użytkownika (bio: kim jestem, lookingFor: kogo szukam) wygeneruj bogaty profil społeczny (200-300 słów na każdą wersję językową) opisujący:
 - Kim jest ta osoba: zainteresowania, hobby, styl życia, osobowość
 - Czego szuka u innych: ROZWIĄŻ ogólne sformułowania na konkretne cechy (np. "ludzi o podobnych zainteresowaniach" → wymień jakich zainteresowaniach na podstawie bio)
 - Jakie tematy i aktywności są dla tej osoby ważne
-Nie oceniaj, nie wartościuj — opisuj. Pisz w 3. osobie, naturalnym językiem polskim. Nie używaj nagłówków ani list — pisz płynnym tekstem.
-NIE wspominaj o aktualnym statusie użytkownika ani bieżących intencjach "na teraz" — te informacje są prywatne.`;
+
+Nie oceniaj, nie wartościuj — opisuj. Pisz w 3. osobie, naturalnym językiem. Nie używaj nagłówków ani list — pisz płynnym tekstem.
+NIE wspominaj o aktualnym statusie użytkownika ani bieżących intencjach "na teraz" — te informacje są prywatne.
+
+Wygeneruj DWIE WERSJE JĘZYKOWE:
+- "pl" — po polsku
+- "uk" — po ukraińsku
+Tłumacz naturalnie, zachowując ton i osobowość. Imion własnych nie tłumacz. Język źródłowy: ${sourceLanguageLabel}.`;
   const prompt = `<user_bio>${bio}</user_bio>\n\n<user_looking_for>${lookingFor}</user_looking_for>`;
   const input: AiCallInput = {
-    kind: "generateText",
+    kind: "generateObject",
     model,
     system,
     prompt,
     temperature: 0.7,
-    // 200-300 PL words ≈ 420 visible tokens; gpt-5-mini minimal reasoning still
-    // consumes some of the same budget — 500 was clipping at finishReason: "length"
-    // and falling back to raw bio+lookingFor. Same class of bug as BLI-241.
-    maxOutputTokens: 1000,
+    // Dual-language output. The old 1000-token budget for one language was
+    // already tight per commit 6376876 — gpt-5-mini reasoningEffort=minimal
+    // burns ~100-200 reasoning tokens out of the same budget. 2x content (PL +
+    // UK at ~420 visible tokens each ≈ 840) leaves only 160 tokens for
+    // reasoning + JSON structural overhead, which clips on long bios. Bump
+    // to 2500 = ~840 visible + 600 reasoning headroom + 1060 JSON/safety
+    // margin. Cost impact is bounded by actual output (output tokens
+    // billed-as-emitted, not as-budgeted).
+    maxOutputTokens: 2500,
     providerOptions: providerOptions ?? null,
+    schemaName: "portraitDualSchema",
   };
 
   try {
     return await withAiLogging(ctx, input, async () => {
-      const { text, usage, finishReason } = await generateText({
+      const { object, usage } = await generateObject({
         model: openai(model),
+        schema: portraitDualSchema,
         temperature: 0.7,
-        maxOutputTokens: 1000,
+        maxOutputTokens: 2500,
         ...(providerOptions && { providerOptions }),
         system,
         prompt,
       });
+      const fallback = `${bio}\n\n${lookingFor}`;
       return {
-        result: text || `${bio}\n\n${lookingFor}`,
+        result: { pl: object.pl || fallback, uk: object.uk || fallback },
         model,
         promptTokens: usage?.inputTokens ?? 0,
         completionTokens: usage?.outputTokens ?? 0,
-        output: { text, finishReason },
+        output: { object },
       };
     });
   } catch (error) {
     console.error("Error generating social profile:", error);
-    return `${bio}\n\n${lookingFor}`;
+    const fallback = `${bio}\n\n${lookingFor}`;
+    return { pl: fallback, uk: fallback };
   }
 }
 

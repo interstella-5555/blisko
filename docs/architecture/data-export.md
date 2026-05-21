@@ -168,6 +168,18 @@ Conversations are exported with full message history. Only conversations where t
 | `question` | `profilingSessions[].questions[].question` | AI-generated question text |
 | `answer` | `profilingSessions[].questions[].answer` | User's answer or null |
 
+#### `profileTranslations` table — BLI-279
+
+| Field | Export key | Notes |
+|-------|-----------|-------|
+| `field` | `profileTranslations[].field` | `bio` / `looking_for` / `portrait` / `current_status` |
+| `locale` | `profileTranslations[].locale` | `pl` / `uk` |
+| `content` | `profileTranslations[].content` | Translated text |
+| `createdAt` | `profileTranslations[].createdAt` | ISO 8601 |
+| `updatedAt` | `profileTranslations[].updatedAt` | ISO 8601 |
+
+Also: `profile.contentLocale` shipped alongside `bio` / `lookingFor` so the importer can identify which language the originals are in.
+
 #### `blocks` table
 
 | Field | Export key | Notes |

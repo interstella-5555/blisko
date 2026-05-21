@@ -22,9 +22,9 @@ import {
 
 // User category enum — defined in `./types.ts` (client-safe, zero runtime
 // deps). Re-exported here so consumers reading `@repo/db/schema` still get it.
-export { USER_TYPES, type UserType } from "./types";
+export { UGC_TRANSLATABLE_FIELDS, type UgcTranslatableField, USER_TYPES, type UserType } from "./types";
 
-import type { UserType } from "./types";
+import type { UgcTranslatableField, UserType } from "./types";
 
 // Better Auth tables (managed by better-auth)
 export const user = pgTable(
@@ -118,6 +118,12 @@ export const profiles = pgTable(
     lookingFor: text("looking_for").notNull(),
     socialLinks: jsonb("social_links").$type<{ facebook?: string; linkedin?: string }>(),
     locale: varchar("locale", { length: 2 }).$type<"pl" | "uk">(),
+    // Language of the canonical UGC text on this row (bio, looking_for, portrait,
+    // current_status). Translations to other locales live in profile_translations.
+    // Defaults to "pl" because the entire seed/legacy corpus is Polish; the column
+    // is rewritten whenever the user edits UGC so it always matches the original.
+    // BLI-279.
+    contentLocale: varchar("content_locale", { length: 2 }).$type<"pl" | "uk">().notNull().default("pl"),
     visibilityMode: text("visibility_mode")
       .$type<"ninja" | "semi_open" | "full_nomad">()
       .default("semi_open")
@@ -147,6 +153,45 @@ export const profiles = pgTable(
   (table) => ({
     userIdIdx: index("profiles_user_id_idx").on(table.userId),
     locationIdx: index("profiles_location_idx").on(table.latitude, table.longitude),
+  }),
+);
+
+// Profile translations — UGC translation cache per (user, field, locale).
+//
+// We translate four fields: `bio`, `looking_for`, `portrait`, `current_status`.
+// AI-generated fields (bio/lookingFor/portrait) get dual-language output at
+// generation time (a single LLM call returns both PL and UK), inline status
+// translation runs on every `setStatus`, and a 30-min debounced job retranslates
+// hand-edited bios.
+//
+// Invariant: rows here NEVER have `locale = profiles.content_locale` for the
+// same user — that version is the canonical original on `profiles.*`. The two
+// tables together cover every (user, field, locale) needed by the mobile UI.
+//
+// On user edit / regeneration, ALL rows for that user are DELETEd before new
+// ones are inserted — keeps the cache from drifting from the canonical text.
+// FK cascade handles hard-delete; soft-delete falls back to the standard
+// JOIN-to-user discovery filter. BLI-279.
+export const profileTranslations = pgTable(
+  "profile_translations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    field: varchar("field", { length: 32 }).$type<UgcTranslatableField>().notNull(),
+    locale: varchar("locale", { length: 2 }).$type<"pl" | "uk">().notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userFieldLocaleUniq: uniqueIndex("profile_translations_user_field_locale_uniq").on(
+      table.userId,
+      table.field,
+      table.locale,
+    ),
+    userIdIdx: index("profile_translations_user_id_idx").on(table.userId),
   }),
 );
 
@@ -599,6 +644,13 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
   blockedUsers: many(blocks, { relationName: "blocker" }),
   blockedBy: many(blocks, { relationName: "blocked" }),
   pushTokens: many(pushTokens),
+}));
+
+export const profileTranslationsRelations = relations(profileTranslations, ({ one }) => ({
+  user: one(user, {
+    fields: [profileTranslations.userId],
+    references: [user.id],
+  }),
 }));
 
 export const wavesRelations = relations(waves, ({ one }) => ({

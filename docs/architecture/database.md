@@ -133,6 +133,7 @@ Extends `user` with app-specific data. 1:1 relationship via unique `user_id`.
 | `looking_for` | text | no | -- | What they seek (AI-generated or manual) |
 | `social_links` | jsonb | yes | -- | `{ facebook?: string, linkedin?: string }` -- usernames, not URLs |
 | `locale` | varchar(2) | yes | -- | User-chosen UI language (`pl` / `uk`). Null = no explicit choice, mobile falls back to device locale. Set via `profiles.updateLocale` (BLI-277). Added in `0030`. |
+| `content_locale` | varchar(2) | no | `pl` | Language of the canonical UGC text on this row (bio / looking_for / portrait / current_status). Translations to other locales live in `profile_translations`. Added in `0031` (BLI-279). |
 | `visibility_mode` | text | no | `semi_open` | `ninja` / `semi_open` / `full_nomad` |
 | `do_not_disturb` | boolean | no | `false` | Mutes push notifications |
 | `superpower` | text | yes | -- | "What I can offer" freeform text |
@@ -165,6 +166,26 @@ Extends `user` with app-specific data. 1:1 relationship via unique `user_id`.
 **Why `portrait` is text not image:** It's an AI-generated structured text summary of the user's personality, interests, and style -- used as input for connection analysis prompts. The name is misleading but established.
 
 **Why status columns live on `profiles` not a separate table:** Status is a single "slot" per user (max 1 active at a time). A separate table would add JOINs to every nearby query for no normalization benefit. The trade-off is wider rows in `profiles`.
+
+### `profile_translations`
+
+UGC translation cache per (user, field, locale). Each row holds one translated version of `bio` / `looking_for` / `portrait` / `current_status`. Originals stay on `profiles.*` for the locale flagged by `profiles.content_locale`. BLI-279, added in `0031`.
+
+| Column | Type | Nullable | Default | Notes |
+|---|---|---|---|---|
+| `id` | uuid | no | `gen_random_uuid()` | |
+| `user_id` | text | no | -- | FK `user(id) ON DELETE CASCADE` |
+| `field` | varchar(32) | no | -- | `bio` / `looking_for` / `portrait` / `current_status` |
+| `locale` | varchar(2) | no | -- | `pl` / `uk` |
+| `content` | text | no | -- | Translated text |
+| `created_at` | timestamp | no | `now()` | |
+| `updated_at` | timestamp | no | `now()` | |
+
+**Indexes:**
+- `profile_translations_user_field_locale_uniq` UNIQUE on `(user_id, field, locale)` -- one translation per (user, field, locale)
+- `profile_translations_user_id_idx` on `user_id` -- batch fetch for all viewers of a profile
+
+**Invariant:** never a row where `locale = profiles.content_locale` for the same user. The canonical version lives on `profiles.*` and is read directly by hot paths (nearby, map, matching pipeline). See `docs/architecture/ugc-translation.md` for the full flow.
 
 ### `waves` (Pings)
 

@@ -61,3 +61,4 @@ Architecture reference docs live in `docs/architecture/`. These are the source o
 | `images.md` | Avatar / portrait pipeline — imgproxy sidecar, `s3://` source scheme, resolver helper, pixel buckets |
 | `moderation-suspension.md` | Admin-driven account suspension — schema, service functions, pre-auth gates, filters, admin/mobile surfaces |
 | `i18n.md` | Lingui setup, PO extract/translate/check pipeline, OpenAI batch translator, edge cases (mobile only — backend templates in BLI-281/282) |
+| `ugc-translation.md` | On-demand UGC translation (bio/lookingFor/portrait/currentStatus) — dual-language AI gen, inline translate, canonical-PL matching pipeline, viewer affordances |

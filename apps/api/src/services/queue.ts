@@ -17,6 +17,7 @@ import {
   quickScore,
 } from "./ai";
 import type { AiLogCtx } from "./ai-log";
+import { getCanonicalText, getTranslationsForUsers, translateInline, upsertTranslation } from "./profile-translations";
 import { generateNextQuestion, generateProfileFromQA } from "./profiling-ai";
 import { sendPushToUser } from "./push";
 import { attachWorkerLogger, getConnectionConfig, getRedisPub, QUEUE_NAMES } from "./queue-shared";
@@ -242,17 +243,29 @@ async function processAnalyzePair(job: Job<AnalyzePairJob>, userAId: string, use
   // --- ai-call phase ---
   const tAi0 = performance.now();
   const isOnDemand = job.data.isOnDemand === true;
+
+  // Matching pipeline reads canonical PL — UA originals + their cached PL
+  // translations cover the same data, the LLM just stays on one language.
+  // BLI-279 D6.
+  const trMap = await getTranslationsForUsers([userAId, userBId]);
+  const trA = trMap.get(userAId) ?? [];
+  const trB = trMap.get(userBId) ?? [];
+  const portraitA = getCanonicalText(profileA, "portrait", trA) ?? profileA.portrait;
+  const portraitB = getCanonicalText(profileB, "portrait", trB) ?? profileB.portrait;
+  const lookingForA = getCanonicalText(profileA, "looking_for", trA) ?? profileA.lookingFor;
+  const lookingForB = getCanonicalText(profileB, "looking_for", trB) ?? profileB.lookingFor;
+
   const result = await analyzeConnection(
     {
-      portrait: profileA.portrait,
+      portrait: portraitA,
       displayName: profileA.displayName,
-      lookingFor: profileA.lookingFor,
+      lookingFor: lookingForA,
       superpower: profileA.superpower,
     },
     {
-      portrait: profileB.portrait,
+      portrait: portraitB,
       displayName: profileB.displayName,
-      lookingFor: profileB.lookingFor,
+      lookingFor: lookingForB,
       superpower: profileB.superpower,
     },
     {
@@ -386,17 +399,27 @@ async function processQuickScore(userAId: string, userBId: string) {
   }
 
   const tAi0 = performance.now();
+
+  // Canonical PL — see BLI-279 D6.
+  const trMap = await getTranslationsForUsers([userAId, userBId]);
+  const trA = trMap.get(userAId) ?? [];
+  const trB = trMap.get(userBId) ?? [];
+  const portraitA = getCanonicalText(profileA, "portrait", trA) ?? profileA.portrait;
+  const portraitB = getCanonicalText(profileB, "portrait", trB) ?? profileB.portrait;
+  const lookingForA = getCanonicalText(profileA, "looking_for", trA) ?? profileA.lookingFor;
+  const lookingForB = getCanonicalText(profileB, "looking_for", trB) ?? profileB.lookingFor;
+
   const result = await quickScore(
     {
-      portrait: profileA.portrait,
+      portrait: portraitA,
       displayName: profileA.displayName,
-      lookingFor: profileA.lookingFor,
+      lookingFor: lookingForA,
       superpower: profileA.superpower,
     },
     {
-      portrait: profileB.portrait,
+      portrait: portraitB,
       displayName: profileB.displayName,
-      lookingFor: profileB.lookingFor,
+      lookingFor: lookingForB,
       superpower: profileB.superpower,
     },
     {
@@ -591,21 +614,77 @@ async function processGenerateProfileAI(userId: string, bio: string, lookingFor:
     reasoningEffort: "minimal",
   };
   const embeddingCtx: AiLogCtx = { jobName: "generate-profile-ai", userId };
-  const portrait = await generatePortrait(bio, lookingFor, gptCtx);
+
+  // Need contentLocale to (a) generate portrait in the user's language as
+  // canonical and (b) feed embedding + interests off the PL version regardless
+  // (matching pipeline expects PL — D6 in BLI-279).
+  const userProfile = await db.query.profiles.findFirst({
+    where: eq(schema.profiles.userId, userId),
+    columns: { contentLocale: true },
+  });
+  const contentLocale = userProfile?.contentLocale ?? "pl";
+
+  const portraitDual = await generatePortrait(bio, lookingFor, contentLocale, gptCtx);
+  const canonicalPortrait = contentLocale === "uk" ? portraitDual.uk : portraitDual.pl;
+  const portraitForEmbedding = portraitDual.pl; // matching pipeline = always PL
+
   const [embedding, interests] = await Promise.all([
-    generateEmbedding(portrait, embeddingCtx),
-    extractInterests(portrait, gptCtx),
+    generateEmbedding(portraitForEmbedding, embeddingCtx),
+    extractInterests(portraitForEmbedding, gptCtx),
   ]);
 
-  await db
-    .update(schema.profiles)
-    .set({
-      portrait,
-      embedding,
-      interests,
-      updatedAt: new Date(),
-    })
-    .where(eq(schema.profiles.userId, userId));
+  // Translate bio + lookingFor to the non-canonical locale. These are
+  // user-editable, so the caller might have written them (profiles.update,
+  // applyProfile). Running here keeps the translation/regeneration step
+  // unified — viewer sees a coherent profile in their locale once
+  // `profileReady` fires.
+  const nonCanonicalLocale = contentLocale === "uk" ? "pl" : "uk";
+  const translateCtx: AiLogCtx = {
+    jobName: "translate-ugc",
+    userId,
+    model: AI_MODELS.async,
+    serviceTier: "flex",
+    reasoningEffort: "minimal",
+  };
+  const [bioTranslated, lookingForTranslated] = await Promise.all([
+    translateInline(bio, contentLocale, nonCanonicalLocale, translateCtx),
+    translateInline(lookingFor, contentLocale, nonCanonicalLocale, translateCtx),
+  ]);
+
+  // Write canonical + translations in one transaction. Mass DELETE of
+  // existing rows is safe — profile_translations is regenerated on every AI
+  // run, so a partial state never leaks to viewers.
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.profiles)
+      .set({
+        portrait: canonicalPortrait,
+        embedding,
+        interests,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.profiles.userId, userId));
+
+    await tx
+      .delete(schema.profileTranslations)
+      .where(
+        and(
+          eq(schema.profileTranslations.userId, userId),
+          inArray(schema.profileTranslations.field, ["bio", "looking_for", "portrait"]),
+        ),
+      );
+
+    const nonCanonicalPortrait = contentLocale === "uk" ? portraitDual.pl : portraitDual.uk;
+    if (nonCanonicalPortrait && nonCanonicalPortrait !== canonicalPortrait) {
+      await upsertTranslation(userId, "portrait", nonCanonicalLocale, nonCanonicalPortrait, tx);
+    }
+    if (bioTranslated && bioTranslated !== bio) {
+      await upsertTranslation(userId, "bio", nonCanonicalLocale, bioTranslated, tx);
+    }
+    if (lookingForTranslated && lookingForTranslated !== lookingFor) {
+      await upsertTranslation(userId, "looking_for", nonCanonicalLocale, lookingForTranslated, tx);
+    }
+  });
 
   publishEvent("profileReady", { userId });
 }
@@ -653,7 +732,16 @@ async function processGenerateProfilingQuestion(job: GenerateProfilingQuestionJo
 async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
   const { sessionId, displayName, qaHistory, previousSessionQA } = job;
 
-  const result = await generateProfileFromQA(displayName, qaHistory, previousSessionQA, {
+  // Resolve the user's locale up front — the prompt asks the model to write
+  // the source-language version in this locale, so it matches what the user
+  // sees in their app.
+  const userProfile = await db.query.profiles.findFirst({
+    where: eq(schema.profiles.userId, job.userId),
+    columns: { contentLocale: true },
+  });
+  const contentLocale = userProfile?.contentLocale ?? "pl";
+
+  const result = await generateProfileFromQA(displayName, qaHistory, previousSessionQA, contentLocale, {
     jobName: "generate-profile-from-qa",
     userId: job.userId,
     model: AI_MODELS.async,
@@ -665,12 +753,18 @@ async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
     reasoningEffort: "minimal",
   });
 
+  const canonical = contentLocale === "uk" ? result.uk : result.pl;
+
+  // Session stores the "preview" the user will accept in `applyProfile`.
+  // The non-canonical translations are NOT stored on the session — they live
+  // on profile_translations after applyProfile commits. Until then, the user
+  // is editing the canonical version in the preview UI.
   await db
     .update(schema.profilingSessions)
     .set({
-      generatedBio: result.bio,
-      generatedLookingFor: result.lookingFor,
-      generatedPortrait: result.portrait,
+      generatedBio: canonical.bio,
+      generatedLookingFor: canonical.lookingFor,
+      generatedPortrait: canonical.portrait,
       status: "completed",
       completedAt: new Date(),
     })
@@ -693,8 +787,14 @@ async function processStatusMatching(userId: string) {
   if (!user.isComplete) return;
   if (user.visibilityMode === "ninja") return;
 
+  // Canonical PL — embedding + LLM reason should be in PL so cross-locale
+  // matches use the same vector space. BLI-279 D6.
+  const trMap = await getTranslationsForUsers([userId]);
+  const userTr = trMap.get(userId) ?? [];
+  const statusTextPL = getCanonicalText(user, "current_status", userTr) ?? user.currentStatus;
+
   // Generate embedding for status text
-  const statusEmb = await generateEmbedding(user.currentStatus, { jobName: "status-matching", userId });
+  const statusEmb = await generateEmbedding(statusTextPL, { jobName: "status-matching", userId });
   await db.update(schema.profiles).set({ statusEmbedding: statusEmb }).where(eq(schema.profiles.userId, userId));
 
   if (!statusEmb.length || !user.latitude || !user.longitude) return;
@@ -758,20 +858,32 @@ async function processStatusMatching(userId: string) {
   // practice `statusSetAt` is non-null here — the fallback to `null` is just a
   // belt-and-suspenders; a null stalenessKey would disable the child-side guard.
   const stalenessKey = user.statusSetAt ? user.statusSetAt.toISOString() : null;
+
+  // Resolve canonical PL bio/lookingFor/currentStatus for every candidate so
+  // the downstream LLM prompt is always in one language. BLI-279 D6.
+  const candidateIds = scored.map(({ user: u }) => u.userId);
+  const candidateTrMap = await getTranslationsForUsers(candidateIds);
+
   await enqueueEvaluateStatusMatchJobs(
-    scored.map(({ user: otherUser, matchViaStatus }) => ({
-      type: "evaluate-status-match" as const,
-      userId,
-      candidateUserId: otherUser.userId,
-      contextA: user.currentStatus!,
-      contextB: matchViaStatus ? otherUser.currentStatus! : `${otherUser.bio}. Szuka: ${otherUser.lookingFor}`,
-      matchType: matchViaStatus ? "status" : "profile",
-      categoriesA: user.statusCategories,
-      categoriesB: matchViaStatus ? otherUser.statusCategories : null,
-      stalenessKey,
-      insertMode: "unidirectional",
-      notifyUserIds: [userId],
-    })),
+    scored.map(({ user: otherUser, matchViaStatus }) => {
+      const tr = candidateTrMap.get(otherUser.userId) ?? [];
+      const otherStatusPL = getCanonicalText(otherUser, "current_status", tr) ?? otherUser.currentStatus ?? "";
+      const otherBioPL = getCanonicalText(otherUser, "bio", tr) ?? otherUser.bio;
+      const otherLookingForPL = getCanonicalText(otherUser, "looking_for", tr) ?? otherUser.lookingFor;
+      return {
+        type: "evaluate-status-match" as const,
+        userId,
+        candidateUserId: otherUser.userId,
+        contextA: statusTextPL,
+        contextB: matchViaStatus ? otherStatusPL : `${otherBioPL}. Szuka: ${otherLookingForPL}`,
+        matchType: matchViaStatus ? "status" : "profile",
+        categoriesA: user.statusCategories,
+        categoriesB: matchViaStatus ? otherUser.statusCategories : null,
+        stalenessKey,
+        insertMode: "unidirectional",
+        notifyUserIds: [userId],
+      };
+    }),
   );
 }
 
@@ -790,19 +902,29 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
       statusVisibility: true,
       statusCategories: true,
       statusEmbedding: true,
+      statusSetAt: true,
       embedding: true,
       bio: true,
       lookingFor: true,
+      contentLocale: true,
     },
   });
 
   if (!movingUser?.isComplete) return;
   if (movingUser.visibilityMode === "ninja") return;
 
+  // Pre-fetch moving user's translations so embedding + LLM stay in PL.
+  // BLI-279 D6.
+  const movingTrMap = await getTranslationsForUsers([userId]);
+  const movingUserTr = movingTrMap.get(userId) ?? [];
+  const movingStatusPL = movingUser.currentStatus
+    ? (getCanonicalText(movingUser, "current_status", movingUserTr) ?? movingUser.currentStatus)
+    : null;
+
   // Generate status embedding if moving user has status but no embedding yet
   let movingUserStatusEmb = movingUser.statusEmbedding;
-  if (movingUser.currentStatus && !movingUserStatusEmb?.length) {
-    movingUserStatusEmb = await generateEmbedding(movingUser.currentStatus, {
+  if (movingStatusPL && !movingUserStatusEmb?.length) {
+    movingUserStatusEmb = await generateEmbedding(movingStatusPL, {
       jobName: "proximity-status-matching",
       userId,
     });
@@ -825,9 +947,11 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
         statusVisibility: schema.profiles.statusVisibility,
         statusCategories: schema.profiles.statusCategories,
         statusEmbedding: schema.profiles.statusEmbedding,
+        statusSetAt: schema.profiles.statusSetAt,
         embedding: schema.profiles.embedding,
         bio: schema.profiles.bio,
         lookingFor: schema.profiles.lookingFor,
+        contentLocale: schema.profiles.contentLocale,
       },
     })
     .from(schema.profiles)
@@ -901,31 +1025,43 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
 
   console.log(`[queue] proximity-status-matching for ${userId}: fanning out ${scored.length} children`);
 
+  // Canonical PL versions for prompt — BLI-279 D6.
+  const movingBioPL = getCanonicalText(movingUser, "bio", movingUserTr) ?? movingUser.bio;
+  const movingLookingForPL = getCanonicalText(movingUser, "looking_for", movingUserTr) ?? movingUser.lookingFor;
   const movingContext = movingUserHasStatus
-    ? movingUser.currentStatus!
-    : `${movingUser.bio}. Szuka: ${movingUser.lookingFor}`;
+    ? (movingStatusPL ?? movingUser.currentStatus!)
+    : `${movingBioPL}. Szuka: ${movingLookingForPL}`;
+
+  const candidateUserIds = scored.map(({ candidate }) => candidate.userId);
+  const candidateTrMap = await getTranslationsForUsers(candidateUserIds);
 
   // Mirror original processProximityStatusMatching arg order to evaluateStatusMatch:
   // (candidateContext, movingContext, ...) — candidate is the "setter" side in proximity
   // (they had an active status that moving user walked into range of).
   await enqueueEvaluateStatusMatchJobs(
-    scored.map(({ candidate, matchViaStatus }) => ({
-      type: "evaluate-status-match" as const,
-      userId,
-      candidateUserId: candidate.userId,
-      contextA: matchViaStatus ? candidate.currentStatus! : `${candidate.bio}. Szuka: ${candidate.lookingFor}`,
-      contextB: movingContext,
-      matchType: matchViaStatus ? "status" : "profile",
-      categoriesA: matchViaStatus ? candidate.statusCategories : null,
-      categoriesB: movingUserHasStatus ? movingUser.statusCategories : null,
-      // No staleness guard for proximity — userId is the moving user, not a status setter.
-      // The proximity-status-matching parent itself is debounced 2min, so we accept
-      // that a candidate changing their status mid-debounce may yield a match for a
-      // slightly-stale status. Rare + self-heals on next setStatus run.
-      stalenessKey: null,
-      insertMode: "bidirectional",
-      notifyUserIds: [userId, candidate.userId],
-    })),
+    scored.map(({ candidate, matchViaStatus }) => {
+      const tr = candidateTrMap.get(candidate.userId) ?? [];
+      const candStatusPL = getCanonicalText(candidate, "current_status", tr) ?? candidate.currentStatus ?? "";
+      const candBioPL = getCanonicalText(candidate, "bio", tr) ?? candidate.bio;
+      const candLookingForPL = getCanonicalText(candidate, "looking_for", tr) ?? candidate.lookingFor;
+      return {
+        type: "evaluate-status-match" as const,
+        userId,
+        candidateUserId: candidate.userId,
+        contextA: matchViaStatus ? candStatusPL : `${candBioPL}. Szuka: ${candLookingForPL}`,
+        contextB: movingContext,
+        matchType: matchViaStatus ? "status" : "profile",
+        categoriesA: matchViaStatus ? candidate.statusCategories : null,
+        categoriesB: movingUserHasStatus ? movingUser.statusCategories : null,
+        // No staleness guard for proximity — userId is the moving user, not a status setter.
+        // The proximity-status-matching parent itself is debounced 2min, so we accept
+        // that a candidate changing their status mid-debounce may yield a match for a
+        // slightly-stale status. Rare + self-heals on next setStatus run.
+        stalenessKey: null,
+        insertMode: "bidirectional",
+        notifyUserIds: [userId, candidate.userId],
+      };
+    }),
   );
 }
 

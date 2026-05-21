@@ -275,6 +275,7 @@
       "name": "@repo/db",
       "version": "0.0.1",
       "dependencies": {
+        "@repo/shared": "workspace:*",
         "drizzle-orm": "catalog:",
         "postgres": "catalog:",
       },

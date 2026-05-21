@@ -63,6 +63,7 @@ Blisko processes personal data under RODO (Polish implementation of GDPR). Polis
 | Contact requests | `waves` | Contract | Preserved after deletion |
 | AI analysis | `connectionAnalyses`, `profiles.embedding` | Consent | Embeddings cleared on deletion, analyses preserved |
 | Profiling Q&A | `profilingSessions`, `profilingQA` | Contract | Answers nullified on deletion, questions preserved |
+| UGC translations | `profileTranslations` | Contract / derived | Cached translations of bio / lookingFor / portrait / currentStatus. DELETEd on anonymization. Cascades on hard-delete via FK. BLI-279 |
 | Behavioral data | `metrics.requestEvents` | Legitimate interest | userId nullified on deletion |
 | AI cost telemetry | `metrics.aiCalls` | Legitimate interest | userId / targetUserId + `input_jsonb` / `output_jsonb` nullified on deletion. Payloads also auto-nulled after 24h. Excluded from data export. |
 | Blocks | `blocks` | Legitimate interest | Preserved after deletion |

@@ -218,6 +218,13 @@
       "when": 1779186564789,
       "tag": "0030_add_profiles_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1779377754945,
+      "tag": "0031_add_profile_translations",
+      "breakpoints": true
     }
   ]
 }

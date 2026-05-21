@@ -966,6 +966,10 @@ msgstr "Podaj nowy adres email"
 msgid "Pokaż moją lokalizację"
 msgstr "Pokaż moją lokalizację"
 
+#: src/components/TranslatableText.tsx
+msgid "Pokaż oryginał"
+msgstr "Pokaż oryginał"
+
 #: app/(modals)/group/[id].tsx
 msgid "Pokaż w pobliżu →"
 msgstr "Pokaż w pobliżu →"
@@ -1086,6 +1090,10 @@ msgstr "Przesuń pin, żeby ustawić lokalizację"
 #: app/settings/edit-profile.tsx
 msgid "Przesyłanie..."
 msgstr "Przesyłanie..."
+
+#: src/components/TranslatableText.tsx
+msgid "Przetłumacz"
+msgstr "Przetłumacz"
 
 #: src/components/ui/ThinkingIndicator.tsx
 msgid "Przygotowuję kolejne pytanie…"

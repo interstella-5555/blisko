@@ -1,6 +1,7 @@
 # AI Profiling & Onboarding
 
 > v1 — AI-generated from source analysis, 2026-04-06.
+> Updated 2026-05-21 — BLI-279. `generateProfileFromQA` and `generatePortrait` now return dual-language output `{ pl: …, uk: … }` in a single LLM call. The model writes both PL and UK versions with `<source_language>` context; ~10 % cheaper than chaining a translate pass and the matching pipeline gets canonical PL for free. Token budgets bumped 2× to 4000 / 2000. Canonical is written to `profiles.bio` / `looking_for` / `portrait` (in `content_locale`) and translations land on `profile_translations`. See `docs/architecture/ugc-translation.md`.
 > Updated 2026-04-19 — BLI-236. Async profiling jobs (`generateNextQuestion`, `generateProfileFromQA`, `generatePortrait`, `extractInterests`) run `gpt-5-mini` with `service_tier: "flex"` (50% off). Inline `generateFollowUpQuestions` (in `submitOnboarding`) runs `gpt-5-mini` Standard — cheaper input than the old `gpt-4.1-mini` without flex's latency variance. `generateProfileFromQA` uses `reasoningEffort: "medium"` for richer bio/portrait prose; other calls use `"minimal"`. Legacy `GPT_MODEL` constant is now `AI_MODELS.sync` / `AI_MODELS.async`.
 > Updated 2026-04-10 — Self-healing: `questionFailed`/`profilingFailed` events, BullMQ deduplication, mobile retry hooks (BLI-161, BLI-162).
 > Updated 2026-04-10 — `submitOnboarding` rate limit, inline AI fallback on failure, ghost-to-full visibility fix (BLI-173).

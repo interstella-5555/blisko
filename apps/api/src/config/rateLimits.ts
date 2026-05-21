@@ -60,6 +60,12 @@ export const rateLimits = {
   // Status matching retry — self-healing re-enqueue after status-matching failure
   "profiles.retryStatusMatching": { limit: 10, window: 60 * 60 },
 
+  // On-demand UGC translation ("Przetłumacz" button). Each call is one OpenAI
+  // request; cap at 30/5min so a bot can't burn through cost. Translations are
+  // cached on `profile_translations` so the same (user,field,locale) lookup is
+  // free after the first hit. BLI-279.
+  "profiles.translateContent": { limit: 30, window: 5 * 60 },
+
   // File uploads — S3 write protection
   uploads: { limit: 10, window: 60 * 60 },
 
