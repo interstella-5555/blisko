@@ -5,10 +5,12 @@ import type { Region } from "react-native-maps";
 import { trpc } from "@/lib/trpc";
 import { useLocationStore } from "@/stores/locationStore";
 import { usePreferencesStore } from "@/stores/preferencesStore";
+import { useAppConfig } from "./useAppConfig";
 
 export function useNearbyList() {
   const { latitude, longitude } = useLocationStore();
-  const { nearbyRadiusMeters, photoOnly, showAllNearby } = usePreferencesStore();
+  const { photoOnly, showAllNearby } = usePreferencesStore();
+  const config = useAppConfig();
   const [bbox, setBbox] = useState<{ south: number; north: number; west: number; east: number } | undefined>(undefined);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -17,7 +19,7 @@ export function useNearbyList() {
       {
         latitude: latitude!,
         longitude: longitude!,
-        radiusMeters: nearbyRadiusMeters,
+        radiusMeters: config.nearby.defaultRadiusMeters,
         limit: NEARBY_PAGE_SIZE,
         photoOnly: photoOnly || undefined,
         bbox: showAllNearby ? undefined : bbox,

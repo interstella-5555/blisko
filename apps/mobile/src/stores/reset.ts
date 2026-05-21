@@ -24,7 +24,7 @@ export const USER_SCOPED_STORES = [
 ] as const;
 
 export const DEVICE_SCOPED_STORES = [
-  usePreferencesStore, // nearbyRadius + notificationPrefs — UX, preserved across logout by product decision
+  usePreferencesStore, // notificationPrefs + photoOnly + showAllNearby — UX, preserved across logout by product decision
   useLocaleStore, // PL/UA UI language — preserved across logout (BLI-277)
 ] as const;
 

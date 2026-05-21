@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { NEARBY_DEFAULT_RADIUS_METERS } from "./config/nearby";
+
 // Profile validators
 export const createProfileSchema = z.object({
   displayName: z.string().min(2).max(50),
@@ -72,7 +74,7 @@ export const searchMessagesSchema = z.object({
 export const getNearbyUsersSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
-  radiusMeters: z.number().min(100).max(50000).default(5000),
+  radiusMeters: z.number().min(100).max(50000).default(NEARBY_DEFAULT_RADIUS_METERS),
   limit: z.number().min(1).max(50).default(20),
   photoOnly: z.boolean().optional(),
 });
@@ -81,7 +83,7 @@ export const getNearbyUsersSchema = z.object({
 export const getNearbyUsersForMapSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
-  radiusMeters: z.number().min(100).max(50000).default(5000),
+  radiusMeters: z.number().min(100).max(50000).default(NEARBY_DEFAULT_RADIUS_METERS),
   limit: z.number().min(1).max(100).default(50),
   cursor: z.number().int().min(0).optional(),
   photoOnly: z.boolean().optional(),
@@ -99,7 +101,7 @@ export const getNearbyUsersForMapSchema = z.object({
 export const getNearbyMapMarkersSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
-  radiusMeters: z.number().min(100).max(50000).default(5000),
+  radiusMeters: z.number().min(100).max(50000).default(NEARBY_DEFAULT_RADIUS_METERS),
   photoOnly: z.boolean().optional(),
 });
 
@@ -213,7 +215,7 @@ export const setGroupRoleSchema = z.object({
 export const getDiscoverableGroupsSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
-  radiusMeters: z.number().min(100).max(50000).default(5000),
+  radiusMeters: z.number().min(100).max(50000).default(NEARBY_DEFAULT_RADIUS_METERS),
   limit: z.number().min(1).max(50).default(20),
   cursor: z.number().int().min(0).optional(),
   bbox: z

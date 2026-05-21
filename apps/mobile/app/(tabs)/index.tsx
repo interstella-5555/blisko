@@ -14,6 +14,7 @@ import { UserRow } from "@/components/nearby/UserRow";
 import { Button } from "@/components/ui/Button";
 import { IconFilter, IconMap, IconPin, IconPlus } from "@/components/ui/icons";
 import { SplashHold } from "@/components/ui/SplashHold";
+import { useAppConfig } from "@/hooks/useAppConfig";
 import { useNearbyList } from "@/hooks/useNearbyList";
 import { useNearbyMapMarkers } from "@/hooks/useNearbyMapMarkers";
 import { useRetryStatusMatchingOnFailure } from "@/hooks/useRetryStatusMatchingOnFailure";
@@ -57,7 +58,9 @@ export default function NearbyScreen() {
   ];
   const [nearbyFilter, setNearbyFilter] = useState<NearbyFilter>("all");
   const { latitude, longitude, permissionStatus, setLocation, setPermissionStatus } = useLocationStore();
-  const { nearbyRadiusMeters, loadPreferences, photoOnly, showAllNearby } = usePreferencesStore();
+  const { loadPreferences, photoOnly, showAllNearby } = usePreferencesStore();
+  const config = useAppConfig();
+  const nearbyRadiusMeters = config.nearby.defaultRadiusMeters;
 
   const insets = useSafeAreaInsets();
   const [mapExpanded, setMapExpanded] = useState(true);
