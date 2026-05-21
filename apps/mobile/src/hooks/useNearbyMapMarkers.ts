@@ -3,17 +3,19 @@ import { useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocationStore } from "@/stores/locationStore";
 import { usePreferencesStore } from "@/stores/preferencesStore";
+import { useAppConfig } from "./useAppConfig";
 import type { MarkerPoint } from "./useSupercluster";
 
 export function useNearbyMapMarkers() {
   const { latitude, longitude } = useLocationStore();
-  const { nearbyRadiusMeters, photoOnly } = usePreferencesStore();
+  const { photoOnly } = usePreferencesStore();
+  const config = useAppConfig();
 
   const { data, isLoading, refetch } = trpc.profiles.getNearbyMapMarkers.useQuery(
     {
       latitude: latitude!,
       longitude: longitude!,
-      radiusMeters: nearbyRadiusMeters,
+      radiusMeters: config.nearby.defaultRadiusMeters,
       photoOnly: photoOnly || undefined,
     },
     {

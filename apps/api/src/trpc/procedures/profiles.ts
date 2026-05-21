@@ -8,6 +8,7 @@ import {
   getNearbyUsersSchema,
   type LocaleCode,
   localeCodeSchema,
+  NEARBY_DEFAULT_RADIUS_METERS,
   setStatusSchema,
   translateContentSchema,
   updateLocationSchema,
@@ -259,7 +260,7 @@ export const profilesRouter = router({
     }
 
     // Notify nearby users that someone's location changed (fire-and-forget — don't fail current user)
-    const radiusMeters = 5000;
+    const radiusMeters = NEARBY_DEFAULT_RADIUS_METERS;
     const latDelta = radiusMeters / 111000;
     const lonDelta = radiusMeters / (111000 * Math.cos((input.latitude * Math.PI) / 180));
 

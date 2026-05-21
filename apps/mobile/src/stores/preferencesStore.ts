@@ -1,9 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
-const RADIUS_KEY = "blisko_nearby_radius";
 const NOTIF_PREFS_KEY = "blisko_notification_prefs";
-type RadiusOption = 500 | 1000 | 2000;
 
 interface NotificationPrefs {
   newWaves: boolean;
@@ -20,11 +18,9 @@ const DEFAULT_NOTIF_PREFS: NotificationPrefs = {
 };
 
 interface PreferencesState {
-  nearbyRadiusMeters: RadiusOption;
   photoOnly: boolean;
   showAllNearby: boolean;
   notificationPrefs: NotificationPrefs;
-  setNearbyRadius: (r: RadiusOption) => void;
   setPhotoOnly: (v: boolean) => void;
   setShowAllNearby: (v: boolean) => void;
   setNotificationPref: (key: keyof NotificationPrefs, value: boolean) => void;
@@ -32,14 +28,9 @@ interface PreferencesState {
 }
 
 export const usePreferencesStore = create<PreferencesState>((set, get) => ({
-  nearbyRadiusMeters: 2000,
   photoOnly: false,
   showAllNearby: false,
   notificationPrefs: { ...DEFAULT_NOTIF_PREFS },
-  setNearbyRadius: (r) => {
-    set({ nearbyRadiusMeters: r });
-    SecureStore.setItemAsync(RADIUS_KEY, String(r));
-  },
   setPhotoOnly: (v) => set({ photoOnly: v }),
   setShowAllNearby: (v) => set({ showAllNearby: v }),
   setNotificationPref: (key, value) => {
@@ -48,10 +39,6 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     SecureStore.setItemAsync(NOTIF_PREFS_KEY, JSON.stringify(updated));
   },
   loadPreferences: async () => {
-    const stored = await SecureStore.getItemAsync(RADIUS_KEY);
-    if (stored && [500, 1000, 2000].includes(Number(stored))) {
-      set({ nearbyRadiusMeters: Number(stored) as RadiusOption });
-    }
     const notifStored = await SecureStore.getItemAsync(NOTIF_PREFS_KEY);
     if (notifStored) {
       try {

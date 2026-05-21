@@ -3,6 +3,7 @@ import {
   getDiscoverableGroupsSchema,
   groupMemberActionSchema,
   joinGroupSchema,
+  NEARBY_DEFAULT_RADIUS_METERS,
   setGroupRoleSchema,
   updateGroupSchema,
 } from "@repo/shared";
@@ -810,7 +811,7 @@ export const groupsRouter = router({
         conversationId: z.string().uuid(),
         latitude: z.number().min(-90).max(90),
         longitude: z.number().min(-180).max(180),
-        radiusMeters: z.number().min(100).max(50000).default(5000),
+        radiusMeters: z.number().min(100).max(50000).default(NEARBY_DEFAULT_RADIUS_METERS),
         limit: z.number().min(1).max(20).default(20),
       }),
     )

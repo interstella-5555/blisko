@@ -18,3 +18,10 @@ export const GRID_SIZE = 0.0045;
 
 /** Page size for nearby user list queries. */
 export const NEARBY_PAGE_SIZE = 20;
+
+/**
+ * Default radius (meters) used by all nearby queries when client doesn't pass `radiusMeters`.
+ * Exposed via `app.getConfig` so mobile can change radius without a rebuild — bump this
+ * value + redeploy API, and clients pick it up on next config refetch.
+ */
+export const NEARBY_DEFAULT_RADIUS_METERS = 5000;

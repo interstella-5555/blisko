@@ -5,6 +5,7 @@
 > Updated 2026-04-12 — BLI-189 hotfix: `getNearbyMapMarkers` now returns **real coordinates** (not grid-snapped) for user positions; `displayName` added to columnar response. Rate limits tightened to 20/10s. Viewport debounce is 500ms. Supercluster config: `radius: 30`, `maxZoom: 20`.
 > Updated 2026-04-14 — BLI-219: `GRID_SIZE` moved to `@repo/shared/config/nearby.ts`. `grid.ts` imports from shared. Grid utils (`toGridCenter`, `roundDistance`) remain in `apps/api/src/lib/grid.ts`.
 > Updated 2026-04-19 — Removed stale "3 minuty + mobile background task" claim. Background location permission dropped (commit `bbd49cd`); foreground-only updates via tab mount + 3s retry. Flagged as drift from PRODUCT.md.
+> Updated 2026-05-21 — BLI-283: `NEARBY_DEFAULT_RADIUS_METERS = 5000` in `@repo/shared/config/nearby.ts` is now the single source of truth for the nearby radius default. All four nearby validators (`getNearbyUsersSchema`, `getNearbyUsersForMapSchema`, `getNearbyMapMarkersSchema`, `getDiscoverableGroupsSchema`) and `groups.getMembersNearby` import from it. The two API-internal hardcoded uses (the `updateLocation` → `nearbyChanged` broadcast and `enqueueUserPairAnalysis` default) also use the constant. Exposed to mobile via the new `app.getConfig` tRPC procedure — bump the constant + redeploy and clients pick up the new radius without an App Store deploy.
 
 ## Terminology & Product Alignment
 
@@ -107,7 +108,7 @@ Three endpoints serve different use cases. All share the same bounding box + hav
 |---|---|---|---|
 | `latitude` | number | -90 to 90 | required |
 | `longitude` | number | -180 to 180 | required |
-| `radiusMeters` | number | 100 to 50,000 | 5000 |
+| `radiusMeters` | number | 100 to 50,000 | `NEARBY_DEFAULT_RADIUS_METERS` (5000) |
 | `limit` | number | 1 to 50 | 20 |
 | `photoOnly` | boolean | --- | false |
 
@@ -137,7 +138,7 @@ Three endpoints serve different use cases. All share the same bounding box + hav
 |---|---|---|---|
 | `latitude` | number | -90 to 90 | required |
 | `longitude` | number | -180 to 180 | required |
-| `radiusMeters` | number | 100 to 50,000 | 5000 |
+| `radiusMeters` | number | 100 to 50,000 | `NEARBY_DEFAULT_RADIUS_METERS` (5000) |
 | `photoOnly` | boolean | --- | false |
 
 **Query:** Simple bounding box + haversine. Parallel fetch of blocked users (both directions), nearby profiles (userId + avatarUrl + status fields), current user profile (for status check), status matches, discoverable groups. No limit (safety cap 5000 users, 500 groups).
@@ -165,7 +166,7 @@ Three endpoints serve different use cases. All share the same bounding box + hav
 |---|---|---|---|
 | `latitude` | number | -90 to 90 | required |
 | `longitude` | number | -180 to 180 | required |
-| `radiusMeters` | number | 100 to 50,000 | 5000 |
+| `radiusMeters` | number | 100 to 50,000 | `NEARBY_DEFAULT_RADIUS_METERS` (5000) |
 | `limit` | number | 1 to 100 | 50 |
 | `cursor` | number (int) | >= 0 | 0 |
 | `photoOnly` | boolean | --- | false |

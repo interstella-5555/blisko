@@ -179,7 +179,9 @@ Tracks progress through the onboarding flow: `displayName`, `bio`, `lookingFor`,
 
 ### preferencesStore
 
-Persisted to SecureStore. `nearbyRadiusMeters`: 500 / 1000 / 2000 (default 2000). `photoOnly` filter (`nearbyOnly` removed in BLI-189 — viewport sync is default). `notificationPrefs`: newWaves, waveResponses, newMessages, groupInvites (all default `true`).
+Persisted to SecureStore. `photoOnly` filter (`nearbyOnly` removed in BLI-189 — viewport sync is default). `showAllNearby` toggle (overrides client-side viewport / radius filtering). `notificationPrefs`: newWaves, waveResponses, newMessages, groupInvites (all default `true`).
+
+`nearbyRadiusMeters` removed in BLI-283 — the user-facing radius slider never shipped, and per-device override was incompatible with the v4 product decision (everyone gets the same radius). Default radius now lives in `@repo/shared/config/nearby.ts` and is exposed via `app.getConfig` (see [App config](#app-config) below).
 
 ### localeStore
 
@@ -204,6 +206,22 @@ User's UI language (`"pl"` / `"ua"`). Single field: `locale`. Persisted to Secur
 **Why device-scoped.** A Polish user logging out and a different Polish user signing up on the same device should not have to re-pick the language. The locale travels with the device.
 
 **Key methods:** `setLocale(locale)`. Tracked by BLI-277.
+
+---
+
+## App config
+
+`trpc.app.getConfig` is a public tRPC query returning the set of server-driven tunables that mobile picks up at boot:
+
+```
+{ nearby: { defaultRadiusMeters: number } }
+```
+
+The `useAppConfig()` hook (`src/hooks/useAppConfig.ts`) calls `useQuery` with `staleTime: ms("1 hour")` and falls back to a baked-in `DEFAULTS` object — the same `NEARBY_DEFAULT_RADIUS_METERS` constant the backend imports — so cold-start without network still has a working value.
+
+Bumping a tunable means changing the constant in `@repo/shared/config/nearby.ts` and redeploying the API. Connected mobile clients pick up the new value on next React Query refetch (app focus or after the 1h stale window). No App Store deploy needed.
+
+Consumers today: `useNearbyMapMarkers`, `useNearbyList`, and the `groups.getDiscoverable` call in `app/(tabs)/index.tsx` (where it also drives the `isOutsideRadius` "return to my location" affordance). Future tunables (ping limits, retention delays, feature flags) plug into the same shape without touching mobile call sites.
 
 ---
 

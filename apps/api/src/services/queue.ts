@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { AI_MODELS, cosineSimilarity } from "@repo/shared";
+import { AI_MODELS, cosineSimilarity, NEARBY_DEFAULT_RADIUS_METERS } from "@repo/shared";
 import { type Job, Queue, Worker } from "bullmq";
 import { and, between, eq, gte, inArray, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
 import ms from "ms";
@@ -1258,7 +1258,7 @@ export async function enqueueUserPairAnalysis(
   userId: string,
   latitude: number,
   longitude: number,
-  radiusMeters: number = 5000,
+  radiusMeters: number = NEARBY_DEFAULT_RADIUS_METERS,
 ) {
   if (!process.env.REDIS_URL) return;
 
