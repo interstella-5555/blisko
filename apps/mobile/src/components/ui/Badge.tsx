@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "../../theme";
 
@@ -6,27 +7,26 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {
+  const { t } = useLingui();
   const config = statusConfig[status];
+  const label = status === "accepted" ? t`POŁĄCZENI` : status === "pending" ? t`OCZEKUJE` : t`NIEDOSTĘPNA`;
   return (
     <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
-      <Text style={[styles.statusText, { color: config.text }]}>{config.label}</Text>
+      <Text style={[styles.statusText, { color: config.text }]}>{label}</Text>
     </View>
   );
 }
 
 const statusConfig = {
   pending: {
-    label: "OCZEKUJE",
     text: colors.status.warning.text,
     bg: colors.status.warning.bg,
   },
   accepted: {
-    label: "ZAAKCEPTOWANE",
     text: colors.status.success.text,
     bg: colors.status.success.bg,
   },
   declined: {
-    label: "NIEDOSTĘPNA",
     text: colors.muted,
     bg: colors.rule,
   },

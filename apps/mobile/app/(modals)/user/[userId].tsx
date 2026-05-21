@@ -278,7 +278,7 @@ export default function UserProfileScreen() {
         Alert.alert(t`Jesteście połączeni`, t`Macie już ze sobą chat — otwórz go z listy rozmów.`);
       } else if (errorMsg.includes("daily_limit")) {
         setPendingWaveId(null);
-        Alert.alert(t`Limit dzienny`, t`Wykorzystałeś dzienny limit pingów. Wróć jutro!`);
+        Alert.alert(t`Limit dzienny`, t`Twoje pingi odnawiają się jutro.`);
       } else if (errorMsg.includes("per_person:")) {
         const hours = errorMsg.split("per_person:")[1];
         setPendingWaveId(null);
