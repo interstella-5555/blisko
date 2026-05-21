@@ -2,7 +2,7 @@
 
 Social proximity app — connects nearby people in Warsaw based on location, interests, and AI-generated compatibility analysis. Monorepo: API (Bun/Hono/tRPC), Mobile (Expo/React Native), Design Book (TanStack Start), Chatbot (seed user AI responder).
 
-Rules are in `.claude/rules/` — one file per category: `drizzle.md`, `migrations.md`, `mobile.md`, `security.md`, `infra.md`, `api.md` (also imports + style), `linear.md`, `git.md`, `style.md`, `architect.md`. All loaded automatically by Claude Code. When adding a new rule, put it in the matching category file. If no category fits, propose a new one (new `.md` file in `.claude/rules/`).
+Rules are in `.claude/rules/` — one file per category: `drizzle.md`, `migrations.md`, `mobile.md`, `security.md`, `infra.md`, `api.md` (also imports + style), `linear.md`, `git.md`, `style.md`, `architect.md`, `e2e.md`. All loaded automatically by Claude Code. When adding a new rule, put it in the matching category file. If no category fits, propose a new one (new `.md` file in `.claude/rules/`).
 
 **Architecture docs:** `docs/architecture/` — deep reference for system design, decisions, rationale, and cross-system impact. See `.claude/rules/architect.md` for full index. Skills: `/architecture-review` (code review gate), `/architecture-update` (sync docs after changes), `/architecture-compile` (deep maintenance scan).
 
