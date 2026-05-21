@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { isOAuthProviderEnabled, type LocaleCode, OTP_LENGTH } from "@repo/shared";
+import { isActiveOAuthProvider, type LocaleCode, OTP_LENGTH } from "@repo/shared";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -281,10 +281,10 @@ export default function AccountScreen() {
       ) : (
         (["apple", "google", "facebook", "linkedin"] as const).map((provider) => {
           const connected = !!connectedAccounts.data?.find((a) => a.providerId === provider);
-          // Disabled providers stay visible only when already connected, so the user
-          // can disconnect them. Apple is iOS-only.
+          // Inactive providers (facebook, linkedin) stay visible only when already
+          // connected, so the user can disconnect a legacy link. Apple is iOS-only.
           if (provider === "apple" && Platform.OS !== "ios") return null;
-          if (!isOAuthProviderEnabled(provider) && !connected) return null;
+          if (!isActiveOAuthProvider(provider) && !connected) return null;
           return (
             <ConnectedAccountRow
               key={provider}
