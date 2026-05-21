@@ -6,6 +6,7 @@ import {
   getNearbyMapMarkersSchema,
   getNearbyUsersForMapSchema,
   getNearbyUsersSchema,
+  type LocaleCode,
   localeCodeSchema,
   setStatusSchema,
   translateContentSchema,
@@ -107,13 +108,27 @@ export const profilesRouter = router({
     .use(rateLimit("profiles.update"))
     .input(updateProfileSchema)
     .mutation(async ({ ctx, input }) => {
-      // Fetch the current row once and reuse it for the displayName lock and the
-      // avatar quarantine. Skipped entirely when neither field is being touched.
-      const needsExisting = input.displayName !== undefined || input.avatarUrl !== undefined;
+      // Fetch the current row once and reuse for displayName lock, avatar
+      // quarantine, and the bio/lookingFor change check below. We need the
+      // current bio/lookingFor values to tell whether the client echoed the
+      // existing value (no real change → no AI re-enqueue / no translation
+      // wipe) vs. a real edit.
+      const needsExisting =
+        input.displayName !== undefined ||
+        input.avatarUrl !== undefined ||
+        input.bio !== undefined ||
+        input.lookingFor !== undefined;
       const existing = needsExisting
         ? await db.query.profiles.findFirst({
             where: eq(schema.profiles.userId, ctx.userId),
-            columns: { displayName: true, createdAt: true, avatarUrl: true },
+            columns: {
+              displayName: true,
+              createdAt: true,
+              avatarUrl: true,
+              bio: true,
+              lookingFor: true,
+              locale: true,
+            },
           })
         : null;
 
@@ -141,39 +156,54 @@ export const profilesRouter = router({
         }
       }
 
-      const ugcChanged = input.bio !== undefined || input.lookingFor !== undefined;
+      // Real UGC change check — `input.bio !== undefined` alone is a presence
+      // check, not a diff. A mobile client that echoes the full profile shape
+      // on any edit (display name change, avatar swap) would otherwise wipe
+      // translations + re-enqueue AI on every save. Compare against the
+      // fetched row so we only treat actual edits as UGC changes.
+      const bioChanged = input.bio !== undefined && existing != null && existing.bio !== input.bio;
+      const lookingForChanged =
+        input.lookingFor !== undefined && existing != null && existing.lookingFor !== input.lookingFor;
+      const ugcChanged = bioChanged || lookingForChanged;
 
       // When UGC changes, rewrite content_locale to the user's UI locale —
       // that's the language they wrote in. Translations get wiped and
-      // re-populated by the AI pipeline below (D5/D7 in BLI-279).
-      let contentLocaleUpdate: { contentLocale: "pl" | "uk" } | undefined;
-      if (ugcChanged) {
-        const userLocaleRow = await db.query.profiles.findFirst({
-          where: eq(schema.profiles.userId, ctx.userId),
-          columns: { locale: true },
-        });
-        contentLocaleUpdate = { contentLocale: userLocaleRow?.locale ?? "pl" };
-      }
+      // re-populated by the AI pipeline below (D5/D7 in BLI-279). Use the
+      // already-fetched `existing.locale` instead of a second round-trip.
+      const contentLocaleUpdate: { contentLocale: "pl" | "uk" } | undefined = ugcChanged
+        ? { contentLocale: existing?.locale ?? "pl" }
+        : undefined;
 
-      const [profile] = await db
-        .update(schema.profiles)
-        .set({
-          ...input,
-          ...(contentLocaleUpdate ?? {}),
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.profiles.userId, ctx.userId))
-        .returning();
+      // Wrap the profiles update + translations wipe in a single transaction
+      // (per `profile-translations.ts` JSDoc on `deleteAllTranslationsForUser`)
+      // so a concurrent viewer can never read fresh `profiles.bio` while the
+      // old translation rows are still present — the two writes must be
+      // observed atomically. The BullMQ enqueue stays outside the tx; Redis
+      // is a separate system and the tx only covers DB.
+      const profile = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .update(schema.profiles)
+          .set({
+            ...input,
+            ...(contentLocaleUpdate ?? {}),
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.profiles.userId, ctx.userId))
+          .returning();
 
-      // If bio or lookingFor changed, re-run AI pipeline (debounced 30s by BullMQ).
-      // Translations get rewritten by the worker after dual-language generation —
-      // until then we drop the stale rows so viewers see "Przetłumacz" instead of
-      // the previous UGC's translation. BLI-279 D5.
+        if (ugcChanged) {
+          await deleteAllTranslationsForUser(ctx.userId, tx);
+        }
+
+        return row;
+      });
+
+      // If bio or lookingFor actually changed, re-run AI pipeline (debounced
+      // 30s by BullMQ). Translations get rewritten by the worker after dual-
+      // language generation — until then the rows we just dropped force
+      // "Przetłumacz" instead of stale text. BLI-279 D5.
       if (ugcChanged) {
-        await deleteAllTranslationsForUser(ctx.userId);
-        const bio = profile.bio;
-        const lookingFor = profile.lookingFor;
-        await enqueueProfileAI(ctx.userId, bio, lookingFor);
+        await enqueueProfileAI(ctx.userId, profile.bio, profile.lookingFor);
 
         // Also re-analyze connections (profile changed → analyses stale)
         if (profile.latitude && profile.longitude) {
@@ -892,29 +922,63 @@ export const profilesRouter = router({
   setStatus: protectedProcedure.input(setStatusSchema).mutation(async ({ ctx, input }) => {
     await moderateContent(input.text);
 
-    // Status is user-typed so the locale matches their UI language. Inline-
-    // translate (~1-2s) before insert so viewers in the other locale see the
-    // translated bubble immediately. Mobile already has optimistic UI on
-    // setStatus so the latency is invisible. BLI-279 D3.
+    // Two locales in play:
+    //   - userLocale = what UI language the user is typing in right now
+    //   - contentLocale = the anchor locale of the rest of their UGC (bio /
+    //     lookingFor / portrait). `getCanonicalText` keys off contentLocale to
+    //     pick which side of profile_translations to read.
+    // The two CAN differ — user wrote bio in UA last week, switched their
+    // phone UI to PL, and is typing today's status in PL. We must NOT touch
+    // profiles.contentLocale here or the bio's source-language tracking
+    // breaks (the matching pipeline would read raw UA text as if it were
+    // PL).
+    //
+    // To keep the invariant "profiles.currentStatus is in contentLocale"
+    // we translate the typed status into contentLocale before storing it
+    // there, and write the user-typed version into profile_translations as
+    // the userLocale row. When userLocale === contentLocale this collapses
+    // to the obvious case (no translation needed for the column write; just
+    // translate to the OTHER locale for the translation row). BLI-279.
     const userLocaleRow = await db.query.profiles.findFirst({
       where: eq(schema.profiles.userId, ctx.userId),
-      columns: { locale: true },
+      columns: { locale: true, contentLocale: true },
     });
-    const statusLocale = userLocaleRow?.locale ?? "pl";
-    const otherLocale = statusLocale === "uk" ? "pl" : "uk";
+    const userLocale: LocaleCode = userLocaleRow?.locale ?? "pl";
+    const contentLocale: LocaleCode = userLocaleRow?.contentLocale ?? userLocale;
+    const otherLocale: LocaleCode = userLocale === "uk" ? "pl" : "uk";
 
-    const translatedStatus = await translateInline(input.text, statusLocale, otherLocale, {
-      jobName: "translate-status",
-      userId: ctx.userId,
-      model: AI_MODELS.sync,
-    });
+    let canonicalStatus = input.text;
+    let translationRow: { locale: LocaleCode; content: string } | null = null;
+
+    if (userLocale === contentLocale) {
+      // Straight case — column write is what the user typed; translate to
+      // the only other locale we support today.
+      const translated = await translateInline(input.text, userLocale, otherLocale, {
+        jobName: "translate-status",
+        userId: ctx.userId,
+        model: AI_MODELS.sync,
+      });
+      if (translated && translated !== input.text) {
+        translationRow = { locale: otherLocale, content: translated };
+      }
+    } else {
+      // Cross-locale case — column needs the contentLocale version, so
+      // translate userLocale → contentLocale and store the user-typed text
+      // as the userLocale translation row.
+      const translatedToContent = await translateInline(input.text, userLocale, contentLocale, {
+        jobName: "translate-status",
+        userId: ctx.userId,
+        model: AI_MODELS.sync,
+      });
+      canonicalStatus = translatedToContent || input.text;
+      translationRow = { locale: userLocale, content: input.text };
+    }
 
     const profile = await db.transaction(async (tx) => {
       const [row] = await tx
         .update(schema.profiles)
         .set({
-          currentStatus: input.text,
-          contentLocale: statusLocale,
+          currentStatus: canonicalStatus,
           statusExpiresAt: null,
           statusVisibility: input.visibility,
           statusCategories: input.categories,
@@ -928,8 +992,8 @@ export const profilesRouter = router({
       // lookingFor / portrait stay untouched. D5 invalidation rule.
       await deleteTranslationsForField(ctx.userId, "current_status", tx);
 
-      if (translatedStatus && translatedStatus !== input.text) {
-        await upsertTranslation(ctx.userId, "current_status", otherLocale, translatedStatus, tx);
+      if (translationRow) {
+        await upsertTranslation(ctx.userId, "current_status", translationRow.locale, translationRow.content, tx);
       }
 
       return row;
@@ -1012,24 +1076,30 @@ export const profilesRouter = router({
       setTargetUserId(ctx.req, input.userId);
 
       // Need the profile + viewer's locale to know source (contentLocale) and
-      // target (viewer's locale).
-      const [target, viewer] = await Promise.all([
-        db.query.profiles.findFirst({
-          where: eq(schema.profiles.userId, input.userId),
-          columns: {
-            bio: true,
-            lookingFor: true,
-            portrait: true,
-            currentStatus: true,
-            contentLocale: true,
-          },
-        }),
+      // target (viewer's locale). Soft-deleted users must be invisible — join
+      // user table and filter `deletedAt IS NULL` per
+      // `.claude/rules/security.md#security/filter-soft-deleted`. Otherwise a
+      // viewer could trigger an OpenAI call against a profile mid-grace-period.
+      const [targetRows, viewer] = await Promise.all([
+        db
+          .select({
+            bio: schema.profiles.bio,
+            lookingFor: schema.profiles.lookingFor,
+            portrait: schema.profiles.portrait,
+            currentStatus: schema.profiles.currentStatus,
+            contentLocale: schema.profiles.contentLocale,
+          })
+          .from(schema.profiles)
+          .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+          .where(and(eq(schema.profiles.userId, input.userId), isNull(schema.user.deletedAt)))
+          .limit(1),
         db.query.profiles.findFirst({
           where: eq(schema.profiles.userId, ctx.userId),
           columns: { locale: true },
         }),
       ]);
 
+      const target = targetRows[0];
       if (!target) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
       }

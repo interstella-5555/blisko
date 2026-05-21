@@ -93,10 +93,15 @@ Tłumacz naturalnie, zachowując ton i osobowość. Imion własnych nie tłumacz
     system,
     prompt,
     temperature: 0.7,
-    // Dual-language output ≈ 2x the single-language budget; the old 1000
-    // worked for one language so 2000 leaves headroom for reasoning + JSON
-    // structural overhead.
-    maxOutputTokens: 2000,
+    // Dual-language output. The old 1000-token budget for one language was
+    // already tight per commit 6376876 — gpt-5-mini reasoningEffort=minimal
+    // burns ~100-200 reasoning tokens out of the same budget. 2x content (PL +
+    // UK at ~420 visible tokens each ≈ 840) leaves only 160 tokens for
+    // reasoning + JSON structural overhead, which clips on long bios. Bump
+    // to 2500 = ~840 visible + 600 reasoning headroom + 1060 JSON/safety
+    // margin. Cost impact is bounded by actual output (output tokens
+    // billed-as-emitted, not as-budgeted).
+    maxOutputTokens: 2500,
     providerOptions: providerOptions ?? null,
     schemaName: "portraitDualSchema",
   };
@@ -107,7 +112,7 @@ Tłumacz naturalnie, zachowując ton i osobowość. Imion własnych nie tłumacz
         model: openai(model),
         schema: portraitDualSchema,
         temperature: 0.7,
-        maxOutputTokens: 2000,
+        maxOutputTokens: 2500,
         ...(providerOptions && { providerOptions }),
         system,
         prompt,
