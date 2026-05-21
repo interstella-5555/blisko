@@ -225,6 +225,8 @@ appId: com.blisko.app
 # --- VERIFY: Landed on main tab ---
 
 - extendedWaitUntil:
-    visible: "W okolicy"
+    visible:
+      id: "set-status-pill"
     timeout: 30000
-- assertVisible: "W okolicy"
+- assertVisible:
+    id: "set-status-pill"

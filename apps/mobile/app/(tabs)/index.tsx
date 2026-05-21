@@ -517,7 +517,11 @@ export default function NearbyScreen() {
           </Text>
         </Pressable>
       ) : (
-        <Pressable style={styles.statusBarEmpty} onPress={() => router.push("/set-status" as never)}>
+        <Pressable
+          testID="set-status-pill"
+          style={styles.statusBarEmpty}
+          onPress={() => router.push("/set-status" as never)}
+        >
           <Text style={styles.statusBarEmptyText}>
             <Trans>+ Ustaw status na teraz</Trans>
           </Text>
