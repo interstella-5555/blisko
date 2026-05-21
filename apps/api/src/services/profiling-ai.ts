@@ -189,12 +189,12 @@ const profileFromQAPerLocaleSchema = z.object({
   portrait: z.string(),
 });
 
-// Dual-language profile output (BLI-279). The LLM returns both PL and UK in a
+// Dual-language profile output (BLI-279). The LLM returns both PL and UA in a
 // single call — cheaper than chaining a translate pass and gives better
 // quality because the model sees the source context for both languages.
 const profileFromQASchema = z.object({
   pl: profileFromQAPerLocaleSchema,
-  uk: profileFromQAPerLocaleSchema,
+  ua: profileFromQAPerLocaleSchema,
 });
 
 export type ProfileFromQAPerLocale = z.infer<typeof profileFromQAPerLocaleSchema>;
@@ -213,12 +213,12 @@ export async function generateProfileFromQA(
       lookingFor: "Szukam ludzi o podobnych zainteresowaniach.",
       portrait: "Osoba otwarta i ciekawa świata.",
     };
-    const stubUk: ProfileFromQAPerLocale = {
+    const stubUa: ProfileFromQAPerLocale = {
       bio: "Я відкрита людина, готова до нових знайомств.",
       lookingFor: "Шукаю людей зі схожими інтересами.",
       portrait: "Відкрита, цікава людина.",
     };
-    return contentLocale === "uk" ? { pl: stub, uk: stubUk } : { pl: stub, uk: stubUk };
+    return contentLocale === "ua" ? { pl: stub, ua: stubUa } : { pl: stub, ua: stubUa };
   }
 
   let contextBlock = "";
@@ -232,14 +232,14 @@ export async function generateProfileFromQA(
 
   const model = ctx.model ?? AI_MODELS.sync;
   const providerOptions = providerOptionsFromCtx(ctx);
-  const sourceLanguageLabel = contentLocale === "uk" ? "ukraiński (ukrainian)" : "polski (polish)";
+  const sourceLanguageLabel = contentLocale === "ua" ? "ukraiński (ukrainian)" : "polski (polish)";
   const system = `Na podstawie rozmowy profilowej generujesz profil użytkownika dla aplikacji społecznościowej.
 
 Język źródłowy odpowiedzi użytkownika: ${sourceLanguageLabel}.
 
 Generujesz DWIE WERSJE JĘZYKOWE tego samego profilu:
 - "pl" — po polsku (zawsze, niezależnie od języka źródłowego)
-- "uk" — po ukraińsku (zawsze)
+- "ua" — po ukraińsku (zawsze)
 
 W KAŻDEJ wersji są te same trzy pola: bio, lookingFor, portrait. Tłumacz naturalnie, zachowując ton i osobowość — nie tłumacz dosłownie. Imion własnych nie tłumacz.
 
@@ -267,7 +267,7 @@ Zasady dla lookingFor:
 
 Bazuj WYŁĄCZNIE na informacjach które wynikają z odpowiedzi. Nie wymyślaj.
 
-Wynik MUSI mieć strukturę: { pl: { bio, lookingFor, portrait }, uk: { bio, lookingFor, portrait } }.`;
+Wynik MUSI mieć strukturę: { pl: { bio, lookingFor, portrait }, ua: { bio, lookingFor, portrait } }.`;
   const prompt = `<user_name>${displayName}</user_name>
 <source_language>${contentLocale}</source_language>
 

@@ -225,6 +225,13 @@
       "when": 1779377754945,
       "tag": "0031_add_profile_translations",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1779725000000,
+      "tag": "0032_rename_uk_to_ua_locale",
+      "breakpoints": true
     }
   ]
 }

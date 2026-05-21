@@ -1,7 +1,7 @@
 import { i18n } from "@lingui/core";
 import { LOCALE_CODES, type LocaleCode } from "@repo/shared";
 import { messages as plMessages } from "@/locales/pl/messages.po";
-import { messages as ukMessages } from "@/locales/uk/messages.po";
+import { messages as uaMessages } from "@/locales/ua/messages.po";
 import { useLocaleStore } from "@/stores/localeStore";
 
 // Bundle both PO files at app start. They're loaded directly by Metro via
@@ -10,7 +10,7 @@ import { useLocaleStore } from "@/stores/localeStore";
 // there's no incentive to code-split per language.
 const CATALOGS: Record<LocaleCode, Record<string, string>> = {
   pl: plMessages,
-  uk: ukMessages,
+  ua: uaMessages,
 };
 
 for (const locale of LOCALE_CODES) {

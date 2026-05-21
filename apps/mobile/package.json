@@ -11,6 +11,8 @@
     "test": "vitest",
     "test:e2e": "maestro test .maestro/",
     "test:e2e:onboarding": "maestro test .maestro/onboarding.yaml",
+    "test:e2e:pl": "maestro test .maestro/onboarding.yaml .maestro/onboarding-ghost.yaml",
+    "test:e2e:ua": "maestro test .maestro/onboarding-ua.yaml .maestro/onboarding-ghost-ua.yaml",
     "test:e2e:chat": "bash .maestro/chat/run-all.sh",
     "typecheck": "tsc --noEmit",
     "testflight": "bash scripts/testflight.sh",

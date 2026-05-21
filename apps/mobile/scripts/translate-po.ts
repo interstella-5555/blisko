@@ -2,7 +2,7 @@
 /**
  * AI batch translator for Lingui PO files. Reads
  * `src/locales/pl/messages.po` (the source of truth) and
- * `src/locales/uk/messages.po` (existing UA translations). For each msgid
+ * `src/locales/ua/messages.po` (existing UA translations). For each msgid
  * with an empty `msgstr` in UA, it calls OpenAI (`gpt-4o-mini`) to produce
  * a Ukrainian translation that preserves placeholders and tone.
  *
@@ -21,7 +21,7 @@ import { resolve } from "node:path";
 import * as gettextParser from "gettext-parser";
 
 const PL_PATH = resolve(import.meta.dir, "../src/locales/pl/messages.po");
-const UK_PATH = resolve(import.meta.dir, "../src/locales/uk/messages.po");
+const UA_PATH = resolve(import.meta.dir, "../src/locales/ua/messages.po");
 
 const apiKey = process.env.OPENAI_API_KEY;
 if (!apiKey) {
@@ -30,22 +30,22 @@ if (!apiKey) {
 }
 
 const plBuffer = readFileSync(PL_PATH);
-const ukBuffer = readFileSync(UK_PATH);
+const uaBuffer = readFileSync(UA_PATH);
 const plCatalog = gettextParser.po.parse(plBuffer);
-const ukCatalog = gettextParser.po.parse(ukBuffer);
+const uaCatalog = gettextParser.po.parse(uaBuffer);
 
 // `translations[""]` is the contextless namespace where Lingui places every
 // extracted message. Headers live there too under msgid "".
 const plMessages = plCatalog.translations[""] ?? {};
-const ukMessages = ukCatalog.translations[""] ?? {};
+const uaMessages = uaCatalog.translations[""] ?? {};
 
 // Collect every msgid that needs a translation. Empty msgstr counts as
 // missing; existing non-empty UA strings are preserved untouched.
 const missing: string[] = [];
 for (const msgid of Object.keys(plMessages)) {
   if (msgid === "") continue; // header
-  const ukExisting = ukMessages[msgid]?.msgstr?.[0] ?? "";
-  if (!ukExisting) missing.push(msgid);
+  const uaExisting = uaMessages[msgid]?.msgstr?.[0] ?? "";
+  if (!uaExisting) missing.push(msgid);
 }
 
 if (missing.length === 0) {
@@ -120,18 +120,18 @@ for (const msgid of missing) {
     console.warn(`  warn: missing translation for "${msgid}"`);
     continue;
   }
-  const existing = ukMessages[msgid] ?? plMessages[msgid];
-  ukMessages[msgid] = {
+  const existing = uaMessages[msgid] ?? plMessages[msgid];
+  uaMessages[msgid] = {
     ...existing,
     msgid,
     msgstr: [translation],
   };
 }
 
-ukCatalog.translations[""] = ukMessages;
+uaCatalog.translations[""] = uaMessages;
 
-const output = gettextParser.po.compile(ukCatalog);
-writeFileSync(UK_PATH, output);
+const output = gettextParser.po.compile(uaCatalog);
+writeFileSync(UA_PATH, output);
 
-console.log(`\nDone. ${missing.length} translations written to ${UK_PATH}`);
-console.log("Review the diff with `git diff apps/mobile/src/locales/uk/messages.po` before committing.");
+console.log(`\nDone. ${missing.length} translations written to ${UA_PATH}`);
+console.log("Review the diff with `git diff apps/mobile/src/locales/ua/messages.po` before committing.");

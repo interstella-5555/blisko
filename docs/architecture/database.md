@@ -132,7 +132,7 @@ Extends `user` with app-specific data. 1:1 relationship via unique `user_id`.
 | `bio` | text | no | -- | User's self-description, AI-generated or manual |
 | `looking_for` | text | no | -- | What they seek (AI-generated or manual) |
 | `social_links` | jsonb | yes | -- | `{ facebook?: string, linkedin?: string }` -- usernames, not URLs |
-| `locale` | varchar(2) | yes | -- | User-chosen UI language (`pl` / `uk`). Null = no explicit choice, mobile falls back to device locale. Set via `profiles.updateLocale` (BLI-277). Added in `0030`. |
+| `locale` | varchar(2) | yes | -- | User-chosen UI language (`pl` / `ua`). Null = no explicit choice, mobile falls back to device locale. Set via `profiles.updateLocale` (BLI-277). Added in `0030`. Renamed `uk` → `ua` in `0032`. |
 | `content_locale` | varchar(2) | no | `pl` | Language of the canonical UGC text on this row (bio / looking_for / portrait / current_status). Translations to other locales live in `profile_translations`. Added in `0031` (BLI-279). |
 | `visibility_mode` | text | no | `semi_open` | `ninja` / `semi_open` / `full_nomad` |
 | `do_not_disturb` | boolean | no | `false` | Mutes push notifications |
@@ -176,7 +176,7 @@ UGC translation cache per (user, field, locale). Each row holds one translated v
 | `id` | uuid | no | `gen_random_uuid()` | |
 | `user_id` | text | no | -- | FK `user(id) ON DELETE CASCADE` |
 | `field` | varchar(32) | no | -- | `bio` / `looking_for` / `portrait` / `current_status` |
-| `locale` | varchar(2) | no | -- | `pl` / `uk` |
+| `locale` | varchar(2) | no | -- | `pl` / `ua` |
 | `content` | text | no | -- | Translated text |
 | `created_at` | timestamp | no | `now()` | |
 | `updated_at` | timestamp | no | `now()` | |

@@ -183,13 +183,13 @@ Persisted to SecureStore. `nearbyRadiusMeters`: 500 / 1000 / 2000 (default 2000)
 
 ### localeStore
 
-User's UI language (`"pl"` / `"uk"`). Single field: `locale`. Persisted to SecureStore via Zustand `persist` middleware (same adapter as `locationStore` / `onboardingStore`).
+User's UI language (`"pl"` / `"ua"`). Single field: `locale`. Persisted to SecureStore via Zustand `persist` middleware (same adapter as `locationStore` / `onboardingStore`).
 
 **Per-device, push-only model.** The store is authoritative for what the user sees on this phone. Two phones can show different languages — that's a feature, not a bug. The DB column `profiles.locale` exists only so the server has a value for emails and push notifications; it never pulls back into the store. The flow:
 
 | Trigger | Effect |
 |---------|--------|
-| Module load (first install or hot reload) | `detectLocaleFromLanguageCode(Localization.getLocales()[0]?.languageCode)` computes the initial value (`uk` / `ru` / `be` → UA, else PL). Used as the store's default — overwritten by hydration if SecureStore has a saved value |
+| Module load (first install or hot reload) | `detectLocaleFromLanguageCode(Localization.getLocales()[0]?.languageCode)` computes the initial value (OS codes `uk` / `ru` / `be` → `"ua"`, else `"pl"`). Used as the store's default — overwritten by hydration if SecureStore has a saved value |
 | First app install | SecureStore is empty, the OS-derived default sticks. Next `setLocale` call persists it |
 | User taps toggle (login screen or Settings → Konto) | `setLocale(locale)` updates the store; `persist` writes to SecureStore |
 | AppGate first profile fetch after login | Pushes `localeStore.locale` to DB via `profiles.updateLocale` if it differs from `profile.locale`. Never the other direction |
@@ -398,7 +398,7 @@ The "W okolicy" tab (`(tabs)/index.tsx`) uses three dedicated hooks:
 | `onboarding-storage` | `onboardingStore` (zustand `persist` middleware) | Yes | Onboarding draft state — survives app force-quit mid-flow. Cleared on successful submission or sign-out. |
 | `blisko_nearby_radius` | `preferencesStore` (`RADIUS_KEY`) | No (intentional) | Map nearby radius (500/1000/2000m). Preserved across logout. |
 | `blisko_notification_prefs` | `preferencesStore` (`NOTIF_PREFS_KEY`) | No (intentional) | In-app notification toggles (newWaves, waveResponses, newMessages, groupInvites). Preserved across logout. |
-| `blisko_locale` | `localeStore` (zustand `persist` middleware) | No (intentional) | UI language `"pl"` / `"uk"`. Device-scoped — preserved across logout. Cross-device sync via `profiles.locale`. BLI-277. |
+| `blisko_locale` | `localeStore` (zustand `persist` middleware) | No (intentional) | UI language `"pl"` / `"ua"`. Device-scoped — preserved across logout. Cross-device sync via `profiles.locale`. BLI-277. |
 | Better Auth internal keys | `lib/auth.ts` (Expo plugin, `storagePrefix: "blisko"`, SecureStore backend) | Yes (via `authClient.signOut()`) | Better Auth manages its own session + cookie storage under this namespace. Not touched directly. |
 
 ---

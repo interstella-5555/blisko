@@ -170,7 +170,7 @@ export const profilesRouter = router({
       // that's the language they wrote in. Translations get wiped and
       // re-populated by the AI pipeline below (D5/D7 in BLI-279). Use the
       // already-fetched `existing.locale` instead of a second round-trip.
-      const contentLocaleUpdate: { contentLocale: "pl" | "uk" } | undefined = ugcChanged
+      const contentLocaleUpdate: { contentLocale: "pl" | "ua" } | undefined = ugcChanged
         ? { contentLocale: existing?.locale ?? "pl" }
         : undefined;
 
@@ -945,7 +945,7 @@ export const profilesRouter = router({
     });
     const userLocale: LocaleCode = userLocaleRow?.locale ?? "pl";
     const contentLocale: LocaleCode = userLocaleRow?.contentLocale ?? userLocale;
-    const otherLocale: LocaleCode = userLocale === "uk" ? "pl" : "uk";
+    const otherLocale: LocaleCode = userLocale === "ua" ? "pl" : "ua";
 
     let canonicalStatus = input.text;
     let translationRow: { locale: LocaleCode; content: string } | null = null;

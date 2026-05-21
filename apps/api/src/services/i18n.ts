@@ -18,105 +18,105 @@ type Translations = { pl: string } & Partial<Record<LocaleCode, string>>;
 const TRANSLATIONS = {
   "push.wave.new.body": {
     pl: "{senderName} — nowy ping!",
-    uk: "{senderName} — новий пінг!",
+    ua: "{senderName} — новий пінг!",
   },
   "push.wave.accepted.body": {
     pl: "{responderName} — ping przyjęty! Możecie teraz pisać.",
-    uk: "{responderName} — пінг прийнято! Тепер можете писати.",
+    ua: "{responderName} — пінг прийнято! Тепер можете писати.",
   },
   "push.message.unread.body": {
     pl: "{unreadCount} nowych wiadomości",
-    uk: "{unreadCount} нових повідомлень",
+    ua: "{unreadCount} нових повідомлень",
   },
   "push.group.invite.body": {
     pl: "Nowe zaproszenie do grupy",
-    uk: "Нове запрошення до групи",
+    ua: "Нове запрошення до групи",
   },
   "push.ambient.statusMatch.body": {
     pl: "Ktoś z pasującym profilem jest w pobliżu",
-    uk: "Хтось із відповідним профілем поблизу",
+    ua: "Хтось із відповідним профілем поблизу",
   },
 
   // Email — shared (layout footer + greeting)
   "email.layout.footer": {
     pl: "Pozdrawiamy,<br>Zespół Blisko",
-    uk: "З повагою,<br>Команда Blisko",
+    ua: "З повагою,<br>Команда Blisko",
   },
   "email.greeting": {
     pl: "Cześć!",
-    uk: "Привіт!",
+    ua: "Привіт!",
   },
 
   // Email — sign-in OTP
   "email.signIn.subject": {
     pl: "{otp} - Twój kod do Blisko",
-    uk: "{otp} - Твій код до Blisko",
+    ua: "{otp} - Твій код до Blisko",
   },
   "email.signIn.intro": {
     pl: "Kliknij żeby się zalogować:",
-    uk: "Натисни, щоб увійти:",
+    ua: "Натисни, щоб увійти:",
   },
   "email.signIn.button": {
     pl: "Zaloguj się do Blisko",
-    uk: "Увійти до Blisko",
+    ua: "Увійти до Blisko",
   },
   "email.signIn.orEnterCode": {
     pl: "lub wpisz kod",
-    uk: "або введи код",
+    ua: "або введи код",
   },
   "email.signIn.expiry": {
     pl: "Link i kod wygasną za 5 minut.",
-    uk: "Посилання та код діють 5 хвилин.",
+    ua: "Посилання та код діють 5 хвилин.",
   },
 
   // Email — change-email OTP
   "email.changeEmail.subject": {
     pl: "{otp} - Zmiana adresu email w Blisko",
-    uk: "{otp} - Зміна адреси email у Blisko",
+    ua: "{otp} - Зміна адреси email у Blisko",
   },
   "email.changeEmail.intro": {
     pl: "Kod weryfikacyjny do zmiany adresu email:",
-    uk: "Код підтвердження зміни адреси email:",
+    ua: "Код підтвердження зміни адреси email:",
   },
   "email.changeEmail.expiry": {
     pl: "Kod wygaśnie za 5 minut.",
-    uk: "Код діє 5 хвилин.",
+    ua: "Код діє 5 хвилин.",
   },
 
   // Email — data export delayed
   "email.dataExportDelayed.subject": {
     pl: "Eksport danych z Blisko — opóźnienie",
-    uk: "Експорт даних з Blisko — затримка",
+    ua: "Експорт даних з Blisko — затримка",
   },
   "email.dataExportDelayed.body": {
     pl: "Eksport Twoich danych trwa dłużej niż zwykle. Nasz zespół został powiadomiony i dane zostaną wysłane jak najszybciej.",
-    uk: "Експорт твоїх даних триває довше, ніж зазвичай. Наша команда повідомлена і дані буде надіслано якомога швидше.",
+    ua: "Експорт твоїх даних триває довше, ніж зазвичай. Наша команда повідомлена і дані буде надіслано якомога швидше.",
   },
   "email.dataExportDelayed.noAction": {
     pl: "Nie musisz nic robić — skontaktujemy się gdy eksport będzie gotowy.",
-    uk: "Тобі нічого не потрібно робити — ми зв'яжемося, коли експорт буде готовий.",
+    ua: "Тобі нічого не потрібно робити — ми зв'яжемося, коли експорт буде готовий.",
   },
 
   // Email — data export ready
   "email.dataExportReady.subject": {
     pl: "Twoje dane z Blisko są gotowe do pobrania",
-    uk: "Твої дані з Blisko готові до завантаження",
+    ua: "Твої дані з Blisko готові до завантаження",
   },
   "email.dataExportReady.body": {
     pl: "Twoje dane są gotowe. Kliknij poniższy link, aby pobrać plik JSON z eksportem wszystkich Twoich danych z aplikacji Blisko.",
-    uk: "Твої дані готові. Натисни на посилання нижче, щоб завантажити JSON-файл з експортом усіх твоїх даних з застосунку Blisko.",
+    ua: "Твої дані готові. Натисни на посилання нижче, щоб завантажити JSON-файл з експортом усіх твоїх даних з застосунку Blisko.",
   },
   "email.dataExportReady.button": {
     pl: "Pobierz dane",
-    uk: "Завантажити дані",
+    ua: "Завантажити дані",
   },
   "email.dataExportReady.linkExpiry": {
     pl: "Link jest ważny przez 7 dni. Po tym czasie możesz złożyć nowe żądanie w ustawieniach aplikacji.",
-    uk: "Посилання діє 7 днів. Після цього можеш створити новий запит у налаштуваннях застосунку.",
+    ua: "Посилання діє 7 днів. Після цього можеш створити новий запит у налаштуваннях застосунку.",
   },
   "email.dataExportReady.ignore": {
     pl: "Jeśli nie prosiłeś/aś o eksport danych, zignoruj tę wiadomość.",
-    uk: "Якщо ти не запитував(-ла) експорт даних, проігноруй це повідомлення.",
+    ua: "Якщо ти не запитував(-ла) експорт даних, проігноруй це повідомлення.",
   },
 } as const satisfies Record<string, Translations>;
 

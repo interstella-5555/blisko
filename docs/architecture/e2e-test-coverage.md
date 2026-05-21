@@ -39,7 +39,9 @@ Tracks which user flows have Maestro E2E tests. Use `/e2e-flow-testing` skill to
 | Auth: Email OTP login | untested | — | — | Covered indirectly by onboarding test; previous `auth/login.yaml` referenced removed login text and was deleted |
 | Auth: OAuth login (Apple/Google/FB/LinkedIn) | untested | — | — | Requires real OAuth credentials |
 | Onboarding: Full profile (questions → AI generation) | approved | `onboarding.yaml` | fresh | ~2 min; AI generation up to 600s timeout |
+| Onboarding: Full profile (UA locale) | approved | `onboarding-ua.yaml` | fresh | UA mirror — taps `locale-pill-ua` first, asserts UA strings |
 | Onboarding: Ghost profile | approved | `onboarding-ghost.yaml` | fresh | ~35s; deterministic fast path |
+| Onboarding: Ghost profile (UA locale) | approved | `onboarding-ghost-ua.yaml` | fresh | UA mirror — taps `locale-pill-ua` first, asserts UA strings |
 | Map: View nearby users | untested | — | — | |
 | Map: Tap bubble → view profile | untested | — | — | Previous `profile/view-profile.yaml` referenced buttons moved to settings |
 | Ping: Send ping to nearby user | untested | — | — | Waves tab was removed; send-wave test was dead, deleted |
@@ -77,7 +79,15 @@ Tracks which user flows have Maestro E2E tests. Use `/e2e-flow-testing` skill to
 
 **11 / 37 flows covered** (~30%). Strongest coverage: chat DM (8/9 — search uncovered), onboarding (2/2). Weakest: auth direct (0/2), waves (0/5 — waves tab removed from app), groups (1/4), status (0/3), profile (0/4), settings (0/3), push (0/2).
 
-Chat tests require live API with `ENABLE_DEV_LOGIN=true` and must be run via `chat/run-all.sh` which seeds users per test. Default `maestro test .maestro/` only covers top-level tests (`onboarding.yaml`, `onboarding-ghost.yaml`) per `config.yaml`.
+Chat tests require live API with `ENABLE_DEV_LOGIN=true` and must be run via `chat/run-all.sh` which seeds users per test. Default `maestro test .maestro/` only covers top-level tests (`onboarding.yaml`, `onboarding-ua.yaml`, `onboarding-ghost.yaml`, `onboarding-ghost-ua.yaml`) per `config.yaml`.
+
+## PL / UA parity convention
+
+Every onboarding-style flow has BOTH a PL variant (`<flow>.yaml`) and a UA variant (`<flow>-ua.yaml`). The UA variant taps `id: "locale-pill-ua"` as its first action (after `launch-and-dismiss-dev.yaml`) and uses the UA translations from `apps/mobile/src/locales/ua/messages.po` for all text assertions. See `.claude/rules/e2e.md`. Helper scripts:
+
+- `bun run mobile:test:e2e:pl` — runs PL flows only
+- `bun run mobile:test:e2e:ua` — runs UA flows only
+- `bun run mobile:test:e2e` — runs everything (config-gated)
 
 ## Impact Map
 

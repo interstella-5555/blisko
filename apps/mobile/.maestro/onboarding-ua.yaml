@@ -1,0 +1,246 @@
+appId: com.blisko.app
+---
+# Full Onboarding E2E Test — Ukrainian locale
+# Mirrors `onboarding.yaml` flow but in UA. First step taps the `UA` button on
+# the LocalePill to switch the UI before logging in. Every assertion / tap
+# uses the UA translation from `apps/mobile/src/locales/ua/messages.po`.
+#
+# When you edit `onboarding.yaml` you MUST mirror the change here. See
+# `.claude/rules/e2e.md` for the PL/UA parity convention.
+
+- runFlow: sub-flows/launch-and-dismiss-dev.yaml
+
+# --- Switch UI language to UA ---
+
+- extendedWaitUntil:
+    visible:
+      id: "locale-pill-ua"
+    timeout: 10000
+- tapOn:
+    id: "locale-pill-ua"
+
+# --- AUTH: Email login with dev shortcut ---
+
+- extendedWaitUntil:
+    visible: "(?i)Продовжити з Email"
+    timeout: 30000
+- tapOn: "(?i)Продовжити з Email"
+
+- extendedWaitUntil:
+    visible:
+      id: "email-input"
+    timeout: 10000
+- tapOn:
+    id: "email-input"
+- inputRandomNumber
+- inputText: "@example.com"
+- tapOn:
+    point: "50%,10%"
+- tapOn:
+    id: "send-link-button"
+
+# --- HOOK SCREEN (auto-advances in 5s) ---
+
+- runFlow:
+    when:
+      visible:
+        id: "hook-start-button"
+    commands:
+      - tapOn:
+          id: "hook-start-button"
+
+# --- STEP 1: Name + Age ---
+
+- extendedWaitUntil:
+    visible: "Крок 1"
+    timeout: 30000
+
+- tapOn:
+    id: "name-input"
+- eraseText: 30
+- inputText: "Test User E2E"
+- tapOn:
+    point: "50%,10%"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "age-confirm-toggle"
+
+- extendedWaitUntil:
+    visible: "(?i)Далі"
+    timeout: 5000
+- tapOn: "(?i)Далі"
+
+# --- STEP 2: Visibility — choose full profile ---
+
+- extendedWaitUntil:
+    visible:
+      id: "fill-option"
+    timeout: 10000
+- tapOn:
+    id: "fill-option"
+- tapOn:
+    id: "fill-profile-button"
+
+# --- STEP 3a: Intro screen ---
+
+- extendedWaitUntil:
+    visible:
+      id: "questions-intro-start"
+    timeout: 10000
+- tapOn:
+    id: "questions-intro-start"
+
+# --- STEP 3b: Answer 7 questions (ASCII only — Maestro limitation) ---
+
+# Q1 (required) — intro
+- extendedWaitUntil:
+    visible: "Запитання 1 / 7"
+    timeout: 15000
+- tapOn:
+    id: "question-input"
+- inputText: "Programista, w wolnym czasie gram na gitarze i biegam po parku"
+- tapOn:
+    point: "50%,10%"
+- tapOn: "(?i)Далі"
+
+# Q2 (optional) — recent_obsession
+- extendedWaitUntil:
+    visible: "Запитання 2 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Serial o kosmosie i nowa gra planszowa"
+- tapOn:
+    point: "50%,10%"
+- tapOn: "(?i)Далі"
+
+# Q3 (required) — looking_for
+- extendedWaitUntil:
+    visible: "Запитання 3 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Szukam ludzi do wspolnych projektow i aktywnosci sportowych"
+- tapOn:
+    point: "50%,10%"
+- tapOn: "(?i)Далі"
+
+# Q4 (optional) — activities
+- extendedWaitUntil:
+    visible: "Запитання 4 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Bieganie, gry planszowe, jam session"
+- tapOn:
+    point: "50%,10%"
+- tapOn: "(?i)Далі"
+
+# Q5 (optional) — offer
+- extendedWaitUntil:
+    visible: "Запитання 5 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Pomoc z programowaniem i gitara basowa"
+- tapOn:
+    point: "50%,10%"
+- tapOn: "(?i)Далі"
+
+# Q6 (optional) — conversation_trigger
+- extendedWaitUntil:
+    visible: "Запитання 6 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Wspolne zainteresowania albo ciekawy pomysl na projekt"
+- tapOn:
+    point: "50%,10%"
+- tapOn: "(?i)Далі"
+
+# Q7 (optional) — public_self
+- extendedWaitUntil:
+    visible: "Запитання 7 / 7"
+    timeout: 10000
+- tapOn:
+    id: "question-input"
+- inputText: "Otwarty na nowe znajomosci i przygody w okolicy"
+- tapOn:
+    point: "50%,10%"
+- tapOn: "(?i)Далі"
+
+# --- SUBMISSION + FOLLOW-UPS (0-3, non-deterministic) ---
+
+# After question 7, submission happens. Then either follow-ups or generation.
+# Wait for the question input to reappear (follow-up) or review screen.
+- extendedWaitUntil:
+    visible:
+      id: "question-input"
+    timeout: 60000
+
+# Follow-up 1
+- tapOn:
+    id: "question-input"
+- inputText: "Lubie poznawac nowych ludzi i pracowac razem nad projektami"
+- tapOn:
+    point: "50%,10%"
+- tapOn: "(?i)Далі"
+
+# Follow-up 2 (if present)
+- runFlow:
+    when:
+      visible:
+        id: "question-input"
+    commands:
+      - tapOn:
+          id: "question-input"
+      - inputText: "Interesuje mnie muzyka, sport i gry planszowe"
+      - tapOn:
+          point: "50%,10%"
+      - tapOn: "(?i)Далі"
+
+# Follow-up 3 (if present)
+- runFlow:
+    when:
+      visible:
+        id: "question-input"
+    commands:
+      - tapOn:
+          id: "question-input"
+      - inputText: "Szukam ludzi do wspolnych projektow i inicjatyw"
+      - tapOn:
+          point: "50%,10%"
+      - tapOn: "(?i)Далі"
+
+# --- AI PROFILE GENERATION + REVIEW ---
+
+# Wait for review screen (AI generation may take a while)
+- extendedWaitUntil:
+    visible:
+      id: "profiling-review-screen"
+    timeout: 600000
+
+# Verify editable fields are present
+- assertVisible:
+    id: "bio-input"
+- assertVisible:
+    id: "looking-for-input"
+
+# Scroll to and confirm profile
+- scrollUntilVisible:
+    element:
+      id: "confirm-profile-button"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "confirm-profile-button"
+
+# --- VERIFY: Landed on main tab ---
+
+- extendedWaitUntil:
+    visible:
+      id: "set-status-pill"
+    timeout: 30000
+- assertVisible:
+    id: "set-status-pill"

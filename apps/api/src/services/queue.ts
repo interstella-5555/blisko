@@ -625,7 +625,7 @@ async function processGenerateProfileAI(userId: string, bio: string, lookingFor:
   const contentLocale = userProfile?.contentLocale ?? "pl";
 
   const portraitDual = await generatePortrait(bio, lookingFor, contentLocale, gptCtx);
-  const canonicalPortrait = contentLocale === "uk" ? portraitDual.uk : portraitDual.pl;
+  const canonicalPortrait = contentLocale === "ua" ? portraitDual.ua : portraitDual.pl;
   const portraitForEmbedding = portraitDual.pl; // matching pipeline = always PL
 
   const [embedding, interests] = await Promise.all([
@@ -638,7 +638,7 @@ async function processGenerateProfileAI(userId: string, bio: string, lookingFor:
   // applyProfile). Running here keeps the translation/regeneration step
   // unified — viewer sees a coherent profile in their locale once
   // `profileReady` fires.
-  const nonCanonicalLocale = contentLocale === "uk" ? "pl" : "uk";
+  const nonCanonicalLocale = contentLocale === "ua" ? "pl" : "ua";
   const translateCtx: AiLogCtx = {
     jobName: "translate-ugc",
     userId,
@@ -674,7 +674,7 @@ async function processGenerateProfileAI(userId: string, bio: string, lookingFor:
         ),
       );
 
-    const nonCanonicalPortrait = contentLocale === "uk" ? portraitDual.pl : portraitDual.uk;
+    const nonCanonicalPortrait = contentLocale === "ua" ? portraitDual.pl : portraitDual.ua;
     if (nonCanonicalPortrait && nonCanonicalPortrait !== canonicalPortrait) {
       await upsertTranslation(userId, "portrait", nonCanonicalLocale, nonCanonicalPortrait, tx);
     }
@@ -753,7 +753,7 @@ async function processGenerateProfileFromQA(job: GenerateProfileFromQAJob) {
     reasoningEffort: "minimal",
   });
 
-  const canonical = contentLocale === "uk" ? result.uk : result.pl;
+  const canonical = contentLocale === "ua" ? result.ua : result.pl;
 
   // Session stores the "preview" the user will accept in `applyProfile`.
   // The non-canonical translations are NOT stored on the session — they live

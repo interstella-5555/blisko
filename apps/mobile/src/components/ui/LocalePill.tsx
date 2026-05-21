@@ -5,7 +5,7 @@ import { colors, fonts } from "@/theme";
 
 const LABELS: Record<LocaleCode, string> = {
   pl: "PL",
-  uk: "UA",
+  ua: "UA",
 };
 
 interface Props {
@@ -22,6 +22,7 @@ export function LocalePill({ value, onChange, style }: Props) {
         return (
           <Pressable
             key={code}
+            testID={`locale-pill-${code}`}
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel={LABELS[code]}

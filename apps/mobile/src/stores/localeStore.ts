@@ -21,8 +21,10 @@ interface LocaleState {
 // emails / push (see AppGate.tsx and docs/architecture/i18n.md).
 //
 // First-install detection runs at module load: `Localization.getLocales()`
-// reads the OS language synchronously and the result is mapped (uk / ru /
-// be → "uk", else "pl") into the store's initial `locale`. Persist then
+// reads the OS language synchronously and the result is mapped (OS code
+// uk / ru / be → "ua", else "pl") into the store's initial `locale`. The
+// OS uses ISO 639-1 ("uk" = Ukrainian language); we use ISO 3166-1 ("ua")
+// internally to avoid the "United Kingdom" reading confusion. Persist then
 // hydrates from SecureStore — if anything is saved, it replaces the initial
 // value; if not, the OS-derived initial sticks and is persisted on the next
 // setLocale call. This means once a user has been through the app, their

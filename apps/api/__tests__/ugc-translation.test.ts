@@ -21,9 +21,9 @@ describe("getCanonicalText", () => {
     expect(getCanonicalText(baseProfile, "current_status", [])).toBe("Praca zdalna w kawiarni.");
   });
 
-  it("returns PL translation when contentLocale === uk", () => {
-    const ukProfile: ProfileLocaleSlice = {
-      contentLocale: "uk",
+  it("returns PL translation when contentLocale === ua", () => {
+    const uaProfile: ProfileLocaleSlice = {
+      contentLocale: "ua",
       bio: "Привіт, люблю каву.",
       lookingFor: "Шукаю співрозмовника.",
       portrait: "Тепла людина.",
@@ -36,26 +36,26 @@ describe("getCanonicalText", () => {
       { field: "current_status", locale: "pl", content: "Pracuję w kawiarni." },
     ];
 
-    expect(getCanonicalText(ukProfile, "bio", translations)).toBe("Cześć, lubię kawę.");
-    expect(getCanonicalText(ukProfile, "looking_for", translations)).toBe("Szukam rozmówcy.");
-    expect(getCanonicalText(ukProfile, "portrait", translations)).toBe("Ciepła osoba.");
-    expect(getCanonicalText(ukProfile, "current_status", translations)).toBe("Pracuję w kawiarni.");
+    expect(getCanonicalText(uaProfile, "bio", translations)).toBe("Cześć, lubię kawę.");
+    expect(getCanonicalText(uaProfile, "looking_for", translations)).toBe("Szukam rozmówcy.");
+    expect(getCanonicalText(uaProfile, "portrait", translations)).toBe("Ciepła osoba.");
+    expect(getCanonicalText(uaProfile, "current_status", translations)).toBe("Pracuję w kawiarni.");
   });
 
-  it("falls back to UK original when PL translation row is missing", () => {
-    const ukProfile: ProfileLocaleSlice = {
-      contentLocale: "uk",
+  it("falls back to UA original when PL translation row is missing", () => {
+    const uaProfile: ProfileLocaleSlice = {
+      contentLocale: "ua",
       bio: "Привіт",
       lookingFor: null,
       portrait: null,
       currentStatus: null,
     };
-    expect(getCanonicalText(ukProfile, "bio", [])).toBe("Привіт");
+    expect(getCanonicalText(uaProfile, "bio", [])).toBe("Привіт");
   });
 
   it("ignores translation rows for the wrong field or locale", () => {
-    const ukProfile: ProfileLocaleSlice = {
-      contentLocale: "uk",
+    const uaProfile: ProfileLocaleSlice = {
+      contentLocale: "ua",
       bio: "Привіт",
       lookingFor: null,
       portrait: null,
@@ -63,8 +63,8 @@ describe("getCanonicalText", () => {
     };
     const noisy: ProfileTranslationRow[] = [
       { field: "looking_for", locale: "pl", content: "wrong field" },
-      { field: "bio", locale: "uk", content: "wrong locale" },
+      { field: "bio", locale: "ua", content: "wrong locale" },
     ];
-    expect(getCanonicalText(ukProfile, "bio", noisy)).toBe("Привіт");
+    expect(getCanonicalText(uaProfile, "bio", noisy)).toBe("Привіт");
   });
 });
