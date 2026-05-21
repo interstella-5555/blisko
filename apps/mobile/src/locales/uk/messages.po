@@ -997,6 +997,10 @@ msgstr "Введи нову електронну адресу"
 msgid "Pokaż moją lokalizację"
 msgstr "Показати мою локацію"
 
+#: src/components/TranslatableText.tsx
+msgid "Pokaż oryginał"
+msgstr "Показати оригінал"
+
 #: app/(modals)/group/[id].tsx
 msgid "Pokaż w pobliżu →"
 msgstr "Показати поблизу →"
@@ -1121,6 +1125,10 @@ msgstr "Перемісти пін, щоб встановити локацію"
 #: app/settings/edit-profile.tsx
 msgid "Przesyłanie..."
 msgstr "Передача..."
+
+#: src/components/TranslatableText.tsx
+msgid "Przetłumacz"
+msgstr "Перекласти"
 
 #: src/components/ui/ThinkingIndicator.tsx
 msgid "Przygotowuję kolejne pytanie…"

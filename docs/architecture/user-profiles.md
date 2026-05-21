@@ -41,6 +41,7 @@ One profile per user. `profiles.userId` is a unique FK to `user.id` with `ON DEL
 | `lookingFor` | text | no | --- | "Kogo szukam" --- AI-generated, user-editable. Min 10, max 500 chars |
 | `socialLinks` | jsonb | yes | null | `{ facebook?: string, linkedin?: string }` --- usernames, not full URLs. Visible after ping acceptance per PRODUCT.md |
 | `locale` | varchar(2) | yes | null | User-chosen UI language (`'pl'` / `'uk'`). Null = no explicit choice, mobile uses device-detected locale. Set via `profiles.updateLocale` from Settings → Konto. Cross-device sync: mobile seeds `localeStore` from this value on session start when set (BLI-277) |
+| `contentLocale` | varchar(2) | no | `'pl'` | Language of the canonical UGC text (`bio` / `lookingFor` / `portrait` / `currentStatus`) on this row. Rewritten whenever the user edits UGC. Translations to other locales live in `profile_translations`. Matching pipeline reads canonical PL via `getCanonicalText`. BLI-279 |
 | `visibilityMode` | text | no | `'semi_open'` | `'ninja'` / `'semi_open'` / `'full_nomad'` --- controls map presence and ping ability |
 | `doNotDisturb` | boolean | no | `false` | Suppresses push notifications. Independent from visibility mode |
 | `superpower` | text | yes | null | Free-text "what I can offer" (max 300 chars). Fed to AI matching prompts |

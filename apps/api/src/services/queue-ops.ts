@@ -163,6 +163,7 @@ async function processHardDeleteUser(userId: string) {
         lookingFor: "",
         socialLinks: null,
         locale: null,
+        contentLocale: "pl",
         visibilityMode: "ninja",
         interests: null,
         embedding: null,
@@ -186,6 +187,12 @@ async function processHardDeleteUser(userId: string) {
         updatedAt: now,
       })
       .where(eq(schema.profiles.userId, userId));
+
+    // Delete UGC translation cache (bio/lookingFor/portrait/currentStatus
+    // translations to other locales). FK cascade handles hard-delete; we run
+    // explicit DELETE here for soft-delete → anonymization where the user row
+    // sticks around. BLI-279.
+    await tx.delete(schema.profileTranslations).where(eq(schema.profileTranslations.userId, userId));
 
     await tx
       .update(schema.profilingSessions)

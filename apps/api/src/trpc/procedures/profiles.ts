@@ -1,4 +1,5 @@
 import {
+  AI_MODELS,
   cosineSimilarity,
   createProfileSchema,
   extractOurS3Key,
@@ -7,6 +8,7 @@ import {
   getNearbyUsersSchema,
   localeCodeSchema,
   setStatusSchema,
+  translateContentSchema,
   updateLocationSchema,
   updateProfileSchema,
 } from "@repo/shared";
@@ -21,6 +23,13 @@ import { roundDistance, toGridCenter } from "@/lib/grid";
 import { isStatusActive, isStatusPublic } from "@/lib/status";
 import { setTargetUserId } from "@/services/metrics";
 import { moderateContent } from "@/services/moderation";
+import {
+  deleteAllTranslationsForUser,
+  deleteTranslationsForField,
+  getTranslationsForUser,
+  translateInline,
+  upsertTranslation,
+} from "@/services/profile-translations";
 import {
   enqueuePairAnalysis,
   enqueueProfileAI,
@@ -46,8 +55,13 @@ export const profilesRouter = router({
   // Get current user's profile
   me: protectedProcedure.query(async ({ ctx }) => {
     const [profile] = await profileByUserId.execute({ userId: ctx.userId });
+    if (!profile) return null;
 
-    return profile || null;
+    // Translations are typically irrelevant for `me` (user sees their own
+    // canonical text), but we return them anyway so the UI can show a preview
+    // of how other-locale viewers will see it. BLI-279.
+    const translations = await getTranslationsForUser(ctx.userId);
+    return { ...profile, translations };
   }),
 
   // Create profile (async — AI fields populate via queue worker)
@@ -127,17 +141,36 @@ export const profilesRouter = router({
         }
       }
 
+      const ugcChanged = input.bio !== undefined || input.lookingFor !== undefined;
+
+      // When UGC changes, rewrite content_locale to the user's UI locale —
+      // that's the language they wrote in. Translations get wiped and
+      // re-populated by the AI pipeline below (D5/D7 in BLI-279).
+      let contentLocaleUpdate: { contentLocale: "pl" | "uk" } | undefined;
+      if (ugcChanged) {
+        const userLocaleRow = await db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, ctx.userId),
+          columns: { locale: true },
+        });
+        contentLocaleUpdate = { contentLocale: userLocaleRow?.locale ?? "pl" };
+      }
+
       const [profile] = await db
         .update(schema.profiles)
         .set({
           ...input,
+          ...(contentLocaleUpdate ?? {}),
           updatedAt: new Date(),
         })
         .where(eq(schema.profiles.userId, ctx.userId))
         .returning();
 
-      // If bio or lookingFor changed, re-run AI pipeline (debounced 30s by BullMQ)
-      if (input.bio || input.lookingFor) {
+      // If bio or lookingFor changed, re-run AI pipeline (debounced 30s by BullMQ).
+      // Translations get rewritten by the worker after dual-language generation —
+      // until then we drop the stale rows so viewers see "Przetłumacz" instead of
+      // the previous UGC's translation. BLI-279 D5.
+      if (ugcChanged) {
+        await deleteAllTranslationsForUser(ctx.userId);
         const bio = profile.bio;
         const lookingFor = profile.lookingFor;
         await enqueueProfileAI(ctx.userId, bio, lookingFor);
@@ -805,12 +838,23 @@ export const profilesRouter = router({
     const isOwnProfile = input.userId === ctx.userId;
     const showStatus = isOwnProfile ? isStatusActive(profile) : isStatusPublic(profile);
 
+    // Profile translations — UI uses `pickDisplayText` to pick original vs
+    // translation based on viewer locale. We always ship them; rows are
+    // small (text only) and the lookup is one indexed query. BLI-279.
+    let translations = await getTranslationsForUser(input.userId);
+    // Strip current_status translation rows if the status isn't visible to the
+    // viewer — symmetric with `currentStatus: null` above.
+    if (!showStatus) {
+      translations = translations.filter((t) => t.field !== "current_status");
+    }
+
     return {
       ...profile,
       currentStatus: showStatus ? profile.currentStatus : null,
       statusSetAt: showStatus ? profile.statusSetAt : null,
       statusVisibility: isOwnProfile ? profile.statusVisibility : null,
       isSuspended: result.suspendedAt !== null,
+      translations,
     };
   }),
 
@@ -848,18 +892,48 @@ export const profilesRouter = router({
   setStatus: protectedProcedure.input(setStatusSchema).mutation(async ({ ctx, input }) => {
     await moderateContent(input.text);
 
-    const [profile] = await db
-      .update(schema.profiles)
-      .set({
-        currentStatus: input.text,
-        statusExpiresAt: null,
-        statusVisibility: input.visibility,
-        statusCategories: input.categories,
-        statusSetAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.profiles.userId, ctx.userId))
-      .returning();
+    // Status is user-typed so the locale matches their UI language. Inline-
+    // translate (~1-2s) before insert so viewers in the other locale see the
+    // translated bubble immediately. Mobile already has optimistic UI on
+    // setStatus so the latency is invisible. BLI-279 D3.
+    const userLocaleRow = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+      columns: { locale: true },
+    });
+    const statusLocale = userLocaleRow?.locale ?? "pl";
+    const otherLocale = statusLocale === "uk" ? "pl" : "uk";
+
+    const translatedStatus = await translateInline(input.text, statusLocale, otherLocale, {
+      jobName: "translate-status",
+      userId: ctx.userId,
+      model: AI_MODELS.sync,
+    });
+
+    const profile = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(schema.profiles)
+        .set({
+          currentStatus: input.text,
+          contentLocale: statusLocale,
+          statusExpiresAt: null,
+          statusVisibility: input.visibility,
+          statusCategories: input.categories,
+          statusSetAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.profiles.userId, ctx.userId))
+        .returning();
+
+      // Wipe + re-populate the current_status translation row only — bio /
+      // lookingFor / portrait stay untouched. D5 invalidation rule.
+      await deleteTranslationsForField(ctx.userId, "current_status", tx);
+
+      if (translatedStatus && translatedStatus !== input.text) {
+        await upsertTranslation(ctx.userId, "current_status", otherLocale, translatedStatus, tx);
+      }
+
+      return row;
+    });
 
     if (profile.isComplete) {
       enqueueStatusMatching(ctx.userId).catch((err) => {
@@ -872,23 +946,30 @@ export const profilesRouter = router({
 
   // Clear status "na teraz"
   clearStatus: protectedProcedure.mutation(async ({ ctx }) => {
-    const [profile] = await db
-      .update(schema.profiles)
-      .set({
-        currentStatus: null,
-        statusExpiresAt: null,
-        statusEmbedding: null,
-        statusVisibility: null,
-        statusCategories: null,
-        statusSetAt: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.profiles.userId, ctx.userId))
-      .returning();
+    const profile = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(schema.profiles)
+        .set({
+          currentStatus: null,
+          statusExpiresAt: null,
+          statusEmbedding: null,
+          statusVisibility: null,
+          statusCategories: null,
+          statusSetAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.profiles.userId, ctx.userId))
+        .returning();
 
-    await db
-      .delete(schema.statusMatches)
-      .where(or(eq(schema.statusMatches.userId, ctx.userId), eq(schema.statusMatches.matchedUserId, ctx.userId)));
+      await tx
+        .delete(schema.statusMatches)
+        .where(or(eq(schema.statusMatches.userId, ctx.userId), eq(schema.statusMatches.matchedUserId, ctx.userId)));
+
+      // Drop any stored status translations — the original is gone. BLI-279.
+      await deleteTranslationsForField(ctx.userId, "current_status", tx);
+
+      return row;
+    });
 
     return profile;
   }),
@@ -917,6 +998,110 @@ export const profilesRouter = router({
       createdAt: row.createdAt,
     }));
   }),
+
+  // On-demand UGC translation — viewer hit "Przetłumacz" on a profile field
+  // (bio / lookingFor / portrait / currentStatus) where no cached translation
+  // exists. Calls OpenAI inline, caches the result on `profile_translations`,
+  // returns the translated content. Returns the cached row instantly if it
+  // already exists (no AI call) — same shape so the mobile client can refetch
+  // the profile and see the new translation. BLI-279.
+  translateContent: protectedProcedure
+    .use(rateLimit("profiles.translateContent"))
+    .input(translateContentSchema)
+    .mutation(async ({ ctx, input }) => {
+      setTargetUserId(ctx.req, input.userId);
+
+      // Need the profile + viewer's locale to know source (contentLocale) and
+      // target (viewer's locale).
+      const [target, viewer] = await Promise.all([
+        db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, input.userId),
+          columns: {
+            bio: true,
+            lookingFor: true,
+            portrait: true,
+            currentStatus: true,
+            contentLocale: true,
+          },
+        }),
+        db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, ctx.userId),
+          columns: { locale: true },
+        }),
+      ]);
+
+      if (!target) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
+      }
+
+      // Block check — never translate something blocked viewers shouldn't see.
+      if (input.userId !== ctx.userId) {
+        const block = await db.query.blocks.findFirst({
+          where: or(
+            and(eq(schema.blocks.blockerId, ctx.userId), eq(schema.blocks.blockedId, input.userId)),
+            and(eq(schema.blocks.blockerId, input.userId), eq(schema.blocks.blockedId, ctx.userId)),
+          ),
+        });
+        if (block) throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
+      }
+
+      const viewerLocale = viewer?.locale ?? "pl";
+      const sourceLocale = target.contentLocale;
+
+      // Already in the viewer's locale → no translation needed.
+      if (viewerLocale === sourceLocale) {
+        return { field: input.field, locale: viewerLocale, content: null, alreadyInLocale: true as const };
+      }
+
+      // Map snake_case field → profiles column name
+      const sourceText =
+        input.field === "bio"
+          ? target.bio
+          : input.field === "looking_for"
+            ? target.lookingFor
+            : input.field === "portrait"
+              ? target.portrait
+              : target.currentStatus;
+
+      if (!sourceText) {
+        return { field: input.field, locale: viewerLocale, content: null, alreadyInLocale: false as const };
+      }
+
+      // Check cache first — translation may have been written by the AI
+      // pipeline already.
+      const cached = await db.query.profileTranslations.findFirst({
+        where: and(
+          eq(schema.profileTranslations.userId, input.userId),
+          eq(schema.profileTranslations.field, input.field),
+          eq(schema.profileTranslations.locale, viewerLocale),
+        ),
+        columns: { content: true },
+      });
+      if (cached) {
+        return { field: input.field, locale: viewerLocale, content: cached.content, alreadyInLocale: false as const };
+      }
+
+      // Cache miss → inline OpenAI call → upsert.
+      const translated = await translateInline(sourceText, sourceLocale, viewerLocale, {
+        jobName: "translate-ugc-ondemand",
+        userId: ctx.userId,
+        targetUserId: input.userId,
+        model: AI_MODELS.sync,
+      });
+
+      // Only persist meaningful translations — if the model returned the
+      // original (fallback path), we don't pollute the cache with no-ops.
+      if (translated && translated !== sourceText) {
+        await upsertTranslation(input.userId, input.field, viewerLocale, translated);
+      }
+
+      return {
+        field: input.field,
+        locale: viewerLocale,
+        content: translated && translated !== sourceText ? translated : null,
+        alreadyInLocale: false as const,
+      };
+    }),
 
   // Retry profile AI generation after failure (self-healing)
   retryProfileAI: protectedProcedure.use(rateLimit("profiles.retryProfileAI")).mutation(async ({ ctx }) => {

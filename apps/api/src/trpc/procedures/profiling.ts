@@ -318,6 +318,17 @@ export const profilingRouter = router({
       columns: { image: true },
     });
 
+    // Resolve content locale — the bio/lookingFor/portrait that just landed
+    // were generated in the user's locale (or in PL if they hadn't set one
+    // yet). Stamp `content_locale` so viewers in the other locale see the
+    // "Przetłumacz" affordance until the AI pipeline finishes regenerating
+    // translations. BLI-279.
+    const existingProfile = await db.query.profiles.findFirst({
+      where: eq(schema.profiles.userId, ctx.userId),
+      columns: { locale: true },
+    });
+    const contentLocale = existingProfile?.locale ?? "pl";
+
     // Upsert profile — insert if new, update if exists
     const [profile] = await db
       .insert(schema.profiles)
@@ -327,6 +338,7 @@ export const profilingRouter = router({
         bio,
         lookingFor,
         portrait: session.generatedPortrait,
+        contentLocale,
         isComplete: true,
         ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
       })
@@ -337,6 +349,7 @@ export const profilingRouter = router({
           bio,
           lookingFor,
           portrait: session.generatedPortrait,
+          contentLocale,
           isComplete: true,
           visibilityMode: "semi_open",
           updatedAt: new Date(),
@@ -344,7 +357,11 @@ export const profilingRouter = router({
       })
       .returning();
 
-    // Enqueue AI pipeline (portrait + embedding + interests)
+    // Drop any stale translations from a previous profile state — the AI
+    // pipeline will refill once it runs.
+    await db.delete(schema.profileTranslations).where(eq(schema.profileTranslations.userId, ctx.userId));
+
+    // Enqueue AI pipeline (portrait + embedding + interests + translations)
     enqueueProfileAI(ctx.userId, profile.bio, profile.lookingFor).catch((err) => {
       console.error("[profiling] Failed to enqueue profile AI job:", err);
     });

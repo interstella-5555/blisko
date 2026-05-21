@@ -111,6 +111,7 @@ Pre-auth endpoints (OTP) must use IP because there is no user identity yet. The 
 | `profiling.retryProfileGeneration` | 10 | 1 hour | Self-healing re-enqueue after `profilingFailed` WS event. |
 | `profiles.retryProfileAI` | 10 | 1 hour | Self-healing re-enqueue after `profileFailed` WS event. |
 | `profiles.retryStatusMatching` | 10 | 1 hour | Self-healing re-enqueue after `statusMatchingFailed` WS event. |
+| `profiles.translateContent` | 30 | 5 min | On-demand UGC translation ("Przetłumacz" button). Each call is one OpenAI request; cache hits on `profile_translations` are free. BLI-279. |
 
 ## Rate Limits: WebSocket (in-memory, keyed by userId)
 

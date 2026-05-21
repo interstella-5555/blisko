@@ -6,6 +6,7 @@ import { useMessagesStore } from "./messagesStore";
 import { useOnboardingStore } from "./onboardingStore";
 import { usePreferencesStore } from "./preferencesStore";
 import { useProfilesStore } from "./profilesStore";
+import { useTranslationStore } from "./translationStore";
 import { useWavesStore } from "./wavesStore";
 
 // Every store in `src/stores/` must be in exactly one of the two arrays below.
@@ -19,6 +20,7 @@ export const USER_SCOPED_STORES = [
   useWavesStore,
   useOnboardingStore,
   useLocationStore, // last known GPS fix — user-generated (only populated while authed), wiped on logout for privacy
+  useTranslationStore, // viewer-side UGC translation cache + "Pokaż oryginał" toggle state (BLI-279)
 ] as const;
 
 export const DEVICE_SCOPED_STORES = [

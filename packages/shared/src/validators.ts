@@ -103,6 +103,15 @@ export const getNearbyMapMarkersSchema = z.object({
   photoOnly: z.boolean().optional(),
 });
 
+// UGC translation (BLI-279). On-demand "Przetłumacz" button on profile fields
+// where the viewer's locale doesn't match the profile's content locale and no
+// cached translation exists yet (race with debounced 30-min job, or AI gen
+// fallback). Same shape covers bio / looking_for / portrait / current_status.
+export const translateContentSchema = z.object({
+  userId: z.string().min(1),
+  field: z.enum(["bio", "looking_for", "portrait", "current_status"]),
+});
+
 // Status "na teraz" validators
 export const STATUS_CATEGORIES = ["project", "networking", "dating", "casual"] as const;
 export type StatusCategory = (typeof STATUS_CATEGORIES)[number];

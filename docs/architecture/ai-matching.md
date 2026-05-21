@@ -25,6 +25,14 @@ All AI calls use OpenAI via Vercel AI SDK (`@ai-sdk/openai`, `ai` package). Mode
 | Snippet | `connectionAnalyses.shortSnippet` | Card preview text | Max 90 chars, T3 only |
 | Description | `connectionAnalyses.longDescription` | Full profile pitch | Max 500 chars, T3 only |
 
+## Canonical-PL Input
+
+> Added 2026-05-21 — BLI-279.
+
+All scoring tiers consume Polish text regardless of the user's UI locale. `profiles.bio` / `looking_for` / `portrait` / `current_status` carry the **original** text in whichever language the user picked (tracked by `profiles.content_locale`); translations to other locales live on `profile_translations`. The `getCanonicalText(profile, field, translations)` helper in `apps/api/src/services/profile-translations.ts` resolves the PL version — original if `content_locale = 'pl'`, otherwise the PL translation row. This keeps embedding vectors and LLM scoring in one language space; cross-locale matches use the same canonical text on both sides. See `docs/architecture/ugc-translation.md`.
+
+Call sites: `processAnalyzePair` (T3), `processQuickScore` (T2), `processStatusMatching` + `processProximityStatusMatching` (status), `processGenerateProfileAI` (T1 embedding regen).
+
 ## Tiered Scoring Architecture
 
 Three tiers exist to avoid O(N^2) pre-computation. The design came from the scaling plan (`docs/plans/2026-03-19-0100-scaling-infra-tiered-matching.md`): at 200K MAU, pre-computing full analyses for every location update would cost thousands of dollars/day in API calls. Instead, scores are computed lazily — cheap tiers first, expensive tiers on demand.

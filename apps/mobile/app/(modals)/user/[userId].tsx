@@ -3,6 +3,7 @@ import { router, useLocalSearchParams, usePathname } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { ProfileGateSheet } from "@/components/ProfileGateSheet";
+import { TranslatableText } from "@/components/TranslatableText";
 import { Avatar } from "@/components/ui/Avatar";
 import { IconChat, IconCheck, IconWave } from "@/components/ui/icons";
 import { useIsGhost } from "@/hooks/useIsGhost";
@@ -463,9 +464,14 @@ export default function UserProfileScreen() {
             <Text style={styles.otherStatusLabel}>
               <Trans>NA TERAZ</Trans>
             </Text>
-            <Text style={styles.otherStatusText} numberOfLines={1}>
-              {profile.currentStatus}
-            </Text>
+            <TranslatableText
+              userId={userId}
+              field="current_status"
+              original={profile.currentStatus}
+              sourceLocale={profile.contentLocale}
+              translations={profile.translations ?? []}
+              textStyle={styles.otherStatusText}
+            />
           </View>
         )}
 
@@ -506,6 +512,15 @@ export default function UserProfileScreen() {
           </Text>
           {!cached && isLoading ? (
             <SkeletonLines count={3} />
+          ) : resolvedBio && profile ? (
+            <TranslatableText
+              userId={userId}
+              field="bio"
+              original={profile.bio ?? resolvedBio}
+              sourceLocale={profile.contentLocale}
+              translations={profile.translations ?? []}
+              textStyle={styles.sectionContent}
+            />
           ) : (
             <Text style={styles.sectionContent}>{resolvedBio || t`Brak opisu`}</Text>
           )}
@@ -518,6 +533,15 @@ export default function UserProfileScreen() {
           </Text>
           {!cached && isLoading ? (
             <SkeletonLines count={2} />
+          ) : resolvedLookingFor && profile ? (
+            <TranslatableText
+              userId={userId}
+              field="looking_for"
+              original={profile.lookingFor ?? resolvedLookingFor}
+              sourceLocale={profile.contentLocale}
+              translations={profile.translations ?? []}
+              textStyle={styles.sectionContent}
+            />
           ) : (
             <Text style={styles.sectionContent}>{resolvedLookingFor || t`Brak opisu`}</Text>
           )}

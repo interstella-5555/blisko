@@ -99,6 +99,9 @@ All AI functions in `ai.ts` and `profiling-ai.ts` take a **required** `ctx: AiLo
 | `generateProfileFromQA` | `processGenerateProfileFromQA` | `generate-profile-from-qa` |
 | `generateFollowUpQuestions` | `profiling.ts` tRPC inline call | `inline-follow-up-questions` |
 | `generateBotMessage` (chatbot) | `apps/chatbot/src/ai.ts` → `POST /internal/ai-log` | `chatbot-message` |
+| `translateInline` (UGC) | `processGenerateProfileAI` (bio + lookingFor) | `translate-ugc` |
+| `translateInline` (status) | `profiles.setStatus` tRPC | `translate-status` |
+| `translateInline` (viewer) | `profiles.translateContent` tRPC | `translate-ugc-ondemand` |
 
 **Moderation is NOT logged.** `moderation.ts` uses the free `/v1/moderations` endpoint directly via `fetch` — no tokens, no cost, nothing to track.
 

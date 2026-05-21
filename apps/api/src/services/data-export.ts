@@ -19,6 +19,7 @@ interface ExportData {
     avatarUrl: string | null;
     bio: string;
     lookingFor: string;
+    contentLocale: string;
     interests: string[] | null;
     socialLinks: unknown;
     visibilityMode: string;
@@ -35,6 +36,13 @@ interface ExportData {
     createdAt: string;
     updatedAt: string;
   } | null;
+  profileTranslations: {
+    field: string;
+    locale: string;
+    content: string;
+    createdAt: string;
+    updatedAt: string;
+  }[];
   connectedAccounts: { provider: string; scope: string | null }[];
   waves: {
     sent: {
@@ -134,6 +142,19 @@ export async function collectAndExportUserData(userId: string, email: string) {
   const profile = await db.query.profiles.findFirst({
     where: eq(schema.profiles.userId, userId),
   });
+
+  // 2a. UGC translations (BLI-279) — bio / looking_for / portrait /
+  // current_status cached translations per locale.
+  const profileTranslations = await db
+    .select({
+      field: schema.profileTranslations.field,
+      locale: schema.profileTranslations.locale,
+      content: schema.profileTranslations.content,
+      createdAt: schema.profileTranslations.createdAt,
+      updatedAt: schema.profileTranslations.updatedAt,
+    })
+    .from(schema.profileTranslations)
+    .where(eq(schema.profileTranslations.userId, userId));
 
   // 3. Connected accounts (no tokens!)
   const accounts = await db
@@ -301,6 +322,7 @@ export async function collectAndExportUserData(userId: string, email: string) {
           avatarUrl: resolveExportableUrl(profile.avatarUrl),
           bio: profile.bio,
           lookingFor: profile.lookingFor,
+          contentLocale: profile.contentLocale,
           interests: profile.interests,
           socialLinks: profile.socialLinks,
           visibilityMode: profile.visibilityMode,
@@ -318,6 +340,13 @@ export async function collectAndExportUserData(userId: string, email: string) {
           updatedAt: profile.updatedAt.toISOString(),
         }
       : null,
+    profileTranslations: profileTranslations.map((t) => ({
+      field: t.field,
+      locale: t.locale,
+      content: t.content,
+      createdAt: t.createdAt.toISOString(),
+      updatedAt: t.updatedAt.toISOString(),
+    })),
     connectedAccounts: accounts
       .filter((a) => ["apple", "google", "facebook", "linkedin"].includes(a.providerId))
       .map((a) => ({ provider: a.providerId, scope: a.scope })),

@@ -11,7 +11,14 @@ export type AiJobName =
   | "generate-profiling-question"
   | "generate-profile-from-qa"
   | "inline-follow-up-questions"
-  | "chatbot-message";
+  | "chatbot-message"
+  // BLI-279: UGC translation calls.
+  // - translate-ugc: async bio/lookingFor translation as part of generate-profile-ai.
+  // - translate-status: inline call in setStatus mutation.
+  // - translate-ugc-ondemand: viewer-triggered "Przetłumacz" button.
+  | "translate-ugc"
+  | "translate-status"
+  | "translate-ugc-ondemand";
 
 export type ReasoningEffort = "minimal" | "medium";
 

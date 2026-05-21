@@ -24,6 +24,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@repo/shared": "workspace:*",
     "drizzle-orm": "catalog:",
     "postgres": "catalog:"
   },
