@@ -269,6 +269,14 @@ msgstr "Не вдалося автоматично увійти"
 msgid "Dodaj członków"
 msgstr "Додати членів"
 
+#: app/(modals)/user/[userId].tsx
+msgid "Dodaj zdjęcie"
+msgstr "Додати фото"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Dodaj zdjęcie żeby pingować"
+msgstr "Додай фото, щоб пінгувати"
+
 #: app/(modals)/group/[id].tsx
 msgid "Dołącz"
 msgstr "Приєднатися"
@@ -286,6 +294,10 @@ msgstr ""
 #: app/group/join/[code].tsx
 msgid "Dołączam do grupy…"
 msgstr "Приєднуюсь до групи…"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Druga osoba na pewno będzie chciała wiedzieć z kim rozmawia."
+msgstr "Інша людина точно захоче знати, з ким розмовляє."
 
 #: app/settings/_layout.tsx
 #: app/settings/profile.tsx

@@ -225,6 +225,15 @@ export default function UserProfileScreen() {
       ]);
       return;
     }
+
+    // Avatar required to send pings (Workflow v4 §4.2)
+    if (!myProfile?.avatarUrl) {
+      Alert.alert(t`Dodaj zdjęcie żeby pingować`, t`Druga osoba na pewno będzie chciała wiedzieć z kim rozmawia.`, [
+        { text: t`Anuluj`, style: "cancel" },
+        { text: t`Dodaj zdjęcie`, onPress: () => router.push("/settings/edit-profile") },
+      ]);
+      return;
+    }
     busyRef.current = true;
     setPendingWaveId("optimistic");
     // Optimistic store update
@@ -276,6 +285,12 @@ export default function UserProfileScreen() {
       } else if (errorMsg.includes("already_connected")) {
         setPendingWaveId(null);
         Alert.alert(t`Jesteście połączeni`, t`Macie już ze sobą chat — otwórz go z listy rozmów.`);
+      } else if (errorMsg.includes("no_avatar")) {
+        setPendingWaveId(null);
+        Alert.alert(t`Dodaj zdjęcie żeby pingować`, t`Druga osoba na pewno będzie chciała wiedzieć z kim rozmawia.`, [
+          { text: t`Anuluj`, style: "cancel" },
+          { text: t`Dodaj zdjęcie`, onPress: () => router.push("/settings/edit-profile") },
+        ]);
       } else if (errorMsg.includes("daily_limit")) {
         setPendingWaveId(null);
         Alert.alert(t`Limit dzienny`, t`Wykorzystałeś dzienny limit pingów. Wróć jutro!`);

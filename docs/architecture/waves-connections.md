@@ -54,13 +54,16 @@ Declined waves do not occupy a slot, so re-waving after decline is possible once
 | 1 | Target user exists and not soft-deleted | `NOT_FOUND` | `User not found` | INNER JOIN to `user` table, `deletedAt IS NULL` |
 | 2 | No block in either direction (A blocked B or B blocked A) | `FORBIDDEN` | `Cannot send wave to this user` | Bidirectional check on `blocks` table |
 | 3 | Sender is not in ninja mode | `FORBIDDEN` | `hidden_cannot_ping` | Checks `visibilityMode` on sender's profile |
-| 4 | Daily ping limit not exceeded | `TOO_MANY_REQUESTS` | `daily_limit` | `DAILY_PING_LIMIT_BASIC = 5` per UTC day |
-| 5 | Per-person cooldown not active | `TOO_MANY_REQUESTS` | `per_person:{hours}` | `PER_PERSON_COOLDOWN_HOURS = 24` |
-| 6 | Decline cooldown not active | `TOO_MANY_REQUESTS` | `cooldown:{hours}` | `DECLINE_COOLDOWN_HOURS = 24` |
+| 4 | Sender has an avatar | `FORBIDDEN` | `no_avatar` | Workflow v4 §4.2 — photo required to send (BLI-286). Checks `avatarUrl` on sender's profile in the same query as visibility |
+| 5 | Daily ping limit not exceeded | `TOO_MANY_REQUESTS` | `daily_limit` | `DAILY_PING_LIMIT_BASIC = 5` per UTC day |
+| 6 | Per-person cooldown not active | `TOO_MANY_REQUESTS` | `per_person:{hours}` | `PER_PERSON_COOLDOWN_HOURS = 24` |
+| 7 | Decline cooldown not active | `TOO_MANY_REQUESTS` | `cooldown:{hours}` | `DECLINE_COOLDOWN_HOURS = 24` |
 
 After validations pass, the insert is a single `INSERT ... ON CONFLICT (pair_key) WHERE status IN ('pending', 'accepted') DO NOTHING RETURNING ...`. The `waves_active_unique` partial unique index handles the hard correctness rules at the database layer. If `returning` comes back with the new wave we proceed normally; if it comes back empty `waves.send` runs one disambiguation SELECT (see "Implicit Accept on Conflict"). One query on the happy path, no transaction.
 
 **Note on daily limit:** The count query uses `gte(createdAt, todayMidnight)` where `todayMidnight` is midnight UTC. This means the counter resets at midnight UTC, not local time. PRODUCT.md specifies 5/day (Basic) and 20/day (Premium) --- code currently only enforces the Basic limit (`DAILY_PING_LIMIT_BASIC = 5`). Premium tier not yet implemented.
+
+**Avatar requirement (BLI-286):** Photo gating is intentionally limited to the **send** path. `waves.respond` (Accept / Decline) has no avatar check — a recipient without a photo can still respond to an incoming ping, because the sender already saw their photo-less profile and chose to ping anyway. Same for chat replies after acceptance. Mutual ping (§9.6) requires two outgoing sends, so it inherits the avatar requirement on both sides naturally. Mobile pre-checks `myProfile?.avatarUrl` before showing the PING button and surfaces a "Dodaj zdjęcie" alert linking to `/settings/edit-profile`. The server guard is the source of truth — handles racey states where mobile cache is stale.
 
 **Note on PRODUCT.md discrepancy:** PRODUCT.md says "pings to friends don't count against daily limit." Code does not implement this exception yet.
 

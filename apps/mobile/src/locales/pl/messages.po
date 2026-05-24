@@ -269,6 +269,14 @@ msgstr "Dev auto-login failed"
 msgid "Dodaj członków"
 msgstr "Dodaj członków"
 
+#: app/(modals)/user/[userId].tsx
+msgid "Dodaj zdjęcie"
+msgstr "Dodaj zdjęcie"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Dodaj zdjęcie żeby pingować"
+msgstr "Dodaj zdjęcie żeby pingować"
+
 #: app/(modals)/group/[id].tsx
 msgid "Dołącz"
 msgstr "Dołącz"
@@ -286,6 +294,10 @@ msgstr ""
 #: app/group/join/[code].tsx
 msgid "Dołączam do grupy…"
 msgstr "Dołączam do grupy…"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Druga osoba na pewno będzie chciała wiedzieć z kim rozmawia."
+msgstr "Druga osoba na pewno będzie chciała wiedzieć z kim rozmawia."
 
 #: app/settings/_layout.tsx
 #: app/settings/profile.tsx
