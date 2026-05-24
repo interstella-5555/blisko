@@ -269,6 +269,14 @@ msgstr "Dev auto-login failed"
 msgid "Dodaj członków"
 msgstr "Dodaj członków"
 
+#: app/(modals)/user/[userId].tsx
+msgid "Dodaj zdjęcie"
+msgstr "Dodaj zdjęcie"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Dodaj zdjęcie żeby pingować"
+msgstr "Dodaj zdjęcie żeby pingować"
+
 #: app/(modals)/group/[id].tsx
 msgid "Dołącz"
 msgstr "Dołącz"
@@ -945,6 +953,10 @@ msgstr "Pinguje Cię!"
 #: app/chat/[id].tsx
 msgid "pisze..."
 msgstr "pisze..."
+
+#: app/(modals)/user/[userId].tsx
+msgid "Po drugiej stronie ktoś realny — chce zobaczyć z kim rozmawia."
+msgstr "Po drugiej stronie ktoś realny — chce zobaczyć z kim rozmawia."
 
 #: app/settings/account.tsx
 msgid "Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania zostanie wysłany na Twój adres e-mail."

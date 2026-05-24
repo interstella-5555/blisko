@@ -168,15 +168,30 @@ export const wavesRouter = router({
         });
       }
 
-      // Hidden users cannot send pings (server-side safety net — mobile prompts before reaching here)
-      const senderVisibility = await db.query.profiles.findFirst({
+      // Hidden users cannot send pings (server-side safety net — mobile prompts before reaching here).
+      // Avatar is required to send (Workflow v4 §4.2). Mobile prompts at the PING button,
+      // this is the server-side guard for racey states / API misuse.
+      const senderProfile = await db.query.profiles.findFirst({
         where: eq(schema.profiles.userId, ctx.userId),
-        columns: { visibilityMode: true },
+        columns: {
+          visibilityMode: true,
+          avatarUrl: true,
+          displayName: true,
+          currentStatus: true,
+          latitude: true,
+          longitude: true,
+        },
       });
-      if (senderVisibility?.visibilityMode === "ninja") {
+      if (senderProfile?.visibilityMode === "ninja") {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "hidden_cannot_ping",
+        });
+      }
+      if (!senderProfile?.avatarUrl) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "no_avatar",
         });
       }
 
@@ -238,18 +253,8 @@ export const wavesRouter = router({
         });
       }
 
-      // Fetch sender profile for status snapshot, push display, and the
-      // implicit-accept location calculation if we end up taking that path.
-      const senderProfile = await db.query.profiles.findFirst({
-        where: eq(schema.profiles.userId, ctx.userId),
-        columns: {
-          displayName: true,
-          avatarUrl: true,
-          currentStatus: true,
-          latitude: true,
-          longitude: true,
-        },
-      });
+      // `senderProfile` already fetched above (visibility + avatar guard) — reused here
+      // for status snapshot, push display, and the implicit-accept location calculation.
 
       // INSERT with ON CONFLICT DO NOTHING against the `waves_active_unique`
       // partial index. The index lives on the generated `pair_key` column

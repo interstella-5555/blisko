@@ -269,6 +269,14 @@ msgstr "Не вдалося автоматично увійти"
 msgid "Dodaj członków"
 msgstr "Додати членів"
 
+#: app/(modals)/user/[userId].tsx
+msgid "Dodaj zdjęcie"
+msgstr "Додати фото"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Dodaj zdjęcie żeby pingować"
+msgstr "Додай фото, щоб пінгувати"
+
 #: app/(modals)/group/[id].tsx
 msgid "Dołącz"
 msgstr "Приєднатися"
@@ -945,6 +953,10 @@ msgstr "Тебе пінгують!"
 #: app/chat/[id].tsx
 msgid "pisze..."
 msgstr "пише..."
+
+#: app/(modals)/user/[userId].tsx
+msgid "Po drugiej stronie ktoś realny — chce zobaczyć z kim rozmawia."
+msgstr "По той бік справжня людина — хоче побачити, з ким розмовляє."
 
 #: app/settings/account.tsx
 msgid "Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania zostanie wysłany na Twój adres e-mail."
