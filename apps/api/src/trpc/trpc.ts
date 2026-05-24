@@ -1,5 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-import { eq, placeholder } from "drizzle-orm";
+import { and, eq, isNull, lt, or, placeholder, sql } from "drizzle-orm";
 import { DEFAULT_RATE_LIMIT_MESSAGE, rateLimitMessages, rateLimits } from "@/config/rateLimits";
 import { db, preparedName, schema } from "@/db";
 import { checkRateLimit } from "@/services/rate-limiter";
@@ -44,6 +44,22 @@ const isAuthed = t.middleware(async ({ ctx, next }) => {
       message: "ACCOUNT_SUSPENDED",
     });
   }
+
+  // Bump profiles.last_active_at — fire-and-forget, throttled DB-side to once
+  // per minute per user. Drives the "teraz / X temu" affordance on nearby /
+  // profile views. Decoupled from updateLocation: a user sitting still still
+  // counts as active. BLI-287.
+  db.update(schema.profiles)
+    .set({ lastActiveAt: sql`NOW()` })
+    .where(
+      and(
+        eq(schema.profiles.userId, ctx.userId),
+        or(isNull(schema.profiles.lastActiveAt), lt(schema.profiles.lastActiveAt, sql`NOW() - INTERVAL '1 minute'`)),
+      ),
+    )
+    .catch((err) => {
+      console.error("[isAuthed] last_active_at bump failed:", err);
+    });
 
   return next({
     ctx: {

@@ -23,7 +23,7 @@ interface UserRowProps {
   shortSnippet?: string | null;
   analysisReady?: boolean;
   hasStatusMatch?: boolean;
-  lastLocationUpdate?: Date | string | null;
+  lastActiveAt?: Date | string | null;
   // Waves-only (optional)
   timestamp?: string;
 }
@@ -113,7 +113,7 @@ export function UserRow({
   shortSnippet,
   analysisReady,
   hasStatusMatch,
-  lastLocationUpdate,
+  lastActiveAt,
   status,
   onPress,
   timestamp,
@@ -145,8 +145,8 @@ export function UserRow({
             </View>
           )}
           {distance !== undefined && <Text style={styles.distance}>{formatDistance(distance)}</Text>}
-          {distance !== undefined && lastLocationUpdate && (
-            <Text style={styles.lastActive}>{formatLastActive(lastLocationUpdate)}</Text>
+          {distance !== undefined && lastActiveAt && (
+            <Text style={styles.lastActive}>{formatLastActive(lastActiveAt)}</Text>
           )}
           {!distance && timestamp && <Text style={styles.distance}>{formatRelativeTime(timestamp)}</Text>}
           {hasStatusMatch && (

@@ -428,9 +428,7 @@ export default function UserProfileScreen() {
           <View style={styles.meta}>
             {matchPercent > 0 && <Text style={styles.matchBadge}>{t`${matchPercent}% dopasowania`}</Text>}
             <Text style={styles.distance}>{formatDistance(resolvedDistance)}</Text>
-            {profile?.lastLocationUpdate && (
-              <Text style={styles.distance}>{formatLastActive(profile.lastLocationUpdate)}</Text>
-            )}
+            {profile?.lastActiveAt && <Text style={styles.distance}>{formatLastActive(profile.lastActiveAt)}</Text>}
           </View>
 
           {/* Inline action */}
