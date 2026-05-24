@@ -228,7 +228,7 @@ export default function UserProfileScreen() {
 
     // Avatar required to send pings (Workflow v4 §4.2)
     if (!myProfile?.avatarUrl) {
-      Alert.alert(t`Dodaj zdjęcie żeby pingować`, t`Po drugiej stronie ktoś realny — chce zobaczyć z kim rozmawia.`, [
+      Alert.alert(t`Dodaj zdjęcie żeby pingować`, t`Druga osoba na pewno będzie chciała wiedzieć z kim rozmawia.`, [
         { text: t`Anuluj`, style: "cancel" },
         { text: t`Dodaj zdjęcie`, onPress: () => router.push("/settings/edit-profile") },
       ]);
@@ -287,7 +287,7 @@ export default function UserProfileScreen() {
         Alert.alert(t`Jesteście połączeni`, t`Macie już ze sobą chat — otwórz go z listy rozmów.`);
       } else if (errorMsg.includes("no_avatar")) {
         setPendingWaveId(null);
-        Alert.alert(t`Dodaj zdjęcie żeby pingować`, t`Po drugiej stronie ktoś realny — chce zobaczyć z kim rozmawia.`, [
+        Alert.alert(t`Dodaj zdjęcie żeby pingować`, t`Druga osoba na pewno będzie chciała wiedzieć z kim rozmawia.`, [
           { text: t`Anuluj`, style: "cancel" },
           { text: t`Dodaj zdjęcie`, onPress: () => router.push("/settings/edit-profile") },
         ]);
