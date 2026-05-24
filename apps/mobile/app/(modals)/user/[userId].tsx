@@ -8,7 +8,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { IconChat, IconCheck, IconWave } from "@/components/ui/icons";
 import { useIsGhost } from "@/hooks/useIsGhost";
 import { useProfileGate } from "@/hooks/useProfileGate";
-import { formatDistance } from "@/lib/format";
+import { formatDistance, formatLastActive } from "@/lib/format";
 import { isRateLimitError } from "@/lib/globalErrorHandler";
 import { openChatFromAnywhere } from "@/lib/navigation";
 import { trpc } from "@/lib/trpc";
@@ -428,6 +428,7 @@ export default function UserProfileScreen() {
           <View style={styles.meta}>
             {matchPercent > 0 && <Text style={styles.matchBadge}>{t`${matchPercent}% dopasowania`}</Text>}
             <Text style={styles.distance}>{formatDistance(resolvedDistance)}</Text>
+            {profile?.lastActiveAt && <Text style={styles.distance}>{formatLastActive(profile.lastActiveAt)}</Text>}
           </View>
 
           {/* Inline action */}

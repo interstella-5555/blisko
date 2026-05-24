@@ -147,6 +147,12 @@ export const profiles = pgTable(
     latitude: real("latitude"),
     longitude: real("longitude"),
     lastLocationUpdate: timestamp("last_location_update"),
+    // Bumped by the isAuthed tRPC middleware on every authenticated request,
+    // throttled DB-side to at most once per minute per user. Drives the
+    // "teraz / X temu" affordance on nearby and profile views. Decoupled
+    // from `lastLocationUpdate` on purpose — a user sitting in one place
+    // for 10h is still "active" even though their location hasn't moved.
+    lastActiveAt: timestamp("last_active_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

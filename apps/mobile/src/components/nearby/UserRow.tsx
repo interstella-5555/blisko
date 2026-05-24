@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { useIsGhost } from "@/hooks/useIsGhost";
-import { formatDistance } from "../../lib/format";
+import { formatDistance, formatLastActive } from "../../lib/format";
 import { colors, fonts, spacing, type as typ } from "../../theme";
 import { Avatar } from "../ui/Avatar";
 import { IconBulletRose } from "../ui/icons";
@@ -23,6 +23,7 @@ interface UserRowProps {
   shortSnippet?: string | null;
   analysisReady?: boolean;
   hasStatusMatch?: boolean;
+  lastActiveAt?: Date | string | null;
   // Waves-only (optional)
   timestamp?: string;
 }
@@ -112,6 +113,7 @@ export function UserRow({
   shortSnippet,
   analysisReady,
   hasStatusMatch,
+  lastActiveAt,
   status,
   onPress,
   timestamp,
@@ -143,6 +145,9 @@ export function UserRow({
             </View>
           )}
           {distance !== undefined && <Text style={styles.distance}>{formatDistance(distance)}</Text>}
+          {distance !== undefined && lastActiveAt && (
+            <Text style={styles.lastActive}>{formatLastActive(lastActiveAt)}</Text>
+          )}
           {!distance && timestamp && <Text style={styles.distance}>{formatRelativeTime(timestamp)}</Text>}
           {hasStatusMatch && (
             <View style={styles.naTerazBadge}>
@@ -207,6 +212,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   distance: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    color: colors.muted,
+  },
+  lastActive: {
     fontFamily: fonts.sans,
     fontSize: 12,
     color: colors.muted,

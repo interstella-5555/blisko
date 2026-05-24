@@ -184,6 +184,7 @@ async function processHardDeleteUser(userId: string) {
         latitude: null,
         longitude: null,
         lastLocationUpdate: null,
+        lastActiveAt: null,
         updatedAt: now,
       })
       .where(eq(schema.profiles.userId, userId));

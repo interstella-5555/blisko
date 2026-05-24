@@ -395,6 +395,7 @@ export default function NearbyScreen() {
             shortSnippet={u.shortSnippet}
             analysisReady={u.analysisReady}
             hasStatusMatch={u.hasStatusMatch}
+            lastActiveAt={u.profile.lastActiveAt}
             status={status}
             onPress={() =>
               router.push({
