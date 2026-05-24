@@ -48,13 +48,22 @@ msgstr "{0} пише..."
 msgid "{0} wiadomości"
 msgstr "{0} повідомлень"
 
+#: src/lib/format.ts
+msgid "{diffDays, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dni temu}}"
+msgstr "{diffDays, plural, one {# день тому} few {# дні тому} many {# днів тому} other {# днів тому}}"
+
 #: app/(tabs)/chats.tsx
 msgid "{diffDays} dni temu"
 msgstr "{diffDays} днів тому"
 
 #: app/(tabs)/chats.tsx
+#: src/lib/format.ts
 msgid "{diffHours} godz. temu"
 msgstr "{diffHours} год. тому"
+
+#: src/lib/format.ts
+msgid "{diffMin} min temu"
+msgstr "{diffMin} хв тому"
 
 #: app/(tabs)/chats.tsx
 msgid "{diffMins} min temu"
@@ -260,6 +269,10 @@ msgstr "Ти впевнений, що хочеш заблокувати {display
 #: app/settings/profiling.tsx
 msgid "Dalej"
 msgstr "Далі"
+
+#: src/lib/format.ts
+msgid "dawno temu"
+msgstr "давно"
 
 #: app/(auth)/email.tsx
 msgid "Dev auto-login failed"
@@ -1219,6 +1232,7 @@ msgstr "Цей лінк недійсний або сплив термін"
 
 #: app/(tabs)/chats.tsx
 #: src/components/chat/ConversationRow.tsx
+#: src/lib/format.ts
 msgid "teraz"
 msgstr "зараз"
 
@@ -1356,6 +1370,10 @@ msgstr "Теми"
 #: app/onboarding/visibility.tsx
 msgid "Wchodzę do aplikacji"
 msgstr "Заходжу в додаток"
+
+#: src/lib/format.ts
+msgid "wczoraj"
+msgstr "вчора"
 
 #: app/settings/_layout.tsx
 msgid "Weryfikacja"

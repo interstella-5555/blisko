@@ -704,6 +704,7 @@ export const profilesRouter = router({
             lookingFor: u.profile.lookingFor,
             avatarUrl: u.profile.avatarUrl,
             currentStatus: isStatusPublic(u.profile) ? u.profile.currentStatus : null,
+            lastLocationUpdate: u.profile.lastLocationUpdate,
           },
           distance: roundDistance(u.distance),
           gridLat: gridPos.gridLat,
