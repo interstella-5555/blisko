@@ -195,10 +195,6 @@ msgid "Chcesz być widoczny?"
 msgstr "Chcesz być widoczny?"
 
 #: app/(tabs)/index.tsx
-msgid "Cisza. Może właściwa grupa jest w drodze."
-msgstr "Cisza. Może właściwa grupa jest w drodze."
-
-#: app/(tabs)/index.tsx
 msgid "Cisza. Może właściwa osoba jest w drodze."
 msgstr "Cisza. Może właściwa osoba jest w drodze."
 
@@ -1229,6 +1225,10 @@ msgstr "Trwale usuwa Twoje konto, profil i wszystkie dane. Proces trwa do 14 dni
 #: app/settings/privacy.tsx
 msgid "TRYB WIDOCZNOŚCI"
 msgstr "TRYB WIDOCZNOŚCI"
+
+#: app/(tabs)/index.tsx
+msgid "Tutaj jeszcze cicho. Możesz być pierwszy."
+msgstr "Tutaj jeszcze cicho. Możesz być pierwszy."
 
 #: src/lib/format.ts
 msgid "tuż obok"

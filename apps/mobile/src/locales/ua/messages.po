@@ -195,10 +195,6 @@ msgid "Chcesz być widoczny?"
 msgstr "Хочеш бути видимим?"
 
 #: app/(tabs)/index.tsx
-msgid "Cisza. Może właściwa grupa jest w drodze."
-msgstr "Тиша. Можливо, потрібна група вже в дорозі."
-
-#: app/(tabs)/index.tsx
 msgid "Cisza. Może właściwa osoba jest w drodze."
 msgstr "Тиша. Можливо, потрібна людина вже в дорозі."
 
@@ -1229,6 +1225,10 @@ msgstr "Назавжди видаляє твоє обліковий запис, 
 #: app/settings/privacy.tsx
 msgid "TRYB WIDOCZNOŚCI"
 msgstr "РЕЖИМ ВИДИМОСТІ"
+
+#: app/(tabs)/index.tsx
+msgid "Tutaj jeszcze cicho. Możesz być pierwszy."
+msgstr "Тут ще тихо. Ти можеш бути першим."
 
 #: src/lib/format.ts
 msgid "tuż obok"

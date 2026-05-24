@@ -441,7 +441,7 @@ export default function NearbyScreen() {
             <Text style={styles.emptyListText}>
               {isOutsideRadius
                 ? t`Jesteś poza zasięgiem — pokazujemy grupy tylko w pobliżu Twojej lokalizacji`
-                : t`Cisza. Może właściwa grupa jest w drodze.`}
+                : t`Tutaj jeszcze cicho. Możesz być pierwszy.`}
             </Text>
             <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
               <IconPin size={14} color={colors.accent} />
