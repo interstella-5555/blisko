@@ -194,6 +194,10 @@ msgstr "Brak zablokowanych użytkowników"
 msgid "Chcesz być widoczny?"
 msgstr "Chcesz być widoczny?"
 
+#: app/(tabs)/index.tsx
+msgid "Cisza. Może właściwa osoba jest w drodze."
+msgstr "Cisza. Może właściwa osoba jest w drodze."
+
 #: app/(modals)/user/[userId].tsx
 #: app/settings/edit-profile.tsx
 msgid "Co mogę dać"
@@ -496,16 +500,8 @@ msgid "Kontynuuj z Email"
 msgstr "Kontynuuj z Email"
 
 #: app/(auth)/login.tsx
-msgid "Kontynuuj z Facebook"
-msgstr "Kontynuuj z Facebook"
-
-#: app/(auth)/login.tsx
 msgid "Kontynuuj z Google"
 msgstr "Kontynuuj z Google"
-
-#: app/(auth)/login.tsx
-msgid "Kontynuuj z LinkedIn"
-msgstr "Kontynuuj z LinkedIn"
 
 #: src/components/chat/MessageContextMenu.tsx
 msgid "Kopiuj"
@@ -750,6 +746,10 @@ msgstr "Nie udało się zweryfikować kodu"
 msgid "Nie znaleziono profilu"
 msgstr "Nie znaleziono profilu"
 
+#: src/components/ui/Badge.tsx
+msgid "NIEDOSTĘPNA"
+msgstr "NIEDOSTĘPNA"
+
 #: app/(auth)/verify.tsx
 msgid "Nieprawidłowa odpowiedź serwera"
 msgstr "Nieprawidłowa odpowiedź serwera"
@@ -825,6 +825,10 @@ msgstr "Obecny email:"
 #: app/(tabs)/chats.tsx
 msgid "Oceń rozmowę przed usunięciem"
 msgstr "Oceń rozmowę przed usunięciem"
+
+#: src/components/ui/Badge.tsx
+msgid "OCZEKUJE"
+msgstr "OCZEKUJE"
 
 #: app/settings/blocked-users.tsx
 msgid "Odblokować {displayName}?"
@@ -999,6 +1003,10 @@ msgstr "Pokazujesz <0>{0}</0> osób w okolicy"
 #: app/settings/account.tsx
 msgid "POŁĄCZ"
 msgstr "POŁĄCZ"
+
+#: src/components/ui/Badge.tsx
+msgid "POŁĄCZENI"
+msgstr "POŁĄCZENI"
 
 #: app/settings/account.tsx
 msgid "POŁĄCZONE KONTA"
@@ -1218,6 +1226,10 @@ msgstr "Trwale usuwa Twoje konto, profil i wszystkie dane. Proces trwa do 14 dni
 msgid "TRYB WIDOCZNOŚCI"
 msgstr "TRYB WIDOCZNOŚCI"
 
+#: app/(tabs)/index.tsx
+msgid "Tutaj jeszcze cicho. Możesz być pierwszy."
+msgstr "Tutaj jeszcze cicho. Możesz być pierwszy."
+
 #: src/lib/format.ts
 msgid "tuż obok"
 msgstr "tuż obok"
@@ -1324,18 +1336,6 @@ msgstr "W POBLIŻU"
 #: app/(modals)/group/[id].tsx
 msgid "W pobliżu ({0})"
 msgstr "W pobliżu ({0})"
-
-#: app/(tabs)/index.tsx
-msgid "W tej okolicy nie ma jeszcze żadnych grup"
-msgstr "W tej okolicy nie ma jeszcze żadnych grup"
-
-#: app/(tabs)/index.tsx
-msgid "W tej okolicy nie ma jeszcze żadnych użytkowników"
-msgstr "W tej okolicy nie ma jeszcze żadnych użytkowników"
-
-#: app/(tabs)/index.tsx
-msgid "W tej okolicy nie ma jeszcze żadnych użytkowników i grup"
-msgstr "W tej okolicy nie ma jeszcze żadnych użytkowników i grup"
 
 #: app/(modals)/group/[id].tsx
 msgid "Wątki"

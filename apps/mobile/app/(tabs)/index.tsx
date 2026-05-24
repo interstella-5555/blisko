@@ -441,7 +441,7 @@ export default function NearbyScreen() {
             <Text style={styles.emptyListText}>
               {isOutsideRadius
                 ? t`Jesteś poza zasięgiem — pokazujemy grupy tylko w pobliżu Twojej lokalizacji`
-                : t`W tej okolicy nie ma jeszcze żadnych grup`}
+                : t`Tutaj jeszcze cicho. Możesz być pierwszy.`}
             </Text>
             <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
               <IconPin size={14} color={colors.accent} />
@@ -615,9 +615,7 @@ export default function NearbyScreen() {
                 <Text style={styles.emptyListText}>
                   {isOutsideRadius
                     ? t`Jesteś poza zasięgiem — pokazujemy ${nearbyFilter === "people" ? t`osoby` : t`osoby i grupy`} tylko w pobliżu Twojej lokalizacji`
-                    : nearbyFilter === "people"
-                      ? t`W tej okolicy nie ma jeszcze żadnych użytkowników`
-                      : t`W tej okolicy nie ma jeszcze żadnych użytkowników i grup`}
+                    : t`Cisza. Może właściwa osoba jest w drodze.`}
                 </Text>
                 <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
                   <IconPin size={14} color={colors.accent} />
