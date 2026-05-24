@@ -1257,10 +1257,6 @@ msgstr "Твій акаунт видаляється. Це може зайнят
 msgid "Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
 msgstr "Твій акаунт призупинено. Зв'яжися з адміністрацією: kontakt@blisko.app, якщо вважаєш, що це помилка."
 
-#: app/(modals)/user/[userId].tsx
-msgid "Twoje pingi odnawiają się jutro."
-msgstr "Твої пінги оновляться завтра."
-
 #: app/chat/[id].tsx
 msgid "Ty"
 msgstr "Ти"
@@ -1474,6 +1470,10 @@ msgstr "Очистити статус"
 #: app/(tabs)/chats.tsx
 msgid "Wygasł"
 msgstr "Термін дії закінчився"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Wykorzystałeś dzienny limit pingów. Wróć jutro!"
+msgstr "Ти використав денний ліміт пінгів. Повернись завтра!"
 
 #: app/filters.tsx
 msgid "Wyłącz, aby lista pokazywała tylko osoby widoczne na mapie"

@@ -1257,10 +1257,6 @@ msgstr "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni."
 msgid "Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
 msgstr "Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
 
-#: app/(modals)/user/[userId].tsx
-msgid "Twoje pingi odnawiają się jutro."
-msgstr "Twoje pingi odnawiają się jutro."
-
 #: app/chat/[id].tsx
 msgid "Ty"
 msgstr "Ty"
@@ -1474,6 +1470,10 @@ msgstr "Wyczyść status"
 #: app/(tabs)/chats.tsx
 msgid "Wygasł"
 msgstr "Wygasł"
+
+#: app/(modals)/user/[userId].tsx
+msgid "Wykorzystałeś dzienny limit pingów. Wróć jutro!"
+msgstr "Wykorzystałeś dzienny limit pingów. Wróć jutro!"
 
 #: app/filters.tsx
 msgid "Wyłącz, aby lista pokazywała tylko osoby widoczne na mapie"
