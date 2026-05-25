@@ -1,5 +1,5 @@
 {
-  "id": "0b98f87e-c2f9-4045-8bd1-913d30cc049c",
+  "id": "b20a3e82-6ecf-4d17-b81d-8192d51ad5b5",
   "prevId": "d11f59be-04b5-4d10-ad16-11dd5ecfe112",
   "version": "7",
   "dialect": "postgresql",
@@ -1806,6 +1806,12 @@
         },
         "last_location_update": {
           "name": "last_location_update",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_active_at": {
+          "name": "last_active_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
