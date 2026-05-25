@@ -229,15 +229,8 @@
     {
       "idx": 32,
       "version": "7",
-      "when": 1779725000000,
-      "tag": "0032_rename_uk_to_ua_locale",
-      "breakpoints": true
-    },
-    {
-      "idx": 33,
-      "version": "7",
-      "when": 1779630822285,
-      "tag": "0033_add_profile_last_active_at",
+      "when": 1779690694789,
+      "tag": "0032_ua_locale_and_last_active_at",
       "breakpoints": true
     }
   ]
