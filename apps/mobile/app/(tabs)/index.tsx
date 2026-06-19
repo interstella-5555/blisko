@@ -13,7 +13,7 @@ import type { UserRowStatus } from "@/components/nearby/UserRow";
 import { UserRow } from "@/components/nearby/UserRow";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { IconChevronRight, IconFilter, IconPin, IconPlus } from "@/components/ui/icons";
+import { IconChevronRight, IconFilter, IconPin, IconPlus, IconSearch } from "@/components/ui/icons";
 import { SplashHold } from "@/components/ui/SplashHold";
 import { useAppConfig } from "@/hooks/useAppConfig";
 import { useNearbyList } from "@/hooks/useNearbyList";
@@ -533,16 +533,22 @@ export default function NearbyScreen() {
         </Pressable>
       </View>
 
-      {/* Floating recenter */}
-      <Pressable style={[styles.recenterBtn, { bottom: insets.bottom + 92 }]} onPress={handleReturnToMyLocation}>
+      {/* Floating recenter — fixed at the right of the count-pill row (pill stays centered) */}
+      <Pressable style={[styles.recenterBtn, { bottom: insets.bottom + 18 }]} onPress={handleReturnToMyLocation}>
         <IconPin size={20} color={isOutsideRadius ? colors.accent : colors.ink} />
       </Pressable>
 
       {/* Floating count pill — opens the list sheet */}
       {!listOpen && (
         <View style={[styles.countPillWrap, { bottom: insets.bottom + 18 }]} pointerEvents="box-none">
-          <Pressable style={styles.countPill} onPress={() => setListOpen(true)}>
-            {uniqueListUsers.length > 0 && (
+          <Pressable style={styles.countPill} onPress={() => setListOpen(true)} disabled={totalCount === 0}>
+            {totalCount === 0 ? (
+              <View style={styles.pillAvatarWrap}>
+                <View style={styles.pillEmptyIcon}>
+                  <IconSearch size={15} color={colors.muted} />
+                </View>
+              </View>
+            ) : uniqueListUsers.length > 0 ? (
               <View style={styles.pillStack}>
                 {uniqueListUsers.slice(0, 3).map((u, i) => (
                   <View key={u.profile.id} style={[styles.pillAvatarWrap, i > 0 && { marginLeft: -12 }]}>
@@ -550,16 +556,24 @@ export default function NearbyScreen() {
                   </View>
                 ))}
               </View>
-            )}
+            ) : null}
             <Text style={styles.countPillText}>
-              <Text style={styles.countPillNum}>
-                {totalUserCount} {totalUserCount === 1 ? t`osoba` : t`osób`}
-              </Text>{" "}
-              <Trans>w pobliżu</Trans>
+              {totalCount === 0 ? (
+                <Trans>Nikogo w pobliżu</Trans>
+              ) : (
+                <>
+                  <Text style={styles.countPillNum}>
+                    {totalCount} {totalCount === 1 ? t`osoba` : t`osób`}
+                  </Text>{" "}
+                  <Trans>w pobliżu</Trans>
+                </>
+              )}
             </Text>
-            <View style={styles.chevUp}>
-              <IconChevronRight size={16} color={colors.muted} />
-            </View>
+            {totalCount > 0 && (
+              <View style={styles.chevUp}>
+                <IconChevronRight size={16} color={colors.muted} />
+              </View>
+            )}
           </Pressable>
         </View>
       )}
@@ -844,6 +858,14 @@ const styles = StyleSheet.create({
   },
   pillStack: { flexDirection: "row" },
   pillAvatarWrap: { borderWidth: 2, borderColor: colors.bg, borderRadius: 16 },
+  pillEmptyIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#F1E9DB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   countPillText: { fontSize: 14, fontFamily: fonts.sans, color: colors.ink },
   countPillNum: { fontFamily: fonts.sansSemiBold, color: colors.ink },
   chevUp: { transform: [{ rotate: "-90deg" }] },
