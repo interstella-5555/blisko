@@ -792,6 +792,10 @@ msgstr "Непрочитане"
 msgid "NIEWIDOCZNY"
 msgstr "НЕВИДИМИЙ"
 
+#: app/(tabs)/index.tsx
+msgid "Nikogo w pobliżu"
+msgstr "Нікого поблизу"
+
 #: src/hooks/useInAppNotifications.ts
 msgid "Nowa wiadomość"
 msgstr "Нове повідомлення"
