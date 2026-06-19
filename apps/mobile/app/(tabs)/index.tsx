@@ -504,7 +504,6 @@ export default function NearbyScreen() {
                 pathname: "/set-status" as never,
                 params: {
                   prefill: myStatus.text,
-                  prefillVisibility: profile?.statusVisibility ?? undefined,
                   prefillCategories: profile?.statusCategories?.join(",") ?? undefined,
                 },
               })

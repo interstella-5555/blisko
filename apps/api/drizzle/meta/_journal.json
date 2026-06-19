@@ -232,6 +232,13 @@
       "when": 1779690694789,
       "tag": "0032_ua_locale_and_last_active_at",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1781904784537,
+      "tag": "0033_drop_status_visibility",
+      "breakpoints": true
     }
   ]
 }

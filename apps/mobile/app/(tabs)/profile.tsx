@@ -29,7 +29,6 @@ export default function ProfileScreen() {
                   pathname: "/set-status" as never,
                   params: {
                     prefill: profile!.currentStatus!,
-                    prefillVisibility: profile!.statusVisibility ?? undefined,
                     prefillCategories: profile!.statusCategories?.join(",") ?? undefined,
                   },
                 })

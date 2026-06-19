@@ -29,7 +29,6 @@ interface Profile {
   currentStatus?: string | null;
   statusExpiresAt?: string | null;
   statusSetAt?: string | null;
-  statusVisibility?: "public" | "private" | null;
   statusCategories?: string[] | null;
   superpower?: string | null;
   offerType?: "volunteer" | "exchange" | "gig" | null;

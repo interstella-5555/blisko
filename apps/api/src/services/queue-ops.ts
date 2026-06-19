@@ -174,7 +174,6 @@ async function processHardDeleteUser(userId: string) {
         statusExpiresAt: null,
         statusEmbedding: null,
         statusSetAt: null,
-        statusVisibility: "public",
         statusCategories: null,
         dateOfBirth: null,
         superpower: null,

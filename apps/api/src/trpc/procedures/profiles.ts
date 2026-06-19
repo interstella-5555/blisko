@@ -22,7 +22,7 @@ import { DECLINE_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, preparedName, schema } from "@/db";
 import { userIsVisibleTo } from "@/db/filters";
 import { roundDistance, toGridCenter } from "@/lib/grid";
-import { isStatusActive, isStatusPublic } from "@/lib/status";
+import { isStatusActive } from "@/lib/status";
 import { setTargetUserId } from "@/services/metrics";
 import { moderateContent } from "@/services/moderation";
 import {
@@ -437,7 +437,6 @@ export const profilesRouter = router({
               latitude: schema.profiles.latitude,
               longitude: schema.profiles.longitude,
               currentStatus: schema.profiles.currentStatus,
-              statusVisibility: schema.profiles.statusVisibility,
             })
             .from(schema.profiles)
             .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
@@ -703,7 +702,7 @@ export const profilesRouter = router({
             bio: u.profile.bio,
             lookingFor: u.profile.lookingFor,
             avatarUrl: u.profile.avatarUrl,
-            currentStatus: isStatusPublic(u.profile) ? u.profile.currentStatus : null,
+            currentStatus: isStatusActive(u.profile) ? u.profile.currentStatus : null,
             lastActiveAt: u.profile.lastActiveAt,
           },
           distance: roundDistance(u.distance),
@@ -867,8 +866,7 @@ export const profilesRouter = router({
 
     if (!profile) return null;
 
-    const isOwnProfile = input.userId === ctx.userId;
-    const showStatus = isOwnProfile ? isStatusActive(profile) : isStatusPublic(profile);
+    const showStatus = isStatusActive(profile);
 
     // Profile translations — UI uses `pickDisplayText` to pick original vs
     // translation based on viewer locale. We always ship them; rows are
@@ -884,7 +882,6 @@ export const profilesRouter = router({
       ...profile,
       currentStatus: showStatus ? profile.currentStatus : null,
       statusSetAt: showStatus ? profile.statusSetAt : null,
-      statusVisibility: isOwnProfile ? profile.statusVisibility : null,
       isSuspended: result.suspendedAt !== null,
       translations,
     };
@@ -982,7 +979,6 @@ export const profilesRouter = router({
         .set({
           currentStatus: canonicalStatus,
           statusExpiresAt: null,
-          statusVisibility: input.visibility,
           statusCategories: input.categories,
           statusSetAt: new Date(),
           updatedAt: new Date(),
@@ -1019,7 +1015,6 @@ export const profilesRouter = router({
           currentStatus: null,
           statusExpiresAt: null,
           statusEmbedding: null,
-          statusVisibility: null,
           statusCategories: null,
           statusSetAt: null,
           updatedAt: new Date(),
@@ -1049,7 +1044,6 @@ export const profilesRouter = router({
         reason: schema.statusMatches.reason,
         matchedVia: schema.statusMatches.matchedVia,
         createdAt: schema.statusMatches.createdAt,
-        statusVisibility: schema.profiles.statusVisibility,
       })
       .from(schema.statusMatches)
       .innerJoin(schema.profiles, eq(schema.statusMatches.matchedUserId, schema.profiles.userId))
@@ -1059,7 +1053,7 @@ export const profilesRouter = router({
     return rows.map((row) => ({
       id: row.id,
       matchedUserId: row.matchedUserId,
-      reason: row.statusVisibility === "private" ? "Na podstawie profilu" : row.reason,
+      reason: row.reason,
       matchedVia: row.matchedVia,
       createdAt: row.createdAt,
     }));

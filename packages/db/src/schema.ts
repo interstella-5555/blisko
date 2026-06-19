@@ -22,7 +22,12 @@ import {
 
 // User category enum — defined in `./types.ts` (client-safe, zero runtime
 // deps). Re-exported here so consumers reading `@repo/db/schema` still get it.
-export { UGC_TRANSLATABLE_FIELDS, type UgcTranslatableField, USER_TYPES, type UserType } from "./types";
+export {
+  UGC_TRANSLATABLE_FIELDS,
+  type UgcTranslatableField,
+  USER_TYPES,
+  type UserType,
+} from "./types";
 
 import type { UgcTranslatableField, UserType } from "./types";
 
@@ -116,7 +121,10 @@ export const profiles = pgTable(
     avatarUrl: text("avatar_url"),
     bio: text("bio").notNull(),
     lookingFor: text("looking_for").notNull(),
-    socialLinks: jsonb("social_links").$type<{ facebook?: string; linkedin?: string }>(),
+    socialLinks: jsonb("social_links").$type<{
+      facebook?: string;
+      linkedin?: string;
+    }>(),
     locale: varchar("locale", { length: 2 }).$type<"pl" | "ua">(),
     // Language of the canonical UGC text on this row (bio, looking_for, portrait,
     // current_status). Translations to other locales live in profile_translations.
@@ -141,7 +149,6 @@ export const profiles = pgTable(
     statusExpiresAt: timestamp("status_expires_at"),
     statusEmbedding: real("status_embedding").array(),
     statusSetAt: timestamp("status_set_at"),
-    statusVisibility: text("status_visibility").$type<"public" | "private">(),
     dateOfBirth: timestamp("date_of_birth"),
     statusCategories: text("status_categories").array(),
     latitude: real("latitude"),
@@ -599,7 +606,10 @@ export const aiCalls = metricsSchema.table(
     promptTokens: integer("prompt_tokens").notNull(),
     completionTokens: integer("completion_tokens").notNull(),
     totalTokens: integer("total_tokens").notNull(),
-    estimatedCostUsd: numeric("estimated_cost_usd", { precision: 12, scale: 6 }).notNull(),
+    estimatedCostUsd: numeric("estimated_cost_usd", {
+      precision: 12,
+      scale: 6,
+    }).notNull(),
     userId: text("user_id"),
     targetUserId: text("target_user_id"),
     serviceTier: text("service_tier").notNull().default("standard"),
