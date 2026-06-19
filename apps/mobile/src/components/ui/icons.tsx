@@ -558,3 +558,21 @@ export function IconEdit({ size = defaultSize, color = defaultColor }: IconProps
     </Svg>
   );
 }
+
+// Lucide "navigation" — navigate-to-my-location arrow (points to the top-right)
+export function IconNavigate({ size = defaultSize, color = defaultColor }: IconProps) {
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Path d="M3 11l19-9-9 19-2-8-8-2z" />
+    </Svg>
+  );
+}
