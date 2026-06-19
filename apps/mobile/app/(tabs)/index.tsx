@@ -11,8 +11,9 @@ import { DEFAULT_MAP_DELTA, ListShimmer, type NearbyMapRef, NearbyMapView } from
 import { GroupRow } from "@/components/nearby/GroupRow";
 import type { UserRowStatus } from "@/components/nearby/UserRow";
 import { UserRow } from "@/components/nearby/UserRow";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { IconFilter, IconMap, IconPin, IconPlus } from "@/components/ui/icons";
+import { IconChevronRight, IconFilter, IconPin, IconPlus } from "@/components/ui/icons";
 import { SplashHold } from "@/components/ui/SplashHold";
 import { useAppConfig } from "@/hooks/useAppConfig";
 import { useNearbyList } from "@/hooks/useNearbyList";
@@ -29,7 +30,7 @@ import { useWavesStore } from "@/stores/wavesStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
-const MAP_EXPANDED_HEIGHT = SCREEN_HEIGHT * 0.4;
+const LIST_SHEET_HEIGHT = SCREEN_HEIGHT * 0.8;
 
 /**
  * Equirectangular distance approximation — treats Earth as flat over short distances.
@@ -63,16 +64,13 @@ export default function NearbyScreen() {
   const nearbyRadiusMeters = config.nearby.defaultRadiusMeters;
 
   const insets = useSafeAreaInsets();
-  const [mapExpanded, setMapExpanded] = useState(true);
-  const mapHeight = useRef(new Animated.Value(MAP_EXPANDED_HEIGHT)).current;
-  const mapExpandedRef = useRef(mapExpanded);
-  mapExpandedRef.current = mapExpanded;
   const mapRef = useRef<NearbyMapRef>(null);
-  const topSpacer = mapHeight.interpolate({
-    inputRange: [0, MAP_EXPANDED_HEIGHT],
-    outputRange: [insets.top, 0],
-    extrapolate: "clamp",
-  });
+
+  const [listOpen, setListOpen] = useState(false);
+  const sheetAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.timing(sheetAnim, { toValue: listOpen ? 0 : 1, duration: 280, useNativeDriver: true }).start();
+  }, [listOpen, sheetAnim]);
 
   const hasActiveFilters = photoOnly || showAllNearby;
 
@@ -482,59 +480,120 @@ export default function NearbyScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Top spacer — grows to safe-area inset when map is collapsed */}
-      <Animated.View style={{ height: topSpacer }} />
+      {/* Full-screen map */}
+      <View style={StyleSheet.absoluteFill}>
+        <NearbyMapView
+          ref={mapRef}
+          clusters={clusters}
+          userLatitude={latitude!}
+          userLongitude={longitude!}
+          onClusterPress={handleClusterPress}
+          onUserPress={(userId) => router.push({ pathname: "/(modals)/user/[userId]", params: { userId } })}
+          onGroupPress={(groupId) => router.push({ pathname: "/(modals)/group/[id]", params: { id: groupId } })}
+          onRegionChangeComplete={handleRegionChangeComplete}
+        />
+      </View>
 
-      {/* Collapsible map */}
-      <Animated.View style={{ height: mapHeight, overflow: "hidden" }}>
-        <View style={{ height: MAP_EXPANDED_HEIGHT }}>
-          <NearbyMapView
-            ref={mapRef}
-            clusters={clusters}
-            userLatitude={latitude!}
-            userLongitude={longitude!}
-            onClusterPress={handleClusterPress}
-            onUserPress={(userId) => router.push({ pathname: "/(modals)/user/[userId]", params: { userId } })}
-            onGroupPress={(groupId) => router.push({ pathname: "/(modals)/group/[id]", params: { id: groupId } })}
-            onRegionChangeComplete={handleRegionChangeComplete}
-          />
+      {/* Floating top row: status + filters */}
+      <View style={[styles.topFloat, { top: insets.top + 8 }]} pointerEvents="box-none">
+        {myStatus ? (
+          <Pressable
+            style={styles.statusFloat}
+            onPress={() =>
+              router.push({
+                pathname: "/set-status" as never,
+                params: {
+                  prefill: myStatus.text,
+                  prefillVisibility: profile?.statusVisibility ?? undefined,
+                  prefillCategories: profile?.statusCategories?.join(",") ?? undefined,
+                },
+              })
+            }
+          >
+            <Text style={styles.statusFloatText} numberOfLines={1}>
+              {myStatus.text}
+            </Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            testID="set-status-pill"
+            style={styles.statusFloatEmpty}
+            onPress={() => router.push("/set-status" as never)}
+          >
+            <Text style={styles.statusFloatEmptyText}>
+              <Trans>+ Ustaw status na teraz</Trans>
+            </Text>
+          </Pressable>
+        )}
+        <Pressable
+          style={[styles.roundBtn, hasActiveFilters && styles.roundBtnActive]}
+          onPress={() => router.push("/filters" as never)}
+        >
+          <IconFilter size={18} color={hasActiveFilters ? colors.accent : colors.ink} />
+          {hasActiveFilters && <View style={styles.filterDot} />}
+        </Pressable>
+      </View>
+
+      {/* Floating recenter */}
+      <Pressable style={[styles.recenterBtn, { bottom: insets.bottom + 92 }]} onPress={handleReturnToMyLocation}>
+        <IconPin size={20} color={isOutsideRadius ? colors.accent : colors.ink} />
+      </Pressable>
+
+      {/* Floating count pill — opens the list sheet */}
+      {!listOpen && (
+        <View style={[styles.countPillWrap, { bottom: insets.bottom + 18 }]} pointerEvents="box-none">
+          <Pressable style={styles.countPill} onPress={() => setListOpen(true)}>
+            {uniqueListUsers.length > 0 && (
+              <View style={styles.pillStack}>
+                {uniqueListUsers.slice(0, 3).map((u, i) => (
+                  <View key={u.profile.id} style={[styles.pillAvatarWrap, i > 0 && { marginLeft: -12 }]}>
+                    <Avatar uri={u.profile.avatarUrl} name={u.profile.displayName} size={28} />
+                  </View>
+                ))}
+              </View>
+            )}
+            <Text style={styles.countPillText}>
+              <Text style={styles.countPillNum}>
+                {totalUserCount} {totalUserCount === 1 ? t`osoba` : t`osób`}
+              </Text>{" "}
+              <Trans>w pobliżu</Trans>
+            </Text>
+            <View style={styles.chevUp}>
+              <IconChevronRight size={16} color={colors.muted} />
+            </View>
+          </Pressable>
         </View>
-      </Animated.View>
-
-      {/* Status bar — below map toggle */}
-      {myStatus ? (
-        <Pressable
-          style={styles.statusBar}
-          onPress={() =>
-            router.push({
-              pathname: "/set-status" as never,
-              params: {
-                prefill: myStatus.text,
-                prefillVisibility: profile?.statusVisibility ?? undefined,
-                prefillCategories: profile?.statusCategories?.join(",") ?? undefined,
-              },
-            })
-          }
-        >
-          <Text style={styles.statusBarText} numberOfLines={1}>
-            {myStatus.text}
-          </Text>
-        </Pressable>
-      ) : (
-        <Pressable
-          testID="set-status-pill"
-          style={styles.statusBarEmpty}
-          onPress={() => router.push("/set-status" as never)}
-        >
-          <Text style={styles.statusBarEmptyText}>
-            <Trans>+ Ustaw status na teraz</Trans>
-          </Text>
-        </Pressable>
       )}
 
-      {/* Filter chips + funnel */}
-      <View style={styles.filterRow}>
-        <View style={styles.filterChips}>
+      {/* Backdrop */}
+      <Animated.View
+        pointerEvents={listOpen ? "auto" : "none"}
+        style={[
+          styles.sheetBackdrop,
+          { opacity: sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0.4, 0] }) },
+        ]}
+      >
+        <Pressable style={{ flex: 1 }} onPress={() => setListOpen(false)} />
+      </Animated.View>
+
+      {/* List sheet */}
+      <Animated.View
+        style={[
+          styles.sheet,
+          {
+            height: LIST_SHEET_HEIGHT,
+            transform: [
+              { translateY: sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0, LIST_SHEET_HEIGHT] }) },
+            ],
+          },
+        ]}
+      >
+        <Pressable style={styles.sheetGrabHit} onPress={() => setListOpen(false)}>
+          <View style={styles.sheetGrab} />
+        </Pressable>
+
+        {/* filter chips */}
+        <View style={styles.sheetChips}>
           {FILTER_CHIPS.map((chip) => (
             <Pressable
               key={chip.key}
@@ -555,91 +614,45 @@ export default function NearbyScreen() {
             </Pressable>
           ))}
         </View>
-        <Pressable
-          style={styles.filterFunnel}
-          onPress={() => {
-            const next = !mapExpandedRef.current;
-            Animated.timing(mapHeight, {
-              toValue: next ? MAP_EXPANDED_HEIGHT : 0,
-              duration: 200,
-              useNativeDriver: false,
-            }).start();
-            setMapExpanded(next);
-          }}
-        >
-          <IconMap size={16} color={colors.muted} />
-        </Pressable>
-        <Pressable
-          style={[styles.filterFunnel, hasActiveFilters && styles.filterFunnelActive]}
-          onPress={() => router.push("/filters" as never)}
-        >
-          <IconFilter size={16} color={hasActiveFilters ? colors.accent : colors.muted} />
-          {hasActiveFilters && <View style={styles.filterDot} />}
-        </Pressable>
-      </View>
 
-      {/* List header with viewport info */}
-      {nearbyFilter === "people" && listUsers.length > 0 && (
-        <View style={styles.listHeader}>
-          <Text style={styles.listHeaderTitle}>
-            {showAllNearby || totalCount >= totalUserCount
-              ? `${totalUserCount} ${totalUserCount === 1 ? t`OSOBA` : t`OSÓB`} ${t`W POBLIŻU`}`
-              : `${totalCount} ${t`Z`} ${totalUserCount} ${t`OSÓB W POBLIŻU`}`}
-          </Text>
-        </View>
-      )}
-      {nearbyFilter === "groups" && (nearbyGroups?.length ?? 0) > 0 && (
-        <View style={styles.listHeader}>
-          <Text style={styles.listHeaderTitle}>
-            {nearbyGroups?.length ?? 0} {(nearbyGroups?.length ?? 0) === 1 ? t`GRUPA` : t`GRUP`}{" "}
-            <Trans>W POBLIŻU</Trans>
-          </Text>
-          <Pressable onPress={() => router.push("/create-group")} hitSlop={8}>
-            <Text style={styles.createGroupAction}>
-              <Trans>+ UTWÓRZ</Trans>
-            </Text>
-          </Pressable>
-        </View>
-      )}
-
-      {/* Combined list */}
-      {isLoadingList && !listUsers.length ? (
-        <ListShimmer count={4} />
-      ) : (
-        <FlatList
-          data={listItems}
-          keyExtractor={getItemKey}
-          renderItem={renderItem}
-          ListEmptyComponent={
-            nearbyFilter !== "groups" ? (
-              <View style={styles.emptyList}>
-                <Text style={styles.emptyListText}>
-                  {isOutsideRadius
-                    ? t`Jesteś poza zasięgiem — pokazujemy ${nearbyFilter === "people" ? t`osoby` : t`osoby i grupy`} tylko w pobliżu Twojej lokalizacji`
-                    : t`Cisza. Może właściwa osoba jest w drodze.`}
-                </Text>
-                <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
-                  <IconPin size={14} color={colors.accent} />
-                  <Text style={styles.returnButtonText}>
-                    <Trans>Wróć do mojej lokalizacji</Trans>
+        {isLoadingList && !listUsers.length ? (
+          <ListShimmer count={4} />
+        ) : (
+          <FlatList
+            data={listItems}
+            keyExtractor={getItemKey}
+            renderItem={renderItem}
+            ListEmptyComponent={
+              nearbyFilter !== "groups" ? (
+                <View style={styles.emptyList}>
+                  <Text style={styles.emptyListText}>
+                    {isOutsideRadius
+                      ? t`Jesteś poza zasięgiem — pokazujemy ${nearbyFilter === "people" ? t`osoby` : t`osoby i grupy`} tylko w pobliżu Twojej lokalizacji`
+                      : t`Cisza. Może właściwa osoba jest w drodze.`}
                   </Text>
-                </Pressable>
-              </View>
-            ) : null
-          }
-          onRefresh={handleRefresh}
-          refreshing={isManualRefresh}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          onEndReachedThreshold={0.5}
-          onEndReached={() => {
-            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-          }}
-          ListFooterComponent={
-            isFetchingNextPage ? <ActivityIndicator style={{ padding: 16 }} color={colors.ink} /> : null
-          }
-        />
-      )}
+                  <Pressable style={styles.returnButton} onPress={handleReturnToMyLocation}>
+                    <IconPin size={14} color={colors.accent} />
+                    <Text style={styles.returnButtonText}>
+                      <Trans>Wróć do mojej lokalizacji</Trans>
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null
+            }
+            onRefresh={handleRefresh}
+            refreshing={isManualRefresh}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            onEndReachedThreshold={0.5}
+            onEndReached={() => {
+              if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+            }}
+            ListFooterComponent={
+              isFetchingNextPage ? <ActivityIndicator style={{ padding: 16 }} color={colors.ink} /> : null
+            }
+          />
+        )}
+      </Animated.View>
     </View>
   );
 }
@@ -656,11 +669,6 @@ const styles = StyleSheet.create({
     padding: spacing.section,
     backgroundColor: colors.bg,
   },
-  loadingText: {
-    ...typ.body,
-    color: colors.muted,
-    marginTop: spacing.column,
-  },
   emptyTitle: {
     ...typ.heading,
     marginTop: spacing.column,
@@ -671,73 +679,6 @@ const styles = StyleSheet.create({
     ...typ.body,
     color: colors.muted,
     textAlign: "center",
-  },
-  statusBar: {
-    backgroundColor: "#FDF5EC",
-    borderTopWidth: 1.5,
-    borderTopColor: "#E8C9A0",
-    borderBottomWidth: 1.5,
-    borderBottomColor: "#E8C9A0",
-    paddingVertical: spacing.gutter,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  statusBarText: {
-    fontSize: 12,
-    fontFamily: fonts.sansMedium,
-    color: colors.ink,
-    flex: 1,
-  },
-  statusBarEmpty: {
-    backgroundColor: colors.mapBg,
-    borderTopWidth: 1,
-    borderTopColor: colors.rule,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.rule,
-    paddingVertical: spacing.gutter,
-    paddingHorizontal: 16,
-    alignItems: "center",
-  },
-  statusBarEmptyText: {
-    fontSize: 12,
-    fontFamily: fonts.sans,
-    color: colors.muted,
-  },
-  mapToggle: {
-    backgroundColor: colors.mapBg,
-    paddingTop: 6,
-    paddingBottom: spacing.gutter,
-    alignItems: "center",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.rule,
-  },
-  dragHandle: {
-    width: 28,
-    height: 2.5,
-    borderRadius: 1.25,
-    backgroundColor: colors.rule,
-    opacity: 0.5,
-    marginBottom: 4,
-  },
-  mapToggleText: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: colors.muted,
-  },
-  filterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.section,
-    marginVertical: spacing.gutter,
-    gap: spacing.tight,
-  },
-  filterChips: {
-    flexDirection: "row",
-    gap: spacing.tight,
-    flex: 1,
   },
   filterChip: {
     paddingHorizontal: spacing.gutter,
@@ -776,17 +717,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     color: colors.muted,
   },
-  listHeaderAction: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 11,
-    color: "#efa844",
-  },
-  createGroupAction: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: colors.accent,
-  },
   listContent: {
     paddingBottom: 40,
   },
@@ -813,19 +743,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.accent,
   },
-  filterFunnel: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.rule,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  filterFunnelActive: {
-    borderColor: colors.accent,
-    backgroundColor: colors.status.error.bg,
-  },
   filterDot: {
     position: "absolute",
     top: 2,
@@ -834,5 +751,128 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: colors.accent,
+  },
+
+  // --- map-first layout: full-screen map, floating controls, bottom-sheet list ---
+  topFloat: {
+    position: "absolute",
+    left: spacing.column,
+    right: spacing.column,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.tight,
+  },
+  statusFloat: {
+    flex: 1,
+    backgroundColor: "#FDF5EC",
+    borderWidth: 1,
+    borderColor: "#E8C9A0",
+    borderRadius: 22,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    shadowColor: "#3a2e1e",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  statusFloatText: { fontSize: 12, fontFamily: fonts.sansMedium, color: colors.ink },
+  statusFloatEmpty: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.rule,
+    borderRadius: 22,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    shadowColor: "#3a2e1e",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  statusFloatEmptyText: { fontSize: 12, fontFamily: fonts.sans, color: colors.muted },
+  roundBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.bg,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#3a2e1e",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  roundBtnActive: { borderWidth: 1, borderColor: colors.accent },
+  recenterBtn: {
+    position: "absolute",
+    right: spacing.column,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: colors.bg,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#3a2e1e",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  countPillWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  countPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: colors.bg,
+    borderRadius: 28,
+    paddingVertical: 9,
+    paddingLeft: 10,
+    paddingRight: 16,
+    shadowColor: "#3a2e1e",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  pillStack: { flexDirection: "row" },
+  pillAvatarWrap: { borderWidth: 2, borderColor: colors.bg, borderRadius: 16 },
+  countPillText: { fontSize: 14, fontFamily: fonts.sans, color: colors.ink },
+  countPillNum: { fontFamily: fonts.sansSemiBold, color: colors.ink },
+  chevUp: { transform: [{ rotate: "-90deg" }] },
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000",
+  },
+  sheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    shadowColor: "#3a2e1e",
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 16,
+  },
+  sheetGrabHit: { paddingTop: 10, paddingBottom: 6, alignItems: "center" },
+  sheetGrab: { width: 38, height: 4, borderRadius: 2, backgroundColor: colors.rule },
+  sheetChips: {
+    flexDirection: "row",
+    gap: spacing.tight,
+    paddingHorizontal: spacing.column,
+    paddingTop: spacing.tick,
+    paddingBottom: spacing.tight,
   },
 });

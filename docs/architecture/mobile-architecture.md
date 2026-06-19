@@ -1,6 +1,7 @@
 # Mobile Architecture
 
 > v1 --- AI-generated from source analysis, 2026-04-06.
+> Updated 2026-06-19 — BLI-288 map-first "W okolicy": full-screen map by default; the people list moved into a floating bottom sheet opened by a "X osób w pobliżu" count pill (stacked avatars + count). Status + filters became floating controls (top), recenter bottom-right. Removed the collapsible-map machinery (`mapHeight`/`topSpacer` animation, map-toggle, status-bar). Sheet is an in-screen `Animated.View` (slide + scrim, `useNativeDriver: true`); no new deps. Tapping a person still opens the existing `(modals)/user/[userId]` profile. Follow-up: drag-to-dismiss on the sheet.
 > Updated 2026-04-10 — `messagesStore.updateMessage()` added for in-place message patches (fixes delete dropping message from list).
 > Updated 2026-04-12 — Nearby screen rewrite: supercluster clustering, viewport-synced list, split endpoints (`useNearbyMapMarkers` + `useNearbyList` + `useSupercluster` hooks), removed `nearbyOnly` toggle (BLI-189).
 > Updated 2026-04-12 — BLI-189 hotfix: supercluster config `radius: 30`, `maxZoom: 20`; viewport debounce 500ms (coupled with 20/10s rate limit — max 2 req/s fits in the window).
@@ -61,7 +62,7 @@ _layout.tsx                         Root Stack (GestureHandlerRootView + tRPC + 
 |
 +-- (tabs)/                         Main tab navigator (redirects to auth/onboarding as needed)
 |   +-- _layout.tsx                 Tabs: 3 tabs, WS handler, hydration, background sync
-|   +-- index.tsx                   "W okolicy" --- map (supercluster) + viewport-synced list
+|   +-- index.tsx                   "W okolicy" --- full-screen map (supercluster) + viewport-synced list in a floating bottom sheet
 |   +-- chats.tsx                   "Czaty" --- conversation list (DM + group), unread badge
 |   +-- profile.tsx                 "Profil" --- own profile view
 |

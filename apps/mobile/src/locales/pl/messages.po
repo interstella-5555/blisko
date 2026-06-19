@@ -82,10 +82,6 @@ msgstr "+ Nowy wątek"
 msgid "+ Ustaw status na teraz"
 msgstr "+ Ustaw status na teraz"
 
-#: app/(tabs)/index.tsx
-msgid "+ UTWÓRZ"
-msgstr "+ UTWÓRZ"
-
 #: app/mute-conversation.tsx
 msgid "1 godzinę"
 msgstr "1 godzinę"
@@ -908,12 +904,20 @@ msgid "Opuść grupę"
 msgstr "Opuść grupę"
 
 #: app/(tabs)/index.tsx
+msgid "osób"
+msgstr "osób"
+
+#: app/(tabs)/index.tsx
 msgid "OSÓB"
 msgstr "OSÓB"
 
 #: app/(tabs)/index.tsx
 msgid "OSÓB W POBLIŻU"
 msgstr "OSÓB W POBLIŻU"
+
+#: app/(tabs)/index.tsx
+msgid "osoba"
+msgstr "osoba"
 
 #: app/(tabs)/index.tsx
 msgid "OSOBA"
@@ -1353,6 +1357,10 @@ msgstr "W czym możesz komuś pomóc od ręki?"
 #: app/(tabs)/_layout.tsx
 msgid "W okolicy"
 msgstr "W okolicy"
+
+#: app/(tabs)/index.tsx
+msgid "w pobliżu"
+msgstr "w pobliżu"
 
 #: app/(tabs)/index.tsx
 msgid "W POBLIŻU"
