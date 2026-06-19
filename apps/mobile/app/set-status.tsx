@@ -5,25 +5,16 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/Button";
-import { IconHelp } from "@/components/ui/icons";
-import { Toggle } from "@/components/ui/Toggle";
 import { trpc } from "@/lib/trpc";
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
-type Visibility = "public" | "private";
-
 export default function SetStatusScreen() {
   const { t } = useLingui();
-  const { prefill, prefillVisibility, prefillCategories } = useLocalSearchParams<{
+  const { prefill, prefillCategories } = useLocalSearchParams<{
     prefill?: string;
-    prefillVisibility?: string;
     prefillCategories?: string;
   }>();
-
-  const VISIBILITY_HELP = t`Publiczny — tekst statusu + kategorie widoczne dla innych na mapie i w profilu. Dopasowania liczone są DO tekstu statusu.
-
-Prywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim się matchujesz. Dopasowania liczone są do Twojego profilu.`;
 
   const CATEGORY_OPTIONS: {
     value: StatusCategory;
@@ -37,10 +28,6 @@ Prywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim 
   ];
   const setProfile = useAuthStore((state) => state.setProfile);
   const [text, setText] = useState(prefill || "");
-  const [visibility, setVisibility] = useState<Visibility>(
-    prefillVisibility === "public" || prefillVisibility === "private" ? prefillVisibility : "public",
-  );
-  const [showHelp, setShowHelp] = useState(false);
   const [categories, setCategories] = useState<StatusCategory[]>(() => {
     if (!prefillCategories) return [];
     return prefillCategories
@@ -88,13 +75,12 @@ Prywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim 
         ...previousProfile,
         currentStatus: trimmed,
         statusSetAt: new Date().toISOString(),
-        statusVisibility: visibility,
       });
     }
     router.back();
 
     setStatus.mutate(
-      { text: trimmed, visibility, categories },
+      { text: trimmed, categories },
       {
         onError: () => {
           if (previousProfile) setProfile(previousProfile);
@@ -111,7 +97,6 @@ Prywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim 
         ...previousProfile,
         currentStatus: null,
         statusSetAt: null,
-        statusVisibility: null,
       });
     }
     router.back();
@@ -167,23 +152,6 @@ Prywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim 
         <Text style={styles.charCount}>{text.length} / 150</Text>
       </View>
 
-      <View style={styles.visibilityRow}>
-        <Text style={[styles.sectionLabel, styles.inlineLabel]}>
-          <Trans>WIDOCZNOŚĆ</Trans>
-        </Text>
-        <View style={styles.visibilityControls}>
-          <Pressable onPress={() => setShowHelp((s) => !s)} hitSlop={8}>
-            <IconHelp size={16} color={colors.muted} />
-          </Pressable>
-          <Toggle
-            value={visibility === "public"}
-            onValueChange={(v) => setVisibility(v ? "public" : "private")}
-            labels={{ off: t`Prywatny`, on: t`Publiczny` }}
-          />
-        </View>
-      </View>
-      {showHelp && <Text style={styles.helpText}>{VISIBILITY_HELP}</Text>}
-
       <View style={styles.submitContainer}>
         <Button
           title={t`Ustaw status`}
@@ -238,27 +206,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     ...typ.label,
     marginBottom: spacing.gutter,
-  },
-  visibilityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.tight,
-  },
-  visibilityControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  inlineLabel: {
-    marginBottom: 0,
-  },
-  helpText: {
-    fontFamily: fonts.sans,
-    fontSize: 12,
-    color: colors.muted,
-    lineHeight: 17,
-    marginBottom: spacing.block,
   },
   categoryRow: {
     flexDirection: "row",

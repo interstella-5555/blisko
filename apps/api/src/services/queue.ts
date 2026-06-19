@@ -820,10 +820,9 @@ async function processStatusMatching(userId: string) {
     );
 
   // Pre-filter by cosine similarity — top 20
-  // Private statuses are matched via profile embedding only — their status text never enters the LLM reason
   const scored = nearbyUsers
     .map(({ profile: u }) => {
-      const hasPublicStatus = isStatusActive(u) && u.statusVisibility !== "private";
+      const hasPublicStatus = isStatusActive(u);
 
       let similarity = 0;
       if (hasPublicStatus && u.statusEmbedding?.length) {
@@ -899,7 +898,6 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
       isComplete: true,
       visibilityMode: true,
       currentStatus: true,
-      statusVisibility: true,
       statusCategories: true,
       statusEmbedding: true,
       statusSetAt: true,
@@ -944,7 +942,6 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
       profile: {
         userId: schema.profiles.userId,
         currentStatus: schema.profiles.currentStatus,
-        statusVisibility: schema.profiles.statusVisibility,
         statusCategories: schema.profiles.statusCategories,
         statusEmbedding: schema.profiles.statusEmbedding,
         statusSetAt: schema.profiles.statusSetAt,
@@ -1000,10 +997,9 @@ async function processProximityStatusMatching(userId: string, latitude: number, 
 
   const movingUserHasStatus = isStatusActive(movingUser);
 
-  // Private statuses are matched via profile embedding only — their status text never enters the LLM reason
   const scored = newCandidates
     .map(({ profile: candidate }) => {
-      const hasPublicStatus = isStatusActive(candidate) && candidate.statusVisibility !== "private";
+      const hasPublicStatus = isStatusActive(candidate);
 
       let similarity = 0;
       if (hasPublicStatus && candidate.statusEmbedding?.length) {

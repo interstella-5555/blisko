@@ -26,7 +26,6 @@ interface ExportData {
     portraitUrl: string | null;
     status: string | null;
     statusCategories: string[] | null;
-    statusVisibility: string | null;
     superpower: string | null;
     superpowerTags: string[] | null;
     offerType: string | null;
@@ -329,7 +328,6 @@ export async function collectAndExportUserData(userId: string, email: string) {
           portraitUrl: resolveExportableUrl(profile.portrait),
           status: profile.currentStatus,
           statusCategories: profile.statusCategories,
-          statusVisibility: profile.statusVisibility,
           superpower: profile.superpower,
           superpowerTags: profile.superpowerTags,
           offerType: profile.offerType,
