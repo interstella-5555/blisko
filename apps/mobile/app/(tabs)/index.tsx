@@ -13,13 +13,14 @@ import type { UserRowStatus } from "@/components/nearby/UserRow";
 import { UserRow } from "@/components/nearby/UserRow";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { IconChevronRight, IconFilter, IconPin, IconPlus, IconSearch } from "@/components/ui/icons";
+import { IconChevronRight, IconFilter, IconNavigate, IconPin, IconPlus, IconSearch } from "@/components/ui/icons";
 import { SplashHold } from "@/components/ui/SplashHold";
 import { useAppConfig } from "@/hooks/useAppConfig";
 import { useNearbyList } from "@/hooks/useNearbyList";
 import { useNearbyMapMarkers } from "@/hooks/useNearbyMapMarkers";
 import { useRetryStatusMatchingOnFailure } from "@/hooks/useRetryStatusMatchingOnFailure";
 import { useSupercluster } from "@/hooks/useSupercluster";
+import { hapticTap } from "@/lib/haptics";
 import { trpc } from "@/lib/trpc";
 import { useWebSocket, type WSMessage } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
@@ -499,6 +500,7 @@ export default function NearbyScreen() {
         {myStatus ? (
           <Pressable
             style={styles.statusFloat}
+            onPressIn={hapticTap}
             onPress={() =>
               router.push({
                 pathname: "/set-status" as never,
@@ -517,6 +519,7 @@ export default function NearbyScreen() {
           <Pressable
             testID="set-status-pill"
             style={styles.statusFloatEmpty}
+            onPressIn={hapticTap}
             onPress={() => router.push("/set-status" as never)}
           >
             <Text style={styles.statusFloatEmptyText}>
@@ -526,6 +529,7 @@ export default function NearbyScreen() {
         )}
         <Pressable
           style={[styles.roundBtn, hasActiveFilters && styles.roundBtnActive]}
+          onPressIn={hapticTap}
           onPress={() => router.push("/filters" as never)}
         >
           <IconFilter size={18} color={hasActiveFilters ? colors.accent : colors.ink} />
@@ -534,14 +538,23 @@ export default function NearbyScreen() {
       </View>
 
       {/* Floating recenter — fixed at the right of the count-pill row (pill stays centered) */}
-      <Pressable style={[styles.recenterBtn, { bottom: insets.bottom + 18 }]} onPress={handleReturnToMyLocation}>
-        <IconPin size={20} color={isOutsideRadius ? colors.accent : colors.ink} />
+      <Pressable
+        style={[styles.recenterBtn, { bottom: insets.bottom + 18 }]}
+        onPressIn={hapticTap}
+        onPress={handleReturnToMyLocation}
+      >
+        <IconNavigate size={20} color={isOutsideRadius ? colors.accent : colors.ink} />
       </Pressable>
 
       {/* Floating count pill — opens the list sheet */}
       {!listOpen && (
         <View style={[styles.countPillWrap, { bottom: insets.bottom + 18 }]} pointerEvents="box-none">
-          <Pressable style={styles.countPill} onPress={() => setListOpen(true)} disabled={totalCount === 0}>
+          <Pressable
+            style={styles.countPill}
+            onPressIn={hapticTap}
+            onPress={() => setListOpen(true)}
+            disabled={totalCount === 0}
+          >
             {totalCount === 0 ? (
               <View style={styles.pillAvatarWrap}>
                 <View style={styles.pillEmptyIcon}>

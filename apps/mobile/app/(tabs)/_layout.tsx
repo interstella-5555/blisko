@@ -8,6 +8,7 @@ import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { useInAppNotifications } from "@/hooks/useInAppNotifications";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useRetryProfileAIOnFailure } from "@/hooks/useRetryProfileAIOnFailure";
+import { hapticTap } from "@/lib/haptics";
 import { trpc } from "@/lib/trpc";
 import { sendWsMessage, useWebSocket, type WSMessage } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
@@ -344,6 +345,7 @@ export default function TabsLayout() {
         },
         tabBarLabelStyle: typ.tabLabel,
       }}
+      screenListeners={{ tabPress: () => hapticTap() }}
     >
       <Tabs.Screen
         name="index"
