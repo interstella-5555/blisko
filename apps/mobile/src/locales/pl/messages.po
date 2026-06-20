@@ -280,6 +280,7 @@ msgstr "Czy na pewno chcesz zablokować {displayName}?"
 
 #: app/onboarding/categories.tsx
 #: app/onboarding/index.tsx
+#: app/onboarding/intro.tsx
 #: app/settings/profiling.tsx
 msgid "Dalej"
 msgstr "Dalej"
@@ -1001,6 +1002,10 @@ msgstr "Podaj nowy adres email"
 msgid "Podejdę osobiście"
 msgstr "Podejdę osobiście"
 
+#: app/onboarding/intro.tsx
+msgid "Podoba Ci się ktoś w kawiarni? Pinguj zamiast zgadywać."
+msgstr "Podoba Ci się ktoś w kawiarni? Pinguj zamiast zgadywać."
+
 #: app/(modals)/group/[id].tsx
 msgid "Pokaż moją lokalizację"
 msgstr "Pokaż moją lokalizację"
@@ -1072,6 +1077,7 @@ msgid "Polityka prywatności"
 msgstr "Polityka prywatności"
 
 #: app/(modals)/user/[userId].tsx
+#: app/onboarding/intro.tsx
 #: app/settings/profiling.tsx
 msgid "Pomiń"
 msgstr "Pomiń"
@@ -1211,13 +1217,17 @@ msgstr "Spróbuj ponownie"
 msgid "Super! {participantName} wie, że idziesz."
 msgstr "Super! {participantName} wie, że idziesz."
 
-#: app/onboarding/hook.tsx
-msgid "Świat jest pełen ludzi, których potrzebujesz."
-msgstr "Świat jest pełen ludzi, których potrzebujesz."
-
 #: src/components/ui/ThinkingIndicator.tsx
 msgid "Szukam najlepszego pytania…"
 msgstr "Szukam najlepszego pytania…"
+
+#: app/onboarding/intro.tsx
+msgid "Szukasz muzyka? Siedzi dwa stoliki dalej."
+msgstr "Szukasz muzyka? Siedzi dwa stoliki dalej."
+
+#: app/onboarding/intro.tsx
+msgid "Szukasz pracy? Ktoś obok buduje zespół."
+msgstr "Szukasz pracy? Ktoś obok buduje zespół."
 
 #: app/(modals)/group/[id].tsx
 #: app/group/join/[code].tsx
@@ -1628,13 +1638,13 @@ msgstr "Zablokuj"
 msgid "Zablokuj użytkownika"
 msgstr "Zablokuj użytkownika"
 
-#: app/onboarding/hook.tsx
-msgid "Zacznij"
-msgstr "Zacznij"
-
 #: app/(tabs)/chats.tsx
 msgid "Zacznij rozmowę odpowiadając na ping"
 msgstr "Zacznij rozmowę odpowiadając na ping"
+
+#: app/onboarding/intro.tsx
+msgid "Zaczynam"
+msgstr "Zaczynam"
 
 #: app/(tabs)/chats.tsx
 msgid "Żadnych pingów ani nieprzeczytanych wiadomości"

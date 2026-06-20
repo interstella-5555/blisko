@@ -288,6 +288,7 @@ msgstr "Ти впевнений, що хочеш заблокувати {display
 
 #: app/onboarding/categories.tsx
 #: app/onboarding/index.tsx
+#: app/onboarding/intro.tsx
 #: app/settings/profiling.tsx
 msgid "Dalej"
 msgstr "Далі"
@@ -1017,6 +1018,10 @@ msgstr "Введи нову електронну адресу"
 msgid "Podejdę osobiście"
 msgstr "Підійду особисто"
 
+#: app/onboarding/intro.tsx
+msgid "Podoba Ci się ktoś w kawiarni? Pinguj zamiast zgadywać."
+msgstr "Тобі хтось подобається в кав'ярні? Пінгуй замість того, щоб вгадувати."
+
 #: app/(modals)/group/[id].tsx
 msgid "Pokaż moją lokalizację"
 msgstr "Показати мою локацію"
@@ -1088,6 +1093,7 @@ msgid "Polityka prywatności"
 msgstr "Політика конфіденційності"
 
 #: app/(modals)/user/[userId].tsx
+#: app/onboarding/intro.tsx
 #: app/settings/profiling.tsx
 msgid "Pomiń"
 msgstr "Пропустити"
@@ -1233,13 +1239,17 @@ msgstr "Спробуй ще раз"
 msgid "Super! {participantName} wie, że idziesz."
 msgstr "Супер! {participantName} знає, що ти йдеш."
 
-#: app/onboarding/hook.tsx
-msgid "Świat jest pełen ludzi, których potrzebujesz."
-msgstr "Світ сповнений людей, яких ти потребуєш."
-
 #: src/components/ui/ThinkingIndicator.tsx
 msgid "Szukam najlepszego pytania…"
 msgstr "Шукаю найкраще питання…"
+
+#: app/onboarding/intro.tsx
+msgid "Szukasz muzyka? Siedzi dwa stoliki dalej."
+msgstr "Шукаєш музиканта? Він сидить за два столи далі."
+
+#: app/onboarding/intro.tsx
+msgid "Szukasz pracy? Ktoś obok buduje zespół."
+msgstr "Шукаєш роботу? Хтось поруч формує команду."
 
 #: app/(modals)/group/[id].tsx
 #: app/group/join/[code].tsx
@@ -1656,13 +1666,13 @@ msgstr "Заблокувати"
 msgid "Zablokuj użytkownika"
 msgstr "Заблокувати користувача"
 
-#: app/onboarding/hook.tsx
-msgid "Zacznij"
-msgstr "Почати"
-
 #: app/(tabs)/chats.tsx
 msgid "Zacznij rozmowę odpowiadając na ping"
 msgstr "Почни розмову, відповівши на пінг"
+
+#: app/onboarding/intro.tsx
+msgid "Zaczynam"
+msgstr "Починаю"
 
 #: app/(tabs)/chats.tsx
 msgid "Żadnych pingów ani nieprzeczytanych wiadomości"
