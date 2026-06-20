@@ -265,6 +265,22 @@ Typing events flow two ways:
 
 ---
 
+## "Podejdę osobiście" Come-Over (BLI-298, v4 §10.3)
+
+**What:** The signature "stop staring at screens, go meet" moment — a prominent button in a DM chat that notifies the peer "[Imię] idzie do Ciebie" (someone is walking over to meet them, right now).
+
+**Why gated strictly:** This is a physical-safety surface — it nudges a user toward a specific stranger's live location. So the gate is enforced server-side on BOTH endpoints, never just hidden in the client UI.
+
+**Gate:** The actor must be in Full Nomad visibility (`profiles.visibility_mode = 'full_nomad'`) AND the peer must be live within `COME_OVER_MAX_DISTANCE_METERS` (500m, in `@repo/shared/config/nearby.ts`). DM-only — group chats are never eligible.
+
+**Endpoints (`messages` router):**
+- `comeOverEligibility({ conversationId })` (query) — returns `{ eligible: boolean, distance: number | null }`. Resolves the DM peer (`getDmPeerForComeOver` helper: verifies a non-deleted DM the actor participates in, excludes soft-deleted/suspended peers via INNER JOIN to `user`), reads the actor's `visibility_mode` + location and the peer's location, and runs `computeComeOverEligibility` (`apps/api/src/lib/come-over.ts`). **The peer's coordinates never leave the server** — only the boolean + a Haversine distance — preserving location privacy while letting the client render the button conditionally. The mobile chat screen polls this every 30s while open so the button appears/disappears as either user moves.
+- `comeOver({ conversationId })` (mutation, rate-limited `messages.comeOver` 10/h) — re-checks the gate authoritatively (`COME_OVER_NOT_ELIGIBLE` BAD_REQUEST otherwise), then fires a push (`push.comeOver.title`/`.body`, localized to the peer) and publishes the `comeOver` WS event. Confirmation toast on the actor's side: "Super! [Osoba] wie, że idziesz."
+
+**WS event `comeOver`:** user-targeted (`broadcastToUser` to the peer), payload `{ conversationId, fromUserId, fromProfile: { displayName, avatarUrl } }`. Mobile `useInAppNotifications` renders it as an **unconditional** custom toast (8s, not gated by message notification prefs — it's the magical real-world signal) that opens the chat on tap.
+
+**Pure gating logic** lives in `apps/api/src/lib/come-over.ts` (`haversineMeters`, `computeComeOverEligibility`) so the gate is unit-tested without a DB (`apps/api/__tests__/come-over.test.ts`).
+
 ## Mute Conversation
 
 **What:** Per-participant push suppression via `conversationParticipants.mutedUntil`.

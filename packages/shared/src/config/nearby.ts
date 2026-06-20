@@ -34,3 +34,12 @@ export const NEARBY_DEFAULT_RADIUS_METERS = 5000;
  * Used server-side (the count query) and client-side (label text) so they never drift.
  */
 export const MATCH_QUALITY_THRESHOLD = 60;
+
+/**
+ * Max live distance (meters) for the "Podejdę osobiście" come-over button in chat (BLI-298, v4 §10.3).
+ * The button — the "stop staring at screens, go meet" moment — only appears when the actor is in
+ * Full Nomad visibility AND the peer is within this radius. This is a physical-safety surface
+ * (it nudges a user toward a specific stranger's live location), so the gate is enforced
+ * server-side too, not just client-side. ~500m ≈ one grid cell ≈ a few minutes' walk.
+ */
+export const COME_OVER_MAX_DISTANCE_METERS = 500;

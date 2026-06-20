@@ -23,8 +23,9 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { type BubblePosition, MessageBubble } from "@/components/chat/MessageBubble";
 import { type ContextMenuData, MessageContextMenu } from "@/components/chat/MessageContextMenu";
 import { Avatar } from "@/components/ui/Avatar";
-import { IconBell, IconBellOff, IconChevronLeft } from "@/components/ui/icons";
+import { IconBell, IconBellOff, IconChevronLeft, IconNavigate } from "@/components/ui/icons";
 import { useIsGhost } from "@/hooks/useIsGhost";
+import { showToast } from "@/lib/toast";
 import { trpc } from "@/lib/trpc";
 import { showModerationToastIfApplicable, uploadImage } from "@/lib/uploadImage";
 import { useTypingIndicator } from "@/lib/ws";
@@ -162,6 +163,26 @@ export default function ChatScreen() {
 
   // Typing indicators
   const { isTyping: someoneTyping, typingUserIds, sendTyping } = useTypingIndicator(conversationId);
+
+  // "Podejdę osobiście" come-over (BLI-298, v4 §10.3). The button only shows when
+  // the backend says I'm eligible — Full Nomad visibility AND the peer is live
+  // within ~500m. Distance is computed server-side (peer coords never leave the
+  // server), so we poll while the chat is open to track movement.
+  const comeOverEligibility = trpc.messages.comeOverEligibility.useQuery(
+    { conversationId: conversationId! },
+    {
+      enabled: !!conversationId && !isGroup,
+      refetchInterval: 30_000,
+      refetchIntervalInBackground: false,
+    },
+  );
+  const comeOverMutation = trpc.messages.comeOver.useMutation({
+    onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast("success", t`Super! ${participantName} wie, że idziesz.`);
+    },
+  });
+  const canComeOver = !isGroup && comeOverEligibility.data?.eligible === true;
 
   // Simple handlers — lifecycle-safe via store
   const handleSend = (text: string, replyToId?: string) => {
@@ -492,6 +513,23 @@ export default function ChatScreen() {
       />
 
       <KeyboardStickyView>
+        {canComeOver && (
+          <Pressable
+            testID="come-over-btn"
+            style={({ pressed }) => [styles.comeOverButton, pressed && styles.comeOverButtonPressed]}
+            disabled={comeOverMutation.isPending}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              comeOverMutation.mutate({ conversationId: conversationId! });
+            }}
+          >
+            <IconNavigate size={20} color={colors.bg} />
+            <Text style={styles.comeOverText}>
+              <Trans>Podejdę osobiście</Trans>
+            </Text>
+          </Pressable>
+        )}
+
         {someoneTyping && (
           <View style={styles.typingBar}>
             <Text style={styles.typingText}>
@@ -697,6 +735,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: "italic",
     color: colors.muted,
+  },
+  comeOverButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.tight,
+    backgroundColor: colors.accent,
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginHorizontal: spacing.section,
+    marginBottom: spacing.tight,
+  },
+  comeOverButtonPressed: {
+    opacity: 0.85,
+  },
+  comeOverText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 16,
+    color: colors.bg,
   },
   errorContainer: {
     padding: spacing.section,

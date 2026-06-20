@@ -151,3 +151,11 @@ export interface GroupInvitedEvent {
 export interface ForceDisconnectEvent {
   userId: string;
 }
+
+export interface ComeOverEvent {
+  // The user being notified that someone is walking over to them (BLI-298).
+  toUserId: string;
+  conversationId: string;
+  fromUserId: string;
+  fromProfile: { displayName: string; avatarUrl: string | null };
+}

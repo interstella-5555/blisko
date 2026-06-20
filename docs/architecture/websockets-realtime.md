@@ -55,6 +55,7 @@ Bun native WebSocket server delivering real-time events to mobile clients. Sourc
 | `groupUpdated` | server->client | Group metadata changed | `{ type: "groupUpdated", conversationId, updates: { name?, description?, avatarUrl? } }` |
 | `topicEvent` | server->client | Topic lifecycle | `{ type: "topicEvent", conversationId, topic: { id, name, emoji }, action: "created"\|"updated"\|"deleted"\|"closed" }` |
 | `groupInvited` | server->client | User invited to group | `{ type: "groupInvited", conversationId, groupName }` |
+| `comeOver` | server->client | Peer tapped "Podejdę osobiście" (BLI-298) | `{ type: "comeOver", conversationId, fromUserId, fromProfile: { displayName, avatarUrl } }` |
 | `conversationDeleted` | server->client | Conversation removed | `{ type: "conversationDeleted", conversationId }` |
 | `forceDisconnect` | server->client | Account deleted | `{ type: "forceDisconnect" }` (then server closes WS with code 1000) |
 | `reconnected` | **synthetic / client-only** | Emitted by `apps/mobile/src/lib/ws.ts:162` after successful re-auth following a drop (`onclose` → reconnect timer → new `auth` exchange). Delivered to all registered handlers like any other message, but the server never sends it over the wire. | `{ type: "reconnected" }` |
@@ -197,6 +198,7 @@ Events are routed through two paths depending on their target:
 - `profilingFailed` — to the user when profile generation from Q&A exhausts retries (mobile retries via `retryProfileGeneration`)
 - `conversationDeleted` — to the user whose conversation was deleted
 - `groupInvited` — to the invited user
+- `comeOver` — to the DM peer when someone taps "Podejdę osobiście" (BLI-298)
 - `forceDisconnect` — to the user being disconnected
 
 **Conversation-targeted events** (via `broadcastToConversation`):
