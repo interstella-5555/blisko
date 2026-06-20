@@ -14,7 +14,9 @@ set -euo pipefail
 # Usage: ./seed-demo.sh --mode <nearby|incoming-ping>
 # Output: exports env vars for Maestro (EMAIL, EMAIL_A, EMAIL_B, USER_ID_A, USER_ID_B)
 
-API="${API_URL:-http://127.0.0.1:3000}"
+# Default to prod (what the mobile app targets via .env.local); override with API_URL.
+# Test users created here are `type:test`, auto-reaped by the cleanup-test-users job.
+API="${API_URL:-https://api.blisko.app}"
 MODE="nearby"
 
 while [[ $# -gt 0 ]]; do
