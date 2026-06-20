@@ -4,6 +4,7 @@ import { RedisClient } from "bun";
 import { and, asc, desc, eq, gt, ilike, inArray, isNotNull, isNull, lt, max, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, schema } from "@/db";
+import { computeComeOverEligibility } from "@/lib/come-over";
 import { t } from "@/services/i18n";
 import { setTargetGroupId, setTargetUserId } from "@/services/metrics";
 import { moderateContent } from "@/services/moderation";
@@ -14,6 +15,54 @@ import { ensureTypingListener } from "@/ws/handler";
 import { publishEvent } from "@/ws/redis-bridge";
 
 const idempotencyRedis = new RedisClient(process.env.REDIS_URL!);
+
+/**
+ * Resolve the DM peer for the come-over feature (BLI-298): verify the actor is a
+ * participant in a non-group, non-deleted conversation, and return the OTHER
+ * participant's userId + live location. Suspended / soft-deleted peers are
+ * excluded (INNER JOIN to `user` with both guards). Returns null when the gate
+ * shouldn't apply (group chat, not a participant, no eligible peer).
+ */
+async function getDmPeerForComeOver(
+  conversationId: string,
+  actorUserId: string,
+): Promise<{ userId: string; latitude: number | null; longitude: number | null } | null> {
+  const conversation = await db.query.conversations.findFirst({
+    where: and(eq(schema.conversations.id, conversationId), isNull(schema.conversations.deletedAt)),
+    columns: { type: true },
+  });
+  if (!conversation || conversation.type === "group") return null;
+
+  const actor = await db.query.conversationParticipants.findFirst({
+    where: and(
+      eq(schema.conversationParticipants.conversationId, conversationId),
+      eq(schema.conversationParticipants.userId, actorUserId),
+    ),
+    columns: { conversationId: true },
+  });
+  if (!actor) return null;
+
+  const [peer] = await db
+    .select({
+      userId: schema.profiles.userId,
+      latitude: schema.profiles.latitude,
+      longitude: schema.profiles.longitude,
+    })
+    .from(schema.conversationParticipants)
+    .innerJoin(schema.profiles, eq(schema.profiles.userId, schema.conversationParticipants.userId))
+    .innerJoin(schema.user, eq(schema.user.id, schema.conversationParticipants.userId))
+    .where(
+      and(
+        eq(schema.conversationParticipants.conversationId, conversationId),
+        ne(schema.conversationParticipants.userId, actorUserId),
+        isNull(schema.user.deletedAt),
+        isNull(schema.user.suspendedAt),
+      ),
+    )
+    .limit(1);
+
+  return peer ?? null;
+}
 
 export const messagesRouter = router({
   // Get all conversations for current user
@@ -754,6 +803,77 @@ export const messagesRouter = router({
       });
 
       return message;
+    }),
+
+  // "Podejdę osobiście" come-over eligibility (BLI-298, v4 §10.3).
+  // Returns whether the actor may show the come-over button for this DM and the
+  // live distance to the peer. Eligible = actor is Full Nomad AND peer < 500m.
+  // The peer's coordinates are NEVER returned to the client — only the gate
+  // result and a rounded-by-Haversine distance — so this preserves location
+  // privacy while still letting the UI render the button conditionally.
+  comeOverEligibility: protectedProcedure
+    .input(z.object({ conversationId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const peer = await getDmPeerForComeOver(input.conversationId, ctx.userId);
+      if (!peer) return { eligible: false, distance: null };
+
+      const myProfile = await db.query.profiles.findFirst({
+        where: eq(schema.profiles.userId, ctx.userId),
+        columns: { visibilityMode: true, latitude: true, longitude: true },
+      });
+      if (!myProfile) return { eligible: false, distance: null };
+
+      return computeComeOverEligibility(myProfile, peer);
+    }),
+
+  // "Podejdę osobiście" come-over (BLI-298, v4 §10.3) — notify the peer that the
+  // actor is walking over to them. Re-checks the gate server-side (physical-safety
+  // surface) before firing a push + WS event. Rate-limited because it pushes.
+  comeOver: protectedProcedure
+    .use(rateLimit("messages.comeOver"))
+    .input(z.object({ conversationId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const peer = await getDmPeerForComeOver(input.conversationId, ctx.userId);
+      if (!peer) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You are not a participant in this DM" });
+      }
+
+      const [myProfile, peerProfile] = await Promise.all([
+        db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, ctx.userId),
+          columns: { visibilityMode: true, latitude: true, longitude: true, displayName: true, avatarUrl: true },
+        }),
+        db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, peer.userId),
+          columns: { locale: true },
+        }),
+      ]);
+      if (!myProfile) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Profile not found" });
+      }
+
+      // Authoritative gate — never trust the client's view of visibility/distance.
+      const { eligible } = computeComeOverEligibility(myProfile, peer);
+      if (!eligible) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "COME_OVER_NOT_ELIGIBLE" });
+      }
+
+      setTargetUserId(ctx.req, peer.userId);
+
+      void sendPushToUser(peer.userId, {
+        title: t("push.comeOver.title", peerProfile?.locale, { name: myProfile.displayName }),
+        body: t("push.comeOver.body", peerProfile?.locale),
+        data: { type: "chat", conversationId: input.conversationId },
+      });
+
+      publishEvent("comeOver", {
+        toUserId: peer.userId,
+        conversationId: input.conversationId,
+        fromUserId: ctx.userId,
+        fromProfile: { displayName: myProfile.displayName, avatarUrl: myProfile.avatarUrl },
+      });
+
+      return { ok: true };
     }),
 
   // Mark messages as read

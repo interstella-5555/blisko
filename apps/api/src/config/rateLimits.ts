@@ -42,6 +42,10 @@ export const rateLimits = {
   // Messages globally — catches cross-conversation spam
   "messages.sendGlobal": { limit: 500, window: 60 * 60 },
 
+  // "Podejdę osobiście" come-over — sends a push toward someone's live location.
+  // Tight cap: this is a physical-safety surface, no reason to fire it often (BLI-298).
+  "messages.comeOver": { limit: 10, window: 60 * 60 },
+
   // Profile edits — prevents rapid-fire updates triggering AI jobs
   "profiles.update": { limit: 10, window: 60 * 60 },
 

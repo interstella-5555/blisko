@@ -36,6 +36,14 @@ const TRANSLATIONS = {
     pl: "Ktoś z pasującym profilem jest w pobliżu",
     ua: "Хтось із відповідним профілем поблизу",
   },
+  "push.comeOver.title": {
+    pl: "{name} idzie do Ciebie",
+    ua: "{name} йде до тебе",
+  },
+  "push.comeOver.body": {
+    pl: "Jest blisko i chce się spotkać. Rozejrzyj się!",
+    ua: "Поруч і хоче зустрітися. Роззирнися!",
+  },
 
   // Email — shared (layout footer + greeting)
   "email.layout.footer": {

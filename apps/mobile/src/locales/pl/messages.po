@@ -34,6 +34,11 @@ msgstr "[Zdjęcie]"
 msgid "{0} członków"
 msgstr "{0} członków"
 
+#. placeholder {0}: fromProfile.displayName
+#: src/hooks/useInAppNotifications.ts
+msgid "{0} idzie do Ciebie"
+msgstr "{0} idzie do Ciebie"
+
 #. placeholder {0}: typingDisplayNames.join(", ")
 #: app/chat/[id].tsx
 msgid "{0} pisze..."
@@ -414,6 +419,10 @@ msgstr "Jak to działa"
 #: app/settings/help.tsx
 msgid "Jak to działa?"
 msgstr "Jak to działa?"
+
+#: src/hooks/useInAppNotifications.ts
+msgid "Jest blisko i chce się spotkać. Rozejrzyj się!"
+msgstr "Jest blisko i chce się spotkać. Rozejrzyj się!"
 
 #. placeholder {0}: nearbyFilter === "people" ? t`osoby` : t`osoby i grupy`
 #: app/(tabs)/index.tsx
@@ -1010,6 +1019,10 @@ msgstr "Podaj nazwę grupy"
 msgid "Podaj nowy adres email"
 msgstr "Podaj nowy adres email"
 
+#: app/chat/[id].tsx
+msgid "Podejdę osobiście"
+msgstr "Podejdę osobiście"
+
 #: app/(modals)/group/[id].tsx
 msgid "Pokaż moją lokalizację"
 msgstr "Pokaż moją lokalizację"
@@ -1217,6 +1230,10 @@ msgstr "Spróbuj innej metody logowania"
 #: src/components/AppGate.tsx
 msgid "Spróbuj ponownie"
 msgstr "Spróbuj ponownie"
+
+#: app/chat/[id].tsx
+msgid "Super! {participantName} wie, że idziesz."
+msgstr "Super! {participantName} wie, że idziesz."
 
 #: app/onboarding/hook.tsx
 msgid "Świat jest pełen ludzi, których potrzebujesz."

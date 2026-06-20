@@ -86,6 +86,12 @@ export type WSMessage =
       action: "created" | "updated" | "deleted" | "closed";
     }
   | { type: "groupInvited"; conversationId: string; groupName: string | null }
+  | {
+      type: "comeOver";
+      conversationId: string;
+      fromUserId: string;
+      fromProfile: { displayName: string; avatarUrl: string | null };
+    }
   | { type: "conversationDeleted"; conversationId: string }
   | { type: "forceDisconnect" }
   | { type: "reconnected" };

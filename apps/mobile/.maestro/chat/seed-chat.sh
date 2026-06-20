@@ -4,7 +4,7 @@ set -euo pipefail
 # Seed script for chat E2E tests
 # Creates users with profiles, optionally a conversation and messages.
 #
-# Usage: ./seed-chat.sh --mode <empty|basic|messages|unread|many|search>
+# Usage: ./seed-chat.sh --mode <empty|basic|messages|unread|many|search|comeover>
 # Output: Exports env vars for Maestro (EMAIL_A, EMAIL_B, TOKEN_A, TOKEN_B, CONVERSATION_ID)
 
 API="${API_URL:-http://127.0.0.1:3000}"
@@ -61,6 +61,14 @@ curl -sf "$API/dev/mark-complete" \
 trpc_mutate "$TOKEN_A" "profiles.updateLocation" \
   '{"latitude":52.2297,"longitude":21.0122}' \
   > /dev/null
+
+# comeover mode: A must be Full Nomad for the "Podejdę osobiście" button to show.
+# B is seeded ~70m away (well under the 500m gate), so eligibility flips to true. (BLI-298)
+if [ "$MODE" = "comeover" ]; then
+  trpc_mutate "$TOKEN_A" "profiles.update" \
+    '{"visibilityMode":"full_nomad"}' \
+    > /dev/null
+fi
 
 # For empty mode, only user A is needed (no conversation)
 if [ "$MODE" = "empty" ]; then
@@ -124,7 +132,7 @@ send_msg() {
 }
 
 case "$MODE" in
-  basic)
+  basic | comeover)
     # No messages — just the conversation
     ;;
   messages)

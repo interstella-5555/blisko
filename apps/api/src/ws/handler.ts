@@ -14,6 +14,7 @@ import { sessionByToken } from "@/trpc/context";
 import type {
   AnalysisFailedEvent,
   AnalysisReadyEvent,
+  ComeOverEvent,
   ConversationDeletedEvent,
   ForceDisconnectEvent,
   GroupInvitedEvent,
@@ -354,6 +355,15 @@ ee.on("groupInvited", (event: GroupInvitedEvent) => {
     type: "groupInvited",
     conversationId: event.conversationId,
     groupName: event.groupName,
+  });
+});
+
+ee.on("comeOver", (event: ComeOverEvent) => {
+  broadcastToUser(event.toUserId, {
+    type: "comeOver",
+    conversationId: event.conversationId,
+    fromUserId: event.fromUserId,
+    fromProfile: event.fromProfile,
   });
 });
 

@@ -31,6 +31,7 @@ run_one reply-message.yaml     messages
 run_one delete-message.yaml    messages
 run_one emoji-reaction.yaml    messages
 run_one pagination.yaml        many
+run_one come-over.yaml         comeover
 
 echo ""
 echo "================================================================"

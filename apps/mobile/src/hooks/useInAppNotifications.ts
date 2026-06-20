@@ -3,7 +3,7 @@ import { router, usePathname } from "expo-router";
 import React, { useCallback } from "react";
 import { NotificationToast } from "@/components/ui/NotificationToast";
 import { openChatFromAnywhere } from "@/lib/navigation";
-import { showNotification } from "@/lib/toast";
+import { showNotification, toast } from "@/lib/toast";
 import { useWebSocket, type WSMessage } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
 import { useConversationsStore } from "@/stores/conversationsStore";
@@ -72,6 +72,29 @@ export function useInAppNotifications() {
             avatarName: "B",
             onPress: () => {},
           }),
+        );
+        return;
+      }
+
+      if (msg.type === "comeOver") {
+        // "Podejdę osobiście" — someone Full-Nomad nearby is walking over to meet
+        // (BLI-298, v4 §10.3). This is the magical "go meet in person" moment, so
+        // it is shown unconditionally (not gated by message notification prefs).
+        const { fromProfile, conversationId } = msg;
+        const id = `come-over-${conversationId}`;
+        toast.custom(
+          notification(id, {
+            title: t`${fromProfile.displayName} idzie do Ciebie`,
+            subtitle: t`Jest blisko i chce się spotkać. Rozejrzyj się!`,
+            avatarUrl: fromProfile.avatarUrl,
+            avatarName: fromProfile.displayName,
+            onPress: () => {
+              if (useConversationsStore.getState().activeConversationId !== conversationId) {
+                openChatFromAnywhere(conversationId, pathname);
+              }
+            },
+          }),
+          { id, duration: 8000 },
         );
         return;
       }
