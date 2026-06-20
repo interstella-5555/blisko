@@ -60,14 +60,7 @@ export default function ProfileScreen() {
         </Text>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
-          <Trans>Kogo szukam</Trans>
-        </Text>
-        <Text testID="profile-looking-for" style={styles.sectionContent}>
-          {profile?.lookingFor || t`Brak opisu`}
-        </Text>
-      </View>
+      {/* "Kogo szukam" removed (v4 §7) — it IS the status, not a profile section. */}
     </ScrollView>
   );
 }

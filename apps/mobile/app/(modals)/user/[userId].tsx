@@ -400,7 +400,6 @@ export default function UserProfileScreen() {
   const displayName = cached?.displayName || params.displayName;
   const resolvedAvatarUrl = cached?.avatarUrl ?? avatarUrl;
   const resolvedBio = cached?.bio ?? profile?.bio;
-  const resolvedLookingFor = cached?.lookingFor ?? profile?.lookingFor;
   const resolvedDistance = cached?.distance ?? distance;
   const resolvedMatchScore = cached?.matchScore ?? matchScore;
   const matchPercent = analysis?.matchScore != null ? Math.round(analysis.matchScore) : resolvedMatchScore;
@@ -534,7 +533,7 @@ export default function UserProfileScreen() {
               <Trans>WSPÓLNE</Trans>
             </Text>
             <View style={styles.pillRow}>
-              {commonInterests.map((interest) => (
+              {commonInterests.slice(0, 5).map((interest) => (
                 <View key={interest} style={styles.pill}>
                   <Text style={styles.pillText}>{interest}</Text>
                 </View>
@@ -571,26 +570,8 @@ export default function UserProfileScreen() {
           )}
         </View>
 
-        {/* Looking for */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            <Trans>Kogo szukam</Trans>
-          </Text>
-          {!cached && isLoading ? (
-            <SkeletonLines count={2} />
-          ) : resolvedLookingFor && profile ? (
-            <TranslatableText
-              userId={userId}
-              field="looking_for"
-              original={profile.lookingFor ?? resolvedLookingFor}
-              sourceLocale={profile.contentLocale}
-              translations={profile.translations ?? []}
-              textStyle={styles.sectionContent}
-            />
-          ) : (
-            <Text style={styles.sectionContent}>{resolvedLookingFor || t`Brak opisu`}</Text>
-          )}
-        </View>
+        {/* "Kogo szukam" removed (v4 §7) — lookingFor stays in the matching
+            backend, but it IS the status, so it's no longer a profile section. */}
 
         {/* Superpower */}
         {profile?.superpower && (

@@ -23,10 +23,6 @@ msgstr " · ~{0}m od siebie"
 msgid " (Ty)"
 msgstr " (Ty)"
 
-#: app/settings/edit-profile.tsx
-msgid "\"Kogo szukam\" musi mieć co najmniej 10 znaków"
-msgstr "\"Kogo szukam\" musi mieć co najmniej 10 znaków"
-
 #: app/chat/[id].tsx
 msgid "[Zdjęcie]"
 msgstr "[Zdjęcie]"
@@ -481,12 +477,6 @@ msgstr "Kiedy ktoś Cię pingnie, pojawi się tutaj"
 msgid "Kilka pytań"
 msgstr "Kilka pytań"
 
-#: app/(modals)/user/[userId].tsx
-#: app/(tabs)/profile.tsx
-#: app/settings/edit-profile.tsx
-msgid "Kogo szukam"
-msgstr "Kogo szukam"
-
 #: app/onboarding/profiling-result.tsx
 #: app/settings/profiling-result.tsx
 msgid "KOGO SZUKAM"
@@ -906,10 +896,6 @@ msgstr "Odrzucone"
 #: app/create-group.tsx
 msgid "Opis"
 msgstr "Opis"
-
-#: app/settings/edit-profile.tsx
-msgid "Opisz, jakie osoby chciałbyś poznać..."
-msgstr "Opisz, jakie osoby chciałbyś poznać..."
 
 #: app/onboarding/visibility.tsx
 msgid "Opowiem o sobie"

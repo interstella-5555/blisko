@@ -19,7 +19,6 @@ export default function EditProfileScreen() {
 
   const [displayName, _setDisplayName] = useState(profile?.displayName || "");
   const [bio, setBio] = useState(profile?.bio || "");
-  const [lookingFor, setLookingFor] = useState(profile?.lookingFor || "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || null);
   const [superpower, setSuperpower] = useState(profile?.superpower || "");
   const [offerType, setOfferType] = useState<"volunteer" | "exchange" | "gig" | "">(profile?.offerType || "");
@@ -65,21 +64,16 @@ export default function EditProfileScreen() {
       Alert.alert(t`Błąd`, t`Bio musi mieć co najmniej 10 znaków`);
       return;
     }
-    if (lookingFor.trim().length < 10) {
-      Alert.alert(t`Błąd`, t`"Kogo szukam" musi mieć co najmniej 10 znaków`);
-      return;
-    }
 
     updateProfile.mutate({
       bio: bio.trim(),
-      lookingFor: lookingFor.trim(),
       ...(superpower.trim() ? { superpower: superpower.trim() } : {}),
       ...(offerType ? { offerType } : {}),
       ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl || undefined } : {}),
     });
   };
 
-  const canSave = bio.trim().length >= 10 && lookingFor.trim().length >= 10;
+  const canSave = bio.trim().length >= 10;
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -124,31 +118,12 @@ export default function EditProfileScreen() {
             multiline
             numberOfLines={5}
             textAlignVertical="top"
-            maxLength={500}
+            maxLength={200}
           />
-          <Text style={styles.charCount}>{bio.length} / 500</Text>
+          <Text style={styles.charCount}>{bio.length} / 200</Text>
         </View>
 
-        <View style={styles.field}>
-          <Text style={styles.label}>
-            <Trans>Kogo szukam</Trans>
-          </Text>
-          <TextInput
-            testID="edit-looking-for-input"
-            style={[styles.input, styles.multilineInput]}
-            value={lookingFor}
-            onChangeText={setLookingFor}
-            placeholder={t`Opisz, jakie osoby chciałbyś poznać...`}
-            placeholderTextColor={colors.muted}
-            spellCheck={false}
-            autoCorrect={false}
-            multiline
-            numberOfLines={5}
-            textAlignVertical="top"
-            maxLength={500}
-          />
-          <Text style={styles.charCount}>{lookingFor.length} / 500</Text>
-        </View>
+        {/* "Kogo szukam" removed (v4 §7) — it IS the status, set from the map. */}
 
         <View style={styles.field}>
           <Text style={styles.label}>
@@ -165,9 +140,9 @@ export default function EditProfileScreen() {
             multiline
             numberOfLines={3}
             textAlignVertical="top"
-            maxLength={300}
+            maxLength={200}
           />
-          <Text style={styles.charCount}>{superpower.length} / 300</Text>
+          <Text style={styles.charCount}>{superpower.length} / 200</Text>
         </View>
 
         {superpower.trim().length > 0 && (
