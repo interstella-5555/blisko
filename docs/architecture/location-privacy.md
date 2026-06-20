@@ -7,6 +7,7 @@
 > Updated 2026-04-19 — Removed stale "3 minuty + mobile background task" claim. Background location permission dropped (commit `bbd49cd`); foreground-only updates via tab mount + 3s retry. Flagged as drift from PRODUCT.md.
 > Updated 2026-05-21 — BLI-283: `NEARBY_DEFAULT_RADIUS_METERS = 5000` in `@repo/shared/config/nearby.ts` is now the single source of truth for the nearby radius default. All four nearby validators (`getNearbyUsersSchema`, `getNearbyUsersForMapSchema`, `getNearbyMapMarkersSchema`, `getDiscoverableGroupsSchema`) and `groups.getMembersNearby` import from it. The two API-internal hardcoded uses (the `updateLocation` → `nearbyChanged` broadcast and `enqueueUserPairAnalysis` default) also use the constant. Exposed to mobile via the new `app.getConfig` tRPC procedure — bump the constant + redeploy and clients pick up the new radius without an App Store deploy.
 > Updated 2026-05-24 — BLI-287: new `profiles.last_active_at` column (migration `0033_add_profile_last_active_at`). Bumped by the `isAuthed` tRPC middleware on every authenticated request, throttled DB-side via `WHERE last_active_at IS NULL OR last_active_at < NOW() - INTERVAL '1 minute'` so the actual write happens at most once per minute per user. Drives the "teraz / X temu" affordance on nearby list (`UserRow`) and profile modal header, formatted by `formatLastActive` in `apps/mobile/src/lib/format.ts` ("teraz" / "X min temu" / "X godz. temu" / "wczoraj" / "X dni temu" / "dawno temu"). `getNearbyUsersForMap` exposes `lastActiveAt` on each user's `profile` shape; `getById` returns it inline as part of the full profile. **Decoupled from `last_location_update` on purpose** — a user sitting still in one place for 10 h is still "active" even though their GPS hasn't moved. `getNearbyMapMarkers` deliberately does not include `lastActiveAt` — bubbles stay neutral per v4 §6.2, recency surfaces in the list/profile views only.
+> Updated 2026-06-20 — BLI-294: v4 "people-first map" — surface match QUALITY, not a raw headcount. `getNearbyUsersForMap` adds a parallel `qualityCount` (people in range whose connection analysis FROM the viewer scores >= `MATCH_QUALITY_THRESHOLD = 60`, new shared const in `@repo/shared/config/nearby.ts`; INNER JOIN to `connection_analyses` on the same `baseWhere`, clamped to `[0, totalCount]`). Mobile leads the bottom count pill + list header with `qualityCount` ("{n} z dopasowaniem 60%+ w pobliżu" / "{n} Z DOPASOWANIEM 60%+"); when `qualityCount === 0` the pill shows a neutral "Sprawdź kto jest w pobliżu" — the raw headcount is never shown. An ambient feedback line above the pill reads "✨ Ktoś w pobliżu pasuje do Twojego statusu" when any loaded list user has `hasStatusMatch`, else "🔍 Szukam za Ciebie…" when the viewer has an active status. `getNearbyMapMarkers` columnar response gains `dnd` + `isNew` arrays (`profiles.do_not_disturb`, `profiles.created_at < now-24h`) threaded through `MarkerPoint` → `GridClusterMarker` to render a muted DND dot and a "NEW" badge on single-user bubbles. No schema changes — both columns already existed.
 
 ## Terminology & Product Alignment
 
@@ -148,10 +149,12 @@ Three endpoints serve different use cases. All share the same bounding box + hav
 
 ```ts
 {
-  users:  { ids, names, avatars, lats, lngs, statusMatch },
+  users:  { ids, names, avatars, lats, lngs, statusMatch, dnd, isNew },
   groups: { ids, names, avatars, lats, lngs, members },
 }
 ```
+
+`dnd` (`profiles.do_not_disturb`) and `isNew` (`profiles.created_at` within the last 24h) are `0|1` columnar arrays added in BLI-294. The mobile `MarkerPoint` threads them into `GridClusterMarker`, which renders a muted DND dot and a "NEW" badge on single-user bubbles (not on clusters). Bubbles still stay neutral on recency/status text per v4 §6.2 — the DND dot and NEW badge are the only two cues besides the status-match pulse.
 
 **Rate limit:** Own bucket `profiles.getNearbyMap` (30/min), separate from the list endpoint.
 
@@ -175,13 +178,14 @@ Three endpoints serve different use cases. All share the same bounding box + hav
 
 **Viewport filtering (BLI-189):** When `bbox` is provided, the bounding box is intersected with the radius bounding box. This filters results to only users visible on the map viewport. Client debounces viewport changes (500ms) before sending a new request.
 
-**Additional data fetched in parallel** (7 concurrent queries):
+**Additional data fetched in parallel** (8 concurrent queries):
 - Blocked users (both directions)
 - Decline-cooldown users (recently declined waves, hidden from map for 24h)
 - Current user's profile (for embedding, interests, status)
 - All connection analyses from current user
 - All status matches for current user
 - Total count of nearby users
+- Quality count of nearby users — `aiMatchScore >= MATCH_QUALITY_THRESHOLD` (BLI-294)
 
 **Decline cooldown on map:** Users whom the current user sent a wave to that was declined within `DECLINE_COOLDOWN_HOURS` (24h) are filtered out of the map. This is a UX decision --- avoids showing someone who just rejected you.
 
@@ -201,9 +205,9 @@ The weights favor match quality (60%) over proximity (40%).
 
 **Grid position:** Each result includes `gridLat`, `gridLng`, `gridId` from `toGridCenter()`.
 
-**Status visibility enforcement:**
-- `currentStatus` is returned as `null` for private statuses (`isStatusPublic()` check)
-- `hasStatusMatch` boolean is returned regardless --- controls pulsing bubble animation
+**Status (always public, BLI-289):**
+- `currentStatus` is returned whenever it's active (`isStatusActive`) --- no visibility branch
+- `hasStatusMatch` boolean controls the pulsing bubble animation
 
 **Safety net for missing analyses:** Users without any connection analysis get queued for a quick score (`enqueueQuickScore`) so their match percentage populates on the next map refresh.
 
@@ -216,10 +220,13 @@ The weights favor match quality (60%) over proximity (40%).
             matchScore, commonInterests, shortSnippet, analysisReady,
             hasStatusMatch }],
   totalCount,
+  qualityCount,   // people in range scoring >= MATCH_QUALITY_THRESHOLD (BLI-294)
   nextCursor,
   myStatus: { text, setAt } | null
 }
 ```
+
+**Quality count (BLI-294):** A second `count(*)` in the same `Promise.all`, identical `baseWhere` but with an INNER JOIN to `connection_analyses` (`fromUserId = viewer`, `toUserId = profiles.userId`, `aiMatchScore >= MATCH_QUALITY_THRESHOLD`). Clamped to `[0, totalCount]`. The mobile map leads with this number — the bottom count pill and list header show match quality ("{n} z dopasowaniem 60%+ w pobliżu"), never the raw headcount. When `qualityCount === 0` the pill falls back to a neutral "Sprawdź kto jest w pobliżu". `MATCH_QUALITY_THRESHOLD = 60` is a shared const so server count and client label can never drift.
 
 **Sort:** Status matches first, then by `rankScore` descending (highest match quality first) in application code after the distance-ordered SQL query. Status matches sort above all others because they represent active "looking for something now" intent.
 

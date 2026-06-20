@@ -43,6 +43,8 @@ export function useNearbyMapMarkers() {
           name: data.users.names[i] || null,
           avatar: data.users.avatars[i] ? data.users.avatars[i] : null,
           statusMatch: data.users.statusMatch[i] === 1,
+          dnd: data.users.dnd[i] === 1,
+          isNew: data.users.isNew[i] === 1,
         },
       });
     }

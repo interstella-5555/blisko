@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { MATCH_QUALITY_THRESHOLD } from "@repo/shared";
 import { keepPreviousData } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { router } from "expo-router";
@@ -83,6 +84,7 @@ export default function NearbyScreen() {
   const {
     users: listUsers,
     totalCount,
+    qualityCount,
     myStatus: listMyStatus,
     isLoading: isLoadingList,
     isFetchingNextPage,
@@ -166,6 +168,9 @@ export default function NearbyScreen() {
     return listMyStatus ?? null;
   }, [profile?.currentStatus, listMyStatus]);
 
+  // Ambient status feedback (BLI-294): how many nearby loaded people match my status.
+  const nearbyStatusMatchCount = useMemo(() => listUsers.filter((u) => u.hasStatusMatch).length, [listUsers]);
+
   // Wave status from store (populated by _layout.tsx hydration + WS)
   const waveStatusByUserId = useWavesStore((s) => s.waveStatusByUserId);
 
@@ -237,7 +242,7 @@ export default function NearbyScreen() {
   type NearbyGroup = NonNullable<typeof nearbyGroups>[number];
   type ListUser = (typeof listUsers)[number];
   type ListItem =
-    | { type: "userHeader"; count: number; viewportCount: number }
+    | { type: "userHeader"; count: number; viewportCount: number; qualityCount: number }
     | { type: "user"; data: ListUser }
     | { type: "groupHeader"; count: number }
     | { type: "group"; data: NearbyGroup }
@@ -271,7 +276,7 @@ export default function NearbyScreen() {
     } else {
       // "all" — users section then groups section
       if (uniqueListUsers.length > 0) {
-        items.push({ type: "userHeader", count: totalUserCount, viewportCount: totalCount });
+        items.push({ type: "userHeader", count: totalUserCount, viewportCount: totalCount, qualityCount });
         for (const u of uniqueListUsers) {
           items.push({ type: "user", data: u });
         }
@@ -284,7 +289,7 @@ export default function NearbyScreen() {
       }
     }
     return items;
-  }, [nearbyFilter, uniqueListUsers, nearbyGroups, totalUserCount, totalCount]);
+  }, [nearbyFilter, uniqueListUsers, nearbyGroups, totalUserCount, totalCount, qualityCount]);
 
   const updateLocation = useCallback(async () => {
     try {
@@ -360,13 +365,15 @@ export default function NearbyScreen() {
   const renderItem = ({ item }: { item: ListItem }) => {
     switch (item.type) {
       case "userHeader": {
-        const { count, viewportCount } = item;
+        const { count, viewportCount, qualityCount: headerQualityCount } = item;
         return (
           <View style={styles.listHeader}>
             <Text style={styles.listHeaderTitle}>
-              {showAllNearby || viewportCount >= count
-                ? `${count} ${count === 1 ? t`OSOBA` : t`OSÓB`} ${t`W POBLIŻU`}`
-                : `${viewportCount} ${t`Z`} ${count} ${t`OSÓB W POBLIŻU`}`}
+              {headerQualityCount > 0
+                ? `${headerQualityCount} ${t`Z DOPASOWANIEM`} ${MATCH_QUALITY_THRESHOLD}%+`
+                : showAllNearby || viewportCount >= count
+                  ? `${count} ${count === 1 ? t`OSOBA` : t`OSÓB`} ${t`W POBLIŻU`}`
+                  : `${viewportCount} ${t`Z`} ${count} ${t`OSÓB W POBLIŻU`}`}
             </Text>
           </View>
         );
@@ -546,6 +553,19 @@ export default function NearbyScreen() {
         <IconNavigate size={20} color={isOutsideRadius ? colors.accent : colors.ink} />
       </Pressable>
 
+      {/* Ambient status-feedback line — sits just above the count pill (BLI-294) */}
+      {!listOpen && (myStatus || nearbyStatusMatchCount > 0) && (
+        <View style={[styles.ambientLineWrap, { bottom: insets.bottom + 74 }]} pointerEvents="none">
+          <Text style={styles.ambientLineText} numberOfLines={1}>
+            {nearbyStatusMatchCount > 0 ? (
+              <Trans>✨ Ktoś w pobliżu pasuje do Twojego statusu</Trans>
+            ) : (
+              <Trans>🔍 Szukam za Ciebie…</Trans>
+            )}
+          </Text>
+        </View>
+      )}
+
       {/* Floating count pill — opens the list sheet */}
       {!listOpen && (
         <View style={[styles.countPillWrap, { bottom: insets.bottom + 18 }]} pointerEvents="box-none">
@@ -573,13 +593,15 @@ export default function NearbyScreen() {
             <Text style={styles.countPillText}>
               {totalCount === 0 ? (
                 <Trans>Nikogo w pobliżu</Trans>
-              ) : (
+              ) : qualityCount > 0 ? (
                 <>
                   <Text style={styles.countPillNum}>
-                    {totalCount} {totalCount === 1 ? t`osoba` : t`osób`}
+                    {qualityCount} {qualityCount === 1 ? t`osoba` : t`osób`}
                   </Text>{" "}
-                  <Trans>w pobliżu</Trans>
+                  <Trans>z dopasowaniem {MATCH_QUALITY_THRESHOLD}%+ w pobliżu</Trans>
                 </>
+              ) : (
+                <Trans>Sprawdź kto jest w pobliżu</Trans>
               )}
             </Text>
             {totalCount > 0 && (
@@ -847,6 +869,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 10,
     elevation: 5,
+  },
+  ambientLineWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  ambientLineText: {
+    fontSize: 12,
+    fontFamily: fonts.sansMedium,
+    color: colors.muted,
+    textAlign: "center",
+    paddingHorizontal: spacing.gutter,
+    paddingVertical: 4,
+    textShadowColor: "rgba(255,255,255,0.9)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   countPillWrap: {
     position: "absolute",

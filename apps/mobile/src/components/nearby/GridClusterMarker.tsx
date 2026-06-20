@@ -11,6 +11,10 @@ interface GridClusterMarkerProps {
   avatarUrl?: string | null;
   displayName?: string | null;
   highlighted?: boolean;
+  /** Do-not-disturb — render a muted cue on the bubble (BLI-294). */
+  dnd?: boolean;
+  /** Profile created within the last 24h — render a "NEW" badge on the bubble (BLI-294). */
+  isNew?: boolean;
   /** Override ghost blur (defaults to the current user's ghost state from auth store) */
   isGhost?: boolean;
 }
@@ -46,11 +50,31 @@ function PulsingWrapper({ active, children }: { active: boolean; children: React
   return <Animated.View style={{ transform: [{ scale }] }}>{children}</Animated.View>;
 }
 
+/** DND dot + "NEW" badge overlaid on a single-user bubble (BLI-294). */
+function BubbleCues({ dnd, isNew }: { dnd?: boolean; isNew?: boolean }) {
+  return (
+    <>
+      {dnd ? (
+        <View style={styles.dndDot}>
+          <View style={styles.dndBar} />
+        </View>
+      ) : null}
+      {isNew ? (
+        <View style={styles.newBadge}>
+          <Text style={styles.newBadgeText}>NEW</Text>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
 export function GridClusterMarker({
   count,
   avatarUrl,
   displayName,
   highlighted,
+  dnd,
+  isNew,
   isGhost: isGhostOverride,
 }: GridClusterMarkerProps) {
   const isGhostFromStore = useIsGhost();
@@ -74,6 +98,7 @@ export function GridClusterMarker({
       <PulsingWrapper active={!!highlighted}>
         <View style={styles.singleContainer}>
           <Image source={{ uri: resolvedUri }} style={styles.avatar} blurRadius={isGhost ? ghostBlurRadius : 0} />
+          <BubbleCues dnd={dnd} isNew={isNew} />
         </View>
       </PulsingWrapper>
     );
@@ -86,6 +111,7 @@ export function GridClusterMarker({
         <View style={styles.avatarPlaceholder}>
           <Text style={styles.avatarText}>{(displayName ?? "?").charAt(0).toUpperCase()}</Text>
         </View>
+        <BubbleCues dnd={dnd} isNew={isNew} />
       </View>
     </PulsingWrapper>
   );
@@ -139,6 +165,44 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 16,
     fontWeight: "bold",
+    color: "#fff",
+  },
+  // DND cue — muted grey dot with a small white bar (a quiet "do not disturb" sign).
+  dndDot: {
+    position: "absolute",
+    bottom: -1,
+    right: -1,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#8A8175",
+    borderWidth: 2,
+    borderColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dndBar: {
+    width: 7,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: "#fff",
+  },
+  // "NEW" badge — small accent pill above the bubble.
+  newBadge: {
+    position: "absolute",
+    top: -7,
+    left: -4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 7,
+    backgroundColor: "#D4763A",
+    borderWidth: 1.5,
+    borderColor: "#fff",
+  },
+  newBadgeText: {
+    fontSize: 8,
+    fontWeight: "bold",
+    letterSpacing: 0.4,
     color: "#fff",
   },
 });

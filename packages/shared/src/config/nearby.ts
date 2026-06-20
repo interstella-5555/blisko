@@ -25,3 +25,12 @@ export const NEARBY_PAGE_SIZE = 20;
  * value + redeploy API, and clients pick it up on next config refetch.
  */
 export const NEARBY_DEFAULT_RADIUS_METERS = 5000;
+
+/**
+ * AI match-score floor (percent) for a nearby person to count as a "quality" match (BLI-294).
+ * The map surfaces match QUALITY, not a raw headcount: the bottom count pill and list header
+ * lead with "{n} z dopasowaniem 60%+ w pobliżu" derived from `qualityCount`, which counts
+ * in-range people whose connection analysis from the viewer scores >= this threshold.
+ * Used server-side (the count query) and client-side (label text) so they never drift.
+ */
+export const MATCH_QUALITY_THRESHOLD = 60;

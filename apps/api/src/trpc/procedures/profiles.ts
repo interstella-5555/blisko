@@ -8,6 +8,7 @@ import {
   getNearbyUsersSchema,
   type LocaleCode,
   localeCodeSchema,
+  MATCH_QUALITY_THRESHOLD,
   NEARBY_DEFAULT_RADIUS_METERS,
   setStatusSchema,
   translateContentSchema,
@@ -437,6 +438,8 @@ export const profilesRouter = router({
               latitude: schema.profiles.latitude,
               longitude: schema.profiles.longitude,
               currentStatus: schema.profiles.currentStatus,
+              doNotDisturb: schema.profiles.doNotDisturb,
+              createdAt: schema.profiles.createdAt,
             })
             .from(schema.profiles)
             .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
@@ -499,6 +502,11 @@ export const profilesRouter = router({
       const lats: number[] = [];
       const lngs: number[] = [];
       const statusMatch: (0 | 1)[] = [];
+      const dnd: (0 | 1)[] = [];
+      const isNew: (0 | 1)[] = [];
+
+      // "NEW" bubble badge window (BLI-294): profile created within the last 24h.
+      const newCutoff = subHours(new Date(), 24);
 
       for (const u of nearbyProfiles) {
         if (allBlockedIds.has(u.userId)) continue;
@@ -511,6 +519,8 @@ export const profilesRouter = router({
 
         const theirStatusActive = isStatusActive(u);
         statusMatch.push(myStatusActive && theirStatusActive && statusMatchSet.has(u.userId) ? 1 : 0);
+        dnd.push(u.doNotDisturb ? 1 : 0);
+        isNew.push(u.createdAt > newCutoff ? 1 : 0);
       }
 
       // Build columnar group response
@@ -531,7 +541,7 @@ export const profilesRouter = router({
       }
 
       return {
-        users: { ids, names, avatars, lats, lngs, statusMatch },
+        users: { ids, names, avatars, lats, lngs, statusMatch, dnd, isNew },
         groups: {
           ids: groupIds,
           names: groupNames,
@@ -588,45 +598,69 @@ export const profilesRouter = router({
         ...(input.photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
       );
 
-      // Get blocked users + cooldown users + current profile + analyses + status matches + totalCount in parallel
+      // Get blocked users + cooldown users + current profile + analyses + status matches + totalCount + qualityCount in parallel
       const cooldownCutoff = subHours(new Date(), DECLINE_COOLDOWN_HOURS);
-      const [blockedUsers, blockedByUsers, cooldownDeclines, currentProfile, analyses, myStatusMatchRows, countResult] =
-        await Promise.all([
-          db
-            .select({ blockedId: schema.blocks.blockedId })
-            .from(schema.blocks)
-            .where(eq(schema.blocks.blockerId, ctx.userId)),
-          db
-            .select({ blockerId: schema.blocks.blockerId })
-            .from(schema.blocks)
-            .where(eq(schema.blocks.blockedId, ctx.userId)),
-          db
-            .select({ toUserId: schema.waves.toUserId })
-            .from(schema.waves)
-            .where(
-              and(
-                eq(schema.waves.fromUserId, ctx.userId),
-                eq(schema.waves.status, "declined"),
-                gte(schema.waves.respondedAt, cooldownCutoff),
-              ),
+      const [
+        blockedUsers,
+        blockedByUsers,
+        cooldownDeclines,
+        currentProfile,
+        analyses,
+        myStatusMatchRows,
+        countResult,
+        qualityCountResult,
+      ] = await Promise.all([
+        db
+          .select({ blockedId: schema.blocks.blockedId })
+          .from(schema.blocks)
+          .where(eq(schema.blocks.blockerId, ctx.userId)),
+        db
+          .select({ blockerId: schema.blocks.blockerId })
+          .from(schema.blocks)
+          .where(eq(schema.blocks.blockedId, ctx.userId)),
+        db
+          .select({ toUserId: schema.waves.toUserId })
+          .from(schema.waves)
+          .where(
+            and(
+              eq(schema.waves.fromUserId, ctx.userId),
+              eq(schema.waves.status, "declined"),
+              gte(schema.waves.respondedAt, cooldownCutoff),
             ),
-          db.query.profiles.findFirst({
-            where: eq(schema.profiles.userId, ctx.userId),
-          }),
-          db.query.connectionAnalyses.findMany({
-            where: eq(schema.connectionAnalyses.fromUserId, ctx.userId),
-            columns: { toUserId: true, aiMatchScore: true, shortSnippet: true },
-          }),
-          db.query.statusMatches.findMany({
-            where: eq(schema.statusMatches.userId, ctx.userId),
-            columns: { matchedUserId: true, reason: true, matchedVia: true },
-          }),
-          db
-            .select({ count: sql<number>`count(*)` })
-            .from(schema.profiles)
-            .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
-            .where(baseWhere),
-        ]);
+          ),
+        db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, ctx.userId),
+        }),
+        db.query.connectionAnalyses.findMany({
+          where: eq(schema.connectionAnalyses.fromUserId, ctx.userId),
+          columns: { toUserId: true, aiMatchScore: true, shortSnippet: true },
+        }),
+        db.query.statusMatches.findMany({
+          where: eq(schema.statusMatches.userId, ctx.userId),
+          columns: { matchedUserId: true, reason: true, matchedVia: true },
+        }),
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(schema.profiles)
+          .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+          .where(baseWhere),
+        // Quality count (BLI-294): in-range people whose connection analysis FROM the
+        // current user scores >= MATCH_QUALITY_THRESHOLD. INNER JOIN to connectionAnalyses
+        // restricts to scored pairs; reuses the same baseWhere as the total count.
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(schema.profiles)
+          .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+          .innerJoin(
+            schema.connectionAnalyses,
+            and(
+              eq(schema.connectionAnalyses.fromUserId, ctx.userId),
+              eq(schema.connectionAnalyses.toUserId, schema.profiles.userId),
+              gte(schema.connectionAnalyses.aiMatchScore, MATCH_QUALITY_THRESHOLD),
+            ),
+          )
+          .where(baseWhere),
+      ]);
 
       const allBlockedIds = new Set([
         ...blockedUsers.map((b) => b.blockedId),
@@ -637,6 +671,10 @@ export const profilesRouter = router({
       const rawCount = Number(countResult[0]?.count ?? 0);
       // Subtract blocked users from count (approximate — blocked users may not all be in range)
       const totalCount = Math.max(0, rawCount - allBlockedIds.size);
+
+      // Quality count never exceeds the total; clamp to [0, totalCount] (BLI-294).
+      const rawQualityCount = Number(qualityCountResult[0]?.count ?? 0);
+      const qualityCount = Math.max(0, Math.min(rawQualityCount, totalCount));
 
       const analysisMap = new Map(analyses.map((a) => [a.toUserId, a]));
 
@@ -744,7 +782,7 @@ export const profilesRouter = router({
           }
         : null;
 
-      return { users: results, totalCount, nextCursor, myStatus };
+      return { users: results, totalCount, qualityCount, nextCursor, myStatus };
     }),
 
   // Ensure T3 analysis exists — lightweight "poke" to re-enqueue if stuck/failed.
