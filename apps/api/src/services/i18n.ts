@@ -36,6 +36,14 @@ const TRANSLATIONS = {
     pl: "Ktoś z pasującym profilem jest w pobliżu",
     ua: "Хтось із відповідним профілем поблизу",
   },
+  // Contextual ambient match — distance + LLM-generated match reason (the reason
+  // is PL UGC, like the one shown in getMyStatusMatches; only the wrapper is
+  // localized). Falls back to push.ambient.statusMatch.body when reason/distance
+  // are missing. BLI-297.
+  "push.ambient.statusMatch.contextual.body": {
+    pl: "Ktoś {distance} m od Ciebie — {reason}",
+    ua: "Хтось за {distance} м від тебе — {reason}",
+  },
   "push.comeOver.title": {
     pl: "{name} idzie do Ciebie",
     ua: "{name} йде до тебе",

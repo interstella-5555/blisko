@@ -177,7 +177,7 @@ Note: `statusExpiresAt` is defined in the schema but `isStatusActive` does not c
 
 **Config:**
 - Cooldown: 1 hour (3600s Redis TTL)
-- Push content: "Ktos z pasujacym profilem jest w poblizu"
+- Push content: contextual `"Ktoś {distance} m od Ciebie — {reason}"` (distance rounded to 100m, reason = the LLM match reason) when `processEvaluateStatusMatch` passes distance + reason (BLI-297); falls back to `"Ktoś z pasującym profilem jest w pobliżu"` when coordinates are missing
 - Collapse ID: `ambient-match` (iOS collapse --- only latest notification shown)
 - Data type: `ambient_match`
 

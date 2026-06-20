@@ -104,7 +104,7 @@ Bodies look up via `t(key, locale, params)` from `apps/api/src/services/i18n.ts`
 | DM message | `"{senderName}"` | `"{messagePreview}"` | — (user content) | none | Yes | `messages.ts` |
 | Group message (first unread) | `"{groupName}"` | `"{senderName}: {preview}"` | — (user content + separator) | `"group:{conversationId}"` | Yes | `messages.ts` |
 | Group message (has unreads) | `"{groupName}"` | `"{unreadCount} nowych wiadomości"` | `push.message.unread.body` | `"group:{conversationId}"` | No (silent) | `messages.ts` |
-| Ambient status match | `"Blisko"` | `"Ktoś z pasującym profilem jest w pobliżu"` | `push.ambient.statusMatch.body` | `"ambient-match"` | No (silent) | `queue.ts` |
+| Ambient status match | `"Blisko"` | `"Ktoś {distance} m od Ciebie — {reason}"` (contextual) / `"Ktoś z pasującym profilem jest w pobliżu"` (fallback) | `push.ambient.statusMatch.contextual.body` / `push.ambient.statusMatch.body` | `"ambient-match"` | No (silent) | `queue.ts` |
 | Group invite (create) | `"{groupName}"` | `"Nowe zaproszenie do grupy"` | `push.group.invite.body` | `"group-invite:{conversationId}"` | No (silent) | `groups.ts` |
 | Group invite (addMember) | `"{groupName}"` | `"Nowe zaproszenie do grupy"` | `push.group.invite.body` | `"group-invite:{conversationId}"` | No (silent) | `groups.ts` |
 
@@ -125,6 +125,8 @@ Bodies look up via `t(key, locale, params)` from `apps/api/src/services/i18n.ts`
 ### Ambient push details
 
 **Status/proximity match:** Triggered by `sendAmbientPushWithCooldown()` in the queue processor — never directly from a tRPC procedure. The cooldown mechanism (see Ambient Push Cooldown section) ensures at most one push per hour per user. CollapseId `"ambient-match"` prevents stacking. Data: `{ type: "ambient_match" }`.
+
+**Contextual body (BLI-297, v4 §8.2):** `processEvaluateStatusMatch` passes the already-computed LLM match `reason` plus the pair's live distance into `sendAmbientPushWithCooldown(uid, { distanceMeters, reason })`. The body becomes `"Ktoś {distance} m od Ciebie — {reason}"` — the contextual buzz that IS the ambient pitch, zero added AI cost (the reason was generated for `status_matches` already). Distance is the symmetric Haversine over both profiles' coordinates (`haversineMeters` from `@/lib/come-over`), rounded to 100 m via `roundDistance` (`@/lib/grid`) so the push can't triangulate the matched user. The reason is PL UGC (same string shown in `getMyStatusMatches`); only the wrapper template is localized (`push.ambient.statusMatch.contextual.body`). When either side has no coordinates, distance is `null` and the helper falls back to the generic `push.ambient.statusMatch.body`. Cooldown/suppression are unchanged — the contextual params only affect the body string.
 
 ### Group invite details
 
@@ -165,7 +167,7 @@ Bodies look up via `t(key, locale, params)` from `apps/api/src/services/i18n.ts`
 - If exists: skip push entirely
 - If not: SET key with EX 3600, then send push
 
-**Push payload when sent:** Title `"Blisko"`, body `"Ktos z pasujacym profilem jest w poblizu"`, collapseId `"ambient-match"`, data `{ type: "ambient_match" }`.
+**Push payload when sent:** Title `"Blisko"`, body is contextual (`"Ktoś {distance} m od Ciebie — {reason}"`) when the caller passes distance + reason, otherwise the generic `"Ktoś z pasującym profilem jest w pobliżu"`, collapseId `"ambient-match"`, data `{ type: "ambient_match" }`.
 
 **Why 1 hour:** Status matches happen passively as users move around. In a dense area (conference, university campus), matches can fire every few minutes. One ambient push per hour is the upper bound of what feels "ambient" rather than "spammy."
 
