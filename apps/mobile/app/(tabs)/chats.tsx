@@ -29,6 +29,16 @@ function formatTimeAgo(dateString: string): string {
   return new Date(dateString).toLocaleDateString("pl-PL");
 }
 
+// "Połączeni [data] · [dzielnica]" — the first-contact memory line on DM rows
+// (BLI-296). Built from conversation metadata (connectedAt + district).
+function formatConnectedLabel(metadata: Record<string, unknown> | null | undefined): string | null {
+  const connectedAt = metadata?.connectedAt;
+  if (typeof connectedAt !== "string") return null;
+  const date = new Date(connectedAt).toLocaleDateString("pl-PL", { day: "numeric", month: "long" });
+  const district = typeof metadata?.district === "string" ? metadata.district : null;
+  return district ? t`Połączeni ${date} · ${district}` : t`Połączeni ${date}`;
+}
+
 export default function ChatsScreen() {
   const { t } = useLingui();
   const FILTER_PILLS: { key: FilterType; label: string }[] = [
@@ -232,6 +242,7 @@ export default function ChatsScreen() {
                 memberCount={item.data.memberCount ?? undefined}
                 unreadCount={item.data.unreadCount}
                 muted={item.data.mutedUntil != null && new Date(item.data.mutedUntil) > new Date()}
+                connectedLabel={formatConnectedLabel(item.data.metadata)}
                 onPress={() => router.push(`/chat/${item.data.id}`)}
                 onLongPress={() => handleDeleteChat(item.data.id)}
               />
@@ -272,6 +283,7 @@ export default function ChatsScreen() {
               memberCount={item.memberCount ?? undefined}
               unreadCount={item.unreadCount}
               muted={item.mutedUntil != null && new Date(item.mutedUntil) > new Date()}
+              connectedLabel={formatConnectedLabel(item.metadata)}
               onPress={() => router.push(`/chat/${item.id}`)}
               onLongPress={() => handleDeleteChat(item.id)}
             />
@@ -300,7 +312,9 @@ export default function ChatsScreen() {
 
 function getStatusLabel(status: string): string | undefined {
   const map: Record<string, string> = {
-    accepted: t`Zaakceptowane`,
+    // "Połączeni" replaces the cold "Zaakceptowane" — frames an accepted ping as
+    // a real connection, matching the first-contact card theme (BLI-296).
+    accepted: t`Połączeni`,
     declined: t`Odrzucone`,
     expired: t`Wygasł`,
   };

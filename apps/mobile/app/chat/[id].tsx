@@ -323,9 +323,19 @@ export default function ChatScreen() {
               day: "numeric",
               month: "long",
             })}
+            {typeof storeConversation.metadata.district === "string" && ` · ${storeConversation.metadata.district}`}
             {storeConversation.metadata.connectedDistance != null &&
               t` · ~${String(storeConversation.metadata.connectedDistance)}m od siebie`}
           </Text>
+          {Array.isArray(storeConversation.metadata.sharedTags) && storeConversation.metadata.sharedTags.length > 0 && (
+            <View style={styles.firstContactTags}>
+              {(storeConversation.metadata.sharedTags as string[]).map((tag) => (
+                <View key={tag} style={styles.firstContactTag}>
+                  <Text style={styles.firstContactTagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
           {(typeof storeConversation.metadata.senderStatus === "string" ||
             typeof storeConversation.metadata.recipientStatus === "string") &&
             (() => {
@@ -558,6 +568,24 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 12,
     color: colors.muted,
+  },
+  firstContactTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: spacing.tick,
+    marginTop: spacing.tick,
+  },
+  firstContactTag: {
+    backgroundColor: colors.mapBg,
+    borderRadius: 10,
+    paddingVertical: spacing.hairline,
+    paddingHorizontal: spacing.compact,
+  },
+  firstContactTagText: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 11,
+    color: colors.ink,
   },
   snapshotStatuses: {
     marginTop: spacing.tight,

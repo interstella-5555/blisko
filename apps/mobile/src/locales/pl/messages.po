@@ -1048,9 +1048,21 @@ msgstr "Pokazujesz <0>{0}</0> osób w okolicy"
 msgid "POŁĄCZ"
 msgstr "POŁĄCZ"
 
+#: app/(tabs)/chats.tsx
+msgid "Połączeni"
+msgstr "Połączeni"
+
 #: src/components/ui/Badge.tsx
 msgid "POŁĄCZENI"
 msgstr "POŁĄCZENI"
+
+#: app/(tabs)/chats.tsx
+msgid "Połączeni {date}"
+msgstr "Połączeni {date}"
+
+#: app/(tabs)/chats.tsx
+msgid "Połączeni {date} · {district}"
+msgstr "Połączeni {date} · {district}"
 
 #: app/settings/account.tsx
 msgid "POŁĄCZONE KONTA"
@@ -1607,10 +1619,6 @@ msgstr "Za dużo wiadomości. Spróbuj ponownie za chwilę."
 #: src/lib/rateLimitMessages.ts
 msgid "Za dużo zmian w profilu. Spróbuj ponownie za chwilę."
 msgstr "Za dużo zmian w profilu. Spróbuj ponownie za chwilę."
-
-#: app/(tabs)/chats.tsx
-msgid "Zaakceptowane"
-msgstr "Zaakceptowane"
 
 #: app/settings/_layout.tsx
 msgid "Zablokowani"

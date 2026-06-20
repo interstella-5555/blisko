@@ -131,10 +131,15 @@ The same `acceptWaveCore` is reused by `waves.send` on the implicit-accept path 
 **Why:** The conversation is the payoff of the wave flow. PRODUCT.md principle #4 (progressive disclosure): accepting a wave unlocks full profile, social links, and direct chat.
 
 **Conversation metadata (JSONB):**
+- `senderUserId` / `recipientUserId` — used by the chat client to map sender/recipient snapshots to "mine" / "theirs"
 - `senderStatus` — sender's status at wave send time (from `senderStatusSnapshot`)
 - `recipientStatus` — recipient's status at accept time (from responder's `currentStatus`)
 - `connectedAt` — ISO timestamp of when the conversation was created
 - `connectedDistance` — Haversine distance in meters between both users at accept time (null when either profile lacks coordinates)
+- `district` — Warsaw district (dzielnica) where they met, resolved at accept time (BLI-296, v4 §10). Computed by `districtForPoint` (`apps/api/src/lib/district.ts`) from the **grid centre** of the meeting coordinate (responder's location, falling back to sender's), so it never exposes exact coordinates. `null` outside Warsaw or when the geojson fails to load. Polygons come from `apps/api/scripts/warszawa-dzielnice.geojson` (the "Warszawa" whole-city feature is skipped — it would match every point).
+- `sharedTags` — up to 3 interests both users have in common at accept time (case-insensitive match on `profiles.interests`, original casing preserved). Powers the "what you have in common" line on the first-contact card.
+
+These metadata fields drive the pinned **first-contact card** in chat (`apps/mobile/app/chat/[id].tsx`) — `[data] · [dzielnica] · ~[X]m · [tags]` — and the `Połączeni [data] · [dzielnica]` sub-label on DM rows in the chats list (`ConversationRow`). They are NOT included in the GDPR data export (the export dumps conversation messages, not metadata); the underlying location/interests are already exported via their own sections.
 
 **Participants:** Two rows in `conversationParticipants` with role `member` (default).
 
@@ -232,6 +237,7 @@ If you change this system, also check:
 - **`apps/mobile/`** --- wave list screens, notification handlers, cooldown UI
 - **`apps/api/src/trpc/procedures/profiles.ts`** (`getNearbyUsersForMap` + `getNearbyMapMarkers`) --- decline cooldown filtering hides users you recently declined from both the nearby list AND the map markers (BLI-295)
 - **`apps/api/src/lib/ping-quota.ts`** --- pure cooldown/quota math shared by `waves.getQuota`, unit-tested in `__tests__/ping-quota.test.ts`
+- **`apps/api/src/lib/district.ts`** --- `districtForPoint` resolves a coordinate to a Warsaw district for the first-contact card (BLI-296). Loads `apps/api/scripts/warszawa-dzielnice.geojson` once at module init.
 - **`apps/api/src/services/data-export.ts`** --- GDPR export includes wave history
 - **`docs/architecture/status-matching.md`** --- status snapshots flow into matching context
 - **`docs/architecture/messaging.md`** --- conversation creation on accept
