@@ -5,6 +5,8 @@ import { and, between, eq, gte, inArray, isNotNull, isNull, lte, ne, or, sql } f
 import ms from "ms";
 import { db, schema } from "@/db";
 import { userIsLive } from "@/db/filters";
+import { haversineMeters } from "@/lib/come-over";
+import { roundDistance } from "@/lib/grid";
 import { isStatusActive } from "@/lib/status";
 import { t } from "@/services/i18n";
 import { publishEvent } from "@/ws/redis-bridge";
@@ -157,7 +159,21 @@ const NEARBY_RADIUS_DEG = 0.05; // ~5km bounding box
 
 // --- Helpers ---
 
-async function sendAmbientPushWithCooldown(userId: string) {
+/**
+ * Ambient status-match push, throttled to one per user per hour (Redis cooldown).
+ *
+ * When `context` (distance + LLM match reason) is supplied, the body becomes the
+ * contextual buzz that IS the ambient pitch — "Ktoś 250 m od Ciebie — szuka
+ * muzyka do projektu" (BLI-297, v4 §8.2). Distance is rounded to 100 m
+ * (`roundDistance`) so the push can't be used to triangulate the matched user.
+ * The reason is PL UGC from the LLM (same string surfaced in getMyStatusMatches);
+ * only the wrapper template is localized. Falls back to the generic body when
+ * context is absent or incomplete.
+ */
+async function sendAmbientPushWithCooldown(
+  userId: string,
+  context?: { distanceMeters: number | null; reason: string },
+) {
   const redis = getRedisPub();
   if (!redis) return;
   const cooldownKey = `ambient-push:${userId}`;
@@ -168,9 +184,17 @@ async function sendAmbientPushWithCooldown(userId: string) {
       where: eq(schema.profiles.userId, userId),
       columns: { locale: true },
     });
+    const reason = context?.reason?.trim();
+    const body =
+      context?.distanceMeters != null && reason
+        ? t("push.ambient.statusMatch.contextual.body", recipientProfile?.locale, {
+            distance: roundDistance(context.distanceMeters),
+            reason,
+          })
+        : t("push.ambient.statusMatch.body", recipientProfile?.locale);
     void sendPushToUser(userId, {
       title: "Blisko",
-      body: t("push.ambient.statusMatch.body", recipientProfile?.locale),
+      body,
       data: { type: "ambient_match" },
       collapseId: "ambient-match",
     });
@@ -1123,8 +1147,23 @@ async function processEvaluateStatusMatch(job: EvaluateStatusMatchJob) {
     publishEvent("statusMatchesReady", { userId: uid, matchedUserIds: [otherUserId] });
   }
 
+  // Contextual push (BLI-297): distance + match reason in the body. Distance is
+  // symmetric, so one Haversine on the pair's live coordinates serves both
+  // recipients; the reason is the LLM string we just stored. Missing coordinates
+  // → distance null → helper falls back to the generic ambient body.
+  const pairLocations = await db.query.profiles.findMany({
+    where: inArray(schema.profiles.userId, [userId, candidateUserId]),
+    columns: { userId: true, latitude: true, longitude: true },
+  });
+  const a = pairLocations.find((p) => p.userId === userId);
+  const b = pairLocations.find((p) => p.userId === candidateUserId);
+  const distanceMeters =
+    a?.latitude != null && a.longitude != null && b?.latitude != null && b.longitude != null
+      ? haversineMeters(a.latitude, a.longitude, b.latitude, b.longitude)
+      : null;
+
   for (const uid of notifyUserIds) {
-    await sendAmbientPushWithCooldown(uid);
+    await sendAmbientPushWithCooldown(uid, { distanceMeters, reason: result.reason });
   }
 }
 
