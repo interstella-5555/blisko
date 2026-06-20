@@ -168,6 +168,7 @@ async function processHardDeleteUser(userId: string) {
         interests: null,
         embedding: null,
         portrait: null,
+        bioEssence: null,
         portraitSharedForMatching: false,
         isComplete: false,
         currentStatus: null,

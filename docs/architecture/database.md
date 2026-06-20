@@ -142,6 +142,7 @@ Extends `user` with app-specific data. 1:1 relationship via unique `user_id`.
 | `interests` | text[] | yes | -- | AI-extracted from portrait |
 | `embedding` | real[] | yes | -- | text-embedding-3-small vector for profile matching |
 | `portrait` | text | yes | -- | AI-generated rich social profile text (NOT an image) |
+| `bio_essence` | text | yes | -- | One-sentence AI condensation of `bio`. Nearby-list subtitle when a person has no active status. Canonical (in `content_locale`); other locale in `profile_translations`. Added in `0034` (BLI-304). |
 | `portrait_shared_for_matching` | boolean | no | `true` | Historical consent flag. No functional effect — matching pipeline always reads `portrait` if present. Retained as audit-only column; may be dropped later. |
 | `is_complete` | boolean | no | `false` | True after onboarding finishes |
 | `current_status` | text | yes | -- | "Na teraz" status text (max 150 chars via validator) |
@@ -169,13 +170,13 @@ Extends `user` with app-specific data. 1:1 relationship via unique `user_id`.
 
 ### `profile_translations`
 
-UGC translation cache per (user, field, locale). Each row holds one translated version of `bio` / `looking_for` / `portrait` / `current_status`. Originals stay on `profiles.*` for the locale flagged by `profiles.content_locale`. BLI-279, added in `0031`.
+UGC translation cache per (user, field, locale). Each row holds one translated version of `bio` / `looking_for` / `portrait` / `current_status` / `bio_essence`. Originals stay on `profiles.*` for the locale flagged by `profiles.content_locale`. BLI-279, added in `0031`; `bio_essence` added in `0034` (BLI-304).
 
 | Column | Type | Nullable | Default | Notes |
 |---|---|---|---|---|
 | `id` | uuid | no | `gen_random_uuid()` | |
 | `user_id` | text | no | -- | FK `user(id) ON DELETE CASCADE` |
-| `field` | varchar(32) | no | -- | `bio` / `looking_for` / `portrait` / `current_status` |
+| `field` | varchar(32) | no | -- | `bio` / `looking_for` / `portrait` / `current_status` / `bio_essence` |
 | `locale` | varchar(2) | no | -- | `pl` / `ua` |
 | `content` | text | no | -- | Translated text |
 | `created_at` | timestamp | no | `now()` | |

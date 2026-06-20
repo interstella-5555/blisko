@@ -239,6 +239,13 @@
       "when": 1781904784537,
       "tag": "0033_drop_status_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1781951611607,
+      "tag": "0034_add_bio_essence",
+      "breakpoints": true
     }
   ]
 }

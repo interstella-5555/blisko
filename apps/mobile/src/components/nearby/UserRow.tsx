@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useIsGhost } from "@/hooks/useIsGhost";
 import { formatDistance, formatLastActive } from "../../lib/format";
+import { getNearbySnippet } from "../../lib/nearbySnippet";
 import { colors, fonts, spacing, type as typ } from "../../theme";
 import { Avatar } from "../ui/Avatar";
 import { IconBulletRose } from "../ui/icons";
@@ -19,9 +19,8 @@ interface UserRowProps {
   distance?: number;
   rankScore?: number;
   matchScore?: number;
-  commonInterests?: string[];
-  shortSnippet?: string | null;
-  analysisReady?: boolean;
+  currentStatus?: string | null;
+  bioEssence?: string | null;
   hasStatusMatch?: boolean;
   lastActiveAt?: Date | string | null;
   // Waves-only (optional)
@@ -39,56 +38,6 @@ const formatRelativeTime = (dateString: string): string => {
   if (diffDays < 7) return `${diffDays} dni temu`;
   return new Date(dateString).toLocaleDateString("pl-PL");
 };
-
-function getSnippetText(
-  shortSnippet: string | null,
-  analysisReady: boolean,
-  commonInterests: string[],
-  bio: string | null,
-): { text: string | null; isAnalyzing: boolean; isHighlight: boolean } {
-  if (shortSnippet) return { text: shortSnippet, isAnalyzing: false, isHighlight: true };
-  if (!analysisReady && bio) {
-    return { text: bio, isAnalyzing: true, isHighlight: false };
-  }
-  if (commonInterests.length > 0)
-    return {
-      text: `Wspólne: ${commonInterests.slice(0, 3).join(", ")}`,
-      isAnalyzing: false,
-      isHighlight: true,
-    };
-  return { text: bio || null, isAnalyzing: false, isHighlight: false };
-}
-
-function PulsingRosette() {
-  const opacity = useRef(new Animated.Value(0.3)).current;
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 900,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 900,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [opacity]);
-
-  return (
-    <Animated.View style={{ opacity }}>
-      <IconBulletRose size={10} color={colors.muted} />
-    </Animated.View>
-  );
-}
 
 function getMatchColor(percent: number): string {
   if (percent >= 70) return colors.status.success.text;
@@ -109,9 +58,8 @@ export function UserRow({
   bio,
   rankScore,
   matchScore,
-  commonInterests,
-  shortSnippet,
-  analysisReady,
+  currentStatus,
+  bioEssence,
   hasStatusMatch,
   lastActiveAt,
   status,
@@ -120,15 +68,10 @@ export function UserRow({
 }: UserRowProps) {
   const isGhost = useIsGhost();
   const hasNearbyData = distance !== undefined;
-  const {
-    text: snippet,
-    isAnalyzing,
-    isHighlight,
-  } = hasNearbyData
-    ? getSnippetText(shortSnippet ?? null, analysisReady ?? false, commonInterests ?? [], bio)
-    : { text: bio || null, isAnalyzing: false, isHighlight: false };
+  const { text: snippet, isHighlight } = hasNearbyData
+    ? getNearbySnippet(currentStatus, bioEssence, bio)
+    : { text: bio || null, isHighlight: false };
   const matchPercent = matchScore ?? Math.round((rankScore ?? 0) * 100);
-  const showAnalyzing = isAnalyzing;
 
   return (
     <Pressable onPress={onPress} style={styles.row}>
@@ -156,12 +99,6 @@ export function UserRow({
             </View>
           )}
           <View style={{ flex: 1 }} />
-          {showAnalyzing && status === "none" && (
-            <View style={styles.analyzingBadge}>
-              <PulsingRosette />
-              <Text style={styles.analyzingText}>analizowanie</Text>
-            </View>
-          )}
           {status !== "none" && (
             <Text style={[styles.statusLabel, { color: statusConfig[status].color }]}>
               {statusConfig[status].label}
@@ -255,16 +192,5 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "600",
     color: "#D4851C",
-  },
-  analyzingBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  analyzingText: {
-    fontFamily: fonts.sans,
-    fontSize: 11,
-    color: colors.muted,
-    fontStyle: "italic",
   },
 });

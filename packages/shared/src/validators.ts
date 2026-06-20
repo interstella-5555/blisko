@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { NEARBY_DEFAULT_RADIUS_METERS } from "./config/nearby";
+import { VIEWER_TRANSLATABLE_FIELDS } from "./ugc";
 
 // Profile validators
 export const createProfileSchema = z.object({
@@ -120,7 +121,7 @@ export const getNearbyMapMarkersSchema = z.object({
 // fallback). Same shape covers bio / looking_for / portrait / current_status.
 export const translateContentSchema = z.object({
   userId: z.string().min(1),
-  field: z.enum(["bio", "looking_for", "portrait", "current_status"]),
+  field: z.enum(VIEWER_TRANSLATABLE_FIELDS),
 });
 
 // Status "na teraz" validators

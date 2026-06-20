@@ -19,6 +19,7 @@ import {
   type LocaleCode,
   UGC_TRANSLATABLE_FIELDS,
   type UgcTranslatableField,
+  VIEWER_TRANSLATABLE_FIELDS,
 } from "@repo/shared";
 import { generateText } from "ai";
 import { and, eq, inArray } from "drizzle-orm";
@@ -29,11 +30,15 @@ import { type AiCallInput, type AiLogCtx, withAiLogging } from "./ai-log";
 type Tx = any;
 
 /** Map from `profile_translations.field` (snake_case) to the `profiles.*` column it shadows. */
-const FIELD_TO_PROFILE_COLUMN: Record<UgcTranslatableField, "bio" | "lookingFor" | "portrait" | "currentStatus"> = {
+const FIELD_TO_PROFILE_COLUMN: Record<
+  UgcTranslatableField,
+  "bio" | "lookingFor" | "portrait" | "currentStatus" | "bioEssence"
+> = {
   bio: "bio",
   looking_for: "lookingFor",
   portrait: "portrait",
   current_status: "currentStatus",
+  bio_essence: "bioEssence",
 };
 
 export type ProfileTranslationRow = {
@@ -49,6 +54,7 @@ export type ProfileLocaleSlice = {
   lookingFor?: string | null;
   portrait?: string | null;
   currentStatus?: string | null;
+  bioEssence?: string | null;
 };
 
 /**
@@ -69,6 +75,27 @@ export function getCanonicalText(
   const original = profile[camelField] ?? null;
   if (profile.contentLocale === "pl") return original;
   const tr = translations.find((t) => t.field === field && t.locale === "pl");
+  return tr?.content ?? original;
+}
+
+/**
+ * Return the viewer-locale version of a UGC field for display in lists/cards.
+ * Symmetric to `getCanonicalText`, but resolves to an arbitrary viewer locale
+ * instead of always PL. Used by the nearby list to show bio essence + status in
+ * the reader's language. Falls back to the canonical original when no translation
+ * row exists for the viewer's locale (race with the async gen job, or AI fallback
+ * returned source text).
+ */
+export function getViewerText(
+  profile: ProfileLocaleSlice,
+  field: UgcTranslatableField,
+  translations: ProfileTranslationRow[],
+  viewerLocale: LocaleCode,
+): string | null {
+  const camelField = FIELD_TO_PROFILE_COLUMN[field];
+  const original = profile[camelField] ?? null;
+  if (profile.contentLocale === viewerLocale) return original;
+  const tr = translations.find((t) => t.field === field && t.locale === viewerLocale);
   return tr?.content ?? original;
 }
 
@@ -120,7 +147,10 @@ export async function replaceTranslations(
   }
 }
 
-/** Fetch translation rows for one user. */
+/** Fetch translation rows for one user — for the profile-detail viewer flow
+ *  (`me` / `getById` → `TranslatableText`). Scoped to `VIEWER_TRANSLATABLE_FIELDS`
+ *  so the `bio_essence` rows (resolved server-side in the nearby list, never
+ *  rendered on the detail screen) don't bloat the payload. BLI-304. */
 export async function getTranslationsForUser(userId: string): Promise<ProfileTranslationRow[]> {
   const rows = await db
     .select({
@@ -132,7 +162,7 @@ export async function getTranslationsForUser(userId: string): Promise<ProfileTra
     .where(eq(schema.profileTranslations.userId, userId));
   return rows.filter(
     (r): r is ProfileTranslationRow =>
-      (UGC_TRANSLATABLE_FIELDS as readonly string[]).includes(r.field) &&
+      (VIEWER_TRANSLATABLE_FIELDS as readonly string[]).includes(r.field) &&
       (LOCALE_CODES as readonly string[]).includes(r.locale),
   );
 }

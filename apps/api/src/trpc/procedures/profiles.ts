@@ -17,7 +17,7 @@ import {
 } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
 import { differenceInMinutes, subHours } from "date-fns";
-import { and, between, eq, gte, isNotNull, isNull, lte, ne, or, placeholder, sql } from "drizzle-orm";
+import { and, between, eq, gte, inArray, isNotNull, isNull, lte, ne, or, placeholder, sql } from "drizzle-orm";
 import { z } from "zod";
 import { DECLINE_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, preparedName, schema } from "@/db";
@@ -30,6 +30,8 @@ import {
   deleteAllTranslationsForUser,
   deleteTranslationsForField,
   getTranslationsForUser,
+  getViewerText,
+  type ProfileTranslationRow,
   translateInline,
   upsertTranslation,
 } from "@/services/profile-translations";
@@ -723,6 +725,38 @@ export const profilesRouter = router({
       const myInterests = currentProfile?.interests ?? [];
       const myEmbedding = currentProfile?.embedding ?? null;
 
+      // Resolve bio essence + status to the VIEWER's locale (BLI-304). Fetch only
+      // the two fields the list renders, only for the viewer's locale — one
+      // indexed query. Users whose content_locale already matches the viewer read
+      // the canonical column directly (no row here), so this is empty in the
+      // common single-language case.
+      const viewerLocale: LocaleCode = currentProfile?.locale ?? "pl";
+      const nearbyUserIds = nearbyUsers.map((u) => u.profile.userId);
+      const viewerTranslationRows =
+        nearbyUserIds.length > 0
+          ? await db
+              .select({
+                userId: schema.profileTranslations.userId,
+                field: schema.profileTranslations.field,
+                locale: schema.profileTranslations.locale,
+                content: schema.profileTranslations.content,
+              })
+              .from(schema.profileTranslations)
+              .where(
+                and(
+                  inArray(schema.profileTranslations.userId, nearbyUserIds),
+                  inArray(schema.profileTranslations.field, ["bio_essence", "current_status"]),
+                  eq(schema.profileTranslations.locale, viewerLocale),
+                ),
+              )
+          : [];
+      const viewerTranslationMap = new Map<string, ProfileTranslationRow[]>();
+      for (const row of viewerTranslationRows) {
+        const list = viewerTranslationMap.get(row.userId) ?? [];
+        list.push({ field: row.field, locale: row.locale, content: row.content });
+        viewerTranslationMap.set(row.userId, list);
+      }
+
       // Filter blocked users, calculate ranking, add grid positions
       const results = [];
       for (const u of nearbyUsers) {
@@ -755,6 +789,8 @@ export const profilesRouter = router({
 
         const theirStatusActive = isStatusActive(u.profile);
 
+        const viewerTr = viewerTranslationMap.get(u.profile.userId) ?? [];
+
         results.push({
           profile: {
             id: u.profile.id,
@@ -763,7 +799,12 @@ export const profilesRouter = router({
             bio: u.profile.bio,
             lookingFor: u.profile.lookingFor,
             avatarUrl: u.profile.avatarUrl,
-            currentStatus: isStatusActive(u.profile) ? u.profile.currentStatus : null,
+            currentStatus: theirStatusActive
+              ? getViewerText(u.profile, "current_status", viewerTr, viewerLocale)
+              : null,
+            // One-sentence bio essence in the viewer's locale — nearby-list
+            // subtitle fallback when there's no active status (BLI-304).
+            bioEssence: getViewerText(u.profile, "bio_essence", viewerTr, viewerLocale),
             lastActiveAt: u.profile.lastActiveAt,
           },
           distance: roundDistance(u.distance),

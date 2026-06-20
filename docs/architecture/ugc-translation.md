@@ -16,6 +16,9 @@ UGC fields on `profiles` visible to other users:
 | `looking_for` | Same | Same |
 | `portrait` | AI-generated from bio + lookingFor | Dual-language LLM output in `generatePortrait` |
 | `current_status` | User-typed, max 150 chars | Inline OpenAI call in `setStatus` mutation |
+| `bio_essence` | One-sentence condensation of bio (BLI-304) | Dual-language LLM output in `generateBioEssence` (in `processGenerateProfileAI`) |
+
+`bio_essence` differs from the other four in its read path: it's never rendered via `TranslatableText` / the on-demand `translateContent` mutation (those cover only `VIEWER_TRANSLATABLE_FIELDS` — the four detail-screen fields). Instead `getNearbyUsersForMap` resolves it (and `current_status`) **server-side** to the viewer's locale via `getViewerText`, returning a single ready-to-render string — the compact nearby list has no "Pokaż oryginał" affordance.
 
 Out of scope: `display_name` (proper nouns), `superpower` (rare, deferred), `social_links.*username` (proper nouns), profile messages (workflow v4 §1.4).
 
@@ -48,9 +51,9 @@ Future-proof: new locale = widen `LOCALE_CODES` in `@repo/shared`, update prompt
 
 ## Generation paths
 
-### AI-generated (bio, lookingFor, portrait)
+### AI-generated (bio, lookingFor, portrait, bio_essence)
 
-`generateProfileFromQA` and `generatePortrait` now return `{ pl: …, ua: … }` in a single LLM call. The model receives `<source_language>pl|ua</source_language>` and writes both versions. Cheaper than chaining a translate pass (~10 % fewer tokens) and the translation is higher quality because the model has full source context for both.
+`generateProfileFromQA`, `generatePortrait`, and `generateBioEssence` return `{ pl: …, ua: … }` in a single LLM call each. `generateBioEssence` runs inside `processGenerateProfileAI` (concurrently with `generatePortrait`), and its canonical/translation rows are written in the same transaction as portrait/bio/lookingFor. The model receives `<source_language>pl|ua</source_language>` and writes both versions. Cheaper than chaining a translate pass (~10 % fewer tokens) and the translation is higher quality because the model has full source context for both.
 
 Token budgets bumped 2× (4000 for `generateProfileFromQA`, 2000 for `generatePortrait`) to leave room for both languages plus reasoning overhead.
 

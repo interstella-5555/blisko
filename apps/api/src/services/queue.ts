@@ -14,6 +14,7 @@ import {
   analyzeConnection,
   evaluateStatusMatch,
   extractInterests,
+  generateBioEssence,
   generateEmbedding,
   generatePortrait,
   quickScore,
@@ -648,9 +649,15 @@ async function processGenerateProfileAI(userId: string, bio: string, lookingFor:
   });
   const contentLocale = userProfile?.contentLocale ?? "pl";
 
-  const portraitDual = await generatePortrait(bio, lookingFor, contentLocale, gptCtx);
+  // Portrait + bio essence both derive from bio — run concurrently. Essence is
+  // the nearby-list subtitle (shown when a person has no active status); BLI-304.
+  const [portraitDual, bioEssenceDual] = await Promise.all([
+    generatePortrait(bio, lookingFor, contentLocale, gptCtx),
+    generateBioEssence(bio, contentLocale, gptCtx),
+  ]);
   const canonicalPortrait = contentLocale === "ua" ? portraitDual.ua : portraitDual.pl;
   const portraitForEmbedding = portraitDual.pl; // matching pipeline = always PL
+  const canonicalEssence = contentLocale === "ua" ? bioEssenceDual.ua : bioEssenceDual.pl;
 
   const [embedding, interests] = await Promise.all([
     generateEmbedding(portraitForEmbedding, embeddingCtx),
@@ -683,6 +690,7 @@ async function processGenerateProfileAI(userId: string, bio: string, lookingFor:
       .update(schema.profiles)
       .set({
         portrait: canonicalPortrait,
+        bioEssence: canonicalEssence,
         embedding,
         interests,
         updatedAt: new Date(),
@@ -694,13 +702,17 @@ async function processGenerateProfileAI(userId: string, bio: string, lookingFor:
       .where(
         and(
           eq(schema.profileTranslations.userId, userId),
-          inArray(schema.profileTranslations.field, ["bio", "looking_for", "portrait"]),
+          inArray(schema.profileTranslations.field, ["bio", "looking_for", "portrait", "bio_essence"]),
         ),
       );
 
     const nonCanonicalPortrait = contentLocale === "ua" ? portraitDual.pl : portraitDual.ua;
     if (nonCanonicalPortrait && nonCanonicalPortrait !== canonicalPortrait) {
       await upsertTranslation(userId, "portrait", nonCanonicalLocale, nonCanonicalPortrait, tx);
+    }
+    const nonCanonicalEssence = contentLocale === "ua" ? bioEssenceDual.pl : bioEssenceDual.ua;
+    if (nonCanonicalEssence && nonCanonicalEssence !== canonicalEssence) {
+      await upsertTranslation(userId, "bio_essence", nonCanonicalLocale, nonCanonicalEssence, tx);
     }
     if (bioTranslated && bioTranslated !== bio) {
       await upsertTranslation(userId, "bio", nonCanonicalLocale, bioTranslated, tx);
