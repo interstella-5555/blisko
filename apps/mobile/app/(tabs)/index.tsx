@@ -612,20 +612,24 @@ export default function NearbyScreen() {
                 ))}
               </View>
             ) : null}
-            <Text style={styles.countPillText}>
-              {totalCount === 0 ? (
+            {totalCount === 0 ? (
+              <Text style={styles.countPillText}>
                 <Trans>Nikogo w pobliżu</Trans>
-              ) : qualityCount > 0 ? (
-                <>
-                  <Text style={styles.countPillNum}>
-                    {qualityCount} {qualityCount === 1 ? t`osoba` : t`osób`}
-                  </Text>{" "}
-                  <Trans>z dopasowaniem {MATCH_QUALITY_THRESHOLD}%+ w pobliżu</Trans>
-                </>
-              ) : (
+              </Text>
+            ) : qualityCount > 0 ? (
+              <View style={styles.countPillTextCol}>
+                <Text style={styles.countPillLine1} numberOfLines={1}>
+                  {qualityCount} {qualityCount === 1 ? t`osoba` : t`osób`} <Trans>z dopasowaniem</Trans>
+                </Text>
+                <Text style={styles.countPillLine2} numberOfLines={1}>
+                  <Trans>{MATCH_QUALITY_THRESHOLD}%+ w pobliżu</Trans>
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.countPillText}>
                 <Trans>Sprawdź kto jest w pobliżu</Trans>
-              )}
-            </Text>
+              </Text>
+            )}
             {totalCount > 0 && (
               <View style={styles.chevUp}>
                 <IconChevronRight size={16} color={colors.muted} />
@@ -964,6 +968,9 @@ const styles = StyleSheet.create({
   },
   countPillText: { fontSize: 14, fontFamily: fonts.sans, color: colors.ink },
   countPillNum: { fontFamily: fonts.sansSemiBold, color: colors.ink },
+  countPillTextCol: { flexShrink: 1 },
+  countPillLine1: { fontSize: 13, fontFamily: fonts.sansSemiBold, color: colors.ink },
+  countPillLine2: { fontSize: 11, fontFamily: fonts.sans, color: colors.muted, marginTop: 1 },
   chevUp: { transform: [{ rotate: "-90deg" }] },
   sheetBackdrop: {
     ...StyleSheet.absoluteFillObject,
