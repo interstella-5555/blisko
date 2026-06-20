@@ -1,0 +1,48 @@
+appId: com.blisko.app
+# Send wave (ping) E2E — demo-critical (BLI-300)
+# Seed mode: nearby — user A (logged in) + user B ~70m away in A's nearby list.
+# A opens the nearby list, opens B's profile and pings B. Verifies the wave
+# send path end-to-end (was zero coverage). Run via:
+#   ./run-test.sh send-wave.yaml nearby
+#
+# When you edit this flow you MUST mirror it in send-wave-ua.yaml
+# (e2e/pl-ua-parity).
+---
+- runFlow: ../sub-flows/login-seeded.yaml
+
+# --- Open the nearby list sheet ---
+
+- extendedWaitUntil:
+    visible:
+      id: "nearby-count-pill"
+    timeout: 20000
+- tapOn:
+    id: "nearby-count-pill"
+
+# --- Open seeded peer B's profile ---
+
+- extendedWaitUntil:
+    visible: "${DISPLAY_NAME_B}"
+    timeout: 15000
+- tapOn: "${DISPLAY_NAME_B}"
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-display-name"
+    timeout: 15000
+
+# --- Ping B ---
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-ping-button"
+    timeout: 15000
+- tapOn:
+    id: "profile-ping-button"
+
+# --- VERIFY: the action flips to the "Pingowano" state ---
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-pinged-pill"
+    timeout: 15000

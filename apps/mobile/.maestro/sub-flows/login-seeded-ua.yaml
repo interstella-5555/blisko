@@ -1,0 +1,37 @@
+appId: com.blisko.app
+---
+# Login with a pre-seeded user (env var EMAIL), UA locale.
+# Mirrors login-seeded.yaml — taps the UA LocalePill first, then logs in.
+# Seeded user already has a profile → skips onboarding, lands on the map.
+
+- runFlow: ../sub-flows/launch-and-dismiss-dev.yaml
+
+# Switch UI language to UA
+- extendedWaitUntil:
+    visible:
+      id: "locale-pill-ua"
+    timeout: 10000
+- tapOn:
+    id: "locale-pill-ua"
+
+# Navigate to email login
+- extendedWaitUntil:
+    visible: "(?i)Продовжити з Email"
+    timeout: 30000
+- tapOn: "(?i)Продовжити з Email"
+
+- extendedWaitUntil:
+    visible:
+      id: "email-input"
+    timeout: 10000
+- tapOn:
+    id: "email-input"
+- inputText: "${EMAIL}"
+- tapOn:
+    id: "send-link-button"
+
+# Seeded user has a profile → goes straight to the map
+- extendedWaitUntil:
+    visible:
+      id: "set-status-pill"
+    timeout: 30000

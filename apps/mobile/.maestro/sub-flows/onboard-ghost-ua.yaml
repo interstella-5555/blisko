@@ -1,0 +1,143 @@
+appId: com.blisko.app
+---
+# Shared sub-flow: fresh @example.com login + v4 ghost (Ninja) onboarding (UA).
+# Taps the UA LocalePill first, then the same testID-driven onboarding as the
+# PL variant. Lands on the map. Used by the fresh demo flows (UA mirrors).
+#
+# Mirrors onboard-ghost-pl.yaml. When that flow changes, mirror here.
+
+- runFlow: launch-and-dismiss-dev.yaml
+
+# --- Switch UI language to UA ---
+
+- extendedWaitUntil:
+    visible:
+      id: "locale-pill-ua"
+    timeout: 10000
+- tapOn:
+    id: "locale-pill-ua"
+
+# --- AUTH: Email login with dev shortcut ---
+
+- extendedWaitUntil:
+    visible: "(?i)Продовжити з Email"
+    timeout: 30000
+- tapOn: "(?i)Продовжити з Email"
+
+- extendedWaitUntil:
+    visible:
+      id: "email-input"
+    timeout: 10000
+- tapOn:
+    id: "email-input"
+- inputRandomNumber
+- inputText: "@example.com"
+- tapOn:
+    point: "50%,10%"
+- tapOn: "(?i)Надіслати код"
+
+# --- INTRO CAROUSEL: skip straight to onboarding ---
+
+- runFlow:
+    when:
+      visible:
+        id: "intro-next-button"
+    commands:
+      - tapOn:
+          id: "intro-next-button"
+- runFlow:
+    when:
+      visible:
+        id: "intro-next-button"
+    commands:
+      - tapOn:
+          id: "intro-next-button"
+- runFlow:
+    when:
+      visible:
+        id: "intro-start-button"
+    commands:
+      - tapOn:
+          id: "intro-start-button"
+- runFlow:
+    when:
+      visible:
+        id: "intro-skip-button"
+    commands:
+      - tapOn:
+          id: "intro-skip-button"
+
+# --- STEP 1: Name + conversational question + photo + age ---
+
+- extendedWaitUntil:
+    visible:
+      id: "name-input"
+    timeout: 30000
+- tapOn:
+    id: "name-input"
+- eraseText: 30
+- inputText: "Demo Fresh E2E"
+- tapOn:
+    point: "50%,10%"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "intro-input"
+- inputText: "Programista, gram na gitarze i biegam po parku. Szukam ludzi do projektow"
+- tapOn:
+    point: "50%,10%"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "onboarding-photo-button"
+- runFlow:
+    when:
+      visible: "(?i)Allow Access to All Photos|Select Photos|Дозволити"
+    commands:
+      - tapOn: "(?i)Allow Access to All Photos|Дозволити"
+- runFlow:
+    when:
+      visible: "(?i)Photos|Фото|Recents"
+    commands:
+      - tapOn:
+          point: "20%,30%"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "age-confirm-toggle"
+
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-step1-next"
+    timeout: 10000
+- tapOn:
+    id: "onboarding-step1-next"
+
+# --- STEP 2: Category tiles ---
+
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-category-casual"
+    timeout: 15000
+- tapOn:
+    id: "onboarding-category-casual"
+- tapOn:
+    id: "onboarding-categories-next"
+
+# --- STEP 3: Account visibility — pick Ninja (ghost) ---
+
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-visibility-ninja"
+    timeout: 15000
+- tapOn:
+    id: "onboarding-visibility-ninja"
+- tapOn:
+    id: "onboarding-go-to-map"
+
+# --- Land on the map ---
+
+- extendedWaitUntil:
+    visible:
+      id: "set-status-pill"
+    timeout: 600000

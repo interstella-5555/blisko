@@ -1,0 +1,36 @@
+appId: com.blisko.app
+# Profile quick-view E2E — demo-critical, UA locale (BLI-300)
+# Mirrors profile-quickview.yaml. Logs in via the UA seeded sub-flow, opens B's
+# profile by display name + testID, and asserts the UA "Про мене" (O mnie)
+# section header (from ua/messages.po). Run via:
+#   ./run-test.sh profile-quickview-ua.yaml nearby
+#
+# When you edit profile-quickview.yaml you MUST mirror the change here
+# (e2e/pl-ua-parity).
+---
+- runFlow: ../sub-flows/login-seeded-ua.yaml
+
+# --- Open the nearby list sheet ---
+
+- extendedWaitUntil:
+    visible:
+      id: "nearby-count-pill"
+    timeout: 20000
+- tapOn:
+    id: "nearby-count-pill"
+
+# --- Tap seeded peer B to open the profile quick-view ---
+
+- extendedWaitUntil:
+    visible: "${DISPLAY_NAME_B}"
+    timeout: 15000
+- tapOn: "${DISPLAY_NAME_B}"
+
+# --- VERIFY: the profile modal opened with B's details ---
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-display-name"
+    timeout: 15000
+- assertVisible: "${DISPLAY_NAME_B}"
+- assertVisible: "(?i)Про мене"

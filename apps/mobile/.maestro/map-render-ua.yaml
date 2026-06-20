@@ -1,0 +1,24 @@
+appId: com.blisko.app
+---
+# Map render E2E — demo-critical, UA locale (BLI-300)
+# Mirrors map-render.yaml. Onboards via the UA ghost sub-flow (taps the UA
+# LocalePill first), then asserts the same testID-driven map surfaces. The map
+# controls are matched by testID, so no UA string assertions are needed.
+#
+# When you edit map-render.yaml you MUST mirror the change here
+# (e2e/pl-ua-parity).
+
+- runFlow: sub-flows/onboard-ghost-ua.yaml
+
+# --- VERIFY: the map and its floating controls are on screen ---
+
+- extendedWaitUntil:
+    visible:
+      id: "nearby-map-container"
+    timeout: 15000
+- assertVisible:
+    id: "nearby-map"
+- assertVisible:
+    id: "set-status-pill"
+- assertVisible:
+    id: "map-recenter-button"

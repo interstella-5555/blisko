@@ -1,0 +1,59 @@
+appId: com.blisko.app
+# Accept wave -> chat E2E — demo-critical (BLI-300)
+# Seed mode: incoming-ping — user B has sent a REAL ping to user A. This flow
+# logs in as A, opens the ping, accepts it, and the app creates the conversation
+# LIVE (the chat tests previously faked this by starting from a pre-seeded
+# conversation). It then opens the new chat and verifies the composer renders.
+# Run via:
+#   ./run-test.sh accept-wave-chat.yaml incoming-ping
+#
+# When you edit this flow you MUST mirror it in accept-wave-chat-ua.yaml
+# (e2e/pl-ua-parity).
+---
+- runFlow: ../sub-flows/login-seeded.yaml
+
+# --- Go to Czaty -> Pingi ---
+
+- tapOn: "tab-chats"
+- extendedWaitUntil:
+    visible:
+      id: "chats-filter-pings"
+    timeout: 15000
+- tapOn:
+    id: "chats-filter-pings"
+
+# --- Open the incoming ping from B ---
+
+- extendedWaitUntil:
+    visible:
+      id: "ping-row"
+    timeout: 15000
+- tapOn:
+    id: "ping-row"
+
+# --- Profile opens in the incoming-wave state — accept it ---
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-accept-button"
+    timeout: 15000
+- tapOn:
+    id: "profile-accept-button"
+
+# --- Accept creates the conversation: the action flips to "open chat" ---
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-open-chat-button"
+    timeout: 15000
+- tapOn:
+    id: "profile-open-chat-button"
+
+# --- VERIFY: the live-created conversation opens with a working composer ---
+
+- extendedWaitUntil:
+    visible:
+      id: "chat-input"
+    timeout: 15000
+- assertVisible:
+    id: "chat-send-btn"

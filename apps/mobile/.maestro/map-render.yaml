@@ -1,0 +1,25 @@
+appId: com.blisko.app
+---
+# Map render E2E — demo-critical (BLI-300)
+# The map IS the demo: a fresh user lands on a full-screen live map of nearby
+# people. This flow verifies the map view + its floating controls actually
+# render (NearbyMapView, set-status pill, recenter button) — previously zero
+# coverage despite being the first thing Jarek sees.
+#
+# When you edit this flow you MUST mirror it in map-render-ua.yaml
+# (e2e/pl-ua-parity).
+
+- runFlow: sub-flows/onboard-ghost-pl.yaml
+
+# --- VERIFY: the map and its floating controls are on screen ---
+
+- extendedWaitUntil:
+    visible:
+      id: "nearby-map-container"
+    timeout: 15000
+- assertVisible:
+    id: "nearby-map"
+- assertVisible:
+    id: "set-status-pill"
+- assertVisible:
+    id: "map-recenter-button"
