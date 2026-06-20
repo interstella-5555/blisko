@@ -25,15 +25,15 @@ appId: com.blisko.app
     point: "50%,10%"
 - tapOn: "(?i)Wyślij kod"
 
-# --- HOOK (auto-advances in 5s) ---
+# --- INTRO CAROUSEL: skip straight to onboarding ---
 
 - runFlow:
     when:
       visible:
-        id: "hook-start-button"
+        id: "intro-skip-button"
     commands:
       - tapOn:
-          id: "hook-start-button"
+          id: "intro-skip-button"
 
 # --- ONBOARDING: Name + Age ---
 

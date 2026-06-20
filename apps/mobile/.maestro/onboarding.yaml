@@ -32,15 +32,38 @@ appId: com.blisko.app
 - tapOn:
     id: "send-link-button"
 
-# --- HOOK SCREEN (auto-advances in 5s) ---
+# --- INTRO CAROUSEL: 3 "how it works" scenes → onboarding ---
+# Swipe through the scenes via the "Dalej" button, then "Zaczynam" on the last.
+# Auto-play may have already advanced the pager, so each step is conditional.
 
 - runFlow:
     when:
       visible:
-        id: "hook-start-button"
+        id: "intro-next-button"
     commands:
       - tapOn:
-          id: "hook-start-button"
+          id: "intro-next-button"
+- runFlow:
+    when:
+      visible:
+        id: "intro-next-button"
+    commands:
+      - tapOn:
+          id: "intro-next-button"
+- runFlow:
+    when:
+      visible:
+        id: "intro-start-button"
+    commands:
+      - tapOn:
+          id: "intro-start-button"
+- runFlow:
+    when:
+      visible:
+        id: "intro-skip-button"
+    commands:
+      - tapOn:
+          id: "intro-skip-button"
 
 # --- STEP 1: Name + conversational question + photo + age ---
 

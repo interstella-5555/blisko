@@ -52,11 +52,17 @@ The sections below describe the LEGACY multi-screen flow. They remain accurate f
 
 ## Full Flow Step-by-Step
 
-### Step 0: Hook Screen
+### Step 0: Intro Carousel (BLI-293)
 
-**File:** `apps/mobile/app/onboarding/hook.tsx`
+**File:** `apps/mobile/app/onboarding/intro.tsx` (initial route, replaces the old `hook.tsx`)
 
-Animated dark screen with 10 pulsing orange bubbles (#D4851C) and a headline: "Swiat jest pelen ludzi, ktorych potrzebujesz." CTA button "Zacznij" appears after 500ms fade-in. Auto-advances to Step 1 after 5 seconds via `setTimeout`. Both CTA tap and timeout call `router.replace("/onboarding")`.
+Animated dark screen (#1A1A1A) with 10 pulsing orange bubbles (#D4851C) carried over from the old hook, now a horizontal `pagingEnabled` `ScrollView` of three concrete "how it works" scenes — so the mechanic lands in the first 10 seconds before the user invests in a profile (v4 §3):
+
+1. ☕ "Podoba Ci się ktoś w kawiarni? Pinguj zamiast zgadywać."
+2. 💼 "Szukasz pracy? Ktoś obok buduje zespół."
+3. 🎸 "Szukasz muzyka? Siedzi dwa stoliki dalej."
+
+Auto-play advances every 3s (`setTimeout`, cleared per-scene) and stops on the last scene so the user can read the final CTA. White-on-dark page dots track the active scene. "Pomiń" (`testID: intro-skip-button`, top-right) skips to onboarding from any scene. The footer CTA is "Dalej" (`intro-next-button`) on scenes 1–2 and "Zaczynam" (`intro-start-button`) on the last; all three terminal actions call `router.replace("/onboarding")`. Light haptic on every tap (`hapticTap`).
 
 ### Step 1: Name + Age Confirmation
 
@@ -206,7 +212,7 @@ After `applyProfile`, the server enqueues a `profileAI` job that:
 
 | File | Purpose | Key interaction |
 |------|---------|----------------|
-| `onboarding/hook.tsx` | Animated intro | Auto-advance 5s, or tap "Zacznij" |
+| `onboarding/intro.tsx` | 3-scene "how it works" carousel | Swipe / "Dalej" + 3s auto-play, "Pomiń" skip, "Zaczynam" → onboarding |
 | `onboarding/index.tsx` | Name + age (Step 1) | Text input + `Toggle` primitive, "Dalej" |
 | `onboarding/visibility.tsx` | Ghost vs fill (Step 2) | Two accordion cards + scattered avatars graphic, dynamic CTA (`Dalej` / `Wchodzę do aplikacji`) |
 | `onboarding/questions-intro.tsx` | Pre-questions intro (Step 3) | Title + 3 bullets with accent vertical rule, CTA `Dalej` |

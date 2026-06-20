@@ -28,9 +28,9 @@ export default function OnboardingLayout() {
         animation: "slide_from_right",
         contentStyle: { backgroundColor: colors.bg },
       }}
-      initialRouteName="hook"
+      initialRouteName="intro"
     >
-      <Stack.Screen name="hook" options={{ animation: "fade", headerShown: false }} />
+      <Stack.Screen name="intro" options={{ animation: "fade", headerShown: false }} />
       <Stack.Screen name="index" />
       <Stack.Screen name="categories" />
       <Stack.Screen name="account-visibility" />
