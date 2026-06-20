@@ -9,6 +9,10 @@ export interface MarkerPoint {
   avatar: string | null;
   name?: string | null;
   statusMatch: boolean;
+  /** Do-not-disturb — bubble shows a muted "do not disturb" cue (BLI-294). */
+  dnd?: boolean;
+  /** Profile created within the last 24h — bubble shows a "NEW" badge (BLI-294). */
+  isNew?: boolean;
   members?: number;
 }
 

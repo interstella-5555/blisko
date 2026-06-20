@@ -105,6 +105,8 @@ export const NearbyMapView = forwardRef<NearbyMapRef, NearbyMapViewProps>(
                   avatarUrl={leafProps.avatar}
                   displayName={leafProps.name}
                   highlighted={leafProps.statusMatch}
+                  dnd={leafProps.dnd}
+                  isNew={leafProps.isNew}
                 />
               </Marker>
             );

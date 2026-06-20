@@ -82,6 +82,14 @@ msgstr "+ Nowy wątek"
 msgid "+ Ustaw status na teraz"
 msgstr "+ Ustaw status na teraz"
 
+#: app/(tabs)/index.tsx
+msgid "✨ Ktoś w pobliżu pasuje do Twojego statusu"
+msgstr "✨ Ktoś w pobliżu pasuje do Twojego statusu"
+
+#: app/(tabs)/index.tsx
+msgid "🔍 Szukam za Ciebie…"
+msgstr "🔍 Szukam za Ciebie…"
+
 #: app/mute-conversation.tsx
 msgid "1 godzinę"
 msgstr "1 godzinę"
@@ -1116,10 +1124,6 @@ msgstr "Projekt"
 msgid "Prywatność"
 msgstr "Prywatność"
 
-#: app/set-status.tsx
-msgid "Prywatny"
-msgstr "Prywatny"
-
 #: app/(modals)/user/[userId].tsx
 msgid "Przejść w tryb Semi-Open?"
 msgstr "Przejść w tryb Semi-Open?"
@@ -1148,20 +1152,6 @@ msgstr "Przyjął(a) Twój ping!"
 #: app/onboarding/questions.tsx
 msgid "Przykład {0}"
 msgstr "Przykład {0}"
-
-#: app/set-status.tsx
-msgid "Publiczny"
-msgstr "Publiczny"
-
-#: app/set-status.tsx
-msgid ""
-"Publiczny — tekst statusu + kategorie widoczne dla innych na mapie i w profilu. Dopasowania liczone są DO tekstu statusu.\n"
-"\n"
-"Prywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim się matchujesz. Dopasowania liczone są do Twojego profilu."
-msgstr ""
-"Publiczny — tekst statusu + kategorie widoczne dla innych na mapie i w profilu. Dopasowania liczone są DO tekstu statusu.\n"
-"\n"
-"Prywatny — tekst statusu ukryty przed innymi, ale wciąż wpływa na to z kim się matchujesz. Dopasowania liczone są do Twojego profilu."
 
 #: app/settings/notifications.tsx
 msgid "PUSH"
@@ -1196,6 +1186,10 @@ msgstr "Spotkanie"
 #: app/settings/verify-email.tsx
 msgid "Sprawdź folder spam jeśli nie widzisz maila"
 msgstr "Sprawdź folder spam jeśli nie widzisz maila"
+
+#: app/(tabs)/index.tsx
+msgid "Sprawdź kto jest w pobliżu"
+msgstr "Sprawdź kto jest w pobliżu"
 
 #: app/(auth)/email.tsx
 msgid "Spróbuj innej metody logowania"
@@ -1363,10 +1357,6 @@ msgid "W okolicy"
 msgstr "W okolicy"
 
 #: app/(tabs)/index.tsx
-msgid "w pobliżu"
-msgstr "w pobliżu"
-
-#: app/(tabs)/index.tsx
 msgid "W POBLIŻU"
 msgstr "W POBLIŻU"
 
@@ -1403,10 +1393,6 @@ msgstr "Wiadomość usunięta"
 #: app/create-group.tsx
 msgid "Widoczna w okolicy"
 msgstr "Widoczna w okolicy"
-
-#: app/set-status.tsx
-msgid "WIDOCZNOŚĆ"
-msgstr "WIDOCZNOŚĆ"
 
 #: app/onboarding/visibility.tsx
 msgid "Widoczność i prywatność zmienisz w każdej chwili w ustawieniach."
@@ -1588,6 +1574,14 @@ msgstr "Wysyłanie..."
 #: app/(tabs)/index.tsx
 msgid "Z"
 msgstr "Z"
+
+#: app/(tabs)/index.tsx
+msgid "Z DOPASOWANIEM"
+msgstr "Z DOPASOWANIEM"
+
+#: app/(tabs)/index.tsx
+msgid "z dopasowaniem {MATCH_QUALITY_THRESHOLD}%+ w pobliżu"
+msgstr "z dopasowaniem {MATCH_QUALITY_THRESHOLD}%+ w pobliżu"
 
 #: app/(auth)/email.tsx
 #: app/(auth)/verify.tsx

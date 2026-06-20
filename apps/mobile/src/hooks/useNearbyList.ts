@@ -39,6 +39,7 @@ export function useNearbyList() {
   }, [data]);
 
   const totalCount = data?.pages[0]?.totalCount ?? 0;
+  const qualityCount = data?.pages[0]?.qualityCount ?? 0;
   const myStatus = data?.pages[0]?.myStatus ?? null;
 
   const onRegionChange = useCallback(
@@ -61,6 +62,7 @@ export function useNearbyList() {
   return {
     users,
     totalCount,
+    qualityCount,
     myStatus,
     isLoading,
     isFetching,
