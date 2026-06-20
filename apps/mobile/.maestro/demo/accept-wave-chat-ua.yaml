@@ -1,0 +1,56 @@
+appId: com.blisko.app
+# Accept wave -> chat E2E — demo-critical, UA locale (BLI-300)
+# Mirrors accept-wave-chat.yaml. Logs in via the UA seeded sub-flow, then drives
+# the ping -> accept -> live conversation -> chat path entirely by testID. Run via:
+#   ./run-test.sh accept-wave-chat-ua.yaml incoming-ping
+#
+# When you edit accept-wave-chat.yaml you MUST mirror the change here
+# (e2e/pl-ua-parity).
+---
+- runFlow: ../sub-flows/login-seeded-ua.yaml
+
+# --- Go to Чати -> Пінги ---
+
+- tapOn: "tab-chats"
+- extendedWaitUntil:
+    visible:
+      id: "chats-filter-pings"
+    timeout: 15000
+- tapOn:
+    id: "chats-filter-pings"
+
+# --- Open the incoming ping from B ---
+
+- extendedWaitUntil:
+    visible:
+      id: "ping-row"
+    timeout: 15000
+- tapOn:
+    id: "ping-row"
+
+# --- Profile opens in the incoming-wave state — accept it ---
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-accept-button"
+    timeout: 15000
+- tapOn:
+    id: "profile-accept-button"
+
+# --- Accept creates the conversation: the action flips to "open chat" ---
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-open-chat-button"
+    timeout: 15000
+- tapOn:
+    id: "profile-open-chat-button"
+
+# --- VERIFY: the live-created conversation opens with a working composer ---
+
+- extendedWaitUntil:
+    visible:
+      id: "chat-input"
+    timeout: 15000
+- assertVisible:
+    id: "chat-send-btn"

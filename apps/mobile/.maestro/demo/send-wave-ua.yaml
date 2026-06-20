@@ -1,0 +1,48 @@
+appId: com.blisko.app
+# Send wave (ping) E2E — demo-critical, UA locale (BLI-300)
+# Mirrors send-wave.yaml. Logs in via the UA seeded sub-flow, then drives the
+# nearby list + profile by testID. B's display name comes from the seed
+# (DISPLAY_NAME_B), not a bundle string. Run via:
+#   ./run-test.sh send-wave-ua.yaml nearby
+#
+# When you edit send-wave.yaml you MUST mirror the change here
+# (e2e/pl-ua-parity).
+---
+- runFlow: ../sub-flows/login-seeded-ua.yaml
+
+# --- Open the nearby list sheet ---
+
+- extendedWaitUntil:
+    visible:
+      id: "nearby-count-pill"
+    timeout: 20000
+- tapOn:
+    id: "nearby-count-pill"
+
+# --- Open seeded peer B's profile ---
+
+- extendedWaitUntil:
+    visible: "${DISPLAY_NAME_B}"
+    timeout: 15000
+- tapOn: "${DISPLAY_NAME_B}"
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-display-name"
+    timeout: 15000
+
+# --- Ping B ---
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-ping-button"
+    timeout: 15000
+- tapOn:
+    id: "profile-ping-button"
+
+# --- VERIFY: the action flips to the "Pingowano" state ---
+
+- extendedWaitUntil:
+    visible:
+      id: "profile-pinged-pill"
+    timeout: 15000

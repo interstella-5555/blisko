@@ -433,7 +433,9 @@ export default function UserProfileScreen() {
         {/* Header — always visible from cached/list params */}
         <View style={styles.header}>
           <Avatar uri={profile?.avatarUrl ?? resolvedAvatarUrl} name={displayName} size={100} blurred={isGhost} />
-          <Text style={styles.displayName}>{displayName}</Text>
+          <Text testID="profile-display-name" style={styles.displayName}>
+            {displayName}
+          </Text>
           <View style={styles.meta}>
             {matchPercent > 0 && <Text style={styles.matchBadge}>{t`${matchPercent}% dopasowania`}</Text>}
             <Text style={styles.distance}>{formatDistance(resolvedDistance)}</Text>
@@ -454,7 +456,7 @@ export default function UserProfileScreen() {
                   </Text>
                 </View>
               ) : (
-                <Pressable style={styles.actionPill} onPress={handleWave}>
+                <Pressable testID="profile-ping-button" style={styles.actionPill} onPress={handleWave}>
                   <IconWave size={13} color={colors.bg} />
                   <Text style={styles.actionPillText}>
                     <Trans>Ping</Trans>
@@ -462,7 +464,7 @@ export default function UserProfileScreen() {
                 </Pressable>
               ))}
             {actionState === "pending" && (
-              <View style={styles.pendingPill}>
+              <View testID="profile-pinged-pill" style={styles.pendingPill}>
                 <IconCheck size={12} color={colors.muted} />
                 <Text style={styles.pendingPillText}>
                   <Trans>Pingowano</Trans>
@@ -471,12 +473,12 @@ export default function UserProfileScreen() {
             )}
             {actionState === "incoming" && (
               <View style={styles.incomingActions}>
-                <Pressable style={styles.declinePill} onPress={handleDecline}>
+                <Pressable testID="profile-decline-button" style={styles.declinePill} onPress={handleDecline}>
                   <Text style={styles.declinePillText}>
                     <Trans>Nie teraz</Trans>
                   </Text>
                 </Pressable>
-                <Pressable style={styles.actionPill} onPress={handleAccept}>
+                <Pressable testID="profile-accept-button" style={styles.actionPill} onPress={handleAccept}>
                   <Text style={styles.actionPillText}>
                     <Trans>Akceptuj</Trans>
                   </Text>
@@ -484,7 +486,7 @@ export default function UserProfileScreen() {
               </View>
             )}
             {actionState === "chat" && (
-              <Pressable style={styles.chatPill} onPress={handleOpenChat}>
+              <Pressable testID="profile-open-chat-button" style={styles.chatPill} onPress={handleOpenChat}>
                 <IconChat size={13} color={colors.bg} />
                 <Text style={styles.chatPillText}>
                   <Trans>Napisz wiadomość</Trans>

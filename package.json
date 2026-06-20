@@ -31,6 +31,7 @@
     "mobile:reset-ios": "bun run --filter '@repo/mobile' reset-ios",
     "mobile:test:e2e:pl": "bun run --filter '@repo/mobile' test:e2e:pl",
     "mobile:test:e2e:ua": "bun run --filter '@repo/mobile' test:e2e:ua",
+    "mobile:test:e2e:demo": "bun run --filter '@repo/mobile' test:e2e:demo",
     "mobile:i18n:extract": "bun run --filter '@repo/mobile' i18n:extract",
     "mobile:i18n:translate": "bun run --filter '@repo/mobile' i18n:translate",
     "mobile:i18n:check": "bun run --filter '@repo/mobile' i18n:check",

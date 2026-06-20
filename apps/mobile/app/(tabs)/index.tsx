@@ -516,6 +516,7 @@ export default function NearbyScreen() {
       <View style={[styles.topFloat, { top: insets.top + 8 }]} pointerEvents="box-none">
         {myStatus ? (
           <Pressable
+            testID="active-status-pill"
             style={styles.statusFloat}
             onPressIn={hapticTap}
             onPress={() =>
@@ -565,6 +566,7 @@ export default function NearbyScreen() {
 
       {/* Floating recenter — fixed at the right of the count-pill row (pill stays centered) */}
       <Pressable
+        testID="map-recenter-button"
         style={[styles.recenterBtn, { bottom: insets.bottom + 18 }]}
         onPressIn={hapticTap}
         onPress={handleReturnToMyLocation}
@@ -589,6 +591,7 @@ export default function NearbyScreen() {
       {!listOpen && (
         <View style={[styles.countPillWrap, { bottom: insets.bottom + 18 }]} pointerEvents="box-none">
           <Pressable
+            testID="nearby-count-pill"
             style={styles.countPill}
             onPressIn={hapticTap}
             onPress={() => setListOpen(true)}

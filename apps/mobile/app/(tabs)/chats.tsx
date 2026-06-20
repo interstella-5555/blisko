@@ -170,6 +170,7 @@ export default function ChatsScreen() {
           return (
             <Pressable
               key={pill.key}
+              testID={`chats-filter-${pill.key}`}
               style={[styles.pill, isActive && styles.pillActive, isUnread && styles.unreadPill]}
               onPress={() => setFilter(pill.key)}
             >
@@ -333,7 +334,7 @@ function renderPingRow(
   const isPending = item.wave.status === "pending";
   const statusLabel = !isPending ? getStatusLabel(item.wave.status) : null;
   return (
-    <Pressable style={styles.pingRow} onPress={() => onPress(item as never)}>
+    <Pressable testID="ping-row" style={styles.pingRow} onPress={() => onPress(item as never)}>
       <Avatar uri={item.fromProfile.avatarUrl} name={item.fromProfile.displayName} size={48} blurred={isGhost} />
       <View style={styles.pingBody}>
         <View style={styles.pingTopLine}>

@@ -124,6 +124,7 @@ export default function SetStatusScreen() {
           return (
             <Pressable
               key={cat.value}
+              testID={`status-category-${cat.value}`}
               style={[styles.categoryTile, selected && styles.categoryTileSelected]}
               onPress={() => toggleCategory(cat.value)}
             >
@@ -138,6 +139,7 @@ export default function SetStatusScreen() {
 
       <View style={styles.inputContainer}>
         <TextInput
+          testID="status-input"
           style={styles.input}
           value={text}
           onChangeText={setText}
@@ -154,6 +156,7 @@ export default function SetStatusScreen() {
 
       <View style={styles.submitContainer}>
         <Button
+          testID="status-submit-button"
           title={t`Ustaw status`}
           variant="accent"
           onPress={handleSubmit}

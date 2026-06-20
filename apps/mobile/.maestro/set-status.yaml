@@ -1,0 +1,44 @@
+appId: com.blisko.app
+---
+# Set status E2E — demo-critical (BLI-300)
+# "Co teraz?" — broadcasting a live status is the core ambient loop. This flow
+# opens the set-status sheet from the map, picks a category, types a status and
+# submits, then verifies the active-status pill now shows on the map. The
+# status pill was previously only asserted-visible, never actually tapped/set.
+#
+# When you edit this flow you MUST mirror it in set-status-ua.yaml
+# (e2e/pl-ua-parity).
+
+- runFlow: sub-flows/onboard-ghost-pl.yaml
+
+# --- Open the set-status sheet from the empty status pill ---
+
+- extendedWaitUntil:
+    visible:
+      id: "set-status-pill"
+    timeout: 15000
+- tapOn:
+    id: "set-status-pill"
+
+# --- Pick a category + type a status ---
+
+- extendedWaitUntil:
+    visible:
+      id: "status-category-networking"
+    timeout: 10000
+- tapOn:
+    id: "status-category-networking"
+- tapOn:
+    id: "status-input"
+- inputText: "Szukam ludzi do wspolnego biegania o poranku"
+- hideKeyboard
+- tapOn:
+    id: "status-submit-button"
+
+# --- VERIFY: the active-status pill now renders on the map ---
+
+- extendedWaitUntil:
+    visible:
+      id: "active-status-pill"
+    timeout: 15000
+- assertVisible: ".*Szukam ludzi do wspolnego biegania.*"
