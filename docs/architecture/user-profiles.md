@@ -6,6 +6,7 @@
 > Updated 2026-04-18 — Portrait section removed from mobile UI (onboarding + settings review screens); portrait is now purely internal. `portraitSharedForMatching` dropped from the `applyProfilingSchema` validator and no longer touched by `applyProfile` — DB default (`true`) handles inserts, existing rows backfilled to `true`, re-profiling keeps the existing value. Column retained as audit-only (BLI-199).
 > Updated 2026-04-19 — Source path corrected to `packages/db/src/schema.ts`. Field reference row for `portraitSharedForMatching` now shows correct default (`true`). BLI-235 removed the "finish profile" CTA from the Profil tab; the only in-app entry point to re-run onboarding is Ustawienia → Profilowanie.
 > Updated 2026-06-19 — BLI-289: status public/private removed — status is always public. Dropped the `statusVisibility` column (migration 0033), `setStatusSchema.visibility`, the set-status visibility selector, `isStatusPublic` filtering, and `getMyStatusMatches` reason redaction. `getById` shows an active status to everyone.
+> Updated 2026-06-20 — BLI-299: "Kogo szukam" UI section removed from all three profile surfaces (other-profile modal, own Profil tab, edit-profile form). `lookingFor` stays in the schema, matching backend, and onboarding apply path — it is no longer a user-editable section (the status IS what you're looking for). `updateProfileSchema` caps `bio` at 200 (was 500) and `superpower` at 200 (was 300); edit-profile char counters and `maxLength` match. `lookingFor` stays `min(10).max(500)` in `updateProfileSchema` so the AI-generated value still validates, but the mobile UI no longer sends it. "Co nas łączy" shared tags capped to 5 on the other-profile modal. AI "Co nas łączy" insight stays free for everyone (no premium gate).
 
 Source: `packages/db/src/schema.ts`, `apps/api/src/trpc/procedures/profiles.ts`, `packages/shared/src/validators.ts`, `apps/api/src/services/ai.ts`, `apps/api/src/trpc/middleware/featureGate.ts`. (Canonical schema lives in `@repo/db`; `apps/api/src/db/schema.ts` is a re-export shim.)
 
@@ -38,14 +39,14 @@ One profile per user. `profiles.userId` is a unique FK to `user.id` with `ON DEL
 | `userId` | text | no | --- | FK to `user.id`, unique. One profile per auth user |
 | `displayName` | varchar(50) | no | --- | User-chosen name. Locked after 5-min grace period (see below) |
 | `avatarUrl` | text | yes | null | Profile photo URL. Seeded from OAuth provider's `user.image` on create |
-| `bio` | text | no | --- | "Kim jestem" --- AI-generated from profiling Q&A, user-editable. Min 10, max 500 chars |
-| `lookingFor` | text | no | --- | "Kogo szukam" --- AI-generated, user-editable. Min 10, max 500 chars |
+| `bio` | text | no | --- | "Kim jestem" --- AI-generated from profiling Q&A, user-editable. Min 10 chars; user-edit path (`updateProfileSchema`) capped at 200 (BLI-299), AI-apply path (`applyProfilingSchema`/`createProfileSchema`) still allows up to 500 for generated content |
+| `lookingFor` | text | no | --- | Formerly "Kogo szukam" --- AI-generated, fed to the matching backend. No longer a user-editable profile section (BLI-299: the status IS what you're looking for). Still written by the onboarding apply path; `updateProfileSchema` keeps it optional (min 10, max 500) but the mobile UI no longer sends it |
 | `socialLinks` | jsonb | yes | null | `{ facebook?: string, linkedin?: string }` --- usernames, not full URLs. Visible after ping acceptance per PRODUCT.md |
 | `locale` | varchar(2) | yes | null | User-chosen UI language (`'pl'` / `'ua'`). Null = no explicit choice, mobile uses device-detected locale. Set via `profiles.updateLocale` from Settings → Konto. Cross-device sync: mobile seeds `localeStore` from this value on session start when set (BLI-277) |
 | `contentLocale` | varchar(2) | no | `'pl'` | Language of the canonical UGC text (`bio` / `lookingFor` / `portrait` / `currentStatus`) on this row. Rewritten whenever the user edits UGC. Translations to other locales live in `profile_translations`. Matching pipeline reads canonical PL via `getCanonicalText`. BLI-279 |
 | `visibilityMode` | text | no | `'semi_open'` | `'ninja'` / `'semi_open'` / `'full_nomad'` --- controls map presence and ping ability |
 | `doNotDisturb` | boolean | no | `false` | Suppresses push notifications. Independent from visibility mode |
-| `superpower` | text | yes | null | Free-text "what I can offer" (max 300 chars). Fed to AI matching prompts |
+| `superpower` | text | yes | null | Free-text "what I can offer" (max 200 chars via `updateProfileSchema`, BLI-299). Fed to AI matching prompts |
 | `superpowerTags` | text[] | yes | null | AI-extracted tags from superpower text. Column exists in schema but not populated by current code --- reserved for future use |
 | `offerType` | text | yes | null | `'volunteer'` / `'exchange'` / `'gig'` --- how user wants to offer their superpower |
 | `interests` | text[] | yes | null | 8-12 AI-extracted tags from portrait (Polish, lowercase). Used for interest overlap scoring |
@@ -137,7 +138,7 @@ One profile per user. `profiles.userId` is a unique FK to `user.id` with `ON DEL
 
 | Field | Validation | Notes |
 |-------|-----------|-------|
-| `superpower` | max 300 chars via `updateProfileSchema` | Free text, set via `profiles.update`. Fed to AI matching prompts (`analyzeConnection`, `quickScore`) as "Moze zaoferowac:" |
+| `superpower` | max 200 chars via `updateProfileSchema` (BLI-299) | Free text, set via `profiles.update`. Fed to AI matching prompts (`analyzeConnection`, `quickScore`) as "Moze zaoferowac:" |
 | `offerType` | `'volunteer'` / `'exchange'` / `'gig'` | How the user wants to offer. PRODUCT.md maps these to "wolontariat / wymiana skilli / potencjalne zlecenie" |
 | `superpowerTags` | text[] | Column exists in schema. Not populated by any current code path. Reserved for AI tag extraction (like `interests` is for portrait) |
 

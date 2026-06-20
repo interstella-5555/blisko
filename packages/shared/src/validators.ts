@@ -18,13 +18,16 @@ export const socialLinksSchema = z
 
 export const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(50).optional(),
-  bio: z.string().min(10).max(500).optional(),
+  // bio / superpower capped at 200 (v4 §7, BLI-299). lookingFor stays optional +
+  // max(500): the UI section is gone, but the AI-generated value (100-300 chars)
+  // still flows through the matching backend and onboarding apply path.
+  bio: z.string().min(10).max(200).optional(),
   lookingFor: z.string().min(10).max(500).optional(),
   avatarUrl: z.string().url().optional(),
   socialLinks: socialLinksSchema,
   visibilityMode: z.enum(["ninja", "semi_open", "full_nomad"]).optional(),
   doNotDisturb: z.boolean().optional(),
-  superpower: z.string().max(300).optional(),
+  superpower: z.string().max(200).optional(),
   offerType: z.enum(["volunteer", "exchange", "gig"]).optional(),
 });
 

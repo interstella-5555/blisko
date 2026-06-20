@@ -12,16 +12,24 @@ import { showModerationToastIfApplicable, uploadImage } from "@/lib/uploadImage"
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
+// User-edit cap for bio / superpower (updateProfileSchema, BLI-299). Kept local: not
+// shared with the AI-apply path, which still allows longer generated content (max 500).
+const EDIT_FIELD_MAX = 200;
+
 export default function EditProfileScreen() {
   const { t } = useLingui();
   const profile = useAuthStore((state) => state.profile);
   const setProfile = useAuthStore((state) => state.setProfile);
 
   const [displayName, _setDisplayName] = useState(profile?.displayName || "");
-  const [bio, setBio] = useState(profile?.bio || "");
-  const [lookingFor, setLookingFor] = useState(profile?.lookingFor || "");
+  // Clamp on mount: AI-generated bios run 100-300 chars (applyProfilingSchema allows
+  // max 500), but the user-edit path (updateProfileSchema) caps bio/superpower at 200.
+  // RN maxLength does NOT truncate a pre-existing value, so without this clamp a user
+  // whose AI bio is >200 chars would see the full text, tap Zapisz, and the save would
+  // be rejected server-side with a generic error (BLI-299).
+  const [bio, setBio] = useState((profile?.bio || "").slice(0, EDIT_FIELD_MAX));
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || null);
-  const [superpower, setSuperpower] = useState(profile?.superpower || "");
+  const [superpower, setSuperpower] = useState((profile?.superpower || "").slice(0, EDIT_FIELD_MAX));
   const [offerType, setOfferType] = useState<"volunteer" | "exchange" | "gig" | "">(profile?.offerType || "");
   const [uploading, setUploading] = useState(false);
 
@@ -65,21 +73,16 @@ export default function EditProfileScreen() {
       Alert.alert(t`Błąd`, t`Bio musi mieć co najmniej 10 znaków`);
       return;
     }
-    if (lookingFor.trim().length < 10) {
-      Alert.alert(t`Błąd`, t`"Kogo szukam" musi mieć co najmniej 10 znaków`);
-      return;
-    }
 
     updateProfile.mutate({
       bio: bio.trim(),
-      lookingFor: lookingFor.trim(),
       ...(superpower.trim() ? { superpower: superpower.trim() } : {}),
       ...(offerType ? { offerType } : {}),
       ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl || undefined } : {}),
     });
   };
 
-  const canSave = bio.trim().length >= 10 && lookingFor.trim().length >= 10;
+  const canSave = bio.trim().length >= 10;
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -124,31 +127,14 @@ export default function EditProfileScreen() {
             multiline
             numberOfLines={5}
             textAlignVertical="top"
-            maxLength={500}
+            maxLength={EDIT_FIELD_MAX}
           />
-          <Text style={styles.charCount}>{bio.length} / 500</Text>
+          <Text style={styles.charCount}>
+            {bio.length} / {EDIT_FIELD_MAX}
+          </Text>
         </View>
 
-        <View style={styles.field}>
-          <Text style={styles.label}>
-            <Trans>Kogo szukam</Trans>
-          </Text>
-          <TextInput
-            testID="edit-looking-for-input"
-            style={[styles.input, styles.multilineInput]}
-            value={lookingFor}
-            onChangeText={setLookingFor}
-            placeholder={t`Opisz, jakie osoby chciałbyś poznać...`}
-            placeholderTextColor={colors.muted}
-            spellCheck={false}
-            autoCorrect={false}
-            multiline
-            numberOfLines={5}
-            textAlignVertical="top"
-            maxLength={500}
-          />
-          <Text style={styles.charCount}>{lookingFor.length} / 500</Text>
-        </View>
+        {/* "Kogo szukam" removed (v4 §7) — it IS the status, set from the map. */}
 
         <View style={styles.field}>
           <Text style={styles.label}>
@@ -165,9 +151,11 @@ export default function EditProfileScreen() {
             multiline
             numberOfLines={3}
             textAlignVertical="top"
-            maxLength={300}
+            maxLength={EDIT_FIELD_MAX}
           />
-          <Text style={styles.charCount}>{superpower.length} / 300</Text>
+          <Text style={styles.charCount}>
+            {superpower.length} / {EDIT_FIELD_MAX}
+          </Text>
         </View>
 
         {superpower.trim().length > 0 && (

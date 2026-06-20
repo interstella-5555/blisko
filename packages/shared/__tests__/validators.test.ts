@@ -57,6 +57,29 @@ describe("updateProfileSchema", () => {
 
     expect(result.success).toBe(true);
   });
+
+  // BLI-299: user-edit path caps bio/superpower at 200. The mobile edit-profile
+  // form clamps loaded values to 200 on mount so the save always validates — if
+  // this boundary ever moves, that clamp must move with it.
+  it("accepts bio of exactly 200 chars", () => {
+    const result = updateProfileSchema.safeParse({ bio: "a".repeat(200) });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects bio over 200 chars", () => {
+    const result = updateProfileSchema.safeParse({ bio: "a".repeat(201) });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts superpower of exactly 200 chars", () => {
+    const result = updateProfileSchema.safeParse({ superpower: "a".repeat(200) });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects superpower over 200 chars", () => {
+    const result = updateProfileSchema.safeParse({ superpower: "a".repeat(201) });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("sendWaveSchema", () => {

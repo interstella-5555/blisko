@@ -13,8 +13,8 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: app/chat/[id].tsx
 #. placeholder {0}: String(storeConversation.metadata.connectedDistance)
+#: app/chat/[id].tsx
 msgid " · ~{0}m od siebie"
 msgstr " · ~{0}м від себе"
 
@@ -23,38 +23,30 @@ msgstr " · ~{0}м від себе"
 msgid " (Ty)"
 msgstr " (Ти)"
 
-#: app/settings/edit-profile.tsx
-msgid "\"Kogo szukam\" musi mieć co najmniej 10 znaków"
-msgstr "\"Кого шукаю\" має містити щонайменше 10 символів"
-
 #: app/chat/[id].tsx
 msgid "[Zdjęcie]"
 msgstr "[Фото]"
 
-#: app/(modals)/group/[id].tsx
-#: app/chat/[id].tsx
 #. placeholder {0}: groupInfo.memberCount
 #. placeholder {0}: storeConversation.memberCount
+#: app/(modals)/group/[id].tsx
+#: app/chat/[id].tsx
 msgid "{0} członków"
 msgstr "{0} учасників"
 
-#: app/chat/[id].tsx
 #. placeholder {0}: typingDisplayNames.join(", ")
+#: app/chat/[id].tsx
 msgid "{0} pisze..."
 msgstr "{0} пише..."
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: topic.messageCount
+#: app/(modals)/group/[id].tsx
 msgid "{0} wiadomości"
 msgstr "{0} повідомлень"
 
 #: src/lib/format.ts
-msgid ""
-"{diffDays, plural, one {# dzień temu} few {# dni temu} many {# dni temu} "
-"other {# dni temu}}"
-msgstr ""
-"{diffDays, plural, one {# день тому} few {# дні тому} many {# днів тому} "
-"other {# днів тому}}"
+msgid "{diffDays, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dni temu}}"
+msgstr "{diffDays, plural, one {# день тому} few {# дні тому} many {# днів тому} other {# днів тому}}"
 
 #: app/(tabs)/chats.tsx
 msgid "{diffDays} dni temu"
@@ -98,8 +90,8 @@ msgstr "🔍 Шукаю за тебе…"
 msgid "1 godzinę"
 msgstr "1 годину"
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: nearbyData.totalNearby
+#: app/(modals)/group/[id].tsx
 msgid "20 najbliższych z {0}"
 msgstr "20 найближчих з {0}"
 
@@ -241,8 +233,8 @@ msgstr "Чого ти шукаєш або що можеш дати?"
 msgid "Członkowie"
 msgstr "Члени"
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: sortedMembers.length
+#: app/(modals)/group/[id].tsx
 msgid "Członkowie ({0})"
 msgstr "Члени ({0})"
 
@@ -259,12 +251,8 @@ msgid "Czy na pewno chcesz pominąć ten ping?"
 msgstr "Ти впевнений, що хочеш пропустити цей пінг?"
 
 #: app/settings/account.tsx
-msgid ""
-"Czy na pewno chcesz usunąć swoje konto? Twoje dane zostaną trwale usunięte "
-"w ciągu 14 dni."
-msgstr ""
-"Ти впевнений, що хочеш видалити свій акаунт? Твої дані будуть безповоротно "
-"видалені протягом 14 днів."
+msgid "Czy na pewno chcesz usunąć swoje konto? Twoje dane zostaną trwale usunięte w ciągu 14 dni."
+msgstr "Ти впевнений, що хочеш видалити свій акаунт? Твої дані будуть безповоротно видалені протягом 14 днів."
 
 #: app/chat/[id].tsx
 msgid "Czy na pewno chcesz usunąć tę wiadomość?"
@@ -306,9 +294,9 @@ msgstr "Додай фото, щоб пінгувати"
 msgid "Dołącz"
 msgstr "Приєднатися"
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: groupInfo.name
 #. placeholder {1}: groupInfo.inviteCode
+#: app/(modals)/group/[id].tsx
 msgid ""
 "Dołącz do grupy „{0}\" w Blisko!\n"
 "https://blisko.app/join/{1}"
@@ -427,8 +415,8 @@ msgstr "Як це працює"
 msgid "Jak to działa?"
 msgstr "Як це працює?"
 
-#: app/(tabs)/index.tsx
 #. placeholder {0}: nearbyFilter === "people" ? t`osoby` : t`osoby i grupy`
+#: app/(tabs)/index.tsx
 msgid "Jesteś poza zasięgiem — pokazujemy {0} tylko w pobliżu Twojej lokalizacji"
 msgstr "Ти поза зоною — показуємо {0} тільки поруч з твоєю локацією"
 
@@ -440,13 +428,13 @@ msgstr "Ти поза зоною — показуємо групи тільки 
 msgid "Jesteście połączeni"
 msgstr "Ви підключені"
 
-#: app/settings/profiling.tsx
 #. placeholder {0}: followUps.length - followUpIndex
+#: app/settings/profiling.tsx
 msgid "Jeszcze {0} pytania"
 msgstr "Ще {0} запитань"
 
-#: app/settings/profiling.tsx
 #. placeholder {0}: followUps.length - followUpIndex
+#: app/settings/profiling.tsx
 msgid "Jeszcze {0} pytanie"
 msgstr "Ще {0} запитання"
 
@@ -489,12 +477,6 @@ msgstr "Коли хтось тебе пінгане, з'явиться тут"
 msgid "Kilka pytań"
 msgstr "Кілька запитань"
 
-#: app/(modals)/user/[userId].tsx
-#: app/(tabs)/profile.tsx
-#: app/settings/edit-profile.tsx
-msgid "Kogo szukam"
-msgstr "Кого я шукаю"
-
 #: app/onboarding/profiling-result.tsx
 #: app/settings/profiling-result.tsx
 msgid "KOGO SZUKAM"
@@ -521,12 +503,8 @@ msgstr "Обліковий запис призупинено"
 
 #: app/(auth)/email.tsx
 #: app/(auth)/verify.tsx
-msgid ""
-"Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli "
-"uważasz, że to pomyłka."
-msgstr ""
-"Обліковий запис призупинено. Зв'яжися з адміністрацією: kontakt@blisko.app, "
-"якщо вважаєш, що це помилка."
+msgid "Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
+msgstr "Обліковий запис призупинено. Зв'яжися з адміністрацією: kontakt@blisko.app, якщо вважаєш, що це помилка."
 
 #: app/settings/account.tsx
 msgid "Kontynuuj"
@@ -615,13 +593,8 @@ msgid "Na jak długo?"
 msgstr "На скільки часу?"
 
 #: app/onboarding/questions-intro.tsx
-msgid ""
-"Na podstawie Twoich odpowiedzi przygotujemy bio i opis tego, kogo lub czego "
-"szukasz. Zobaczysz gotowy tekst i poprawisz, zanim pokażemy go innym."
-msgstr ""
-"На основі твоїх відповідей ми підготуємо біо та опис того, кого або чого ти "
-"шукаєш. Ти побачиш готовий текст і зможеш його поправити, перш ніж ми "
-"покажемо його іншим."
+msgid "Na podstawie Twoich odpowiedzi przygotujemy bio i opis tego, kogo lub czego szukasz. Zobaczysz gotowy tekst i poprawisz, zanim pokażemy go innym."
+msgstr "На основі твоїх відповідей ми підготуємо біо та опис того, кого або чого ти шукаєш. Ти побачиш готовий текст і зможеш його поправити, перш ніж ми покажемо його іншим."
 
 #: app/onboarding/visibility.tsx
 msgid "Na razie przeglądam"
@@ -636,16 +609,8 @@ msgid "Na zawsze"
 msgstr "Назавжди"
 
 #: app/onboarding/visibility.tsx
-msgid ""
-"Najpierw opowiesz o sobie — kilka pytań, nic więcej. Będziesz mieć pełny "
-"dostęp do ludzi i grup w Twojej okolicy. Dostaniesz powiadomienie, gdy obok "
-"pojawi się ktoś, kogo szukasz albo kto do Ciebie pasuje. Inni też zobaczą "
-"Cię na mapie i będą mogli Cię zaczepić."
-msgstr ""
-"Спочатку розкажи про себе — кілька запитань, нічого більше. Ти матимеш "
-"повний доступ до людей і груп у твоїй окрузі. Отримаєш сповіщення, коли "
-"поруч з'явиться хтось, кого ти шукаєш або хто тобі підходить. Інші також "
-"побачать тебе на карті і зможуть з тобою зв'язатися."
+msgid "Najpierw opowiesz o sobie — kilka pytań, nic więcej. Będziesz mieć pełny dostęp do ludzi i grup w Twojej okolicy. Dostaniesz powiadomienie, gdy obok pojawi się ktoś, kogo szukasz albo kto do Ciebie pasuje. Inni też zobaczą Cię na mapie i będą mogli Cię zaczepić."
+msgstr "Спочатку розкажи про себе — кілька запитань, нічого більше. Ти матимеш повний доступ до людей і груп у твоїй окрузі. Отримаєш сповіщення, коли поруч з'явиться хтось, кого ти шукаєш або хто тобі підходить. Інші також побачать тебе на карті і зможуть з тобою зв'язатися."
 
 #: app/settings/edit-profile.tsx
 msgid "Napisz kilka słów o sobie..."
@@ -921,14 +886,8 @@ msgid "Odpowiedzi na pingi"
 msgstr "Відповіді на пінги"
 
 #: app/onboarding/questions-intro.tsx
-msgid ""
-"Odpowiedzi nie muszą być pełnymi zdaniami. Mogą być krótkie, w punktach, "
-"nawet pojedyncze słowa — liczy się co napiszesz, nie jak. Pod każdym "
-"pytaniem zobaczysz kilka przykładowych odpowiedzi."
-msgstr ""
-"Відповіді не обов'язково мають бути повними реченнями. Вони можуть бути "
-"короткими, у пунктах, навіть окремими словами — важливо, що ти напишеш, а "
-"не як. Під кожним запитанням ти побачиш кілька прикладів відповідей."
+msgid "Odpowiedzi nie muszą być pełnymi zdaniami. Mogą być krótkie, w punktach, nawet pojedyncze słowa — liczy się co napiszesz, nie jak. Pod każdym pytaniem zobaczysz kilka przykładowych odpowiedzi."
+msgstr "Відповіді не обов'язково мають бути повними реченнями. Вони можуть бути короткими, у пунктах, навіть окремими словами — важливо, що ти напишеш, а не як. Під кожним запитанням ти побачиш кілька прикладів відповідей."
 
 #: app/(tabs)/chats.tsx
 msgid "Odrzucone"
@@ -937,10 +896,6 @@ msgstr "Відхилено"
 #: app/create-group.tsx
 msgid "Opis"
 msgstr "Опис"
-
-#: app/settings/edit-profile.tsx
-msgid "Opisz, jakie osoby chciałbyś poznać..."
-msgstr "Опиши, яких людей ти хотів би познайомитися..."
 
 #: app/onboarding/visibility.tsx
 msgid "Opowiem o sobie"
@@ -1014,12 +969,12 @@ msgstr "Пінги доходять, але пуш-повідомлення ви
 msgid "Pingi, wiadomości"
 msgstr "Пінги, повідомлення"
 
-#: app/(modals)/user/[userId].tsx
-#: app/(tabs)/index.tsx
 #. placeholder {0}: pingQuota.sentToday
 #. placeholder {0}: quota.sentToday
 #. placeholder {1}: pingQuota.dailyLimit
 #. placeholder {1}: quota.dailyLimit
+#: app/(modals)/user/[userId].tsx
+#: app/(tabs)/index.tsx
 msgid "Pingi: {0}/{1}"
 msgstr "Пінги: {0}/{1}"
 
@@ -1036,12 +991,8 @@ msgid "pisze..."
 msgstr "пише..."
 
 #: app/settings/account.tsx
-msgid ""
-"Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania "
-"zostanie wysłany na Twój adres e-mail."
-msgstr ""
-"Завантаж копію всіх своїх даних у форматі JSON. Посилання для завантаження "
-"буде надіслано на твою електронну адресу."
+msgid "Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania zostanie wysłany na Twój adres e-mail."
+msgstr "Завантаж копію всіх своїх даних у форматі JSON. Посилання для завантаження буде надіслано на твою електронну адресу."
 
 #: app/settings/account.tsx
 msgid "POBIERZ MOJE DANE"
@@ -1075,8 +1026,8 @@ msgstr "Показати поблизу →"
 msgid "Pokaż wszystkich"
 msgstr "Показати всіх"
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: groupInfo.memberCount
+#: app/(modals)/group/[id].tsx
 msgid "Pokaż wszystkich ({0}) →"
 msgstr "Показати всіх ({0}) →"
 
@@ -1088,8 +1039,8 @@ msgstr "Показати всіх у радіусі"
 msgid "Pokazuj osoby, które mają zdjęcie profilowe"
 msgstr "Показувати людей, у яких є профільне фото"
 
-#: src/components/nearby/ViewportIndicator.tsx
 #. placeholder {0}: showAll ? `wszystkich ${totalCount}` : `${viewportCount} z ${totalCount}`
+#: src/components/nearby/ViewportIndicator.tsx
 msgid "Pokazujesz <0>{0}</0> osób w okolicy"
 msgstr "Ти показуєш <0>{0}</0> людей в окрузі"
 
@@ -1145,12 +1096,8 @@ msgid "Powiadomienia"
 msgstr "Повідомлення"
 
 #: app/settings/notifications.tsx
-msgid ""
-"Powiadomienia push wymagają zgody systemowej. Jeśli je wyłączyłeś, włącz je "
-"w Ustawieniach iPhone'a > Blisko."
-msgstr ""
-"Пуш-повідомлення потребують системного дозволу. Якщо ти їх вимкнув, увімкни "
-"в Налаштуваннях iPhone > Blisko."
+msgid "Powiadomienia push wymagają zgody systemowej. Jeśli je wyłączyłeś, włącz je w Ustawieniach iPhone'a > Blisko."
+msgstr "Пуш-повідомлення потребують системного дозволу. Якщо ти їх вимкнув, увімкни в Налаштуваннях iPhone > Blisko."
 
 #: src/components/ProfileGateSheet.tsx
 msgid "Później"
@@ -1204,8 +1151,8 @@ msgstr "Готую наступне питання…"
 msgid "Przyjął(a) Twój ping!"
 msgstr "Прийняв(ла) твій пінг!"
 
-#: app/onboarding/questions.tsx
 #. placeholder {0}: i + 1
+#: app/onboarding/questions.tsx
 msgid "Przykład {0}"
 msgstr "Приклад {0}"
 
@@ -1213,8 +1160,8 @@ msgstr "Приклад {0}"
 msgid "PUSH"
 msgstr "PUSH"
 
-#: app/onboarding/questions.tsx
 #. placeholder {0}: questionIndex + 1
+#: app/onboarding/questions.tsx
 msgid "Pytanie {0} / {totalQuestions}"
 msgstr "Запитання {0} / {totalQuestions}"
 
@@ -1224,9 +1171,7 @@ msgstr "Правила"
 
 #: app/(auth)/login.tsx
 msgid "Rejestrując się akceptujesz <0>Regulamin</0> i <1>Politykę Prywatności</1>."
-msgstr ""
-"Реєструючись, ти приймаєш <0>Правила</0> та <1>Політику "
-"конфіденційності</1>."
+msgstr "Реєструючись, ти приймаєш <0>Правила</0> та <1>Політику конфіденційності</1>."
 
 #: app/(tabs)/chats.tsx
 msgid "Rozmowy"
@@ -1306,9 +1251,7 @@ msgstr "Контент порушує правила"
 
 #: app/settings/account.tsx
 msgid "Trwale usuwa Twoje konto, profil i wszystkie dane. Proces trwa do 14 dni."
-msgstr ""
-"Назавжди видаляє твоє обліковий запис, профіль і всі дані. Процес триває до "
-"14 днів."
+msgstr "Назавжди видаляє твоє обліковий запис, профіль і всі дані. Процес триває до 14 днів."
 
 #: app/settings/privacy.tsx
 msgid "TRYB WIDOCZNOŚCI"
@@ -1342,12 +1285,8 @@ msgid "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni."
 msgstr "Твій акаунт видаляється. Це може зайняти до 14 днів."
 
 #: app/_layout.tsx
-msgid ""
-"Twoje konto zostało zawieszone. Skontaktuj się z administracją: "
-"kontakt@blisko.app, jeśli uważasz, że to pomyłka."
-msgstr ""
-"Твій акаунт призупинено. Зв'яжися з адміністрацією: kontakt@blisko.app, "
-"якщо вважаєш, що це помилка."
+msgid "Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
+msgstr "Твій акаунт призупинено. Зв'яжися з адміністрацією: kontakt@blisko.app, якщо вважаєш, що це помилка."
 
 #: app/chat/[id].tsx
 msgid "Ty"
@@ -1424,8 +1363,8 @@ msgstr "В окрузі"
 msgid "W POBLIŻU"
 msgstr "ПОРЯД"
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: nearbyData.totalNearby
+#: app/(modals)/group/[id].tsx
 msgid "W pobliżu ({0})"
 msgstr "Поряд ({0})"
 
@@ -1483,16 +1422,8 @@ msgid "Widzisz innych, ale Ciebie nie widać na mapie. Nie możesz pingować."
 msgstr "Ти бачиш інших, але тебе не видно на мапі. Не можеш пінгувати."
 
 #: app/onboarding/visibility.tsx
-msgid ""
-"Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez "
-"szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, "
-"chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, "
-"kto jest w twojej okolicy. Profil uzupełnisz później."
-msgstr ""
-"Ти бачиш, хто поруч, чим займається або цікавиться, але без деталей. Не "
-"зможеш почати розмову, не напишеш, не приєднаєшся до жодної групи, якщо "
-"хтось тебе не запросить. Добре для початку, якщо хочеш спочатку побачити, "
-"хто в твоїй окрузі. Профіль доповниш пізніше."
+msgid "Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, kto jest w twojej okolicy. Profil uzupełnisz później."
+msgstr "Ти бачиш, хто поруч, чим займається або цікавиться, але без деталей. Не зможеш почати розмову, не напишеш, не приєднаєшся до жодної групи, якщо хтось тебе не запросить. Добре для початку, якщо хочеш спочатку побачити, хто в твоїй окрузі. Профіль доповниш пізніше."
 
 #: app/settings/help.tsx
 msgid "Wkrótce!"
@@ -1596,8 +1527,8 @@ msgstr "Результат профілювання"
 msgid "Wysłałeś dużo pingów. Odpocznij chwilę i spróbuj później."
 msgstr "Ти надіслав багато пінгів. Відпочинь трохи і спробуй пізніше."
 
-#: app/settings/account.tsx
 #. placeholder {0}: user?.email
+#: app/settings/account.tsx
 msgid "Wysłaliśmy 6-cyfrowy kod na {0}"
 msgstr "Ми надіслали 6-значний код на {0}"
 
@@ -1698,12 +1629,8 @@ msgid "Zablokuj użytkownika"
 msgstr "Заблокувати користувача"
 
 #: app/onboarding/questions-intro.tsx
-msgid ""
-"Zaczniemy od 7 krótkich pytań. Jeśli coś będzie wymagało doprecyzowania, "
-"dopytamy maksymalnie o 3 rzeczy."
-msgstr ""
-"Почнемо з 7 коротких запитань. Якщо щось потребуватиме уточнення, запитаємо "
-"максимум 3 речі."
+msgid "Zaczniemy od 7 krótkich pytań. Jeśli coś będzie wymagało doprecyzowania, dopytamy maksymalnie o 3 rzeczy."
+msgstr "Почнемо з 7 коротких запитань. Якщо щось потребуватиме уточнення, запитаємо максимум 3 речі."
 
 #: app/onboarding/hook.tsx
 msgid "Zacznij"
