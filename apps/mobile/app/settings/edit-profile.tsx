@@ -12,15 +12,24 @@ import { showModerationToastIfApplicable, uploadImage } from "@/lib/uploadImage"
 import { useAuthStore } from "@/stores/authStore";
 import { colors, fonts, spacing, type as typ } from "@/theme";
 
+// User-edit cap for bio / superpower (updateProfileSchema, BLI-299). Kept local: not
+// shared with the AI-apply path, which still allows longer generated content (max 500).
+const EDIT_FIELD_MAX = 200;
+
 export default function EditProfileScreen() {
   const { t } = useLingui();
   const profile = useAuthStore((state) => state.profile);
   const setProfile = useAuthStore((state) => state.setProfile);
 
   const [displayName, _setDisplayName] = useState(profile?.displayName || "");
-  const [bio, setBio] = useState(profile?.bio || "");
+  // Clamp on mount: AI-generated bios run 100-300 chars (applyProfilingSchema allows
+  // max 500), but the user-edit path (updateProfileSchema) caps bio/superpower at 200.
+  // RN maxLength does NOT truncate a pre-existing value, so without this clamp a user
+  // whose AI bio is >200 chars would see the full text, tap Zapisz, and the save would
+  // be rejected server-side with a generic error (BLI-299).
+  const [bio, setBio] = useState((profile?.bio || "").slice(0, EDIT_FIELD_MAX));
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || null);
-  const [superpower, setSuperpower] = useState(profile?.superpower || "");
+  const [superpower, setSuperpower] = useState((profile?.superpower || "").slice(0, EDIT_FIELD_MAX));
   const [offerType, setOfferType] = useState<"volunteer" | "exchange" | "gig" | "">(profile?.offerType || "");
   const [uploading, setUploading] = useState(false);
 
@@ -118,9 +127,11 @@ export default function EditProfileScreen() {
             multiline
             numberOfLines={5}
             textAlignVertical="top"
-            maxLength={200}
+            maxLength={EDIT_FIELD_MAX}
           />
-          <Text style={styles.charCount}>{bio.length} / 200</Text>
+          <Text style={styles.charCount}>
+            {bio.length} / {EDIT_FIELD_MAX}
+          </Text>
         </View>
 
         {/* "Kogo szukam" removed (v4 §7) — it IS the status, set from the map. */}
@@ -140,9 +151,11 @@ export default function EditProfileScreen() {
             multiline
             numberOfLines={3}
             textAlignVertical="top"
-            maxLength={200}
+            maxLength={EDIT_FIELD_MAX}
           />
-          <Text style={styles.charCount}>{superpower.length} / 200</Text>
+          <Text style={styles.charCount}>
+            {superpower.length} / {EDIT_FIELD_MAX}
+          </Text>
         </View>
 
         {superpower.trim().length > 0 && (
