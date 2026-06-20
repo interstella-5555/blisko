@@ -49,11 +49,8 @@ msgstr "{0} pisze..."
 msgid "{0} wiadomości"
 msgstr "{0} wiadomości"
 
-#: src/lib/format.ts
-msgid "{diffDays, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dni temu}}"
-msgstr "{diffDays, plural, one {# dzień temu} few {# dni temu} many {# dni temu} other {# dni temu}}"
-
 #: app/(tabs)/chats.tsx
+#: src/lib/format.ts
 msgid "{diffDays} dni temu"
 msgstr "{diffDays} dni temu"
 
@@ -69,6 +66,10 @@ msgstr "{diffMin} min temu"
 #: app/(tabs)/chats.tsx
 msgid "{diffMins} min temu"
 msgstr "{diffMins} min temu"
+
+#: app/(tabs)/index.tsx
+msgid "{MATCH_QUALITY_THRESHOLD}%+ w pobliżu"
+msgstr "{MATCH_QUALITY_THRESHOLD}%+ w pobliżu"
 
 #: app/(modals)/user/[userId].tsx
 msgid "{matchPercent}% dopasowania"
@@ -1593,12 +1594,12 @@ msgid "Z"
 msgstr "Z"
 
 #: app/(tabs)/index.tsx
-msgid "Z DOPASOWANIEM"
-msgstr "Z DOPASOWANIEM"
+msgid "z dopasowaniem"
+msgstr "z dopasowaniem"
 
 #: app/(tabs)/index.tsx
-msgid "z dopasowaniem {MATCH_QUALITY_THRESHOLD}%+ w pobliżu"
-msgstr "z dopasowaniem {MATCH_QUALITY_THRESHOLD}%+ w pobliżu"
+msgid "Z DOPASOWANIEM"
+msgstr "Z DOPASOWANIEM"
 
 #: app/(auth)/email.tsx
 #: app/(auth)/verify.tsx

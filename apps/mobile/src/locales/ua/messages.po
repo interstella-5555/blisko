@@ -49,15 +49,8 @@ msgstr "{0} пише..."
 msgid "{0} wiadomości"
 msgstr "{0} повідомлень"
 
-#: src/lib/format.ts
-msgid ""
-"{diffDays, plural, one {# dzień temu} few {# dni temu} many {# dni temu} "
-"other {# dni temu}}"
-msgstr ""
-"{diffDays, plural, one {# день тому} few {# дні тому} many {# днів тому} "
-"other {# днів тому}}"
-
 #: app/(tabs)/chats.tsx
+#: src/lib/format.ts
 msgid "{diffDays} dni temu"
 msgstr "{diffDays} днів тому"
 
@@ -73,6 +66,10 @@ msgstr "{diffMin} хв тому"
 #: app/(tabs)/chats.tsx
 msgid "{diffMins} min temu"
 msgstr "{diffMins} хв. тому"
+
+#: app/(tabs)/index.tsx
+msgid "{MATCH_QUALITY_THRESHOLD}%+ w pobliżu"
+msgstr "{MATCH_QUALITY_THRESHOLD}%+ поблизу"
 
 #: app/(modals)/user/[userId].tsx
 msgid "{matchPercent}% dopasowania"
@@ -1621,12 +1618,12 @@ msgid "Z"
 msgstr "З"
 
 #: app/(tabs)/index.tsx
-msgid "Z DOPASOWANIEM"
-msgstr "З ДОДАТКОВИМ ПІДБОРОМ"
+msgid "z dopasowaniem"
+msgstr "зі збігом"
 
 #: app/(tabs)/index.tsx
-msgid "z dopasowaniem {MATCH_QUALITY_THRESHOLD}%+ w pobliżu"
-msgstr "з підбором {MATCH_QUALITY_THRESHOLD}%+ поруч"
+msgid "Z DOPASOWANIEM"
+msgstr "З ДОДАТКОВИМ ПІДБОРОМ"
 
 #: app/(auth)/email.tsx
 #: app/(auth)/verify.tsx

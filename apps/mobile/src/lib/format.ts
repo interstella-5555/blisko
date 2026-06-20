@@ -1,4 +1,4 @@
-import { plural, t } from "@lingui/core/macro";
+import { t } from "@lingui/core/macro";
 import ms from "ms";
 
 export const formatDistance = (meters: number): string => {
@@ -32,14 +32,11 @@ export const formatLastActive = (lastLocationUpdate: Date | string | null | unde
 
   const diffDays = Math.floor(diffMs / ms("1 day"));
   if (diffDays < 2) return t`wczoraj`;
-  if (diffDays < 7) {
-    return plural(diffDays, {
-      one: "# dzień temu",
-      few: "# dni temu",
-      many: "# dni temu",
-      other: "# dni temu",
-    });
-  }
+  // diffDays is 2–6 here (1 → "wczoraj" above, ≥7 → "dawno temu" below), which is
+  // uniformly "dni" in Polish — so a plain `t` interpolation is correct. We avoid the
+  // standalone `plural()` macro: @lingui/babel-plugin-lingui-macro doesn't compile it
+  // here (it stays an undefined runtime symbol → "prototype of undefined" redbox). BLI-303.
+  if (diffDays < 7) return t`${diffDays} dni temu`;
 
   return t`dawno temu`;
 };
