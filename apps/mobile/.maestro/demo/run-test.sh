@@ -19,6 +19,10 @@ echo "    EMAIL_A=$EMAIL_A"
 echo "    EMAIL_B=$EMAIL_B"
 echo "    DISPLAY_NAME_B=$DISPLAY_NAME_B"
 
+# The app overwrites user A's seeded location with the simulator GPS on launch,
+# so point the sim at the seed coord (~70m from user B) before running the flow.
+xcrun simctl location booted set 52.2297,21.0122 2>/dev/null || true
+
 echo "==> Running Maestro flow: $TEST_FILE"
 maestro test \
   -e EMAIL="$EMAIL_A" \
