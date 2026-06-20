@@ -5,6 +5,8 @@ import { and, asc, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { DAILY_PING_LIMIT_BASIC, DECLINE_COOLDOWN_HOURS, PER_PERSON_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, schema } from "@/db";
 import { userIsVisibleTo } from "@/db/filters";
+import { districtForPoint } from "@/lib/district";
+import { toGridCenter } from "@/lib/grid";
 import { computePingCooldown } from "@/lib/ping-quota";
 import { t } from "@/services/i18n";
 import { setTargetUserId } from "@/services/metrics";
@@ -28,11 +30,13 @@ type ResponderProfile = {
   currentStatus: string | null;
   latitude: number | null;
   longitude: number | null;
+  interests: string[] | null;
 } | null;
 
 type SenderLocation = {
   latitude: number | null;
   longitude: number | null;
+  interests: string[] | null;
 } | null;
 
 // Shared accept logic used by both `waves.respond` (explicit accept) and
@@ -63,6 +67,26 @@ async function acceptWaveCore(
     connectedDistance = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   }
 
+  // District where they met (v4 §10, BLI-296). Resolve from the grid CENTRE of
+  // the meeting coordinate — never an exact point — so we keep the ~500m privacy
+  // guarantee. Both users are nearby at accept time, so either coordinate yields
+  // the same district; prefer the responder's (they are at the meeting place
+  // right now) and fall back to the sender's location.
+  const meetingLat = responderProfile?.latitude ?? senderLocation?.latitude ?? null;
+  const meetingLng = responderProfile?.longitude ?? senderLocation?.longitude ?? null;
+  let district: string | null = null;
+  if (meetingLat != null && meetingLng != null) {
+    const grid = toGridCenter(meetingLat, meetingLng);
+    district = districtForPoint(grid.gridLat, grid.gridLng);
+  }
+
+  // Up to 3 shared interest tags — the "what you have in common" line on the
+  // first-contact card. Case-insensitive match, original casing preserved.
+  const senderInterests = senderLocation?.interests ?? [];
+  const responderInterests = responderProfile?.interests ?? [];
+  const responderInterestsLower = new Set(responderInterests.map((i) => i.toLowerCase()));
+  const sharedTags = senderInterests.filter((i) => responderInterestsLower.has(i.toLowerCase())).slice(0, 3);
+
   const result = await db.transaction(async (tx) => {
     const [updatedWave] = await tx
       .update(schema.waves)
@@ -88,6 +112,8 @@ async function acceptWaveCore(
           recipientStatus: responderProfile?.currentStatus ?? null,
           connectedAt: new Date().toISOString(),
           connectedDistance,
+          district,
+          sharedTags,
         },
       })
       .returning();
@@ -181,6 +207,7 @@ export const wavesRouter = router({
           currentStatus: true,
           latitude: true,
           longitude: true,
+          interests: true,
         },
       });
       if (senderProfile?.visibilityMode === "ninja") {
@@ -322,7 +349,7 @@ export const wavesRouter = router({
         // (so we want to connect too). Implicitly accept their wave.
         const otherProfile = await db.query.profiles.findFirst({
           where: eq(schema.profiles.userId, input.toUserId),
-          columns: { latitude: true, longitude: true },
+          columns: { latitude: true, longitude: true, interests: true },
         });
 
         const { updatedWave, conversation } = await acceptWaveCore(
@@ -514,11 +541,12 @@ export const wavesRouter = router({
               currentStatus: true,
               latitude: true,
               longitude: true,
+              interests: true,
             },
           }),
           db.query.profiles.findFirst({
             where: eq(schema.profiles.userId, wave.fromUserId),
-            columns: { latitude: true, longitude: true },
+            columns: { latitude: true, longitude: true, interests: true },
           }),
         ]);
 

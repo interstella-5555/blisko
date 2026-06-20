@@ -16,6 +16,9 @@ interface ConversationRowProps {
   memberCount?: number;
   unreadCount: number;
   muted?: boolean;
+  // "Połączeni [data] · [dzielnica]" — the first-contact memory line shown under
+  // DM rows (BLI-296). Pre-formatted by the caller from conversation metadata.
+  connectedLabel?: string | null;
   onPress: () => void;
   onLongPress?: () => void;
 }
@@ -44,6 +47,7 @@ export function ConversationRow({
   lastMessageTime,
   unreadCount,
   muted,
+  connectedLabel,
   onPress,
   onLongPress,
 }: ConversationRowProps) {
@@ -89,6 +93,11 @@ export function ConversationRow({
             </View>
           )}
         </View>
+        {!isGroup && connectedLabel && (
+          <Text style={styles.connectedLabel} numberOfLines={1}>
+            {connectedLabel}
+          </Text>
+        )}
       </View>
     </Pressable>
   );
@@ -163,5 +172,11 @@ const styles = StyleSheet.create({
   senderPrefix: {
     fontFamily: fonts.sansMedium,
     color: colors.ink,
+  },
+  connectedLabel: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 3,
   },
 });
