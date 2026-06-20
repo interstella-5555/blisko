@@ -87,30 +87,56 @@ appId: com.blisko.app
 - waitForAnimationToEnd
 
 # Photo (mandatory). Open the system Photos picker and pick the first image.
+# The native picker animates in — WAIT for it before selecting (a bare
+# `when: visible` races the animation and silently skips the tap).
 - tapOn:
     id: "onboarding-photo-button"
 - runFlow:
     when:
-      visible: "(?i)Allow Access to All Photos|Select Photos|Dozwól"
+      visible: "(?i)Allow Access|Select Photos|Dozwól|Zezwól"
     commands:
-      - tapOn: "(?i)Allow Access to All Photos|Dozwól"
+      - tapOn: "(?i)Allow Access|Dozwól|Zezwól"
+# The iOS PHPicker is out-of-process — maestro cannot read its hierarchy, so
+# we can't assert on it. Settle, then tap the first thumbnail by COORDINATE;
+# retry once if the picker is still up.
+- waitForAnimationToEnd
+- tapOn:
+    point: "25%,30%"
 - runFlow:
     when:
-      visible: "(?i)Photos|Zdjęcia|Recents"
+      notVisible:
+        id: "age-confirm-toggle"
     commands:
+      - waitForAnimationToEnd
       - tapOn:
-          point: "20%,30%"
-- waitForAnimationToEnd
-
+          point: "25%,30%"
+# Picker dismisses + the avatar uploads; wait until we're back on step 1.
+- extendedWaitUntil:
+    visible:
+      id: "age-confirm-toggle"
+    timeout: 20000
 - tapOn:
     id: "age-confirm-toggle"
 
+# Proceed once the upload finishes (Next enables). Tap, and retry once if
+# step 2 hasn't appeared yet (covers the avatar-upload race).
 - extendedWaitUntil:
     visible:
       id: "onboarding-step1-next"
-    timeout: 10000
+    timeout: 20000
 - tapOn:
     id: "onboarding-step1-next"
+- runFlow:
+    when:
+      notVisible:
+        id: "onboarding-category-project"
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: "onboarding-step1-next"
+          timeout: 8000
+      - tapOn:
+          id: "onboarding-step1-next"
 
 # --- STEP 2: Category tiles "Czego szukasz dziś?" ---
 

@@ -12,7 +12,12 @@ interface AvatarProps {
 export function Avatar({ uri, name, size = 40, blurred }: AvatarProps) {
   const borderRadius = size / 2;
   const fontSize = size * 0.4;
-  const initial = (name?.trim().charAt(0) || "?").toUpperCase();
+  // Bulletproof against any `name` (incl. null/undefined/non-string). The prior
+  // `name?.trim().charAt(0)` relied on an optional-chaining short-circuit that can
+  // be mis-transpiled to `(name?.trim()).charAt(0)`, throwing "charAt of undefined"
+  // for a null name (e.g. a fresh user mid-onboarding). See BLI-247.
+  const trimmedName = typeof name === "string" ? name.trim() : "";
+  const initial = (trimmedName ? trimmedName.charAt(0) : "?").toUpperCase();
   const resolvedUri = resolveAvatarUri(uri, size);
 
   return (
