@@ -1,7 +1,14 @@
 appId: com.blisko.app
 ---
-# Full Onboarding E2E Test
-# Login → Hook → Name+Age → Full Profile → 7 Questions → AI Follow-ups → Review → W okolicy
+# Onboarding E2E — v4 3-step flow (BLI-292)
+# Login → Hook → Step 1 (name + one question + photo) → Step 2 (category tiles)
+# → Step 3 (visibility) → AI generation → W okolicy
+#
+# Numberless flow: steps are matched by testID (DotsProgress shows no "Krok N").
+# Photo: tapped via the system Photos picker. If the picker / permission dialog
+# differs by sim, the optional runFlow blocks degrade gracefully.
+#
+# When you edit this flow you MUST mirror it in onboarding-ua.yaml (e2e/pl-ua-parity).
 
 - runFlow: sub-flows/launch-and-dismiss-dev.yaml
 
@@ -35,12 +42,12 @@ appId: com.blisko.app
       - tapOn:
           id: "hook-start-button"
 
-# --- STEP 1: Name + Age ---
+# --- STEP 1: Name + conversational question + photo + age ---
 
 - extendedWaitUntil:
-    visible: "Krok 1"
+    visible:
+      id: "name-input"
     timeout: 30000
-
 - tapOn:
     id: "name-input"
 - eraseText: 30
@@ -50,183 +57,72 @@ appId: com.blisko.app
 - waitForAnimationToEnd
 
 - tapOn:
+    id: "intro-input"
+- inputText: "Programista, gram na gitarze i biegam po parku. Szukam ludzi do projektow"
+- tapOn:
+    point: "50%,10%"
+- waitForAnimationToEnd
+
+# Photo (mandatory). Open the system Photos picker and pick the first image.
+- tapOn:
+    id: "onboarding-photo-button"
+- runFlow:
+    when:
+      visible: "(?i)Allow Access to All Photos|Select Photos|Dozwól"
+    commands:
+      - tapOn: "(?i)Allow Access to All Photos|Dozwól"
+- runFlow:
+    when:
+      visible: "(?i)Photos|Zdjęcia|Recents"
+    commands:
+      - tapOn:
+          point: "20%,30%"
+- waitForAnimationToEnd
+
+- tapOn:
     id: "age-confirm-toggle"
 
 - extendedWaitUntil:
-    visible: "(?i)Dalej"
-    timeout: 5000
-- tapOn: "(?i)Dalej"
+    visible:
+      id: "onboarding-step1-next"
+    timeout: 10000
+- tapOn:
+    id: "onboarding-step1-next"
 
-# --- STEP 2: Visibility — choose full profile ---
+# --- STEP 2: Category tiles "Czego szukasz dziś?" ---
 
 - extendedWaitUntil:
     visible:
-      id: "fill-option"
-    timeout: 10000
-- tapOn:
-    id: "fill-option"
-- tapOn:
-    id: "fill-profile-button"
-
-# --- STEP 3a: Intro screen ---
-
-- extendedWaitUntil:
-    visible:
-      id: "questions-intro-start"
-    timeout: 10000
-- tapOn:
-    id: "questions-intro-start"
-
-# --- STEP 3b: Answer 7 questions (ASCII only — Maestro limitation) ---
-
-# Q1 (required) — intro
-- extendedWaitUntil:
-    visible: "Pytanie 1 / 7"
+      id: "onboarding-category-project"
     timeout: 15000
 - tapOn:
-    id: "question-input"
-- inputText: "Programista, w wolnym czasie gram na gitarze i biegam po parku"
+    id: "onboarding-category-project"
+- tapOn:
+    id: "onboarding-category-networking"
+- tapOn:
+    id: "onboarding-status-input"
+- inputText: "szukam ludzi do wspolnych projektow"
 - tapOn:
     point: "50%,10%"
-- tapOn: "(?i)Dalej"
+- tapOn:
+    id: "onboarding-categories-next"
 
-# Q2 (optional) — recent_obsession
-- extendedWaitUntil:
-    visible: "Pytanie 2 / 7"
-    timeout: 10000
-- tapOn:
-    id: "question-input"
-- inputText: "Serial o kosmosie i nowa gra planszowa"
-- tapOn:
-    point: "50%,10%"
-- tapOn: "(?i)Dalej"
+# --- STEP 3: Account visibility ---
 
-# Q3 (required) — looking_for
-- extendedWaitUntil:
-    visible: "Pytanie 3 / 7"
-    timeout: 10000
-- tapOn:
-    id: "question-input"
-- inputText: "Szukam ludzi do wspolnych projektow i aktywnosci sportowych"
-- tapOn:
-    point: "50%,10%"
-- tapOn: "(?i)Dalej"
-
-# Q4 (optional) — activities
-- extendedWaitUntil:
-    visible: "Pytanie 4 / 7"
-    timeout: 10000
-- tapOn:
-    id: "question-input"
-- inputText: "Bieganie, gry planszowe, jam session"
-- tapOn:
-    point: "50%,10%"
-- tapOn: "(?i)Dalej"
-
-# Q5 (optional) — offer
-- extendedWaitUntil:
-    visible: "Pytanie 5 / 7"
-    timeout: 10000
-- tapOn:
-    id: "question-input"
-- inputText: "Pomoc z programowaniem i gitara basowa"
-- tapOn:
-    point: "50%,10%"
-- tapOn: "(?i)Dalej"
-
-# Q6 (optional) — conversation_trigger
-- extendedWaitUntil:
-    visible: "Pytanie 6 / 7"
-    timeout: 10000
-- tapOn:
-    id: "question-input"
-- inputText: "Wspolne zainteresowania albo ciekawy pomysl na projekt"
-- tapOn:
-    point: "50%,10%"
-- tapOn: "(?i)Dalej"
-
-# Q7 (optional) — public_self
-- extendedWaitUntil:
-    visible: "Pytanie 7 / 7"
-    timeout: 10000
-- tapOn:
-    id: "question-input"
-- inputText: "Otwarty na nowe znajomosci i przygody w okolicy"
-- tapOn:
-    point: "50%,10%"
-- tapOn: "(?i)Dalej"
-
-# --- SUBMISSION + FOLLOW-UPS (0-3, non-deterministic) ---
-
-# After question 7, submission happens. Then either follow-ups or generation.
-# Wait for the question input to reappear (follow-up) or review screen.
 - extendedWaitUntil:
     visible:
-      id: "question-input"
-    timeout: 60000
-
-# Follow-up 1
+      id: "onboarding-visibility-semi_open"
+    timeout: 15000
 - tapOn:
-    id: "question-input"
-- inputText: "Lubie poznawac nowych ludzi i pracowac razem nad projektami"
+    id: "onboarding-visibility-semi_open"
 - tapOn:
-    point: "50%,10%"
-- tapOn: "(?i)Dalej"
+    id: "onboarding-go-to-map"
 
-# Follow-up 2 (if present)
-- runFlow:
-    when:
-      visible:
-        id: "question-input"
-    commands:
-      - tapOn:
-          id: "question-input"
-      - inputText: "Interesuje mnie muzyka, sport i gry planszowe"
-      - tapOn:
-          point: "50%,10%"
-      - tapOn: "(?i)Dalej"
-
-# Follow-up 3 (if present)
-- runFlow:
-    when:
-      visible:
-        id: "question-input"
-    commands:
-      - tapOn:
-          id: "question-input"
-      - inputText: "Szukam ludzi do wspolnych projektow i inicjatyw"
-      - tapOn:
-          point: "50%,10%"
-      - tapOn: "(?i)Dalej"
-
-# --- AI PROFILE GENERATION + REVIEW ---
-
-# Wait for review screen (AI generation may take a while)
-- extendedWaitUntil:
-    visible:
-      id: "profiling-review-screen"
-    timeout: 600000
-
-# Verify editable fields are present
-- assertVisible:
-    id: "bio-input"
-- assertVisible:
-    id: "looking-for-input"
-
-# Scroll to and confirm profile
-- scrollUntilVisible:
-    element:
-      id: "confirm-profile-button"
-    direction: DOWN
-    timeout: 10000
-- tapOn:
-    id: "confirm-profile-button"
-
-# --- VERIFY: Landed on main tab ---
+# --- VERIFY: AI generation finishes and we land on the map ---
 
 - extendedWaitUntil:
     visible:
       id: "set-status-pill"
-    timeout: 30000
+    timeout: 600000
 - assertVisible:
     id: "set-status-pill"

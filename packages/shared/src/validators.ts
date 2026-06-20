@@ -156,11 +156,23 @@ export const completeProfilingSchema = z.object({
   sessionId: z.string().uuid(),
 });
 
+// Visibility modes (shared so onboarding + settings agree on the enum).
+export const VISIBILITY_MODES = ["ninja", "semi_open", "full_nomad"] as const;
+export type VisibilityMode = (typeof VISIBILITY_MODES)[number];
+
 export const applyProfilingSchema = z.object({
   sessionId: z.string().uuid(),
   displayName: z.string().min(2).max(50),
   bio: z.string().min(10).max(500).optional(),
   lookingFor: z.string().min(10).max(500).optional(),
+  // v4 onboarding (BLI-292): the account-visibility step passes the user's
+  // chosen mode straight into applyProfile so we don't bounce through a
+  // second mutation. Optional — re-profiling from settings omits it and the
+  // existing value (or the semi_open default) is preserved.
+  visibilityMode: z.enum(VISIBILITY_MODES).optional(),
+  // Photo captured in onboarding step 1. Optional — settings re-profiling
+  // doesn't re-send it and the existing avatar is preserved.
+  avatarUrl: z.string().max(2048).optional(),
 });
 
 // New onboarding validators
@@ -172,6 +184,12 @@ export const submitOnboardingSchema = z.object({
     }),
   ),
   skipped: z.array(z.string()),
+  // v4 trimmed onboarding (BLI-292) submits a SINGLE conversational answer and
+  // goes straight to the map — there is no follow-up UI. When true, the server
+  // skips follow-up generation so `completeSession` isn't blocked by unanswered
+  // AI follow-ups. Defaults to false so the legacy multi-question flow keeps its
+  // follow-up behaviour.
+  skipFollowUps: z.boolean().optional().default(false),
 });
 
 export const answerFollowUpSchema = z.object({

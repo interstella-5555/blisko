@@ -255,8 +255,12 @@ export const profilingRouter = router({
 
     const answeredQA = allQA.map((qa) => ({ question: qa.question, answer: qa.answer! }));
 
-    if (answeredQA.length < 3) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: "At least 3 answered questions required" });
+    // v4 trimmed onboarding (BLI-292) submits a single rich conversational
+    // answer plus a synthesized "looking for" line from the category step, so
+    // the floor is 1. The AI portrait pipeline handles sparse input gracefully
+    // and progressive profiling fills the rest after the map.
+    if (answeredQA.length < 1) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "At least 1 answered question required" });
     }
 
     const previousSessionQA = await loadPreviousSessionQA(session);
@@ -318,6 +322,12 @@ export const profilingRouter = router({
       columns: { image: true },
     });
 
+    // v4 onboarding (BLI-292) passes a photo picked in step 1 and a chosen
+    // visibility mode. Photo takes precedence over the OAuth avatar; mode
+    // defaults to semi_open (the old hard-coded value) when not supplied.
+    const avatarUrl = input.avatarUrl ?? authUser?.image ?? undefined;
+    const visibilityMode = input.visibilityMode ?? "semi_open";
+
     // Resolve content locale — the bio/lookingFor/portrait that just landed
     // were generated in the user's locale (or in PL if they hadn't set one
     // yet). Stamp `content_locale` so viewers in the other locale see the
@@ -340,7 +350,8 @@ export const profilingRouter = router({
         portrait: session.generatedPortrait,
         contentLocale,
         isComplete: true,
-        ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
+        visibilityMode,
+        ...(avatarUrl ? { avatarUrl } : {}),
       })
       .onConflictDoUpdate({
         target: schema.profiles.userId,
@@ -351,8 +362,9 @@ export const profilingRouter = router({
           portrait: session.generatedPortrait,
           contentLocale,
           isComplete: true,
-          visibilityMode: "semi_open",
+          visibilityMode,
           updatedAt: new Date(),
+          ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
         },
       })
       .returning();
@@ -423,6 +435,13 @@ export const profilingRouter = router({
       });
 
       const questionNumber = input.answers.length;
+
+      // v4 trimmed onboarding submits one answer and goes straight to the map —
+      // no follow-up UI exists, so generating unanswered follow-ups would only
+      // block completeSession. Skip generation entirely. BLI-292.
+      if (input.skipFollowUps) {
+        return { sessionId: session.id, followUpQuestions: [] };
+      }
 
       // Generate follow-up questions inline (~2-3s), outside transaction
       const displayName = await getDisplayName(ctx.userId);

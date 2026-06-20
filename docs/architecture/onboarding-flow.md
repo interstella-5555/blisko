@@ -7,7 +7,29 @@
 > Updated 2026-04-19 — BLI-198: inserted `/onboarding/questions-intro` screen between visibility and questions. Sets expectations (7 questions + up to 3 follow-ups, profile gets generated from answers, answers don't need to be polished) before user starts typing. Step numbering shifts: Questions now Step 4, AI Summary Review now Step 5.
 > Updated 2026-04-19 — BLI-201: visibility screen copy tweak. Footnote now addresses reversibility of privacy choice directly ("Widoczność i prywatność zmienisz w każdej chwili w ustawieniach."), and the ghost option body ends with "Profil uzupełnisz później." to reassure users the choice is not permanent.
 
-Onboarding turns a freshly authenticated user into a discoverable profile. Two paths: full AI-driven profiling (visible on map) or ghost profile (invisible, group-invite only). The flow generates a bio, "looking for" text, personality portrait, embedding vector, and extracted interests --- all via async BullMQ jobs with WS notification on completion.
+> **Updated 2026-06-20 — BLI-292: v4 3-step rewrite. The 5–7 screen / 7-question interview is replaced by a numberless 3-step flow (see "v4 3-Step Flow" below). The old screens (`visibility.tsx`, `questions-intro.tsx`, `questions.tsx`, `profiling-result.tsx`) are deleted from the onboarding stack; the sections describing them below are HISTORICAL and now apply only to the interactive re-profiling flow under `settings/`. The server pipeline (`submitOnboarding` → `completeSession` → `applyProfile`) is reused unchanged, fed a single conversational answer plus a synthesized "looking for" line from the category step.**
+
+Onboarding turns a freshly authenticated user into a discoverable profile. The flow generates a bio, "looking for" text, personality portrait, embedding vector, and extracted interests --- all via async BullMQ jobs with WS notification on completion.
+
+## v4 3-Step Flow (BLI-292) — current
+
+Goal (v4 §3-4): feel like 3 steps, one conversational question, on the map in ~60s. Numberless progress (`DotsProgress` dots, no "Krok N" / "Pytanie N/7").
+
+1. **Step 1 — `onboarding/index.tsx`** (dots ●○○): display name + ONE conversational question (the shared `intro` question) + MANDATORY photo (picked via `expo-image-picker`, uploaded through `POST /uploads`, stored as `onboardingStore.avatarUrl`) + 18+ toggle. The "Dalej" CTA is gated on all four. Copy under the photo: "Bez zdjęcia nie zapingujesz" (the real enforcement is the ping-time avatar gate in `user/[userId].tsx`). No server call — answer + photo go into `onboardingStore`.
+2. **Step 2 — `onboarding/categories.tsx`** (dots ○●○): "Czego szukasz dziś?" — the four `STATUS_CATEGORIES` tiles (project / networking / dating / casual, max 2) + optional short free-text. Stored in `onboardingStore` (`statusCategories`, `statusText`). No visibility selector here (status is always public, BLI-289).
+3. **Step 3 — `onboarding/account-visibility.tsx`** (dots ○○●): Ninja / Semi-Open / Open radio picker. "Na mapę" runs the whole finish sequence imperatively: `submitOnboarding({ intro + synthesized looking_for, skipFollowUps: true })` → `completeSession` → poll `getSessionState` until `generatedBio`/`generatedLookingFor` land (WS `profilingComplete` makes it snappier) → `applyProfile({ bio, lookingFor, visibilityMode, avatarUrl })` → `setStatus({ text, categories })` (non-fatal) → `/(tabs)`. A `ThinkingIndicator` ("Tworzę Twój profil…") covers the AI wait.
+
+There is no ghost fork in onboarding anymore — "ghost" is simply the **Ninja** visibility choice in step 3 (still goes through full AI generation). The ghost-specific procedure `createGhostProfile` is unused by onboarding but kept for the settings/legacy paths.
+
+**First-tap map overlay** — `FirstTapHint` (`components/nearby/`) renders once on the map for a fresh complete profile ("Widzisz bańki? To ludzie obok. Dotknij jednej…"), dismissed on tap. Gated by `onboardingStore.firstMapHintSeen` (user-scoped → fresh per account).
+
+**Server changes (BLI-292):**
+- `submitOnboardingSchema.skipFollowUps` — when true, `submitOnboarding` returns immediately with no follow-ups so `completeSession` isn't blocked by unanswered AI questions.
+- `ONBOARDING_QUESTIONS`: `looking_for` is now `required: false` (the category step carries intent). Only `intro` stays required.
+- `completeSession` minimum lowered from 3 → 1 answered question.
+- `applyProfilingSchema` gains optional `visibilityMode` (`VISIBILITY_MODES` enum) + `avatarUrl`; `applyProfile` uses them (defaults: `semi_open`, OAuth image) instead of hard-coding `semi_open`.
+
+The sections below describe the LEGACY multi-screen flow. They remain accurate for the **interactive re-profiling flow** (`settings/profiling.tsx`). Ignore them for the onboarding path.
 
 ## Terminology & Product Alignment
 
@@ -239,7 +261,12 @@ Users can redo profiling from Settings > Profilowanie (`settings/profiling.tsx`)
 | `isComplete` | boolean | Whether onboarding is done |
 | `answers` | Record<string, string> | Question answers keyed by questionId |
 | `skipped` | string[] | IDs of skipped questions |
-| `isGhost` | boolean | Whether ghost path was chosen |
+| `isGhost` | boolean | Whether ghost path was chosen (legacy) |
+| `avatarUrl` | string\|null | Photo picked in v4 step 1 (BLI-292) |
+| `statusCategories` | StatusCategory[] | Category tiles from v4 step 2 (max 2) |
+| `statusText` | string | Free-text status from v4 step 2 |
+| `visibilityMode` | VisibilityMode | Chosen in v4 step 3 (default `semi_open`) |
+| `firstMapHintSeen` | boolean | One-time first-tap map overlay flag |
 
 `reset()` clears all fields. Called on logout and fresh onboarding start.
 

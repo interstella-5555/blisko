@@ -1,3 +1,4 @@
+import type { StatusCategory, VisibilityMode } from "@repo/shared";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
@@ -18,6 +19,17 @@ interface OnboardingState {
   answers: Record<string, string>;
   skipped: string[];
   isGhost: boolean;
+  // --- v4 3-step onboarding (BLI-292) ---
+  /** Photo picked in step 1 (server `source` string from POST /uploads). */
+  avatarUrl: string | null;
+  /** Category tiles selected in step 2 ("Czego szukasz dziś?"), max 2. */
+  statusCategories: StatusCategory[];
+  /** Free-text status set in step 2. */
+  statusText: string;
+  /** Account visibility chosen in step 3. */
+  visibilityMode: VisibilityMode;
+  /** One-time guided first-tap overlay on the map. User-scoped → fresh per account. */
+  firstMapHintSeen: boolean;
   setDisplayName: (name: string) => void;
   setBio: (bio: string) => void;
   setLookingFor: (lookingFor: string) => void;
@@ -30,6 +42,11 @@ interface OnboardingState {
   setAnswer: (questionId: string, answer: string) => void;
   addSkipped: (questionId: string) => void;
   setGhost: (isGhost: boolean) => void;
+  setAvatarUrl: (avatarUrl: string | null) => void;
+  setStatusCategories: (categories: StatusCategory[]) => void;
+  setStatusText: (text: string) => void;
+  setVisibilityMode: (mode: VisibilityMode) => void;
+  markFirstMapHintSeen: () => void;
 }
 
 export const useOnboardingStore = create<OnboardingState>()(
@@ -44,6 +61,11 @@ export const useOnboardingStore = create<OnboardingState>()(
       answers: {},
       skipped: [],
       isGhost: false,
+      avatarUrl: null,
+      statusCategories: [],
+      statusText: "",
+      visibilityMode: "semi_open",
+      firstMapHintSeen: false,
       setDisplayName: (displayName) => set({ displayName }),
       setBio: (bio) => set({ bio }),
       setLookingFor: (lookingFor) => set({ lookingFor }),
@@ -63,6 +85,11 @@ export const useOnboardingStore = create<OnboardingState>()(
           answers: {},
           skipped: [],
           isGhost: false,
+          avatarUrl: null,
+          statusCategories: [],
+          statusText: "",
+          visibilityMode: "semi_open",
+          firstMapHintSeen: false,
         }),
       setAnswer: (questionId, answer) =>
         set((state) => ({
@@ -78,6 +105,11 @@ export const useOnboardingStore = create<OnboardingState>()(
           })(),
         })),
       setGhost: (isGhost) => set({ isGhost }),
+      setAvatarUrl: (avatarUrl) => set({ avatarUrl }),
+      setStatusCategories: (statusCategories) => set({ statusCategories }),
+      setStatusText: (statusText) => set({ statusText }),
+      setVisibilityMode: (visibilityMode) => set({ visibilityMode }),
+      markFirstMapHintSeen: () => set({ firstMapHintSeen: true }),
     }),
     {
       name: "blisko_onboarding",
@@ -88,6 +120,11 @@ export const useOnboardingStore = create<OnboardingState>()(
         answers: state.answers,
         skipped: state.skipped,
         isGhost: state.isGhost,
+        avatarUrl: state.avatarUrl,
+        statusCategories: state.statusCategories,
+        statusText: state.statusText,
+        visibilityMode: state.visibilityMode,
+        firstMapHintSeen: state.firstMapHintSeen,
       }),
     },
   ),
