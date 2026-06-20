@@ -1,4 +1,5 @@
 export { BottomSheet, type BottomSheetRef } from "./BottomSheet";
+export { FirstTapHint } from "./FirstTapHint";
 export { GridClusterMarker } from "./GridClusterMarker";
 export { GroupMarker } from "./GroupMarker";
 export { ListShimmer } from "./ListShimmer";

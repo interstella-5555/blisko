@@ -158,8 +158,12 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
   },
   {
     id: "looking_for",
+    // v4 onboarding (BLI-292): "kogo/czego szukasz" is now captured by the
+    // category-tiles step ("Czego szukasz dziś?"), so this question is no
+    // longer required during the trimmed 3-step flow. It stays in the bank
+    // for the interactive re-profiling flow, which still surfaces it.
     question: "Kogo szukasz? Znajomych, grupę, konkretną osobę?",
-    required: true,
+    required: false,
     examples: [
       "Ludzi w podobnej bańce — founderów, devów, kogoś kto rozumie po co siedzę nad kodem w piątek i wychodzę imprezować o 23.",
       "Ludzi z biznesu wellness albo zdrowia. Kogoś kto przeszedł drogę od solo praktyki do zespołu i wie jak tego nie spartaczyć.",

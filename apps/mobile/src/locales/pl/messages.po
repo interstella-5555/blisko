@@ -121,16 +121,18 @@ msgstr "Akceptuj"
 msgid "aktywny dopóki go nie zmienisz"
 msgstr "aktywny dopóki go nie zmienisz"
 
-#: app/onboarding/profiling-result.tsx
 #: app/settings/profiling-result.tsx
 #: app/settings/profiling.tsx
 msgid "Analizuję Twoje odpowiedzi..."
 msgstr "Analizuję Twoje odpowiedzi..."
 
-#: app/onboarding/questions.tsx
 #: src/components/ui/ThinkingIndicator.tsx
 msgid "Analizuję Twoje odpowiedzi…"
 msgstr "Analizuję Twoje odpowiedzi…"
+
+#: app/onboarding/account-visibility.tsx
+msgid "Analizuję, co napisałeś…"
+msgstr "Analizuję, co napisałeś…"
 
 #: app/(modals)/group/[id].tsx
 #: app/(modals)/user/[userId].tsx
@@ -147,6 +149,10 @@ msgstr "Anuluj"
 msgid "Automatyczne profilowanie"
 msgstr "Automatyczne profilowanie"
 
+#: app/onboarding/index.tsx
+msgid "Bez zdjęcia nie zapingujesz"
+msgstr "Bez zdjęcia nie zapingujesz"
+
 #: app/settings/edit-profile.tsx
 msgid "Bio musi mieć co najmniej 10 znaków"
 msgstr "Bio musi mieć co najmniej 10 znaków"
@@ -156,6 +162,7 @@ msgstr "Bio musi mieć co najmniej 10 znaków"
 #: app/(modals)/user/[userId].tsx
 #: app/chat/[id].tsx
 #: app/create-group.tsx
+#: app/onboarding/index.tsx
 #: app/set-status.tsx
 #: app/settings/account.tsx
 #: app/settings/edit-profile.tsx
@@ -204,10 +211,6 @@ msgstr "Brak wiadomości"
 msgid "Brak zablokowanych użytkowników"
 msgstr "Brak zablokowanych użytkowników"
 
-#: app/onboarding/visibility.tsx
-msgid "Chcesz być widoczny?"
-msgstr "Chcesz być widoczny?"
-
 #: app/(tabs)/index.tsx
 msgid "Cisza. Może właściwa osoba jest w drodze."
 msgstr "Cisza. Może właściwa osoba jest w drodze."
@@ -229,9 +232,17 @@ msgstr "Czat"
 msgid "Czaty"
 msgstr "Czaty"
 
+#: app/onboarding/categories.tsx
+msgid "Czego szukasz dziś?"
+msgstr "Czego szukasz dziś?"
+
 #: app/set-status.tsx
 msgid "Czego szukasz lub co możesz dać?"
 msgstr "Czego szukasz lub co możesz dać?"
+
+#: app/onboarding/index.tsx
+msgid "Cześć! Jak masz na imię?"
+msgstr "Cześć! Jak masz na imię?"
 
 #: app/(modals)/_layout.tsx
 #: app/(modals)/group/members/[id].tsx
@@ -267,10 +278,8 @@ msgstr "Czy na pewno chcesz usunąć tę wiadomość?"
 msgid "Czy na pewno chcesz zablokować {displayName}?"
 msgstr "Czy na pewno chcesz zablokować {displayName}?"
 
+#: app/onboarding/categories.tsx
 #: app/onboarding/index.tsx
-#: app/onboarding/questions-intro.tsx
-#: app/onboarding/questions.tsx
-#: app/onboarding/visibility.tsx
 #: app/settings/profiling.tsx
 msgid "Dalej"
 msgstr "Dalej"
@@ -287,7 +296,12 @@ msgstr "Dev auto-login failed"
 msgid "Dodaj członków"
 msgstr "Dodaj członków"
 
+#: app/onboarding/categories.tsx
+msgid "Dodaj słowo lub dwa (opcjonalnie)"
+msgstr "Dodaj słowo lub dwa (opcjonalnie)"
+
 #: app/(modals)/user/[userId].tsx
+#: app/onboarding/index.tsx
 msgid "Dodaj zdjęcie"
 msgstr "Dodaj zdjęcie"
 
@@ -312,6 +326,14 @@ msgstr ""
 #: app/group/join/[code].tsx
 msgid "Dołączam do grupy…"
 msgstr "Dołączam do grupy…"
+
+#: src/components/nearby/FirstTapHint.tsx
+msgid "Dotknij jednej, żeby zobaczyć kim jest — i zapingować."
+msgstr "Dotknij jednej, żeby zobaczyć kim jest — i zapingować."
+
+#: src/components/nearby/FirstTapHint.tsx
+msgid "Dotknij, aby zacząć"
+msgstr "Dotknij, aby zacząć"
 
 #: app/(modals)/user/[userId].tsx
 msgid "Druga osoba na pewno będzie chciała wiedzieć z kim rozmawia."
@@ -358,15 +380,10 @@ msgstr "Filtry"
 msgid "Forma"
 msgstr "Forma"
 
-#: app/onboarding/profiling-result.tsx
 #: app/settings/profiling-result.tsx
 #: app/settings/profiling.tsx
 msgid "Generuję Twój profil..."
 msgstr "Generuję Twój profil..."
-
-#: app/onboarding/questions.tsx
-msgid "Generuję Twój profil…"
-msgstr "Generuję Twój profil…"
 
 #: app/(tabs)/index.tsx
 msgid "GRUP"
@@ -408,17 +425,17 @@ msgstr "Inni członkowie zobaczą, że jesteś w pobliżu"
 msgid "Jak było?"
 msgstr "Jak było?"
 
-#: app/onboarding/index.tsx
-msgid "Jak masz na imię?"
-msgstr "Jak masz na imię?"
-
-#: app/onboarding/questions-intro.tsx
-msgid "Jak to działa"
-msgstr "Jak to działa"
+#: app/onboarding/account-visibility.tsx
+msgid "Jak chcesz być widoczny?"
+msgstr "Jak chcesz być widoczny?"
 
 #: app/settings/help.tsx
 msgid "Jak to działa?"
 msgstr "Jak to działa?"
+
+#: app/onboarding/index.tsx
+msgid "Jednym tchem…"
+msgstr "Jednym tchem…"
 
 #: src/hooks/useInAppNotifications.ts
 msgid "Jest blisko i chce się spotkać. Rozejrzyj się!"
@@ -447,13 +464,11 @@ msgstr "Jeszcze {0} pytania"
 msgid "Jeszcze {0} pytanie"
 msgstr "Jeszcze {0} pytanie"
 
-#: app/onboarding/profiling-result.tsx
 #: app/settings/profiling-result.tsx
 #: app/settings/profiling.tsx
 msgid "Jeszcze chwilka..."
 msgstr "Jeszcze chwilka..."
 
-#: app/onboarding/questions.tsx
 #: src/components/ui/ThinkingIndicator.tsx
 msgid "Jeszcze chwilka…"
 msgstr "Jeszcze chwilka…"
@@ -474,6 +489,10 @@ msgstr "Język interfejsu aplikacji."
 msgid "Już pingowałeś tę osobę. Spróbuj ponownie za {hours}h."
 msgstr "Już pingowałeś tę osobę. Spróbuj ponownie za {hours}h."
 
+#: app/onboarding/account-visibility.tsx
+msgid "Już prawie na mapie…"
+msgstr "Już prawie na mapie…"
+
 #: app/set-status.tsx
 msgid "KATEGORIA (max 2)"
 msgstr "KATEGORIA (max 2)"
@@ -482,11 +501,6 @@ msgstr "KATEGORIA (max 2)"
 msgid "Kiedy ktoś Cię pingnie, pojawi się tutaj"
 msgstr "Kiedy ktoś Cię pingnie, pojawi się tutaj"
 
-#: app/onboarding/questions-intro.tsx
-msgid "Kilka pytań"
-msgstr "Kilka pytań"
-
-#: app/onboarding/profiling-result.tsx
 #: app/settings/profiling-result.tsx
 msgid "KOGO SZUKAM"
 msgstr "KOGO SZUKAM"
@@ -535,19 +549,6 @@ msgstr "Kontynuuj z Google"
 msgid "Kopiuj"
 msgstr "Kopiuj"
 
-#: app/onboarding/index.tsx
-msgid "Krok 1"
-msgstr "Krok 1"
-
-#: app/onboarding/visibility.tsx
-msgid "Krok 2"
-msgstr "Krok 2"
-
-#: app/onboarding/questions-intro.tsx
-#: app/onboarding/questions.tsx
-msgid "Krok 3"
-msgstr "Krok 3"
-
 #: app/chat/[id].tsx
 #: src/hooks/useInAppNotifications.ts
 msgid "Ktoś"
@@ -573,6 +574,14 @@ msgstr "Link zaproszenia"
 msgid "lub"
 msgstr "lub"
 
+#: app/onboarding/account-visibility.tsx
+msgid "luźne wyjście"
+msgstr "luźne wyjście"
+
+#: app/onboarding/categories.tsx
+msgid "Luźne wyjście"
+msgstr "Luźne wyjście"
+
 #: app/(modals)/user/[userId].tsx
 msgid "Macie już ze sobą chat — otwórz go z listy rozmów."
 msgstr "Macie już ze sobą chat — otwórz go z listy rozmów."
@@ -584,10 +593,6 @@ msgstr "Moja lokalizacja"
 #: app/settings/profiling-result.tsx
 msgid "Możesz edytować tekst przed zapisaniem"
 msgstr "Możesz edytować tekst przed zapisaniem"
-
-#: app/onboarding/profiling-result.tsx
-msgid "Możesz edytować zanim przejdziesz do aplikacji"
-msgstr "Możesz edytować zanim przejdziesz do aplikacji"
 
 #: app/(modals)/user/[userId].tsx
 msgid "Możesz pingować tę osobę ponownie za {hours}h."
@@ -601,13 +606,9 @@ msgstr "Możesz pingować za {cooldownHours}h"
 msgid "Na jak długo?"
 msgstr "Na jak długo?"
 
-#: app/onboarding/questions-intro.tsx
-msgid "Na podstawie Twoich odpowiedzi przygotujemy bio i opis tego, kogo lub czego szukasz. Zobaczysz gotowy tekst i poprawisz, zanim pokażemy go innym."
-msgstr "Na podstawie Twoich odpowiedzi przygotujemy bio i opis tego, kogo lub czego szukasz. Zobaczysz gotowy tekst i poprawisz, zanim pokażemy go innym."
-
-#: app/onboarding/visibility.tsx
-msgid "Na razie przeglądam"
-msgstr "Na razie przeglądam"
+#: app/onboarding/account-visibility.tsx
+msgid "Na mapę"
+msgstr "Na mapę"
 
 #: app/(modals)/user/[userId].tsx
 msgid "NA TERAZ"
@@ -616,10 +617,6 @@ msgstr "NA TERAZ"
 #: app/mute-conversation.tsx
 msgid "Na zawsze"
 msgstr "Na zawsze"
-
-#: app/onboarding/visibility.tsx
-msgid "Najpierw opowiesz o sobie — kilka pytań, nic więcej. Będziesz mieć pełny dostęp do ludzi i grup w Twojej okolicy. Dostaniesz powiadomienie, gdy obok pojawi się ktoś, kogo szukasz albo kto do Ciebie pasuje. Inni też zobaczą Cię na mapie i będą mogli Cię zaczepić."
-msgstr "Najpierw opowiesz o sobie — kilka pytań, nic więcej. Będziesz mieć pełny dostęp do ludzi i grup w Twojej okolicy. Dostaniesz powiadomienie, gdy obok pojawi się ktoś, kogo szukasz albo kto do Ciebie pasuje. Inni też zobaczą Cię na mapie i będą mogli Cię zaczepić."
 
 #: app/settings/edit-profile.tsx
 msgid "Napisz kilka słów o sobie..."
@@ -637,13 +634,14 @@ msgstr "Nazwa grupy"
 msgid "Nazwa wątku"
 msgstr "Nazwa wątku"
 
+#: app/onboarding/account-visibility.tsx
+msgid "networking"
+msgstr "networking"
+
+#: app/onboarding/categories.tsx
 #: app/set-status.tsx
 msgid "Networking"
 msgstr "Networking"
-
-#: app/onboarding/questions-intro.tsx
-msgid "Nie musi być idealnie"
-msgstr "Nie musi być idealnie"
 
 #: app/settings/account.tsx
 msgid "Nie połączono"
@@ -661,6 +659,10 @@ msgstr "Nie teraz"
 msgid "Nie udało się dodać reakcji"
 msgstr "Nie udało się dodać reakcji"
 
+#: app/onboarding/account-visibility.tsx
+msgid "Nie udało się dokończyć. Spróbuj ponownie."
+msgstr "Nie udało się dokończyć. Spróbuj ponownie."
+
 #: app/(modals)/group/[id].tsx
 #: app/group/join/[code].tsx
 msgid "Nie udało się dołączyć do grupy"
@@ -674,11 +676,11 @@ msgstr "Nie udało się pobrać lokalizacji"
 msgid "Nie udało się połączyć z serwerem"
 msgstr "Nie udało się połączyć z serwerem"
 
-#: app/onboarding/questions.tsx
 #: app/settings/profiling.tsx
 msgid "Nie udało się przesłać odpowiedzi. Spróbuj ponownie."
 msgstr "Nie udało się przesłać odpowiedzi. Spróbuj ponownie."
 
+#: app/onboarding/index.tsx
 #: app/settings/edit-profile.tsx
 msgid "Nie udało się przesłać zdjęcia"
 msgstr "Nie udało się przesłać zdjęcia"
@@ -695,10 +697,6 @@ msgstr "Nie udało się usunąć wiadomości"
 msgid "Nie udało się utworzyć grupy"
 msgstr "Nie udało się utworzyć grupy"
 
-#: app/onboarding/visibility.tsx
-msgid "Nie udało się utworzyć profilu. Spróbuj ponownie."
-msgstr "Nie udało się utworzyć profilu. Spróbuj ponownie."
-
 #: app/(modals)/group/[id].tsx
 msgid "Nie udało się utworzyć wątku"
 msgstr "Nie udało się utworzyć wątku"
@@ -707,7 +705,6 @@ msgstr "Nie udało się utworzyć wątku"
 msgid "Nie udało się wyczyścić statusu"
 msgstr "Nie udało się wyczyścić statusu"
 
-#: app/onboarding/questions.tsx
 #: app/settings/profiling.tsx
 msgid "Nie udało się wygenerować profilu. Spróbuj ponownie."
 msgstr "Nie udało się wygenerować profilu. Spróbuj ponownie."
@@ -751,7 +748,6 @@ msgstr "Nie udało się zalogować. Spróbuj ponownie."
 msgid "Nie udało się zapisać języka."
 msgstr "Nie udało się zapisać języka."
 
-#: app/onboarding/questions.tsx
 #: app/settings/profiling.tsx
 msgid "Nie udało się zapisać odpowiedzi. Spróbuj ponownie."
 msgstr "Nie udało się zapisać odpowiedzi. Spróbuj ponownie."
@@ -760,7 +756,6 @@ msgstr "Nie udało się zapisać odpowiedzi. Spróbuj ponownie."
 msgid "Nie udało się zapisać profilu"
 msgstr "Nie udało się zapisać profilu"
 
-#: app/onboarding/profiling-result.tsx
 #: app/settings/profiling-result.tsx
 msgid "Nie udało się zapisać profilu. Spróbuj ponownie."
 msgstr "Nie udało się zapisać profilu. Spróbuj ponownie."
@@ -803,10 +798,6 @@ msgstr "Nieprawidłowy kod. Spróbuj ponownie."
 msgid "Nieprzeczytane"
 msgstr "Nieprzeczytane"
 
-#: app/onboarding/visibility.tsx
-msgid "NIEWIDOCZNY"
-msgstr "NIEWIDOCZNY"
-
 #: app/(tabs)/index.tsx
 msgid "Nikogo w pobliżu"
 msgstr "Nikogo w pobliżu"
@@ -843,6 +834,10 @@ msgstr "nowy@email.com"
 msgid "np. Sąsiedzi z Mokotowa"
 msgstr "np. Sąsiedzi z Mokotowa"
 
+#: app/onboarding/categories.tsx
+msgid "np. szukam ludzi na jam session"
+msgstr "np. szukam ludzi na jam session"
+
 #: app/create-group.tsx
 msgid "O czym jest ta grupa? (opcjonalnie)"
 msgstr "O czym jest ta grupa? (opcjonalnie)"
@@ -853,7 +848,6 @@ msgstr "O czym jest ta grupa? (opcjonalnie)"
 msgid "O mnie"
 msgstr "O mnie"
 
-#: app/onboarding/profiling-result.tsx
 #: app/settings/profiling-result.tsx
 msgid "O MNIE"
 msgstr "O MNIE"
@@ -894,10 +888,6 @@ msgstr "Odpowiedz"
 msgid "Odpowiedzi na pingi"
 msgstr "Odpowiedzi na pingi"
 
-#: app/onboarding/questions-intro.tsx
-msgid "Odpowiedzi nie muszą być pełnymi zdaniami. Mogą być krótkie, w punktach, nawet pojedyncze słowa — liczy się co napiszesz, nie jak. Pod każdym pytaniem zobaczysz kilka przykładowych odpowiedzi."
-msgstr "Odpowiedzi nie muszą być pełnymi zdaniami. Mogą być krótkie, w punktach, nawet pojedyncze słowa — liczy się co napiszesz, nie jak. Pod każdym pytaniem zobaczysz kilka przykładowych odpowiedzi."
-
 #: app/(tabs)/chats.tsx
 msgid "Odrzucone"
 msgstr "Odrzucone"
@@ -905,10 +895,6 @@ msgstr "Odrzucone"
 #: app/create-group.tsx
 msgid "Opis"
 msgstr "Opis"
-
-#: app/onboarding/visibility.tsx
-msgid "Opowiem o sobie"
-msgstr "Opowiem o sobie"
 
 #: app/(modals)/group/[id].tsx
 msgid "Opuść"
@@ -953,14 +939,6 @@ msgstr "osoby i grupy"
 #: app/create-group.tsx
 msgid "Osoby w pobliżu będą mogły znaleźć i dołączyć do grupy"
 msgstr "Osoby w pobliżu będą mogły znaleźć i dołączyć do grupy"
-
-#: app/onboarding/profiling-result.tsx
-msgid "Ostatni krok"
-msgstr "Ostatni krok"
-
-#: app/onboarding/profiling-result.tsx
-msgid "Oto jak Cię widzę"
-msgstr "Oto jak Cię widzę"
 
 #: app/(modals)/user/[userId].tsx
 msgid "Ping"
@@ -1102,10 +1080,6 @@ msgstr "Pomiń"
 msgid "Pomiń i usuń"
 msgstr "Pomiń i usuń"
 
-#: app/onboarding/questions.tsx
-msgid "Pomiń pytanie"
-msgstr "Pomiń pytanie"
-
 #: app/settings/_layout.tsx
 #: app/settings/index.tsx
 msgid "Pomoc"
@@ -1143,6 +1117,11 @@ msgstr "Profil"
 msgid "Profilowanie"
 msgstr "Profilowanie"
 
+#: app/onboarding/account-visibility.tsx
+msgid "projekt"
+msgstr "projekt"
+
+#: app/onboarding/categories.tsx
 #: app/set-status.tsx
 msgid "Projekt"
 msgstr "Projekt"
@@ -1176,19 +1155,17 @@ msgstr "Przygotowuję kolejne pytanie…"
 msgid "Przyjął(a) Twój ping!"
 msgstr "Przyjął(a) Twój ping!"
 
-#. placeholder {0}: i + 1
-#: app/onboarding/questions.tsx
-msgid "Przykład {0}"
-msgstr "Przykład {0}"
-
 #: app/settings/notifications.tsx
 msgid "PUSH"
 msgstr "PUSH"
 
-#. placeholder {0}: questionIndex + 1
-#: app/onboarding/questions.tsx
-msgid "Pytanie {0} / {totalQuestions}"
-msgstr "Pytanie {0} / {totalQuestions}"
+#: app/onboarding/account-visibility.tsx
+msgid "randka"
+msgstr "randka"
+
+#: app/onboarding/categories.tsx
+msgid "Randka"
+msgstr "Randka"
 
 #: app/settings/help.tsx
 msgid "Regulamin"
@@ -1225,7 +1202,6 @@ msgstr "Spróbuj innej metody logowania"
 
 #: app/(auth)/login.tsx
 #: app/(tabs)/index.tsx
-#: app/onboarding/questions.tsx
 #: app/settings/profiling.tsx
 #: src/components/AppGate.tsx
 msgid "Spróbuj ponownie"
@@ -1255,10 +1231,6 @@ msgstr "Ta osoba jest teraz niedostępna — powodów może być wiele, nie prze
 #: app/(modals)/user/[userId].tsx
 msgid "Tak"
 msgstr "Tak"
-
-#: app/onboarding/profiling-result.tsx
-msgid "Tak, to ja"
-msgstr "Tak, to ja"
 
 #: app/group/join/[code].tsx
 msgid "Ten link jest nieprawidłowy lub wygasł"
@@ -1294,7 +1266,6 @@ msgstr "Tutaj jeszcze cicho. Możesz być pierwszy."
 msgid "tuż obok"
 msgstr "tuż obok"
 
-#: app/onboarding/questions.tsx
 #: app/settings/profiling.tsx
 msgid "Twoja odpowiedź"
 msgstr "Twoja odpowiedź"
@@ -1302,10 +1273,6 @@ msgstr "Twoja odpowiedź"
 #: app/onboarding/index.tsx
 msgid "Twoje imię"
 msgstr "Twoje imię"
-
-#: app/onboarding/index.tsx
-msgid "Twoje imię będzie widoczne publicznie"
-msgstr "Twoje imię będzie widoczne publicznie"
 
 #: app/_layout.tsx
 #: app/(auth)/email.tsx
@@ -1316,6 +1283,10 @@ msgstr "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni."
 #: app/_layout.tsx
 msgid "Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
 msgstr "Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
+
+#: app/onboarding/account-visibility.tsx
+msgid "Tworzę Twój profil…"
+msgstr "Tworzę Twój profil…"
 
 #: app/chat/[id].tsx
 msgid "Ty"
@@ -1401,10 +1372,6 @@ msgstr "W pobliżu ({0})"
 msgid "Wątki"
 msgstr "Wątki"
 
-#: app/onboarding/visibility.tsx
-msgid "Wchodzę do aplikacji"
-msgstr "Wchodzę do aplikacji"
-
 #: src/lib/format.ts
 msgid "wczoraj"
 msgstr "wczoraj"
@@ -1426,17 +1393,13 @@ msgstr "Wiadomość usunięta"
 msgid "Widoczna w okolicy"
 msgstr "Widoczna w okolicy"
 
-#: app/onboarding/visibility.tsx
-msgid "Widoczność i prywatność zmienisz w każdej chwili w ustawieniach."
-msgstr "Widoczność i prywatność zmienisz w każdej chwili w ustawieniach."
-
 #: app/settings/index.tsx
 msgid "Widoczność, zablokowani użytkownicy"
 msgstr "Widoczność, zablokowani użytkownicy"
 
-#: app/onboarding/visibility.tsx
-msgid "WIDOCZNY"
-msgstr "WIDOCZNY"
+#: app/onboarding/account-visibility.tsx
+msgid "Widoczny i otwarty — „Podejdź śmiało\" w profilu."
+msgstr "Widoczny i otwarty — „Podejdź śmiało\" w profilu."
 
 #: app/settings/privacy.tsx
 msgid "Widoczny i otwarty — w profilu pojawi się \"Podejdź śmiało\"."
@@ -1446,13 +1409,21 @@ msgstr "Widoczny i otwarty — w profilu pojawi się \"Podejdź śmiało\"."
 msgid "Widoczny na mapie. Możesz pingować i być pingowany."
 msgstr "Widoczny na mapie. Możesz pingować i być pingowany."
 
+#: app/onboarding/account-visibility.tsx
+msgid "Widoczny na mapie. Pingujesz i jesteś pingowany."
+msgstr "Widoczny na mapie. Pingujesz i jesteś pingowany."
+
+#: src/components/nearby/FirstTapHint.tsx
+msgid "Widzisz bańki? To ludzie obok."
+msgstr "Widzisz bańki? To ludzie obok."
+
 #: app/settings/privacy.tsx
 msgid "Widzisz innych, ale Ciebie nie widać na mapie. Nie możesz pingować."
 msgstr "Widzisz innych, ale Ciebie nie widać na mapie. Nie możesz pingować."
 
-#: app/onboarding/visibility.tsx
-msgid "Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, kto jest w twojej okolicy. Profil uzupełnisz później."
-msgstr "Widzisz, kto jest blisko, czym się zajmuje albo interesuje, ale bez szczegółów. Nie zaczepisz, nie napiszesz, nie dołączysz do żadnej grupy, chyba że ktoś Cię zaprosi. Dobre na start, jeśli chcesz najpierw zobaczyć, kto jest w twojej okolicy. Profil uzupełnisz później."
+#: app/onboarding/account-visibility.tsx
+msgid "Widzisz innych, ale Ciebie nie widać. Nie pingujesz."
+msgstr "Widzisz innych, ale Ciebie nie widać. Nie pingujesz."
 
 #: app/settings/help.tsx
 msgid "Wkrótce!"
@@ -1518,6 +1489,10 @@ msgstr "Wszystko"
 #: app/(tabs)/chats.tsx
 msgid "Wszystko ogarnięte"
 msgstr "Wszystko ogarnięte"
+
+#: app/onboarding/categories.tsx
+msgid "Wybierz maksymalnie 2 — to widzą inni obok Ciebie."
+msgstr "Wybierz maksymalnie 2 — to widzą inni obok Ciebie."
 
 #: app/mute-conversation.tsx
 msgid "Wycisz powiadomienia"
@@ -1653,10 +1628,6 @@ msgstr "Zablokuj"
 msgid "Zablokuj użytkownika"
 msgstr "Zablokuj użytkownika"
 
-#: app/onboarding/questions-intro.tsx
-msgid "Zaczniemy od 7 krótkich pytań. Jeśli coś będzie wymagało doprecyzowania, dopytamy maksymalnie o 3 rzeczy."
-msgstr "Zaczniemy od 7 krótkich pytań. Jeśli coś będzie wymagało doprecyzowania, dopytamy maksymalnie o 3 rzeczy."
-
 #: app/onboarding/hook.tsx
 msgid "Zacznij"
 msgstr "Zacznij"
@@ -1724,21 +1695,14 @@ msgstr "ZMIEŃ"
 msgid "Zmień email"
 msgstr "Zmień email"
 
+#: app/onboarding/index.tsx
 #: app/settings/edit-profile.tsx
 msgid "Zmień zdjęcie"
 msgstr "Zmień zdjęcie"
 
-#: app/onboarding/questions.tsx
-msgid "Zostało ostatnie pytanie"
-msgstr "Zostało ostatnie pytanie"
-
-#: app/onboarding/questions.tsx
-msgid "Zostały tylko {remainingCount} pytania"
-msgstr "Zostały tylko {remainingCount} pytania"
-
-#: app/onboarding/questions-intro.tsx
-msgid "Zrobimy z tego profil"
-msgstr "Zrobimy z tego profil"
+#: app/onboarding/account-visibility.tsx
+msgid "Zmienisz to w każdej chwili w ustawieniach."
+msgstr "Zmienisz to w każdej chwili w ustawieniach."
 
 #: app/(modals)/group/[id].tsx
 msgid "Zwiń"

@@ -1,13 +1,11 @@
 appId: com.blisko.app
 ---
-# Ghost Profile Onboarding E2E Test — Ukrainian locale
-# Mirrors `onboarding-ghost.yaml` flow but in UA. First step taps the `UA`
-# button on the LocalePill to switch the UI before logging in. Every
-# assertion / tap uses the UA translation from
-# `apps/mobile/src/locales/ua/messages.po`.
+# Onboarding E2E — Ninja ("ghost") visibility path, UA locale, v4 3-step (BLI-292)
+# Mirrors `onboarding-ghost.yaml`. Taps the `UA` LocalePill first, then runs the
+# same testID-driven steps and picks Ninja in the account-visibility step.
 #
-# When you edit `onboarding-ghost.yaml` you MUST mirror the change here.
-# See `.claude/rules/e2e.md` for the PL/UA parity convention.
+# When you edit `onboarding-ghost.yaml` you MUST mirror the change here
+# (e2e/pl-ua-parity).
 
 - runFlow: sub-flows/launch-and-dismiss-dev.yaml
 
@@ -40,7 +38,6 @@ appId: com.blisko.app
 - tapOn: "(?i)Надіслати код"
 
 # --- HOOK SCREEN (auto-advances in 5s) ---
-# Tap to skip if still showing, otherwise wait for Krok 1
 
 - runFlow:
     when:
@@ -50,12 +47,12 @@ appId: com.blisko.app
       - tapOn:
           id: "hook-start-button"
 
-# --- STEP 1: Name + Age ---
+# --- STEP 1: Name + conversational question + photo + age ---
 
 - extendedWaitUntil:
-    visible: "Крок 1"
+    visible:
+      id: "name-input"
     timeout: 30000
-
 - tapOn:
     id: "name-input"
 - eraseText: 30
@@ -65,30 +62,65 @@ appId: com.blisko.app
 - waitForAnimationToEnd
 
 - tapOn:
+    id: "intro-input"
+- inputText: "Programista, gram na gitarze. Wolę najpierw się rozejrzeć"
+- tapOn:
+    point: "50%,10%"
+- waitForAnimationToEnd
+
+# Photo (mandatory). Open the system Photos picker and pick the first image.
+- tapOn:
+    id: "onboarding-photo-button"
+- runFlow:
+    when:
+      visible: "(?i)Allow Access to All Photos|Select Photos|Дозволити"
+    commands:
+      - tapOn: "(?i)Allow Access to All Photos|Дозволити"
+- runFlow:
+    when:
+      visible: "(?i)Photos|Фото|Recents"
+    commands:
+      - tapOn:
+          point: "20%,30%"
+- waitForAnimationToEnd
+
+- tapOn:
     id: "age-confirm-toggle"
 
 - extendedWaitUntil:
-    visible: "(?i)Далі"
-    timeout: 5000
-- tapOn: "(?i)Далі"
+    visible:
+      id: "onboarding-step1-next"
+    timeout: 10000
+- tapOn:
+    id: "onboarding-step1-next"
 
-# --- STEP 2: Visibility — choose ghost profile ---
+# --- STEP 2: Category tiles ---
 
 - extendedWaitUntil:
     visible:
-      id: "ghost-option"
-    timeout: 10000
+      id: "onboarding-category-casual"
+    timeout: 15000
 - tapOn:
-    id: "ghost-option"
+    id: "onboarding-category-casual"
 - tapOn:
-    id: "ghost-profile-button"
+    id: "onboarding-categories-next"
 
-# --- VERIFY: Landed on main tab ---
+# --- STEP 3: Account visibility — pick Ninja ---
+
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-visibility-ninja"
+    timeout: 15000
+- tapOn:
+    id: "onboarding-visibility-ninja"
+- tapOn:
+    id: "onboarding-go-to-map"
+
+# --- VERIFY: Landed on the map ---
 
 - extendedWaitUntil:
     visible:
       id: "set-status-pill"
-    timeout: 30000
-
+    timeout: 600000
 - assertVisible:
     id: "set-status-pill"

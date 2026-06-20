@@ -8,7 +8,7 @@ import { ActivityIndicator, Animated, Dimensions, FlatList, Pressable, StyleShee
 import type { Region } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDebouncedCallback } from "use-debounce";
-import { DEFAULT_MAP_DELTA, ListShimmer, type NearbyMapRef, NearbyMapView } from "@/components/nearby";
+import { DEFAULT_MAP_DELTA, FirstTapHint, ListShimmer, type NearbyMapRef, NearbyMapView } from "@/components/nearby";
 import { GroupRow } from "@/components/nearby/GroupRow";
 import type { UserRowStatus } from "@/components/nearby/UserRow";
 import { UserRow } from "@/components/nearby/UserRow";
@@ -26,6 +26,7 @@ import { trpc } from "@/lib/trpc";
 import { useWebSocket, type WSMessage } from "@/lib/ws";
 import { useAuthStore } from "@/stores/authStore";
 import { useLocationStore } from "@/stores/locationStore";
+import { useOnboardingStore } from "@/stores/onboardingStore";
 import { usePreferencesStore } from "@/stores/preferencesStore";
 import { useProfilesStore } from "@/stores/profilesStore";
 import { useWavesStore } from "@/stores/wavesStore";
@@ -164,6 +165,12 @@ export default function NearbyScreen() {
 
   // Derive status from auth store (optimistic) with query fallback
   const profile = useAuthStore((s) => s.profile);
+
+  // One-time guided first-tap overlay (v4, BLI-292). Shown to a fresh, complete
+  // (non-ghost) profile on their first map visit, then never again.
+  const firstMapHintSeen = useOnboardingStore((s) => s.firstMapHintSeen);
+  const markFirstMapHintSeen = useOnboardingStore((s) => s.markFirstMapHintSeen);
+  const showFirstTapHint = !firstMapHintSeen && !!profile?.isComplete;
   const myStatus = useMemo(() => {
     if (profile?.currentStatus) {
       return { text: profile.currentStatus };
@@ -713,6 +720,9 @@ export default function NearbyScreen() {
           />
         )}
       </Animated.View>
+
+      {/* One-time guided first-tap overlay (v4, BLI-292) */}
+      {showFirstTapHint && !listOpen && <FirstTapHint onDismiss={markFirstMapHintSeen} />}
     </View>
   );
 }
