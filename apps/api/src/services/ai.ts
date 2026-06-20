@@ -133,6 +133,81 @@ Tłumacz naturalnie, zachowując ton i osobowość. Imion własnych nie tłumacz
   }
 }
 
+/** Dual-language one-sentence bio essence (BLI-304). Same single-call pattern as
+ *  generatePortrait — the model writes PL + UA versions with source-language
+ *  context, so cross-locale viewers get the essence in their own language. */
+const bioEssenceDualSchema = z.object({
+  pl: z.string(),
+  ua: z.string(),
+});
+
+export type BioEssenceDual = z.infer<typeof bioEssenceDualSchema>;
+
+/**
+ * Condense a bio into ONE short, natural sentence (~120 chars) capturing who the
+ * person is — used as the nearby-list subtitle when someone has no active status.
+ * Returns both PL and UA; the caller stores the content_locale version as
+ * canonical and the other as a profile_translations row. Falls back to a trimmed
+ * bio (same string for both locales) when OpenAI is unconfigured or errors.
+ */
+export async function generateBioEssence(
+  bio: string,
+  contentLocale: LocaleCode,
+  ctx: AiLogCtx,
+): Promise<BioEssenceDual> {
+  const fallback = bio.trim();
+  if (!isConfigured() || !fallback) {
+    return { pl: fallback, ua: fallback };
+  }
+
+  const model = ctx.model ?? AI_MODELS.sync;
+  const providerOptions = providerOptionsFromCtx(ctx);
+  const sourceLanguageLabel = contentLocale === "ua" ? "ukraiński (ukrainian)" : "polski (polish)";
+  const system = `Streść poniższe bio użytkownika aplikacji społecznościowej w JEDNYM krótkim, naturalnym zdaniu (max ~120 znaków). Uchwyć esencję: kim jest ta osoba, czym się pasjonuje, jaki ma vibe. Pisz w 1. osobie, tak jakby napisała to ta osoba. Bez cudzysłowów, bez nagłówków, bez emotek — samo zdanie.
+
+Wygeneruj DWIE WERSJE JĘZYKOWE:
+- "pl" — po polsku
+- "ua" — po ukraińsku
+Tłumacz naturalnie, zachowując ton. Imion własnych nie tłumacz. Język źródłowy: ${sourceLanguageLabel}.`;
+  const prompt = `<user_bio>${bio}</user_bio>`;
+  const input: AiCallInput = {
+    kind: "generateObject",
+    model,
+    system,
+    prompt,
+    temperature: 0.4,
+    // Two short sentences (~40 visible tokens each) + gpt-5-mini minimal
+    // reasoning headroom + JSON structure. 400 is comfortable.
+    maxOutputTokens: 400,
+    providerOptions: providerOptions ?? null,
+    schemaName: "bioEssenceDualSchema",
+  };
+
+  try {
+    return await withAiLogging(ctx, input, async () => {
+      const { object, usage } = await generateObject({
+        model: openai(model),
+        schema: bioEssenceDualSchema,
+        temperature: 0.4,
+        maxOutputTokens: 400,
+        ...(providerOptions && { providerOptions }),
+        system,
+        prompt,
+      });
+      return {
+        result: { pl: object.pl?.trim() || fallback, ua: object.ua?.trim() || fallback },
+        model,
+        promptTokens: usage?.inputTokens ?? 0,
+        completionTokens: usage?.outputTokens ?? 0,
+        output: { object },
+      };
+    });
+  } catch (error) {
+    console.error("Error generating bio essence:", error);
+    return { pl: fallback, ua: fallback };
+  }
+}
+
 export async function extractInterests(portrait: string, ctx: AiLogCtx): Promise<string[]> {
   if (!isConfigured()) {
     console.warn("OPENAI_API_KEY not set, returning empty interests");

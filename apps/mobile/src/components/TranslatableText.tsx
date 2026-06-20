@@ -9,7 +9,7 @@
 // BLI-279.
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { LocaleCode, UgcTranslatableField } from "@repo/shared";
+import type { LocaleCode, ViewerTranslatableField } from "@repo/shared";
 import { useCallback } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, type TextStyle, View } from "react-native";
 import { isRateLimitError } from "@/lib/globalErrorHandler";
@@ -21,7 +21,7 @@ import { colors, fonts, type as typ } from "@/theme";
 
 interface TranslatableTextProps {
   userId: string;
-  field: UgcTranslatableField;
+  field: ViewerTranslatableField;
   original: string | null | undefined;
   sourceLocale: LocaleCode | null | undefined;
   translations: ProfileTranslationView[];

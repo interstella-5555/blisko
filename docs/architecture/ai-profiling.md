@@ -166,7 +166,7 @@ Sessions can chain: `basedOnSessionId` links to a previous session. When generat
 2. Updates `profilingSessions` row: stores `generatedBio`, `generatedLookingFor`, `generatedPortrait`, sets status to `completed`, records `completedAt`
 3. Emits `profilingComplete` WebSocket event with `{ userId, sessionId }`
 
-**After apply:** When the user applies the generated profile via `applyProfile`, a separate `generate-profile-ai` job fires. This runs `generatePortrait()` on the (possibly user-edited) bio/lookingFor to produce the final matching-optimized portrait, plus embedding and interest extraction. The portrait from `generateProfileFromQA` is stored on the session; the portrait from `generatePortrait` is what ends up on the `profiles` table and gets used for matching.
+**After apply:** When the user applies the generated profile via `applyProfile`, a separate `generate-profile-ai` job fires. This runs `generatePortrait()` on the (possibly user-edited) bio/lookingFor to produce the final matching-optimized portrait, plus embedding, interest extraction, and `generateBioEssence()` (a dual-language one-sentence condensation of the bio used as the nearby-list subtitle — BLI-304, see `ugc-translation.md`). The portrait from `generateProfileFromQA` is stored on the session; the portrait from `generatePortrait` is what ends up on the `profiles` table and gets used for matching.
 
 ## Ghost Profiles
 

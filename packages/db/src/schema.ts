@@ -143,6 +143,11 @@ export const profiles = pgTable(
     interests: text("interests").array(),
     embedding: real("embedding").array(),
     portrait: text("portrait"),
+    // One-sentence AI condensation of `bio`, regenerated on every bio change in
+    // the generate-profile-ai pipeline. Shown as the nearby-list subtitle when a
+    // person has no active status. Canonical version (in content_locale); the
+    // other locale lives in profile_translations (field "bio_essence"). BLI-304.
+    bioEssence: text("bio_essence"),
     portraitSharedForMatching: boolean("portrait_shared_for_matching").default(true).notNull(),
     isComplete: boolean("is_complete").default(false).notNull(),
     currentStatus: text("current_status"),

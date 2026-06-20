@@ -18,6 +18,7 @@ interface ExportData {
     displayName: string;
     avatarUrl: string | null;
     bio: string;
+    bioEssence: string | null;
     lookingFor: string;
     contentLocale: string;
     interests: string[] | null;
@@ -320,6 +321,7 @@ export async function collectAndExportUserData(userId: string, email: string) {
           displayName: profile.displayName,
           avatarUrl: resolveExportableUrl(profile.avatarUrl),
           bio: profile.bio,
+          bioEssence: profile.bioEssence,
           lookingFor: profile.lookingFor,
           contentLocale: profile.contentLocale,
           interests: profile.interests,

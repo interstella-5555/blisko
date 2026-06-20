@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getCanonicalText,
+  getViewerText,
   type ProfileLocaleSlice,
   type ProfileTranslationRow,
 } from "../src/services/profile-translations";
@@ -66,5 +67,36 @@ describe("getCanonicalText", () => {
       { field: "bio", locale: "ua", content: "wrong locale" },
     ];
     expect(getCanonicalText(uaProfile, "bio", noisy)).toBe("Привіт");
+  });
+});
+
+describe("getViewerText", () => {
+  const plProfile: ProfileLocaleSlice = {
+    contentLocale: "pl",
+    bioEssence: "Lubię kawę i długie spacery.",
+    currentStatus: "Pracuję w kawiarni.",
+  };
+
+  it("returns the original when contentLocale === viewerLocale", () => {
+    expect(getViewerText(plProfile, "bio_essence", [], "pl")).toBe("Lubię kawę i długie spacery.");
+    expect(getViewerText(plProfile, "current_status", [], "pl")).toBe("Pracuję w kawiarni.");
+  });
+
+  it("returns the viewer-locale translation when contentLocale differs", () => {
+    const translations: ProfileTranslationRow[] = [
+      { field: "bio_essence", locale: "ua", content: "Люблю каву і довгі прогулянки." },
+      { field: "current_status", locale: "ua", content: "Працюю в кафе." },
+    ];
+    expect(getViewerText(plProfile, "bio_essence", translations, "ua")).toBe("Люблю каву і довгі прогулянки.");
+    expect(getViewerText(plProfile, "current_status", translations, "ua")).toBe("Працюю в кафе.");
+  });
+
+  it("falls back to the canonical original when no viewer-locale translation exists", () => {
+    expect(getViewerText(plProfile, "bio_essence", [], "ua")).toBe("Lubię kawę i długie spacery.");
+  });
+
+  it("returns null when neither original nor translation is present", () => {
+    const empty: ProfileLocaleSlice = { contentLocale: "pl", bioEssence: null };
+    expect(getViewerText(empty, "bio_essence", [], "ua")).toBeNull();
   });
 });

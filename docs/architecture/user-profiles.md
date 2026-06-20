@@ -52,6 +52,7 @@ One profile per user. `profiles.userId` is a unique FK to `user.id` with `ON DEL
 | `interests` | text[] | yes | null | 8-12 AI-extracted tags from portrait (Polish, lowercase). Used for interest overlap scoring |
 | `embedding` | real[] | yes | null | `text-embedding-3-small` vector of the portrait. Used for cosine similarity pre-filtering |
 | `portrait` | text | yes | null | AI-generated rich social profile (200-300 words). NOT an image (see Portrait section) |
+| `bioEssence` | text | yes | null | One-sentence AI condensation of `bio`, regenerated on every bio change in the `generate-profile-ai` pipeline. Shown as the nearby-list subtitle when a person has no active status. Canonical (in `contentLocale`); other locale in `profile_translations` (field `bio_essence`). Nearby list resolves it to the viewer's locale via `getViewerText`. BLI-304 |
 | `portraitSharedForMatching` | boolean | no | `true` | Historical consent flag. Default flipped from `false` to `true` by migration 0023 (BLI-199). No longer written by `applyProfile` or referenced by validators; retained as audit-only, slated for removal. |
 | `isComplete` | boolean | no | `false` | Gates access to discovery, matching, and status features. Set `true` when profiling session is applied |
 | `currentStatus` | text | yes | null | Active "na teraz" status text (max 150 chars). Null means no active status |

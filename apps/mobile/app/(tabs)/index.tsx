@@ -407,9 +407,8 @@ export default function NearbyScreen() {
             bio={u.profile.bio}
             rankScore={u.rankScore}
             matchScore={u.matchScore}
-            commonInterests={u.commonInterests}
-            shortSnippet={u.shortSnippet}
-            analysisReady={u.analysisReady}
+            currentStatus={u.profile.currentStatus}
+            bioEssence={u.profile.bioEssence}
             hasStatusMatch={u.hasStatusMatch}
             lastActiveAt={u.profile.lastActiveAt}
             status={status}
