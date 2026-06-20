@@ -562,6 +562,10 @@ msgstr "Ładowanie..."
 msgid "Limit dzienny"
 msgstr "Limit dzienny"
 
+#: app/(modals)/user/[userId].tsx
+msgid "Limit pingów na dziś"
+msgstr "Limit pingów na dziś"
+
 #: app/(modals)/group/[id].tsx
 msgid "Link zaproszenia"
 msgstr "Link zaproszenia"
@@ -589,6 +593,10 @@ msgstr "Możesz edytować zanim przejdziesz do aplikacji"
 #: app/(modals)/user/[userId].tsx
 msgid "Możesz pingować tę osobę ponownie za {hours}h."
 msgstr "Możesz pingować tę osobę ponownie za {hours}h."
+
+#: app/(modals)/user/[userId].tsx
+msgid "Możesz pingować za {cooldownHours}h"
+msgstr "Możesz pingować za {cooldownHours}h"
 
 #: app/mute-conversation.tsx
 msgid "Na jak długo?"
@@ -974,6 +982,15 @@ msgstr "Pingi dochodzą, ale powiadomienia push wyciszone."
 #: app/settings/index.tsx
 msgid "Pingi, wiadomości"
 msgstr "Pingi, wiadomości"
+
+#. placeholder {0}: pingQuota.sentToday
+#. placeholder {0}: quota.sentToday
+#. placeholder {1}: pingQuota.dailyLimit
+#. placeholder {1}: quota.dailyLimit
+#: app/(modals)/user/[userId].tsx
+#: app/(tabs)/index.tsx
+msgid "Pingi: {0}/{1}"
+msgstr "Pingi: {0}/{1}"
 
 #: app/(modals)/user/[userId].tsx
 msgid "Pingowano"

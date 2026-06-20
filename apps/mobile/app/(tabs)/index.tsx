@@ -159,6 +159,9 @@ export default function NearbyScreen() {
     },
   );
 
+  // Daily ping quota — visible "Pingi: X/Y" counter (v4 §9, BLI-295).
+  const { data: pingQuota } = trpc.waves.getQuota.useQuery({});
+
   // Derive status from auth store (optimistic) with query fallback
   const profile = useAuthStore((s) => s.profile);
   const myStatus = useMemo(() => {
@@ -544,6 +547,15 @@ export default function NearbyScreen() {
         </Pressable>
       </View>
 
+      {/* Visible daily ping counter (v4 §9, BLI-295) */}
+      {pingQuota && (
+        <View style={[styles.pingCounterPill, { top: insets.top + 60 }]} pointerEvents="none">
+          <Text style={styles.pingCounterText} testID="map-ping-counter">
+            {t`Pingi: ${pingQuota.sentToday}/${pingQuota.dailyLimit}`}
+          </Text>
+        </View>
+      )}
+
       {/* Floating recenter — fixed at the right of the count-pill row (pill stays centered) */}
       <Pressable
         style={[styles.recenterBtn, { bottom: insets.bottom + 18 }]}
@@ -855,6 +867,25 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   roundBtnActive: { borderWidth: 1, borderColor: colors.accent },
+  pingCounterPill: {
+    position: "absolute",
+    right: spacing.column,
+    backgroundColor: colors.bg,
+    borderRadius: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    shadowColor: "#3a2e1e",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  pingCounterText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 11,
+    letterSpacing: 0.5,
+    color: colors.muted,
+  },
   recenterBtn: {
     position: "absolute",
     right: spacing.column,
