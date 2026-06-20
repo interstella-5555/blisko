@@ -158,12 +158,25 @@ The same `acceptWaveCore` is reused by `waves.send` on the implicit-accept path 
 
 | Endpoint | Filters | Joins | Order |
 |---|---|---|---|
-| `waves.getReceived` | `toUserId = me`, status IN (`pending`, `accepted`), sender not soft-deleted | INNER JOIN `profiles` (sender), INNER JOIN `user` (soft-delete filter) | `createdAt DESC` |
+| `waves.getReceived` | `toUserId = me`, status IN (`pending`, `accepted`), sender not soft-deleted | INNER JOIN `profiles` (sender), INNER JOIN `user` (soft-delete filter) | `createdAt ASC` (FIFO) |
 | `waves.getSent` | `fromUserId = me`, recipient not soft-deleted | INNER JOIN `profiles` (recipient), INNER JOIN `user` (soft-delete filter) | `createdAt DESC` |
 
 Both endpoints return sender/recipient `displayName`, `avatarUrl`, and `bio` alongside the wave data.
 
-**Note on getReceived:** Only `pending` and `accepted` waves are returned. Declined waves are excluded --- the recipient doesn't need to see waves they already acted on. Sent waves (`getSent`) return all statuses so the sender can track outcomes.
+**Note on getReceived:** Only `pending` and `accepted` waves are returned. Declined waves are excluded --- the recipient doesn't need to see waves they already acted on. Sent waves (`getSent`) return all statuses so the sender can track outcomes. Received waves are ordered **FIFO (oldest first)** (BLI-295, v4 §9) — the recipient acts on whoever pinged first. The mobile pending-ping queue keeps this order; the full ping-history list re-sorts newest-first client-side.
+
+## Ping Quota (`waves.getQuota`)
+
+**What:** A read-only query that surfaces the daily ping budget — and, optionally, the per-target cooldown — so the mobile UI can render a visible "Pingi: X/Y" counter and pre-check the PING button (grey it out) instead of failing after a server round-trip (BLI-295, v4 §9).
+
+**Input:** `{ targetUserId?: string }`. **Returns:** `{ sentToday, dailyLimit, cooldownHours, cooldownReason }`.
+
+- Without `targetUserId` (map counter): runs only the `sentToday` count (waves sent since UTC midnight) and echoes `dailyLimit = DAILY_PING_LIMIT_BASIC`. `cooldownHours = 0`, `cooldownReason = null`.
+- With `targetUserId` (profile modal): additionally fetches the most-recent wave to that target within `PER_PERSON_COOLDOWN_HOURS` and the most-recent decline within `DECLINE_COOLDOWN_HOURS`, then runs `computePingCooldown` (in `apps/api/src/lib/ping-quota.ts`) to derive whole hours remaining + which rule (`per_person` wins over `cooldown` since it's the superset).
+
+This is **advisory** — `waves.send` re-validates the daily limit, per-person, and decline cooldowns on insert, so a stale quota read can never let a ping through that the send path would reject. The pure cooldown math lives in `ping-quota.ts` and is unit-tested (`__tests__/ping-quota.test.ts`) without a DB.
+
+**Map marker cooldown filtering (BLI-295):** `getNearbyMapMarkers` (`profiles.ts`) now mirrors the list endpoint (`getNearbyUsersForMap`) — it adds the `cooldownDeclines` set (people the viewer declined within `DECLINE_COOLDOWN_HOURS`) to the blocked-id skip set, so a recently-declined person disappears from the map, not just the list.
 
 ## Side Effects on Send
 
@@ -217,7 +230,8 @@ If you change this system, also check:
 - **`apps/api/src/ws/redis-bridge.ts`** --- WebSocket event publishing (`newWave`, `waveResponded`)
 - **`packages/shared/src/validators.ts`** --- `sendWaveSchema`, `respondToWaveSchema`, `blockUserSchema`
 - **`apps/mobile/`** --- wave list screens, notification handlers, cooldown UI
-- **`apps/api/src/trpc/procedures/profiles.ts`** (`getNearbyUsersForMap`) --- decline cooldown filtering hides users you recently declined from the map
+- **`apps/api/src/trpc/procedures/profiles.ts`** (`getNearbyUsersForMap` + `getNearbyMapMarkers`) --- decline cooldown filtering hides users you recently declined from both the nearby list AND the map markers (BLI-295)
+- **`apps/api/src/lib/ping-quota.ts`** --- pure cooldown/quota math shared by `waves.getQuota`, unit-tested in `__tests__/ping-quota.test.ts`
 - **`apps/api/src/services/data-export.ts`** --- GDPR export includes wave history
 - **`docs/architecture/status-matching.md`** --- status snapshots flow into matching context
 - **`docs/architecture/messaging.md`** --- conversation creation on accept

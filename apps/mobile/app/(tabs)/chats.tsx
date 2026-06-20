@@ -52,7 +52,15 @@ export default function ChatsScreen() {
     () => [...received].sort((a, b) => new Date(b.wave.createdAt).getTime() - new Date(a.wave.createdAt).getTime()),
     [received],
   );
-  const pendingPings = useMemo(() => allReceivedPings.filter((w) => w.wave.status === "pending"), [allReceivedPings]);
+  // Pending pings are FIFO (oldest first) — you respond to whoever pinged first
+  // (v4 §9, BLI-295). The full history list above stays newest-first.
+  const pendingPings = useMemo(
+    () =>
+      received
+        .filter((w) => w.wave.status === "pending")
+        .sort((a, b) => new Date(a.wave.createdAt).getTime() - new Date(b.wave.createdAt).getTime()),
+    [received],
+  );
   const deleteConversation = trpc.messages.deleteConversation.useMutation({
     onSuccess: (_, variables) => {
       useConversationsStore.getState().remove(variables.conversationId);

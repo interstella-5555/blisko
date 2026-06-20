@@ -185,6 +185,16 @@ export default function UserProfileScreen() {
   const sendWaveMutation = trpc.waves.send.useMutation();
   const respondMutation = trpc.waves.respond.useMutation();
 
+  // Ping quota + per-person/decline cooldown for this target. Powers the visible
+  // "Pingi: X/Y" counter and the pre-check that greys out the PING button so we
+  // don't tap-then-alert (v4 §9, BLI-295).
+  const { data: quota } = trpc.waves.getQuota.useQuery(
+    { targetUserId: userId },
+    { enabled: !!userId && userId !== currentUserId },
+  );
+  const cooldownHours = quota?.cooldownHours ?? 0;
+  const dailyLimitReached = quota ? quota.sentToday >= quota.dailyLimit : false;
+
   const [optimisticAction, setOptimisticAction] = useState<"accepted" | "declined" | null>(null);
 
   const incomingWave = useMemo(() => {
@@ -272,7 +282,7 @@ export default function UserProfileScreen() {
         cached ? { displayName: cached.displayName, avatarUrl: cached.avatarUrl } : undefined,
       );
       setPendingWaveId(result.wave.id);
-      await utils.waves.getSent.invalidate();
+      await Promise.all([utils.waves.getSent.invalidate(), utils.waves.getQuota.invalidate()]);
     } catch (error: unknown) {
       useWavesStore.getState().removeSent("optimistic");
       if (isRateLimitError(error)) {
@@ -433,14 +443,25 @@ export default function UserProfileScreen() {
 
           {/* Inline action */}
           <View style={styles.actionRow}>
-            {actionState === "idle" && (
-              <Pressable style={styles.actionPill} onPress={handleWave}>
-                <IconWave size={13} color={colors.bg} />
-                <Text style={styles.actionPillText}>
-                  <Trans>Ping</Trans>
-                </Text>
-              </Pressable>
-            )}
+            {actionState === "idle" &&
+              (cooldownHours > 0 ? (
+                <View style={[styles.actionPill, styles.actionPillDisabled]}>
+                  <Text style={styles.actionPillDisabledText}>{t`Możesz pingować za ${cooldownHours}h`}</Text>
+                </View>
+              ) : dailyLimitReached ? (
+                <View style={[styles.actionPill, styles.actionPillDisabled]}>
+                  <Text style={styles.actionPillDisabledText}>
+                    <Trans>Limit pingów na dziś</Trans>
+                  </Text>
+                </View>
+              ) : (
+                <Pressable style={styles.actionPill} onPress={handleWave}>
+                  <IconWave size={13} color={colors.bg} />
+                  <Text style={styles.actionPillText}>
+                    <Trans>Ping</Trans>
+                  </Text>
+                </Pressable>
+              ))}
             {actionState === "pending" && (
               <View style={styles.pendingPill}>
                 <IconCheck size={12} color={colors.muted} />
@@ -472,6 +493,14 @@ export default function UserProfileScreen() {
               </Pressable>
             )}
           </View>
+
+          {/* Visible daily ping counter (v4 §9, BLI-295) — only while a ping is
+              still the relevant action (idle), not once connected/pending. */}
+          {actionState === "idle" && quota && (
+            <Text style={styles.pingCounter} testID="ping-counter">
+              {t`Pingi: ${quota.sentToday}/${quota.dailyLimit}`}
+            </Text>
+          )}
         </View>
 
         {/* Status "Na teraz" */}
@@ -675,6 +704,23 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: "uppercase",
     color: colors.bg,
+  },
+  actionPillDisabled: {
+    backgroundColor: colors.rule,
+  },
+  actionPillDisabledText: {
+    fontFamily: fonts.sansSemiBold,
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: colors.muted,
+  },
+  pingCounter: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: spacing.tight,
+    letterSpacing: 0.5,
   },
   incomingActions: {
     flexDirection: "row",

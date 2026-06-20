@@ -419,77 +419,100 @@ export const profilesRouter = router({
         )
       `;
 
-      // Parallel: blocked users (both directions), nearby profiles, current user profile, status matches, discoverable groups
-      const [blockedUsers, blockedByUsers, nearbyProfiles, currentProfile, myStatusMatchRows, nearbyGroups] =
-        await Promise.all([
-          db
-            .select({ blockedId: schema.blocks.blockedId })
-            .from(schema.blocks)
-            .where(eq(schema.blocks.blockerId, ctx.userId)),
-          db
-            .select({ blockerId: schema.blocks.blockerId })
-            .from(schema.blocks)
-            .where(eq(schema.blocks.blockedId, ctx.userId)),
-          db
-            .select({
-              userId: schema.profiles.userId,
-              displayName: schema.profiles.displayName,
-              avatarUrl: schema.profiles.avatarUrl,
-              latitude: schema.profiles.latitude,
-              longitude: schema.profiles.longitude,
-              currentStatus: schema.profiles.currentStatus,
-              doNotDisturb: schema.profiles.doNotDisturb,
-              createdAt: schema.profiles.createdAt,
-            })
-            .from(schema.profiles)
-            .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
-            .where(
-              and(
-                ne(schema.profiles.userId, ctx.userId),
-                ne(schema.profiles.visibilityMode, "ninja"),
-                between(schema.profiles.latitude, minLat, maxLat),
-                between(schema.profiles.longitude, minLon, maxLon),
-                lte(distanceFormula, radiusMeters),
-                userIsVisibleTo(ctx.userType),
-                ...(photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
-              ),
-            )
-            .limit(5000),
-          db.query.profiles.findFirst({
-            where: eq(schema.profiles.userId, ctx.userId),
-            columns: { currentStatus: true },
-          }),
-          db
-            .select({ matchedUserId: schema.statusMatches.matchedUserId })
-            .from(schema.statusMatches)
-            .where(eq(schema.statusMatches.userId, ctx.userId)),
-          db
-            .select({
-              id: schema.conversations.id,
-              name: schema.conversations.name,
-              avatarUrl: schema.conversations.avatarUrl,
-              latitude: schema.conversations.latitude,
-              longitude: schema.conversations.longitude,
-            })
-            .from(schema.conversations)
-            .where(
-              and(
-                eq(schema.conversations.type, "group"),
-                eq(schema.conversations.isDiscoverable, true),
-                isNull(schema.conversations.deletedAt),
-                isNotNull(schema.conversations.latitude),
-                isNotNull(schema.conversations.longitude),
-                between(schema.conversations.latitude, minLat, maxLat),
-                between(schema.conversations.longitude, minLon, maxLon),
-                lte(groupDistanceFormula, radiusMeters),
-              ),
-            )
-            .limit(500),
-        ]);
+      // People we declined within the cooldown window are hidden from discovery,
+      // mirroring getNearbyUsersForMap (the list endpoint). BLI-295 — without
+      // this the map kept showing a declined person the list already hid.
+      const cooldownCutoff = subHours(new Date(), DECLINE_COOLDOWN_HOURS);
+
+      // Parallel: blocked users (both directions), cooldown declines, nearby profiles, current user profile, status matches, discoverable groups
+      const [
+        blockedUsers,
+        blockedByUsers,
+        cooldownDeclines,
+        nearbyProfiles,
+        currentProfile,
+        myStatusMatchRows,
+        nearbyGroups,
+      ] = await Promise.all([
+        db
+          .select({ blockedId: schema.blocks.blockedId })
+          .from(schema.blocks)
+          .where(eq(schema.blocks.blockerId, ctx.userId)),
+        db
+          .select({ blockerId: schema.blocks.blockerId })
+          .from(schema.blocks)
+          .where(eq(schema.blocks.blockedId, ctx.userId)),
+        db
+          .select({ toUserId: schema.waves.toUserId })
+          .from(schema.waves)
+          .where(
+            and(
+              eq(schema.waves.fromUserId, ctx.userId),
+              eq(schema.waves.status, "declined"),
+              gte(schema.waves.respondedAt, cooldownCutoff),
+            ),
+          ),
+        db
+          .select({
+            userId: schema.profiles.userId,
+            displayName: schema.profiles.displayName,
+            avatarUrl: schema.profiles.avatarUrl,
+            latitude: schema.profiles.latitude,
+            longitude: schema.profiles.longitude,
+            currentStatus: schema.profiles.currentStatus,
+            doNotDisturb: schema.profiles.doNotDisturb,
+            createdAt: schema.profiles.createdAt,
+          })
+          .from(schema.profiles)
+          .innerJoin(schema.user, eq(schema.profiles.userId, schema.user.id))
+          .where(
+            and(
+              ne(schema.profiles.userId, ctx.userId),
+              ne(schema.profiles.visibilityMode, "ninja"),
+              between(schema.profiles.latitude, minLat, maxLat),
+              between(schema.profiles.longitude, minLon, maxLon),
+              lte(distanceFormula, radiusMeters),
+              userIsVisibleTo(ctx.userType),
+              ...(photoOnly ? [isNotNull(schema.profiles.avatarUrl)] : []),
+            ),
+          )
+          .limit(5000),
+        db.query.profiles.findFirst({
+          where: eq(schema.profiles.userId, ctx.userId),
+          columns: { currentStatus: true },
+        }),
+        db
+          .select({ matchedUserId: schema.statusMatches.matchedUserId })
+          .from(schema.statusMatches)
+          .where(eq(schema.statusMatches.userId, ctx.userId)),
+        db
+          .select({
+            id: schema.conversations.id,
+            name: schema.conversations.name,
+            avatarUrl: schema.conversations.avatarUrl,
+            latitude: schema.conversations.latitude,
+            longitude: schema.conversations.longitude,
+          })
+          .from(schema.conversations)
+          .where(
+            and(
+              eq(schema.conversations.type, "group"),
+              eq(schema.conversations.isDiscoverable, true),
+              isNull(schema.conversations.deletedAt),
+              isNotNull(schema.conversations.latitude),
+              isNotNull(schema.conversations.longitude),
+              between(schema.conversations.latitude, minLat, maxLat),
+              between(schema.conversations.longitude, minLon, maxLon),
+              lte(groupDistanceFormula, radiusMeters),
+            ),
+          )
+          .limit(500),
+      ]);
 
       const allBlockedIds = new Set([
         ...blockedUsers.map((b) => b.blockedId),
         ...blockedByUsers.map((b) => b.blockerId),
+        ...cooldownDeclines.map((d) => d.toUserId),
       ]);
 
       const statusMatchSet = new Set(myStatusMatchRows.map((m) => m.matchedUserId));

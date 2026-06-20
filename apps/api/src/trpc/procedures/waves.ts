@@ -1,10 +1,11 @@
-import { blockUserSchema, respondToWaveSchema, sendWaveSchema } from "@repo/shared";
+import { blockUserSchema, pingQuotaSchema, respondToWaveSchema, sendWaveSchema } from "@repo/shared";
 import { TRPCError } from "@trpc/server";
 import { subHours } from "date-fns";
-import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { DAILY_PING_LIMIT_BASIC, DECLINE_COOLDOWN_HOURS, PER_PERSON_COOLDOWN_HOURS } from "@/config/pingLimits";
 import { db, schema } from "@/db";
 import { userIsVisibleTo } from "@/db/filters";
+import { computePingCooldown } from "@/lib/ping-quota";
 import { t } from "@/services/i18n";
 import { setTargetUserId } from "@/services/metrics";
 import { sendPushToUser } from "@/services/push";
@@ -386,9 +387,74 @@ export const wavesRouter = router({
           userIsVisibleTo(ctx.userType),
         ),
       )
-      .orderBy(desc(schema.waves.createdAt));
+      // FIFO (oldest first) — the recipient acts on whoever pinged first
+      // (v4 §9). Pending pings are the actionable set, so the oldest sits at
+      // the top of the queue. The client keeps this order for the pending
+      // queue and re-sorts the full history view as it likes.
+      .orderBy(asc(schema.waves.createdAt));
 
     return receivedWaves;
+  }),
+
+  // Daily ping quota + per-target cooldown — powers the visible "Pingi: X/Y"
+  // counter and the pre-check that greys out the PING button (v4 §9, BLI-295).
+  // The send path re-validates on insert, so this is purely advisory UI state.
+  getQuota: protectedProcedure.input(pingQuotaSchema).query(async ({ ctx, input }) => {
+    const todayMidnight = new Date();
+    todayMidnight.setUTCHours(0, 0, 0, 0);
+
+    const sentTodayPromise = db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.waves)
+      .where(and(eq(schema.waves.fromUserId, ctx.userId), gte(schema.waves.createdAt, todayMidnight)));
+
+    if (!input.targetUserId) {
+      const [dailyCount] = await sentTodayPromise;
+      return {
+        sentToday: Number(dailyCount?.count ?? 0),
+        dailyLimit: DAILY_PING_LIMIT_BASIC,
+        cooldownHours: 0,
+        cooldownReason: null as "per_person" | "cooldown" | null,
+      };
+    }
+
+    const perPersonCutoff = subHours(new Date(), PER_PERSON_COOLDOWN_HOURS);
+    const declineCutoff = subHours(new Date(), DECLINE_COOLDOWN_HOURS);
+
+    const [dailyCountRows, lastSent, lastDeclined] = await Promise.all([
+      sentTodayPromise,
+      db.query.waves.findFirst({
+        where: and(
+          eq(schema.waves.fromUserId, ctx.userId),
+          eq(schema.waves.toUserId, input.targetUserId),
+          gte(schema.waves.createdAt, perPersonCutoff),
+        ),
+        columns: { createdAt: true },
+        orderBy: desc(schema.waves.createdAt),
+      }),
+      db.query.waves.findFirst({
+        where: and(
+          eq(schema.waves.fromUserId, ctx.userId),
+          eq(schema.waves.toUserId, input.targetUserId),
+          eq(schema.waves.status, "declined"),
+          gte(schema.waves.respondedAt, declineCutoff),
+        ),
+        columns: { respondedAt: true },
+        orderBy: desc(schema.waves.respondedAt),
+      }),
+    ]);
+
+    const cooldown = computePingCooldown({
+      lastSentAt: lastSent?.createdAt ?? null,
+      lastDeclinedAt: lastDeclined?.respondedAt ?? null,
+    });
+
+    return {
+      sentToday: Number(dailyCountRows[0]?.count ?? 0),
+      dailyLimit: DAILY_PING_LIMIT_BASIC,
+      cooldownHours: cooldown.hours,
+      cooldownReason: cooldown.reason,
+    };
   }),
 
   // Get sent waves

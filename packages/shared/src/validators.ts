@@ -44,6 +44,12 @@ export const respondToWaveSchema = z.object({
   accept: z.boolean(),
 });
 
+export const pingQuotaSchema = z.object({
+  // When provided, the response also includes the per-person/decline cooldown
+  // for this target so the client can pre-check (grey out the PING button).
+  targetUserId: z.string().min(1).optional(),
+});
+
 // Message validators
 export const sendMessageSchema = z.object({
   conversationId: z.string().min(1),
@@ -249,6 +255,7 @@ export type SocialLinksInput = z.infer<typeof socialLinksSchema>;
 export type UpdateLocationInput = z.infer<typeof updateLocationSchema>;
 export type SendWaveInput = z.infer<typeof sendWaveSchema>;
 export type RespondToWaveInput = z.infer<typeof respondToWaveSchema>;
+export type PingQuotaInput = z.infer<typeof pingQuotaSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 export type DeleteMessageInput = z.infer<typeof deleteMessageSchema>;
 export type ReactToMessageInput = z.infer<typeof reactToMessageSchema>;
