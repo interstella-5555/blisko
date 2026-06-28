@@ -3,7 +3,7 @@ appId: com.blisko.app
 # Map render E2E — demo-critical (BLI-300)
 # The map IS the demo: a fresh user lands on a full-screen live map of nearby
 # people. This flow verifies the map view + its floating controls actually
-# render (NearbyMapView, set-status pill, recenter button) — previously zero
+# render (NearbyMapView, the + / set-status action, the count pill) — previously zero
 # coverage despite being the first thing Jarek sees.
 #
 # When you edit this flow you MUST mirror it in map-render-ua.yaml
@@ -21,5 +21,7 @@ appId: com.blisko.app
     id: "nearby-map"
 - assertVisible:
     id: "set-status-pill"
+# Recenter fades in only when the map drifts off-center, so it isn't present on a
+# freshly-centered map. Assert the always-present count pill instead.
 - assertVisible:
-    id: "map-recenter-button"
+    id: "nearby-count-pill"
