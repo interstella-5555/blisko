@@ -20,5 +20,7 @@ appId: com.blisko.app
     id: "nearby-map"
 - assertVisible:
     id: "set-status-pill"
+# Recenter fades in only when the map drifts off-center, so it isn't present on a
+# freshly-centered map. Assert the always-present count pill instead.
 - assertVisible:
-    id: "map-recenter-button"
+    id: "nearby-count-pill"

@@ -3,15 +3,15 @@ appId: com.blisko.app
 # Set status E2E — demo-critical, UA locale (BLI-300)
 # Mirrors set-status.yaml. Onboards via the UA ghost sub-flow, then drives the
 # set-status sheet by testID. The typed status stays ASCII (Maestro Cyrillic
-# input limitation) — we assert the pill by testID + the typed text we control,
-# not a bundle UA string.
+# input limitation) — we assert the prefilled input by testID + the typed text
+# we control, not a bundle UA string.
 #
 # When you edit set-status.yaml you MUST mirror the change here
 # (e2e/pl-ua-parity).
 
 - runFlow: sub-flows/onboard-ghost-ua.yaml
 
-# --- Open the set-status sheet from the empty status pill ---
+# --- Open the set-status sheet from the + action ---
 
 - extendedWaitUntil:
     visible:
@@ -35,10 +35,18 @@ appId: com.blisko.app
 - tapOn:
     id: "status-submit-button"
 
-# --- VERIFY: the active-status pill now renders on the map ---
+# --- VERIFY: the status persisted — reopening the sheet shows it prefilled ---
 
 - extendedWaitUntil:
     visible:
-      id: "active-status-pill"
+      id: "set-status-pill"
     timeout: 15000
-- assertVisible: ".*Szukam ludzi do wspolnego biegania.*"
+- tapOn:
+    id: "set-status-pill"
+- extendedWaitUntil:
+    visible:
+      id: "status-input"
+    timeout: 10000
+- assertVisible:
+    id: "status-input"
+    text: ".*Szukam ludzi do wspolnego biegania.*"

@@ -35,6 +35,9 @@ import { colors, fonts, spacing, type as typ } from "@/theme";
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const LIST_SHEET_HEIGHT = SCREEN_HEIGHT * 0.8;
 
+// Bottom-right floating action button (recenter, and future stacked actions).
+const FAB_SIZE = 46;
+
 /**
  * Equirectangular distance approximation — treats Earth as flat over short distances.
  * Good enough for UI-level "has the user panned outside their radius?" checks (error < 0.5% under 10 km).
@@ -115,6 +118,25 @@ export default function NearbyScreen() {
     mapRef.current?.animateToRegion(latitude, longitude, DEFAULT_MAP_DELTA);
   }, [latitude, longitude]);
 
+  // The recenter button only makes sense once the map has drifted off the user's location —
+  // i.e. when tapping it would actually move the map. Show it when the user dot is more than
+  // 15% of the viewport away from the current center; fades in/out otherwise.
+  const showRecenter = useMemo(() => {
+    if (!latitude || !longitude) return false;
+    const offLat = Math.abs(mapRegion.latitude - latitude);
+    const offLng = Math.abs(mapRegion.longitude - longitude);
+    return offLat > mapRegion.latitudeDelta * 0.15 || offLng > mapRegion.longitudeDelta * 0.15;
+  }, [latitude, longitude, mapRegion]);
+
+  const recenterAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(recenterAnim, {
+      toValue: showRecenter ? 1 : 0,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [showRecenter, recenterAnim]);
+
   // Clusters recompute automatically when points or region change
   const clusters = useMemo(() => getClusters(mapRegion), [getClusters, mapRegion]);
 
@@ -159,9 +181,6 @@ export default function NearbyScreen() {
       placeholderData: keepPreviousData,
     },
   );
-
-  // Daily ping quota — visible "Pingi: X/Y" counter (v4 §9, BLI-295).
-  const { data: pingQuota } = trpc.waves.getQuota.useQuery({});
 
   // Derive status from auth store (optimistic) with query fallback
   const profile = useAuthStore((s) => s.profile);
@@ -511,67 +530,58 @@ export default function NearbyScreen() {
         />
       </View>
 
-      {/* Floating top row: status + filters */}
-      <View style={[styles.topFloat, { top: insets.top + 8 }]} pointerEvents="box-none">
-        {myStatus ? (
+      {/* Bottom-right floating action column — stacks bottom-up. The primary "+" sits
+          at the bottom (thumb-closest); secondary actions (recenter) stack above it.
+          Add more buttons by inserting another <Pressable style={styles.fab}> here. */}
+      <View style={[styles.fabColumn, { bottom: insets.bottom + 18 }]} pointerEvents="box-none">
+        <Animated.View
+          pointerEvents={showRecenter ? "auto" : "none"}
+          style={{
+            opacity: recenterAnim,
+            transform: [{ scale: recenterAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }],
+          }}
+        >
           <Pressable
-            testID="active-status-pill"
-            style={styles.statusFloat}
+            testID="map-recenter-button"
+            style={styles.fab}
             onPressIn={hapticTap}
-            onPress={() =>
+            onPress={handleReturnToMyLocation}
+          >
+            <IconNavigate size={20} color={isOutsideRadius ? colors.accent : colors.ink} />
+          </Pressable>
+        </Animated.View>
+        {/* Filters — moved out of the top bar; sits between recenter and the primary +. */}
+        <Pressable
+          style={[styles.fab, hasActiveFilters && styles.fabActive]}
+          onPressIn={hapticTap}
+          onPress={() => router.push("/filters" as never)}
+        >
+          <IconFilter size={20} color={hasActiveFilters ? colors.accent : colors.ink} />
+          {hasActiveFilters && <View style={styles.filterDot} />}
+        </Pressable>
+        {/* Primary action — opens the status sheet (prefilled when a status is already set).
+            Carries the `set-status-pill` testID inherited from the removed top status pill. */}
+        <Pressable
+          testID="set-status-pill"
+          style={[styles.fab, styles.fabPrimary]}
+          onPressIn={hapticTap}
+          onPress={() => {
+            if (myStatus) {
               router.push({
                 pathname: "/set-status" as never,
                 params: {
                   prefill: myStatus.text,
                   prefillCategories: profile?.statusCategories?.join(",") ?? undefined,
                 },
-              })
+              });
+            } else {
+              router.push("/set-status" as never);
             }
-          >
-            <Text style={styles.statusFloatText} numberOfLines={1}>
-              {myStatus.text}
-            </Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            testID="set-status-pill"
-            style={styles.statusFloatEmpty}
-            onPressIn={hapticTap}
-            onPress={() => router.push("/set-status" as never)}
-          >
-            <Text style={styles.statusFloatEmptyText}>
-              <Trans>+ Ustaw status na teraz</Trans>
-            </Text>
-          </Pressable>
-        )}
-        <Pressable
-          style={[styles.roundBtn, hasActiveFilters && styles.roundBtnActive]}
-          onPressIn={hapticTap}
-          onPress={() => router.push("/filters" as never)}
+          }}
         >
-          <IconFilter size={18} color={hasActiveFilters ? colors.accent : colors.ink} />
-          {hasActiveFilters && <View style={styles.filterDot} />}
+          <IconPlus size={24} color={colors.bg} />
         </Pressable>
       </View>
-
-      {/* Visible daily ping counter (v4 §9, BLI-295) */}
-      {pingQuota && (
-        <View style={[styles.pingCounterPill, { top: insets.top + 60 }]} pointerEvents="none">
-          <Text style={styles.pingCounterText} testID="map-ping-counter">
-            {t`Pingi: ${pingQuota.sentToday}/${pingQuota.dailyLimit}`}
-          </Text>
-        </View>
-      )}
-
-      {/* Floating recenter — fixed at the right of the count-pill row (pill stays centered) */}
-      <Pressable
-        testID="map-recenter-button"
-        style={[styles.recenterBtn, { bottom: insets.bottom + 18 }]}
-        onPressIn={hapticTap}
-        onPress={handleReturnToMyLocation}
-      >
-        <IconNavigate size={20} color={isOutsideRadius ? colors.accent : colors.ink} />
-      </Pressable>
 
       {/* Ambient status-feedback line — sits just above the count pill (BLI-294) */}
       {!listOpen && (myStatus || nearbyStatusMatchCount > 0) && (
@@ -830,49 +840,17 @@ const styles = StyleSheet.create({
   },
 
   // --- map-first layout: full-screen map, floating controls, bottom-sheet list ---
-  topFloat: {
+  fabActive: { borderWidth: 1, borderColor: colors.accent },
+  fabColumn: {
     position: "absolute",
-    left: spacing.column,
     right: spacing.column,
-    flexDirection: "row",
     alignItems: "center",
-    gap: spacing.tight,
+    gap: spacing.gutter,
   },
-  statusFloat: {
-    flex: 1,
-    backgroundColor: "#FDF5EC",
-    borderWidth: 1,
-    borderColor: "#E8C9A0",
-    borderRadius: 22,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    shadowColor: "#3a2e1e",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  statusFloatText: { fontSize: 12, fontFamily: fonts.sansMedium, color: colors.ink },
-  statusFloatEmpty: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.rule,
-    borderRadius: 22,
-    paddingVertical: 11,
-    paddingHorizontal: 16,
-    alignItems: "center",
-    shadowColor: "#3a2e1e",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  statusFloatEmptyText: { fontSize: 12, fontFamily: fonts.sans, color: colors.muted },
-  roundBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  fab: {
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: FAB_SIZE / 2,
     backgroundColor: colors.bg,
     alignItems: "center",
     justifyContent: "center",
@@ -882,40 +860,8 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 5,
   },
-  roundBtnActive: { borderWidth: 1, borderColor: colors.accent },
-  pingCounterPill: {
-    position: "absolute",
-    right: spacing.column,
-    backgroundColor: colors.bg,
-    borderRadius: 14,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    shadowColor: "#3a2e1e",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.14,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  pingCounterText: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 11,
-    letterSpacing: 0.5,
-    color: colors.muted,
-  },
-  recenterBtn: {
-    position: "absolute",
-    right: spacing.column,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: colors.bg,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#3a2e1e",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    elevation: 5,
+  fabPrimary: {
+    backgroundColor: colors.accent,
   },
   ambientLineWrap: {
     position: "absolute",
@@ -936,11 +882,13 @@ const styles = StyleSheet.create({
   },
   countPillWrap: {
     position: "absolute",
-    left: 0,
-    right: 0,
-    alignItems: "center",
+    left: spacing.column,
+    // Reserve room for the bottom-right FAB column so the left-aligned pill never slides under it.
+    right: spacing.column + FAB_SIZE + spacing.gutter,
+    alignItems: "flex-start",
   },
   countPill: {
+    flexShrink: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,

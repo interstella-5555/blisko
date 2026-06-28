@@ -2,7 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { subMinutes } from "date-fns";
 import { Redirect, router, Tabs } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
-import { IconChat, IconPerson, IconPin, IconPlus, IconSettings } from "@/components/ui/icons";
+import { IconChat, IconPin, IconPlus, IconSettings } from "@/components/ui/icons";
 import { TabHeader } from "@/components/ui/TabHeader";
 import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { useInAppNotifications } from "@/hooks/useInAppNotifications";
@@ -386,18 +386,19 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: t`Profil`,
-          tabBarIcon: ({ color }) => <IconPerson size={20} color={color} />,
-          tabBarAccessibilityLabel: "tab-profile",
-          header: () => (
-            <TabHeader
-              title={t`Profil`}
-              rightAction={{
-                Icon: IconSettings,
-                onPress: () => router.push("/settings"),
-              }}
-            />
-          ),
+          title: t`Ustawienia`,
+          tabBarIcon: ({ color }) => <IconSettings size={20} color={color} />,
+          tabBarAccessibilityLabel: "tab-settings",
+          headerShown: false,
+        }}
+        listeners={{
+          // This tab is a launcher: open the Settings stack instead of rendering the
+          // (removed) own-profile screen. preventDefault stops the tab from focusing its
+          // own redirect-only route; router.push presents Settings over the tab bar.
+          tabPress: (e) => {
+            e.preventDefault();
+            router.push("/settings");
+          },
         }}
       />
     </Tabs>
