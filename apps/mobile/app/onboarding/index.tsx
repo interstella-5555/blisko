@@ -25,7 +25,7 @@ const INTRO_QUESTION = ONBOARDING_QUESTIONS.find((q) => q.id === "intro");
 
 export default function OnboardingStartScreen() {
   const user = useAuthStore((state) => state.user);
-  const { displayName, setDisplayName, setAnswer, avatarUrl, setAvatarUrl } = useOnboardingStore();
+  const { displayName, setDisplayName, setAnswer, avatarUrl, setAvatarUrl, gender, setGender } = useOnboardingStore();
   const { t } = useLingui();
 
   const [name, setName] = useState(displayName || user?.name || "");
@@ -33,7 +33,8 @@ export default function OnboardingStartScreen() {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const canProceed = name.trim().length >= 2 && intro.trim().length > 0 && !!avatarUrl && ageConfirmed && !uploading;
+  const canProceed =
+    name.trim().length >= 2 && intro.trim().length > 0 && !!avatarUrl && !!gender && ageConfirmed && !uploading;
 
   const handlePickPhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -127,6 +128,32 @@ export default function OnboardingStartScreen() {
           </View>
         </Pressable>
 
+        <View style={styles.genderRow}>
+          <Text style={styles.genderLabel}>
+            <Trans>Płeć</Trans>
+          </Text>
+          <View style={styles.genderPills}>
+            <Pressable
+              testID="gender-female"
+              style={[styles.genderPill, gender === "female" ? styles.genderPillActive : styles.genderPillInactive]}
+              onPress={() => setGender("female")}
+            >
+              <Text style={gender === "female" ? styles.genderPillTextActive : styles.genderPillTextInactive}>
+                <Trans>Kobieta</Trans>
+              </Text>
+            </Pressable>
+            <Pressable
+              testID="gender-male"
+              style={[styles.genderPill, gender === "male" ? styles.genderPillActive : styles.genderPillInactive]}
+              onPress={() => setGender("male")}
+            >
+              <Text style={gender === "male" ? styles.genderPillTextActive : styles.genderPillTextInactive}>
+                <Trans>Mężczyzna</Trans>
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+
         <View style={styles.ageRow}>
           <Toggle testID="age-confirm-toggle" value={ageConfirmed} onValueChange={setAgeConfirmed} />
           <Text style={styles.ageLabel}>
@@ -199,6 +226,44 @@ const styles = StyleSheet.create({
   photoHint: {
     ...typ.caption,
     color: colors.muted,
+  },
+  genderRow: {
+    marginTop: spacing.section,
+    gap: spacing.tight,
+  },
+  genderLabel: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  genderPills: {
+    flexDirection: "row",
+    gap: spacing.tight,
+  },
+  genderPill: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  genderPillActive: {
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
+  },
+  genderPillInactive: {
+    backgroundColor: "transparent",
+    borderColor: colors.rule,
+  },
+  genderPillTextActive: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    color: colors.bg,
+  },
+  genderPillTextInactive: {
+    fontFamily: fonts.sansMedium,
+    fontSize: 13,
+    color: colors.ink,
   },
   ageRow: {
     flexDirection: "row",

@@ -1,4 +1,4 @@
-import type { StatusCategory, VisibilityMode } from "@repo/shared";
+import type { Gender, StatusCategory, VisibilityMode } from "@repo/shared";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
@@ -22,6 +22,8 @@ interface OnboardingState {
   // --- v4 3-step onboarding (BLI-292) ---
   /** Photo picked in step 1 (server `source` string from POST /uploads). */
   avatarUrl: string | null;
+  /** Gender picked in step 1 — required in the UI, nullable in the DB (BLI-306). */
+  gender: Gender | null;
   /** Category tiles selected in step 2 ("Czego szukasz dziś?"), max 2. */
   statusCategories: StatusCategory[];
   /** Free-text status set in step 2. */
@@ -43,6 +45,7 @@ interface OnboardingState {
   addSkipped: (questionId: string) => void;
   setGhost: (isGhost: boolean) => void;
   setAvatarUrl: (avatarUrl: string | null) => void;
+  setGender: (gender: Gender) => void;
   setStatusCategories: (categories: StatusCategory[]) => void;
   setStatusText: (text: string) => void;
   setVisibilityMode: (mode: VisibilityMode) => void;
@@ -62,6 +65,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       skipped: [],
       isGhost: false,
       avatarUrl: null,
+      gender: null,
       statusCategories: [],
       statusText: "",
       visibilityMode: "semi_open",
@@ -86,6 +90,7 @@ export const useOnboardingStore = create<OnboardingState>()(
           skipped: [],
           isGhost: false,
           avatarUrl: null,
+          gender: null,
           statusCategories: [],
           statusText: "",
           visibilityMode: "semi_open",
@@ -106,6 +111,7 @@ export const useOnboardingStore = create<OnboardingState>()(
         })),
       setGhost: (isGhost) => set({ isGhost }),
       setAvatarUrl: (avatarUrl) => set({ avatarUrl }),
+      setGender: (gender) => set({ gender }),
       setStatusCategories: (statusCategories) => set({ statusCategories }),
       setStatusText: (statusText) => set({ statusText }),
       setVisibilityMode: (visibilityMode) => set({ visibilityMode }),
@@ -121,6 +127,7 @@ export const useOnboardingStore = create<OnboardingState>()(
         skipped: state.skipped,
         isGhost: state.isGhost,
         avatarUrl: state.avatarUrl,
+        gender: state.gender,
         statusCategories: state.statusCategories,
         statusText: state.statusText,
         visibilityMode: state.visibilityMode,
