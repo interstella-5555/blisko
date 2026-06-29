@@ -30,6 +30,7 @@ interface ExportData {
     superpower: string | null;
     superpowerTags: string[] | null;
     offerType: string | null;
+    gender: string | null;
     dateOfBirth: string | null;
     doNotDisturb: boolean;
     location: { lat: number; lng: number } | null;
@@ -333,6 +334,7 @@ export async function collectAndExportUserData(userId: string, email: string) {
           superpower: profile.superpower,
           superpowerTags: profile.superpowerTags,
           offerType: profile.offerType,
+          gender: profile.gender,
           dateOfBirth: profile.dateOfBirth?.toISOString() ?? null,
           doNotDisturb: profile.doNotDisturb,
           location: profile.latitude && profile.longitude ? { lat: profile.latitude, lng: profile.longitude } : null,
