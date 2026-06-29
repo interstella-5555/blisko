@@ -3,11 +3,18 @@ import { z } from "zod";
 import { NEARBY_DEFAULT_RADIUS_METERS } from "./config/nearby";
 import { VIEWER_TRANSLATABLE_FIELDS } from "./ugc";
 
+// Gender (shared so onboarding + seed + settings agree on the enum). Binary,
+// store-only for now. Optional in every schema — required only in the mobile
+// onboarding UI; settings re-profiling reuses applyProfile and omits it. BLI-306.
+export const GENDER_OPTIONS = ["female", "male"] as const;
+export type Gender = (typeof GENDER_OPTIONS)[number];
+
 // Profile validators
 export const createProfileSchema = z.object({
   displayName: z.string().min(2).max(50),
   bio: z.string().min(10).max(500),
   lookingFor: z.string().min(10).max(500),
+  gender: z.enum(GENDER_OPTIONS).optional(),
 });
 
 export const socialLinksSchema = z
@@ -174,6 +181,9 @@ export const applyProfilingSchema = z.object({
   // Photo captured in onboarding step 1. Optional — settings re-profiling
   // doesn't re-send it and the existing avatar is preserved.
   avatarUrl: z.string().max(2048).optional(),
+  // Gender picked in onboarding step 1. Optional here (settings re-profiling
+  // omits it); the mobile UI enforces the choice. BLI-306.
+  gender: z.enum(GENDER_OPTIONS).optional(),
 });
 
 // New onboarding validators
@@ -201,6 +211,7 @@ export const answerFollowUpSchema = z.object({
 
 export const createGhostProfileSchema = z.object({
   displayName: z.string().min(2).max(50),
+  gender: z.enum(GENDER_OPTIONS).optional(),
 });
 
 // Group validators
