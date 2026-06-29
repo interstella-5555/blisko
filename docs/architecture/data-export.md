@@ -4,6 +4,7 @@
 > Updated 2026-04-10 — GDPR-safe retry: 10 attempts over ~8.5h, admin alert email, user delay notification (BLI-165).
 > Updated 2026-04-10 — Added generated profile fields to profilingSessions export (BLI-173).
 > Updated 2026-04-11 — Documented exclusion of `metrics.*` tables (request_events, ai_calls) — observability telemetry, not personal data (BLI-174).
+> Updated 2026-06-29 — BLI-306: export now includes `profile.gender` (nullable `"female"`/`"male"`).
 
 GDPR/RODO Art. 15 (right of access) and Art. 20 (right to data portability). User requests export from mobile app settings, receives an email with a presigned S3 download link within minutes.
 

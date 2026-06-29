@@ -139,6 +139,7 @@ Extends `user` with app-specific data. 1:1 relationship via unique `user_id`.
 | `superpower` | text | yes | -- | "What I can offer" freeform text |
 | `superpower_tags` | text[] | yes | -- | AI-extracted tags from superpower |
 | `offer_type` | text | yes | -- | `volunteer` / `exchange` / `gig` |
+| `gender` | text | yes | -- | `female` / `male`. Collected in onboarding Step 1 (required in UI, nullable in DB). Store-only — no display / filter / matching yet. Legacy rows backfilled best-effort from name in `0036`. Added in `0035` (BLI-306). |
 | `interests` | text[] | yes | -- | AI-extracted from portrait |
 | `embedding` | real[] | yes | -- | text-embedding-3-small vector for profile matching |
 | `portrait` | text | yes | -- | AI-generated rich social profile text (NOT an image) |
