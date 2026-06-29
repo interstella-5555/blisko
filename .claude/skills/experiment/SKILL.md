@@ -92,9 +92,9 @@ Capture the **PR number** from the `gh pr create` output — you need it to find
 
 ## Step 2 — Wait for the Railway PR-preview environment
 
-Opening the PR makes Railway create a `pr-<number>` environment. Poll with the MCP (build takes a few minutes):
+Opening the PR makes Railway create an environment named **`blisko-pr-<number>`** (verified — e.g. PR #257 → `blisko-pr-257`). Poll with the MCP (build takes a few minutes):
 
-1. `mcp__railway-blisko__list-services` with `projectId=62599e90-30e8-47dd-af34-4e3f73c2261a` → look in `environments[]` for the new env (name like `pr-<number>` / referencing the branch). Repeat every ~20–30s until it appears.
+1. `mcp__railway-blisko__list-services` with `projectId=62599e90-30e8-47dd-af34-4e3f73c2261a` → look in `environments[]` for `blisko-pr-<number>`. Repeat every ~20–30s until it appears.
 2. `mcp__railway-blisko__get-status` with that `environmentId` → wait until both the **`api`** and **`database`** services are deployed/SUCCESS. The `api` deploy runs the DB migrations, so when it's up the PR Postgres schema is ready.
 
 If the env never appears after ~10 min, stop and tell the colleague PR previews may be misconfigured (and to ping Karol) — don't silently fall back to production.
@@ -116,7 +116,7 @@ The PR env gives **its own** Postgres, Redis, and object-storage bucket (Railway
 
 The bucket vars are Railway reference variables to a per-environment bucket, so the PR env's `api` resolves them to **that PR env's** isolated bucket — uploads never touch production.
 
-**Fallback** (if the MCP can't): the colleague runs, via the `!` prefix: `! railway login` → `! railway link` (pick blisko → `pr-<number>`) → `! railway variables -s database`, `! railway variables -s queue`, `! railway variables -s api` and copy the matching values.
+**Fallback** (if the MCP can't): the colleague runs, via the `!` prefix: `! railway login` → `! railway link` (pick blisko → `blisko-pr-<number>`) → `! railway variables -s database`, `! railway variables -s queue`, `! railway variables -s api` and copy the matching values.
 
 **🛑 Safety checks:**
 - Confirm every value belongs to the **`pr-<number>`** environment, not production. The local API is about to read/write whatever these point at. If you can't confirm, STOP.
