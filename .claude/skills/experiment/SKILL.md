@@ -95,7 +95,7 @@ Capture the **PR number** from the `gh pr create` output — you need it to find
 Opening the PR makes Railway create an environment named **`blisko-pr-<number>`** (verified — e.g. PR #257 → `blisko-pr-257`). Poll with the MCP (build takes a few minutes):
 
 1. `mcp__railway-blisko__list-services` with `projectId=62599e90-30e8-47dd-af34-4e3f73c2261a` → look in `environments[]` for `blisko-pr-<number>`. Repeat every ~20–30s until it appears.
-2. `mcp__railway-blisko__get-status` with that `environmentId` → wait until both the **`api`** and **`database`** services are deployed/SUCCESS. The `api` deploy runs the DB migrations, so when it's up the PR Postgres schema is ready.
+2. `mcp__railway-blisko__get-status` with that `environmentId` → wait until the **`database`**, **`queue`**, and **`api`** services are SUCCESS. On preview envs the `api` deploy builds the schema straight from `schema.ts` (`drizzle-kit push`, see `apps/api/src/migrate.ts`), so once it's green the PR Postgres has the full current schema.
 
 If the env never appears after ~10 min, stop and tell the colleague PR previews may be misconfigured (and to ping Karol) — don't silently fall back to production.
 
@@ -240,7 +240,8 @@ If `apps/api/.env` is missing any **required** var (`BETTER_AUTH_SECRET`, `IP_HA
 ## Notes & limitations
 
 - **`DATABASE_URL` + `REDIS_URL` + `BUCKET_*` are repointed** to the PR env (fully isolated DB, queue, and object-storage bucket); `OPENAI_API_KEY`, auth secrets and OAuth come from `apps/api/.env`.
-- **A fresh PR env starts empty** — empty DB and empty bucket (the bucket is per-environment, so existing prod avatars are not in it). See the data-seeding + imgproxy steps for how the experiment gets populated and how images render.
+- **A fresh PR env starts empty** — the schema is built (the `api` deploy pushes `schema.ts`) but there are no rows yet, and the per-env bucket is empty (existing prod avatars are not in it). See the seeding + imgproxy steps for how the map gets populated and how images render.
+- **Changing `schema.ts` during the experiment?** The PR DB schema is built once at deploy. After local schema edits, re-sync it: `cd apps/api && DATABASE_URL="<pr-db-public-url>" npx drizzle-kit push --force`.
 - **Throwaway branch.** Experiment branches/PRs are not meant to merge — no ticket, no review pipeline.
 - **Restart on connection change.** Any time the PR DB/Redis URLs change (new PR env, rebuild), redo Step 4's kill → restart API → restart simulator.
 - The local `apps/api/.env` `DATABASE_URL`/`REDIS_URL` are production — the Step 4 shell overrides are the only thing keeping the local API off prod. Always verify the overrides took (check the API startup logs).
@@ -254,3 +255,5 @@ If `apps/api/.env` is missing any **required** var (`BETTER_AUTH_SECRET`, `IP_HA
 | Waiting for the API with `sleep`/`curl` loops | Use `npx -y wait-on tcp:localhost:3000` |
 | Running `/simplify` + `/code-review` before each push | Experiments skip the pipeline — just commit + push |
 | Can't read the DB URL (CLI wrong account) | Use `railway-blisko` MCP `railway-agent`, not the `railway` CLI |
+| PR `api` deploy red on a fresh DB | `src/migrate.ts` auto-uses `drizzle-kit push` on `*-pr-*` envs (the migration chain can't bootstrap from zero); if still red, read the api deploy logs |
+| Seeding errors with "relation does not exist" | The PR schema isn't built — confirm the `api` service deployed green, or re-push: `cd apps/api && DATABASE_URL="<pr-db>" npx drizzle-kit push --force` |
