@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Image, StyleSheet, Text, View } from "react-native";
+import { IconPerson } from "@/components/ui/icons";
 import { useIsGhost } from "@/hooks/useIsGhost";
 import { resolveAvatarUri } from "@/lib/avatar";
-import { ghostBlurRadius } from "@/theme";
+import { colors, ghostBlurRadius } from "@/theme";
 
 const AVATAR_SIZE_PT = 40;
 
@@ -108,8 +109,8 @@ export function GridClusterMarker({
   return (
     <PulsingWrapper active={!!highlighted}>
       <View style={styles.singleContainer}>
-        <View style={styles.avatarPlaceholder}>
-          <Text style={styles.avatarText}>{(displayName ?? "?").charAt(0).toUpperCase()}</Text>
+        <View style={styles.avatarPlaceholder} accessibilityLabel={displayName ?? undefined}>
+          <IconPerson size={22} color={colors.ink} />
         </View>
         <BubbleCues dnd={dnd} isNew={isNew} />
       </View>
@@ -139,20 +140,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#007AFF",
+    // No-photo person: white disc (matches the count bubble + avatar ring) with a person glyph.
+    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
   },
   badgeContainer: {
     minWidth: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#007AFF",
+    // Match the avatar markers' white ring instead of a loud blue (singleContainer bg).
+    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 8,
@@ -165,7 +163,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#fff",
+    color: colors.ink,
   },
   // DND cue — muted grey dot with a small white bar (a quiet "do not disturb" sign).
   dndDot: {
