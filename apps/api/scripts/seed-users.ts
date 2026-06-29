@@ -6,7 +6,8 @@
  */
 
 const API = process.env.API_URL || "http://localhost:3000";
-const USER_COUNT = 250;
+// Override with SEED_USER_COUNT for a smaller/faster seed (e.g. experiment sandboxes).
+const USER_COUNT = Number(process.env.SEED_USER_COUNT) || 250;
 const CACHE_PATH = `${import.meta.dir}/.seed-cache.json`;
 const GEOJSON_PATH = `${import.meta.dir}/warszawa-dzielnice.geojson`;
 
@@ -698,11 +699,14 @@ async function clearDatabase() {
     .catch(() => "");
 
   const allEnv = `${mainEnvFile}\n${envFile}`;
-  const dbUrlMatch = allEnv.match(/DATABASE_URL=(.+)/);
-  if (!dbUrlMatch) throw new Error("DATABASE_URL not found in apps/api/.env or .env.local");
+  // Prefer process.env so a caller can target a specific database (e.g. an
+  // experiment PR database) via an inline DATABASE_URL. Never silently fall
+  // back to the checked-in .env, which points at production.
+  const dbUrl = process.env.DATABASE_URL ?? allEnv.match(/DATABASE_URL=(.+)/)?.[1].trim();
+  if (!dbUrl) throw new Error("DATABASE_URL not found in process.env, apps/api/.env or .env.local");
 
   const { default: postgres } = await import("postgres");
-  const sql = postgres(dbUrlMatch[1].trim());
+  const sql = postgres(dbUrl);
 
   await sql`DELETE FROM connection_analyses`;
   await sql`DELETE FROM message_reactions`;
@@ -721,10 +725,10 @@ async function clearDatabase() {
   console.log("Database cleared.");
 
   // Obliterate BullMQ queue so completed jobs don't block re-enqueue
-  const redisUrlMatch = allEnv.match(/REDIS_URL=(.+)/);
-  if (redisUrlMatch) {
+  const redisUrl = process.env.REDIS_URL ?? allEnv.match(/REDIS_URL=(.+)/)?.[1].trim();
+  if (redisUrl) {
     const { Queue } = await import("bullmq");
-    const url = new URL(redisUrlMatch[1].trim());
+    const url = new URL(redisUrl);
     const queue = new Queue("connection-analysis", {
       connection: {
         host: url.hostname,
@@ -739,7 +743,9 @@ async function clearDatabase() {
 }
 
 async function main() {
-  await clearDatabase();
+  // SEED_SKIP_CLEAR seeds into an existing database without wiping it first —
+  // used by the experiment sandbox, where the PR database is already empty.
+  if (!process.env.SEED_SKIP_CLEAR) await clearDatabase();
 
   // Try loading from cache
   let seedData = await loadCache();
@@ -797,10 +803,10 @@ async function main() {
     .text()
     .catch(() => "");
   const allEnv = `${mainEnvFile}\n${envFile}`;
-  const dbUrlMatch = allEnv.match(/DATABASE_URL=(.+)/);
-  if (dbUrlMatch) {
+  const dbUrl = process.env.DATABASE_URL ?? allEnv.match(/DATABASE_URL=(.+)/)?.[1].trim();
+  if (dbUrl) {
     const { default: postgres } = await import("postgres");
-    const sql = postgres(dbUrlMatch[1].trim());
+    const sql = postgres(dbUrl);
 
     for (let i = 0; i < seedData.length; i++) {
       const userData = seedData[i];
