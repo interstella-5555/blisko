@@ -102,6 +102,10 @@ appId: com.blisko.app
 - tapOn:
     id: "age-confirm-toggle"
 
+# Gender is a required Step-1 field (BLI-306); pick one so "Dalej" un-gates.
+- tapOn:
+    id: "gender-female"
+
 - extendedWaitUntil:
     visible:
       id: "onboarding-step1-next"

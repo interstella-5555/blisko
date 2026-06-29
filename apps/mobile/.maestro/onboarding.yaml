@@ -118,6 +118,10 @@ appId: com.blisko.app
 - tapOn:
     id: "age-confirm-toggle"
 
+# Gender is a required Step-1 field (BLI-306); pick one so "Dalej" un-gates.
+- tapOn:
+    id: "gender-female"
+
 # Proceed once the upload finishes (Next enables). Tap, and retry once if
 # step 2 hasn't appeared yet (covers the avatar-upload race).
 - extendedWaitUntil:
