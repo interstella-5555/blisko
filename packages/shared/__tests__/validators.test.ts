@@ -33,6 +33,30 @@ describe("createProfileSchema", () => {
   });
 });
 
+describe("gender on createProfileSchema (BLI-306)", () => {
+  const base = {
+    displayName: "John",
+    bio: "Hello, I am John and I love coding",
+    lookingFor: "Looking for people who share my passion for technology",
+  };
+
+  it("accepts gender female", () => {
+    expect(createProfileSchema.safeParse({ ...base, gender: "female" }).success).toBe(true);
+  });
+
+  it("accepts gender male", () => {
+    expect(createProfileSchema.safeParse({ ...base, gender: "male" }).success).toBe(true);
+  });
+
+  it("is optional — valid without gender (legacy/null path)", () => {
+    expect(createProfileSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("rejects an unknown gender value", () => {
+    expect(createProfileSchema.safeParse({ ...base, gender: "other" }).success).toBe(false);
+  });
+});
+
 describe("updateProfileSchema", () => {
   it("allows partial updates", () => {
     const result = updateProfileSchema.safeParse({

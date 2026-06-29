@@ -352,6 +352,7 @@ export const profilingRouter = router({
         isComplete: true,
         visibilityMode,
         ...(avatarUrl ? { avatarUrl } : {}),
+        ...(input.gender ? { gender: input.gender } : {}),
       })
       .onConflictDoUpdate({
         target: schema.profiles.userId,
@@ -365,6 +366,8 @@ export const profilingRouter = router({
           visibilityMode,
           updatedAt: new Date(),
           ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
+          // Only overwrite gender when provided — settings re-profiling omits it.
+          ...(input.gender ? { gender: input.gender } : {}),
         },
       })
       .returning();
@@ -552,6 +555,7 @@ export const profilingRouter = router({
         lookingFor: "",
         visibilityMode: "ninja",
         ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
+        ...(input.gender ? { gender: input.gender } : {}),
       })
       .returning();
 

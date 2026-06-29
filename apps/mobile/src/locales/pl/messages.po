@@ -80,11 +80,6 @@ msgid "+ Nowy wątek"
 msgstr "+ Nowy wątek"
 
 #: app/(tabs)/index.tsx
-#: app/(tabs)/profile.tsx
-msgid "+ Ustaw status na teraz"
-msgstr "+ Ustaw status na teraz"
-
-#: app/(tabs)/index.tsx
 msgid "✨ Ktoś w pobliżu pasuje do Twojego statusu"
 msgstr "✨ Ktoś w pobliżu pasuje do Twojego statusu"
 
@@ -117,10 +112,6 @@ msgstr "Admin"
 #: app/(modals)/user/[userId].tsx
 msgid "Akceptuj"
 msgstr "Akceptuj"
-
-#: app/(tabs)/profile.tsx
-msgid "aktywny dopóki go nie zmienisz"
-msgstr "aktywny dopóki go nie zmienisz"
 
 #: app/settings/profiling-result.tsx
 #: app/settings/profiling.tsx
@@ -186,13 +177,11 @@ msgstr "Brak czatów"
 msgid "Brak dostępu do lokalizacji"
 msgstr "Brak dostępu do lokalizacji"
 
-#: app/(tabs)/profile.tsx
 #: app/settings/index.tsx
 msgid "Brak nazwy"
 msgstr "Brak nazwy"
 
 #: app/(modals)/user/[userId].tsx
-#: app/(tabs)/profile.tsx
 msgid "Brak opisu"
 msgstr "Brak opisu"
 
@@ -503,6 +492,10 @@ msgstr "KATEGORIA (max 2)"
 msgid "Kiedy ktoś Cię pingnie, pojawi się tutaj"
 msgstr "Kiedy ktoś Cię pingnie, pojawi się tutaj"
 
+#: app/onboarding/index.tsx
+msgid "Kobieta"
+msgstr "Kobieta"
+
 #: app/settings/profiling-result.tsx
 msgid "KOGO SZUKAM"
 msgstr "KOGO SZUKAM"
@@ -587,6 +580,10 @@ msgstr "Luźne wyjście"
 #: app/(modals)/user/[userId].tsx
 msgid "Macie już ze sobą chat — otwórz go z listy rozmów."
 msgstr "Macie już ze sobą chat — otwórz go z listy rozmów."
+
+#: app/onboarding/index.tsx
+msgid "Mężczyzna"
+msgstr "Mężczyzna"
 
 #: app/chat/[id].tsx
 msgid "Moja lokalizacja"
@@ -845,7 +842,6 @@ msgid "O czym jest ta grupa? (opcjonalnie)"
 msgstr "O czym jest ta grupa? (opcjonalnie)"
 
 #: app/(modals)/user/[userId].tsx
-#: app/(tabs)/profile.tsx
 #: app/settings/edit-profile.tsx
 msgid "O mnie"
 msgstr "O mnie"
@@ -958,12 +954,9 @@ msgstr "Pingi dochodzą, ale powiadomienia push wyciszone."
 msgid "Pingi, wiadomości"
 msgstr "Pingi, wiadomości"
 
-#. placeholder {0}: pingQuota.sentToday
 #. placeholder {0}: quota.sentToday
-#. placeholder {1}: pingQuota.dailyLimit
 #. placeholder {1}: quota.dailyLimit
 #: app/(modals)/user/[userId].tsx
-#: app/(tabs)/index.tsx
 msgid "Pingi: {0}/{1}"
 msgstr "Pingi: {0}/{1}"
 
@@ -978,6 +971,10 @@ msgstr "Pinguje Cię!"
 #: app/chat/[id].tsx
 msgid "pisze..."
 msgstr "pisze..."
+
+#: app/onboarding/index.tsx
+msgid "Płeć"
+msgstr "Płeć"
 
 #: app/settings/account.tsx
 msgid "Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania zostanie wysłany na Twój adres e-mail."
@@ -1114,7 +1111,6 @@ msgid "Pozwól na dostęp do lokalizacji w ustawieniach."
 msgstr "Pozwól na dostęp do lokalizacji w ustawieniach."
 
 #: app/(modals)/_layout.tsx
-#: app/(tabs)/_layout.tsx
 #: app/settings/_layout.tsx
 #: app/settings/index.tsx
 msgid "Profil"
@@ -1319,6 +1315,7 @@ msgstr "Udostępniona lokalizacja"
 msgid "Ustaw status"
 msgstr "Ustaw status"
 
+#: app/(tabs)/_layout.tsx
 #: app/settings/_layout.tsx
 msgid "Ustawienia"
 msgstr "Ustawienia"

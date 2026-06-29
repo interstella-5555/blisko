@@ -140,6 +140,9 @@ export const profiles = pgTable(
     superpower: text("superpower"),
     superpowerTags: text("superpower_tags").array(),
     offerType: text("offer_type").$type<"volunteer" | "exchange" | "gig">(),
+    // Binary gender collected in onboarding (BLI-306). Nullable — legacy rows are
+    // backfilled best-effort from the display name; required only in the mobile UI.
+    gender: text("gender").$type<"female" | "male">(),
     interests: text("interests").array(),
     embedding: real("embedding").array(),
     portrait: text("portrait"),

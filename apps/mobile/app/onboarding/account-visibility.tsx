@@ -116,6 +116,7 @@ export default function AccountVisibilityScreen() {
         lookingFor,
         visibilityMode: mode,
         avatarUrl: store.avatarUrl ?? undefined,
+        gender: store.gender ?? undefined,
       });
       setProfile(profile);
       setHasCheckedProfile(true);

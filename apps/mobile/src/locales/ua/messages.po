@@ -13,8 +13,8 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: app/chat/[id].tsx
 #. placeholder {0}: String(storeConversation.metadata.connectedDistance)
+#: app/chat/[id].tsx
 msgid " · ~{0}m od siebie"
 msgstr " · ~{0}м від себе"
 
@@ -27,25 +27,25 @@ msgstr " (Ти)"
 msgid "[Zdjęcie]"
 msgstr "[Фото]"
 
-#: app/(modals)/group/[id].tsx
-#: app/chat/[id].tsx
 #. placeholder {0}: groupInfo.memberCount
 #. placeholder {0}: storeConversation.memberCount
+#: app/(modals)/group/[id].tsx
+#: app/chat/[id].tsx
 msgid "{0} członków"
 msgstr "{0} учасників"
 
-#: src/hooks/useInAppNotifications.ts
 #. placeholder {0}: fromProfile.displayName
+#: src/hooks/useInAppNotifications.ts
 msgid "{0} idzie do Ciebie"
 msgstr "{0} йде до тебе"
 
-#: app/chat/[id].tsx
 #. placeholder {0}: typingDisplayNames.join(", ")
+#: app/chat/[id].tsx
 msgid "{0} pisze..."
 msgstr "{0} пише..."
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: topic.messageCount
+#: app/(modals)/group/[id].tsx
 msgid "{0} wiadomości"
 msgstr "{0} повідомлень"
 
@@ -80,11 +80,6 @@ msgid "+ Nowy wątek"
 msgstr "+ Нова тема"
 
 #: app/(tabs)/index.tsx
-#: app/(tabs)/profile.tsx
-msgid "+ Ustaw status na teraz"
-msgstr "+ Встановити статус на зараз"
-
-#: app/(tabs)/index.tsx
 msgid "✨ Ktoś w pobliżu pasuje do Twojego statusu"
 msgstr "✨ Хтось поруч підходить під твій статус"
 
@@ -96,8 +91,8 @@ msgstr "🔍 Шукаю за тебе…"
 msgid "1 godzinę"
 msgstr "1 годину"
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: nearbyData.totalNearby
+#: app/(modals)/group/[id].tsx
 msgid "20 najbliższych z {0}"
 msgstr "20 найближчих з {0}"
 
@@ -117,10 +112,6 @@ msgstr "Адмін"
 #: app/(modals)/user/[userId].tsx
 msgid "Akceptuj"
 msgstr "Прийняти"
-
-#: app/(tabs)/profile.tsx
-msgid "aktywny dopóki go nie zmienisz"
-msgstr "активний, поки ти його не зміните"
 
 #: app/settings/profiling-result.tsx
 #: app/settings/profiling.tsx
@@ -186,13 +177,11 @@ msgstr "Немає чатів"
 msgid "Brak dostępu do lokalizacji"
 msgstr "Немає доступу до локації"
 
-#: app/(tabs)/profile.tsx
 #: app/settings/index.tsx
 msgid "Brak nazwy"
 msgstr "Немає назви"
 
 #: app/(modals)/user/[userId].tsx
-#: app/(tabs)/profile.tsx
 msgid "Brak opisu"
 msgstr "Немає опису"
 
@@ -250,8 +239,8 @@ msgstr "Привіт! Як тебе звати?"
 msgid "Członkowie"
 msgstr "Члени"
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: sortedMembers.length
+#: app/(modals)/group/[id].tsx
 msgid "Członkowie ({0})"
 msgstr "Члени ({0})"
 
@@ -268,12 +257,8 @@ msgid "Czy na pewno chcesz pominąć ten ping?"
 msgstr "Ти впевнений, що хочеш пропустити цей пінг?"
 
 #: app/settings/account.tsx
-msgid ""
-"Czy na pewno chcesz usunąć swoje konto? Twoje dane zostaną trwale usunięte "
-"w ciągu 14 dni."
-msgstr ""
-"Ти впевнений, що хочеш видалити свій акаунт? Твої дані будуть безповоротно "
-"видалені протягом 14 днів."
+msgid "Czy na pewno chcesz usunąć swoje konto? Twoje dane zostaną trwale usunięte w ciągu 14 dni."
+msgstr "Ти впевнений, що хочеш видалити свій акаунт? Твої дані будуть безповоротно видалені протягом 14 днів."
 
 #: app/chat/[id].tsx
 msgid "Czy na pewno chcesz usunąć tę wiadomość?"
@@ -319,9 +304,9 @@ msgstr "Додай фото, щоб пінгувати"
 msgid "Dołącz"
 msgstr "Приєднатися"
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: groupInfo.name
 #. placeholder {1}: groupInfo.inviteCode
+#: app/(modals)/group/[id].tsx
 msgid ""
 "Dołącz do grupy „{0}\" w Blisko!\n"
 "https://blisko.app/join/{1}"
@@ -447,8 +432,8 @@ msgstr "Одним подихом…"
 msgid "Jest blisko i chce się spotkać. Rozejrzyj się!"
 msgstr "Він/вона близько і хоче зустрітися. Оглянься!"
 
-#: app/(tabs)/index.tsx
 #. placeholder {0}: nearbyFilter === "people" ? t`osoby` : t`osoby i grupy`
+#: app/(tabs)/index.tsx
 msgid "Jesteś poza zasięgiem — pokazujemy {0} tylko w pobliżu Twojej lokalizacji"
 msgstr "Ти поза зоною — показуємо {0} тільки поруч з твоєю локацією"
 
@@ -460,13 +445,13 @@ msgstr "Ти поза зоною — показуємо групи тільки 
 msgid "Jesteście połączeni"
 msgstr "Ви підключені"
 
-#: app/settings/profiling.tsx
 #. placeholder {0}: followUps.length - followUpIndex
+#: app/settings/profiling.tsx
 msgid "Jeszcze {0} pytania"
 msgstr "Ще {0} запитань"
 
-#: app/settings/profiling.tsx
 #. placeholder {0}: followUps.length - followUpIndex
+#: app/settings/profiling.tsx
 msgid "Jeszcze {0} pytanie"
 msgstr "Ще {0} запитання"
 
@@ -507,6 +492,10 @@ msgstr "КАТЕГОРІЯ (макс 2)"
 msgid "Kiedy ktoś Cię pingnie, pojawi się tutaj"
 msgstr "Коли хтось тебе пінгане, з'явиться тут"
 
+#: app/onboarding/index.tsx
+msgid "Kobieta"
+msgstr "Жінка"
+
 #: app/settings/profiling-result.tsx
 msgid "KOGO SZUKAM"
 msgstr "КОГО ШУКАЮ"
@@ -532,12 +521,8 @@ msgstr "Обліковий запис призупинено"
 
 #: app/(auth)/email.tsx
 #: app/(auth)/verify.tsx
-msgid ""
-"Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli "
-"uważasz, że to pomyłka."
-msgstr ""
-"Обліковий запис призупинено. Зв'яжися з адміністрацією: kontakt@blisko.app, "
-"якщо вважаєш, що це помилка."
+msgid "Konto zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
+msgstr "Обліковий запис призупинено. Зв'яжися з адміністрацією: kontakt@blisko.app, якщо вважаєш, що це помилка."
 
 #: app/settings/account.tsx
 msgid "Kontynuuj"
@@ -595,6 +580,10 @@ msgstr "Неформальна зустріч"
 #: app/(modals)/user/[userId].tsx
 msgid "Macie już ze sobą chat — otwórz go z listy rozmów."
 msgstr "У вас вже є чат — відкрий його зі списку розмов."
+
+#: app/onboarding/index.tsx
+msgid "Mężczyzna"
+msgstr "Чоловік"
 
 #: app/chat/[id].tsx
 msgid "Moja lokalizacja"
@@ -853,7 +842,6 @@ msgid "O czym jest ta grupa? (opcjonalnie)"
 msgstr "Про що ця група? (необов'язково)"
 
 #: app/(modals)/user/[userId].tsx
-#: app/(tabs)/profile.tsx
 #: app/settings/edit-profile.tsx
 msgid "O mnie"
 msgstr "Про мене"
@@ -966,12 +954,9 @@ msgstr "Пінги доходять, але пуш-повідомлення ви
 msgid "Pingi, wiadomości"
 msgstr "Пінги, повідомлення"
 
-#: app/(modals)/user/[userId].tsx
-#: app/(tabs)/index.tsx
-#. placeholder {0}: pingQuota.sentToday
 #. placeholder {0}: quota.sentToday
-#. placeholder {1}: pingQuota.dailyLimit
 #. placeholder {1}: quota.dailyLimit
+#: app/(modals)/user/[userId].tsx
 msgid "Pingi: {0}/{1}"
 msgstr "Пінги: {0}/{1}"
 
@@ -987,13 +972,13 @@ msgstr "Тебе пінгують!"
 msgid "pisze..."
 msgstr "пише..."
 
+#: app/onboarding/index.tsx
+msgid "Płeć"
+msgstr "Стать"
+
 #: app/settings/account.tsx
-msgid ""
-"Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania "
-"zostanie wysłany na Twój adres e-mail."
-msgstr ""
-"Завантаж копію всіх своїх даних у форматі JSON. Посилання для завантаження "
-"буде надіслано на твою електронну адресу."
+msgid "Pobierz kopię wszystkich swoich danych w formacie JSON. Link do pobrania zostanie wysłany na Twój adres e-mail."
+msgstr "Завантаж копію всіх своїх даних у форматі JSON. Посилання для завантаження буде надіслано на твою електронну адресу."
 
 #: app/settings/account.tsx
 msgid "POBIERZ MOJE DANE"
@@ -1035,8 +1020,8 @@ msgstr "Показати поблизу →"
 msgid "Pokaż wszystkich"
 msgstr "Показати всіх"
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: groupInfo.memberCount
+#: app/(modals)/group/[id].tsx
 msgid "Pokaż wszystkich ({0}) →"
 msgstr "Показати всіх ({0}) →"
 
@@ -1048,8 +1033,8 @@ msgstr "Показати всіх у радіусі"
 msgid "Pokazuj osoby, które mają zdjęcie profilowe"
 msgstr "Показувати людей, у яких є профільне фото"
 
-#: src/components/nearby/ViewportIndicator.tsx
 #. placeholder {0}: showAll ? `wszystkich ${totalCount}` : `${viewportCount} z ${totalCount}`
+#: src/components/nearby/ViewportIndicator.tsx
 msgid "Pokazujesz <0>{0}</0> osób w okolicy"
 msgstr "Ти показуєш <0>{0}</0> людей в окрузі"
 
@@ -1114,12 +1099,8 @@ msgid "Powiadomienia"
 msgstr "Повідомлення"
 
 #: app/settings/notifications.tsx
-msgid ""
-"Powiadomienia push wymagają zgody systemowej. Jeśli je wyłączyłeś, włącz je "
-"w Ustawieniach iPhone'a > Blisko."
-msgstr ""
-"Пуш-повідомлення потребують системного дозволу. Якщо ти їх вимкнув, увімкни "
-"в Налаштуваннях iPhone > Blisko."
+msgid "Powiadomienia push wymagają zgody systemowej. Jeśli je wyłączyłeś, włącz je w Ustawieniach iPhone'a > Blisko."
+msgstr "Пуш-повідомлення потребують системного дозволу. Якщо ти їх вимкнув, увімкни в Налаштуваннях iPhone > Blisko."
 
 #: src/components/ProfileGateSheet.tsx
 msgid "Później"
@@ -1130,7 +1111,6 @@ msgid "Pozwól na dostęp do lokalizacji w ustawieniach."
 msgstr "Дозволь доступ до локації в налаштуваннях."
 
 #: app/(modals)/_layout.tsx
-#: app/(tabs)/_layout.tsx
 #: app/settings/_layout.tsx
 #: app/settings/index.tsx
 msgid "Profil"
@@ -1196,9 +1176,7 @@ msgstr "Правила"
 
 #: app/(auth)/login.tsx
 msgid "Rejestrując się akceptujesz <0>Regulamin</0> i <1>Politykę Prywatności</1>."
-msgstr ""
-"Реєструючись, ти приймаєш <0>Правила</0> та <1>Політику "
-"конфіденційності</1>."
+msgstr "Реєструючись, ти приймаєш <0>Правила</0> та <1>Політику конфіденційності</1>."
 
 #: app/(tabs)/chats.tsx
 msgid "Rozmowy"
@@ -1281,9 +1259,7 @@ msgstr "Контент порушує правила"
 
 #: app/settings/account.tsx
 msgid "Trwale usuwa Twoje konto, profil i wszystkie dane. Proces trwa do 14 dni."
-msgstr ""
-"Назавжди видаляє твоє обліковий запис, профіль і всі дані. Процес триває до "
-"14 днів."
+msgstr "Назавжди видаляє твоє обліковий запис, профіль і всі дані. Процес триває до 14 днів."
 
 #: app/settings/privacy.tsx
 msgid "TRYB WIDOCZNOŚCI"
@@ -1312,12 +1288,8 @@ msgid "Twoje konto jest w trakcie usuwania. Może to potrwać do 14 dni."
 msgstr "Твій акаунт видаляється. Це може зайняти до 14 днів."
 
 #: app/_layout.tsx
-msgid ""
-"Twoje konto zostało zawieszone. Skontaktuj się z administracją: "
-"kontakt@blisko.app, jeśli uważasz, że to pomyłka."
-msgstr ""
-"Твій акаунт призупинено. Зв'яжися з адміністрацією: kontakt@blisko.app, "
-"якщо вважаєш, що це помилка."
+msgid "Twoje konto zostało zawieszone. Skontaktuj się z administracją: kontakt@blisko.app, jeśli uważasz, że to pomyłka."
+msgstr "Твій акаунт призупинено. Зв'яжися з адміністрацією: kontakt@blisko.app, якщо вважаєш, що це помилка."
 
 #: app/onboarding/account-visibility.tsx
 msgid "Tworzę Twój profil…"
@@ -1343,6 +1315,7 @@ msgstr "Поділена локація"
 msgid "Ustaw status"
 msgstr "Встановити статус"
 
+#: app/(tabs)/_layout.tsx
 #: app/settings/_layout.tsx
 msgid "Ustawienia"
 msgstr "Налаштування"
@@ -1398,8 +1371,8 @@ msgstr "В окрузі"
 msgid "W POBLIŻU"
 msgstr "ПОРЯД"
 
-#: app/(modals)/group/[id].tsx
 #. placeholder {0}: nearbyData.totalNearby
+#: app/(modals)/group/[id].tsx
 msgid "W pobliżu ({0})"
 msgstr "Поряд ({0})"
 
@@ -1566,8 +1539,8 @@ msgstr "Результат профілювання"
 msgid "Wysłałeś dużo pingów. Odpocznij chwilę i spróbuj później."
 msgstr "Ти надіслав багато пінгів. Відпочинь трохи і спробуй пізніше."
 
-#: app/settings/account.tsx
 #. placeholder {0}: user?.email
+#: app/settings/account.tsx
 msgid "Wysłaliśmy 6-cyfrowy kod na {0}"
 msgstr "Ми надіслали 6-значний код на {0}"
 

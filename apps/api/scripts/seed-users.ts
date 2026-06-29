@@ -649,14 +649,20 @@ async function autoLogin(email: string): Promise<string> {
   return data.token;
 }
 
-async function createProfile(token: string, displayName: string, bio: string, lookingFor: string) {
+async function createProfile(
+  token: string,
+  displayName: string,
+  bio: string,
+  lookingFor: string,
+  gender: "female" | "male",
+) {
   const res = await fetch(`${API}/trpc/profiles.create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ displayName, bio, lookingFor }),
+    body: JSON.stringify({ displayName, bio, lookingFor, gender }),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -768,7 +774,8 @@ async function main() {
       batch.map(async (userData) => {
         try {
           const token = await autoLogin(userData.email);
-          await createProfile(token, userData.name, userData.bio, userData.lookingFor);
+          const gender = FEMALE_NAME_SET.has(userData.name) ? "female" : "male";
+          await createProfile(token, userData.name, userData.bio, userData.lookingFor, gender);
           await updateLocation(token, userData.lat, userData.lng);
           created++;
           if (created % 25 === 0) console.log(`  ${created}/${USER_COUNT}`);

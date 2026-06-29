@@ -246,6 +246,20 @@
       "when": 1781951611607,
       "tag": "0034_add_bio_essence",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1782693298312,
+      "tag": "0035_add_gender_to_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1782693352454,
+      "tag": "0036_backfill_gender_from_names",
+      "breakpoints": true
     }
   ]
 }
