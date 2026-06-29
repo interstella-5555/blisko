@@ -1,1 +1,0 @@
-ALTER TABLE "status_matches" ADD CONSTRAINT "sm_user_matched_user_uniq" UNIQUE("user_id","matched_user_id");

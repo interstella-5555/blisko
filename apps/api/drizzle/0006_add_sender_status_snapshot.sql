@@ -1,1 +1,0 @@
-ALTER TABLE "waves" ADD COLUMN "sender_status_snapshot" text;

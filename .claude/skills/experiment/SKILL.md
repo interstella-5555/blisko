@@ -95,7 +95,7 @@ Capture the **PR number** from the `gh pr create` output — you need it to find
 Opening the PR makes Railway create an environment named **`blisko-pr-<number>`** (verified — e.g. PR #257 → `blisko-pr-257`). Poll with the MCP (build takes a few minutes):
 
 1. `mcp__railway-blisko__list-services` with `projectId=62599e90-30e8-47dd-af34-4e3f73c2261a` → look in `environments[]` for `blisko-pr-<number>`. Repeat every ~20–30s until it appears.
-2. `mcp__railway-blisko__get-status` with that `environmentId` → wait until the **`database`**, **`queue`**, and **`api`** services are SUCCESS. On preview envs the `api` deploy builds the schema straight from `schema.ts` (`drizzle-kit push`, see `apps/api/src/migrate.ts`), so once it's green the PR Postgres has the full current schema.
+2. `mcp__railway-blisko__get-status` with that `environmentId` → wait until the **`database`**, **`queue`**, and **`api`** services are SUCCESS. The `api` deploy runs migrations; on a fresh PR DB the squashed `0000_baseline` migration builds the full schema, so once it's green the PR Postgres has the complete current schema.
 
 If the env never appears after ~10 min, stop and tell the colleague PR previews may be misconfigured (and to ping Karol) — don't silently fall back to production.
 
@@ -255,5 +255,5 @@ If `apps/api/.env` is missing any **required** var (`BETTER_AUTH_SECRET`, `IP_HA
 | Waiting for the API with `sleep`/`curl` loops | Use `npx -y wait-on tcp:localhost:3000` |
 | Running `/simplify` + `/code-review` before each push | Experiments skip the pipeline — just commit + push |
 | Can't read the DB URL (CLI wrong account) | Use `railway-blisko` MCP `railway-agent`, not the `railway` CLI |
-| PR `api` deploy red on a fresh DB | `src/migrate.ts` auto-uses `drizzle-kit push` on `*-pr-*` envs (the migration chain can't bootstrap from zero); if still red, read the api deploy logs |
-| Seeding errors with "relation does not exist" | The PR schema isn't built — confirm the `api` service deployed green, or re-push: `cd apps/api && DATABASE_URL="<pr-db>" npx drizzle-kit push --force` |
+| PR `api` deploy red on `db:migrate` | Read the api deploy logs — a fresh PR DB is built by the squashed `0000_baseline` migration; an error there means the schema is incomplete |
+| Seeding errors with "relation does not exist" | The PR schema isn't built — confirm the `api` service deployed green before seeding |
