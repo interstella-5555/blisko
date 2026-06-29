@@ -94,6 +94,7 @@ export const profilesRouter = router({
         displayName: input.displayName,
         bio: input.bio,
         lookingFor: input.lookingFor,
+        gender: input.gender,
         ...(authUser?.image ? { avatarUrl: authUser.image } : {}),
       })
       .returning();
